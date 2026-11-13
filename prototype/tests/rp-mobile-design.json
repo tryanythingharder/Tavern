@@ -1,0 +1,152 @@
+{
+  "title": "RP原型窄屏设计交接规范",
+  "author": "design-system-expert",
+  "status": "设计约束定稿；非实现或验收通过报告",
+  "requirements_basis": {
+    "file": "/Users/ellen/Desktop/酒馆/prototype/tests/rp-mobile-requirements.json",
+    "read_and_checked": true,
+    "summary": {
+      "surface": "既有prototype可交互网页，优先手机长文RP、设定管理、创作和角色库闭环；不是真实平台建设。",
+      "audience": "长文阅读、角色扮演对话与角色设定管理者；不虚构年龄或商业画像。",
+      "tone": "沿用home纸白近黑、宋体标题、编辑式细线与克制留白。",
+      "reference": "已确认A24概念站https://a24.raviklaassens.com/；专门聊天参考未知，不猜测、不增加聊天装饰3D。",
+      "scale": "重点320/390 CSS px，719/1650不得退化。"
+    },
+    "attribution": "正式需求以需求文件为准；下列具体尺寸、CSS策略与测试样本是设计专家建议，不冒充分析师逐字结论。"
+  },
+  "design_direction": {
+    "selected": "既有自有编辑式纸面体系 / Editorial Monocle",
+    "reselection_required": false,
+    "candidate_comparison": [
+      {"system": "Warm Editorial", "fit": "最高", "reason": "衬线标题、细线与阅读节奏最贴合；不替换自有令牌。"},
+      {"system": "Default (Neutral Modern)", "fit": "可借鉴", "reason": "中性工具与操作清晰，但编辑品牌感弱于现有体系。"},
+      {"system": "Notion", "fit": "局部借鉴", "reason": "借鉴内容层级，不引入其整体视觉替换。"}
+    ],
+    "knowledge_evidence": "已读取预加载设计能力的visual-directions与design-system-schema；本地能力目录未发现71套独立品牌文件，候选为方向比较，不声称逐套读取。"
+  },
+  "specification": {
+    "tokens": {
+      "source": "platform-polish.css:2313–2338工具页限定作用域，沿用现有变量，勿全站覆盖发现页或广场。",
+      "colors": {
+        "--pp-canvas": "#f5f5f2",
+        "--pp-paper": "#f5f5f2",
+        "--pp-soft": "#eaeae4",
+        "--pp-ink": "#191917",
+        "--pp-copy": "#45453f",
+        "--pp-muted": "#6b6b62",
+        "--pp-line": "#d7d7ce",
+        "--pp-line-strong": "#a7a79e",
+        "--pp-accent": "#34342e",
+        "--pp-accent-soft": "#eaeae4",
+        "--pp-focus": "#181816"
+      },
+      "geometry": {"--pp-radius": "0px", "--pp-control-radius": "2px", "--read-max": "760px", "--tap": "44px", "--tabbar-h": "58px"},
+      "typography": {
+        "--pp-reading-font": "\"Songti SC\", \"STSong\", \"SimSun\", Georgia, serif",
+        "--pp-font": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
+        "mobile_message": "16px乘现有--rp-font-scale，行高1.9，段距1em；不得裁切长文。",
+        "input": "实际字号不低于16px，不随阅读缩放缩至16px以下。",
+        "auxiliary": "建议12px，不继续压缩到11px。",
+        "headings": "手机页标题30–36px、行高1.2–1.3；聊天名18px，宋体标题保持常规字重。"
+      },
+      "contrast_checks": {
+        "method": "按sRGB相对亮度计算WCAG对比度，普通文字阈值4.5:1。",
+        "on_paper": {"ink": 16.12, "copy": 8.84, "muted": 4.92, "line": 1.33, "line_strong": 2.22},
+        "muted_on_soft": 4.45,
+        "required_adjustments": [
+          "soft底上的普通辅助文字改用既有--pp-copy，其对比度7.99:1。",
+          "line及line-strong可作装饰分隔，但不足以独自承担必需控件边界或选中状态；必要边界局部使用--pp-muted。",
+          "焦点使用--pp-focus并提供清晰2px轮廓；不宣称现状所有颜色均通过AA。"
+        ]
+      }
+    },
+    "layout_and_breakpoints": {
+      "reuse_existing": [
+        {"max_width_px": 1180, "behavior": "RP设定侧轨隐藏，入口仍可发现和打开。"},
+        {"max_width_px": 1100, "behavior": "创作单列，侧栏取消限高及内层滚动。"},
+        {"max_width_px": 1023, "behavior": "普通页面侧导航变底导航；聊天维持无底栏。"},
+        {"max_width_px": 720, "behavior": "手机布局及触控规则。"},
+        {"max_width_px": 359, "behavior": "超窄布局，仅缩减留白，不缩减触控。"}
+      ],
+      "chat_gutter_px": {"above_720": 32, "360_to_720": 20, "at_most_359": 14},
+      "content_width_examples_px": {"viewport_320": 292, "viewport_390": 350},
+      "spacing_scale_px": [4, 8, 12, 16, 24, 32],
+      "rules": [
+        "不增设相近冲突断点，不硬压缩220px导航和288px设定轨到手机。",
+        "内容轨使用minmax(0,1fr)，flex/grid内容项min-width:0。",
+        "禁止用全页overflow-x:hidden掩盖真实横溢出。"
+      ]
+    },
+    "input_and_visible_viewport": {
+      "priority": "P0",
+      "structure": "header / 唯一消息滚动区.p-chat-scroll / composer；header和composer不缩，消息区min-height:0。",
+      "height_basis": "使用实际可见视口H；100dvh为基础回退，必要时用visualViewport.height及offsetTop校准，不把多个祖先独立锁成不随键盘变化的100dvh。",
+      "height_budget": "H包含安全区、实测头部、消息区及实测composer；避免重复累计安全区。先缩非必要留白或折叠冗余状态，不隐藏返回、设定、发送。",
+      "textarea": {"min_height_px": 54, "suggested_max_height": "max(54, min(160, 0.24 * H))px", "short_viewport_cap_start_px": 96, "overflow": "超过上限仅textarea内部滚动。"},
+      "send_control_px": {"width": 48, "height": 54, "row_gap": 8},
+      "reading_budget": "若剩余消息区不足约80px，优先将冗余上下文收为单行入口，而非硬挤必需操作。此值是起测建议。",
+      "state_and_input": [
+        "设定打开关闭不重建丢失草稿节点或状态。",
+        "中文输入法composition期间不得误触发送，换行及显式发送按既有交互语义正确工作。",
+        "收起键盘恢复可用高度与滚动上下文，不跳回顶部。"
+      ],
+      "cascade_risks": [
+        "platform-polish.css:2601的:has(>.p-rp-status) height:auto以及:2605的head-in 64px可能抵消:2961短屏54px意图；检查computed style，不继续盲叠通用height。",
+        "既有max-height:20dvh不能单独证明真实键盘适配。"
+      ]
+    },
+    "dialogs_navigation_and_touch": {
+      "modal_width": "不超过视口宽减32px；320px时不超过288px。",
+      "modal_height": "依据实际可见高度，扣除上下各16px和安全区；极短屏允许近全屏。",
+      "modal_scroll": "一个弹窗内容滚动区；关闭44×44始终可触达，可采用固定或粘性头；底部操作可滚到或固定但不得遮末字段。",
+      "modal_state": "开启锁背景；关闭恢复原滚动与触发焦点；Esc及显式关闭可用，无残留遮罩或滚动锁。",
+      "existing_risk": "proto.css:1201的absolute关闭按钮可能随长内容滚走，需验证。",
+      "layers": {"--z-menu": 30, "--z-modal": 50, "--z-toast": 60, "caution": "原型浮标z90不得穿透或遮挡弹窗。"},
+      "navigation": "聊天已有隐藏tabbar，不恢复；其他页面保留58px底栏加安全区，并给末内容相应底部避让。",
+      "touch_target": "主要返回、设定、候选切换、分支、注释、关闭、保存及角色选择目标至少44×44 CSS px。",
+      "visibility": "文本按钮可换行，不压缩点击区；手机操作不可仅hover显现。"
+    },
+    "long_content_and_workflows": {
+      "text_wrapping": "消息、记忆、身份、草稿overflow-wrap:anywhere；需保留换行处white-space:pre-wrap；代码或表格若存在，只能局部横滚。",
+      "title_truncation": "标题栏可省略长姓名，但完整身份必须可打开查看；正文不省略。",
+      "rp_invariants": [
+        "候选索引、前缀分支、历史身份快照、手动记忆及注释入口在窄屏仍可操作。",
+        "分支隔离、失败回滚、保存失败反馈不退化；当前设定不得重写历史身份。",
+        "sessionStorage本地存档、模板回复、最近12条关键词世界书不得描述成真实模型或检索服务。"
+      ],
+      "cross_page": "窄屏创作取消sticky及内层限高，编辑→预览→已有保存/模拟公开、角色库→选择角色→进入对话均由页面单一滚动走通；校验、反馈和返回入口可见。"
+    },
+    "implementation_guide": {
+      "priorities": {"P0": "输入发送不可达、遮挡、横溢出、无法退出、草稿状态丢失", "P1": "跨页闭环、长文阅读、入口触控、宽屏回归", "P2": "细线与留白收束"},
+      "flexibility": "建议数值为实施起点，builder可依据实机证据调整，但不改变已确认风格和需求不变量。",
+      "source_files_read": ["platform-polish.css（包含2313行后及手机相关规则）", "platform.css", "proto.css", "platform-pages.css（聊天骨架）"]
+    }
+  },
+  "acceptance_matrix": {
+    "status": "本文件仅定义待测矩阵，不报告通过",
+    "viewports_css_px": [{"width": 320, "height": 568}, {"width": 390, "height": 844}, {"width": 719, "height": 788}, {"width": 1650, "height": 746}],
+    "breakpoint_spot_checks_width_px": [359, 360, 720, 721, 1023, 1024, 1100, 1101, 1180, 1181],
+    "cases": [
+      {"requirement": "AC1", "checks": ["中文长段、至少一条300字符连续英文URL、多轮消息", "支持的最小与最大字号倍率内容完整", "document.documentElement.scrollWidth不超过clientWidth，允许1px取整误差", "719/1650修改后无退化"]},
+      {"requirement": "AC2", "checks": ["单行、多行及超长草稿聚焦换行发送", "中文输入法组合过程不误发", "设定打开关闭草稿保留", "可见视口缩短和恢复后输入、发送可达，无双重滚动锁死"]},
+      {"requirement": "AC3", "checks": ["长弹窗滚到底，关闭及末字段可操作", "退出恢复上下文焦点，无遮罩残留", "主要触控目标至少44×44，导航不遮末内容"]},
+      {"requirement": "AC4", "checks": ["发送与候选切换", "前缀分支隔离及历史身份快照", "记忆注释设定入口", "失败回滚及保存失败反馈", "原型能力边界文案明确"]},
+      {"requirement": "AC5", "checks": ["角色库选角色进入对话并返回", "创作编辑、预览、保存及模拟公开", "校验反馈返回可见，不称真实线上发布"]}
+    ],
+    "short_viewport_stress": "约300–400px高度仅作辅助压力测试，不替代软键盘验收。",
+    "real_keyboard": {
+      "target_environments": ["iOS Safari真机", "Android Chrome真机"],
+      "sequence": ["聚焦", "中文组合输入", "换行", "发送", "设定往返", "收起键盘"],
+      "evidence": "记录机型、系统/浏览器、截图或录像与每步结果；未覆盖的平台分别标未验证。",
+      "status": "设计专家未执行真机验证"
+    }
+  },
+  "evidence_and_boundaries": {
+    "scope": "/Users/ellen/Desktop/酒馆/prototype/",
+    "historical": "需求文件记录历史112项回归及1650×746、719×788；不能推导本轮320/390或真实键盘已通过。",
+    "lead_reported_current_baseline": "主理人消息另报告本轮修改前基线112/112通过；设计专家未独立执行，且不等于修改后或移动端验收。",
+    "pending": ["本轮320/390实开页面", "长文输入设定与RP核心闭环", "创作角色库窄屏闭环", "修改后行为回归与宽屏复核", "真实设备软键盘"],
+    "not_in_scope": ["真实后端", "计费支付", "部署", "新增真实模型或生产能力", "把模拟公开当线上发布", "重新选风格或加入聊天3D"],
+    "author_changes": "设计专家仅创建本JSON交接文件；未修改原型实现，未创建MD文件。"
+  }
+}

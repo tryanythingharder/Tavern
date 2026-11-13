@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>光盘动态验收夹具</title>
+<style>
+body{margin:0;font:14px system-ui;background:#f5f5f2;color:#161616}header{padding:12px;display:flex;gap:8px;flex-wrap:wrap}button{min-height:44px;padding:8px 16px;border:1px solid #777;background:#fff;color:#111;cursor:pointer}#stage{height:calc(100svh - 150px);min-height:360px}#result{white-space:pre-wrap;padding:12px;margin:0;line-height:1.5}canvas{width:100%;height:100%}
+</style>
+</head>
+<body>
+<header><button id="mount">重建画廊</button><button id="destroy">卸载画廊</button><button id="next">下一张</button><button id="previous">上一张</button><button id="reduce" aria-pressed="false">减少动态：关</button><button id="lose">模拟图形上下文丢失</button></header>
+<div id="stage" aria-label="光盘验收场景"></div>
+<pre id="result" role="status"></pre>
+<script type="module">
+import { mountDiscGallery } from '../disc-gallery.js?v=qa-motion';
+const stage=document.getElementById('stage');
+const output=document.getElementById('result');
+const events={mounts:0,destroys:0,active:[],selected:[],errors:[],reduced:false};
+const works=[
+{id:'lin-wanzhao',name:'林晚照',author:'青梧',category:'现代'},
+{id:'bai-lu',name:'白露',author:'照野',category:'奇幻'},
+{id:'lu-shiyan',name:'陆时衍',author:'南枝',category:'现代'},
+{id:'a-heng',name:'阿蘅',author:'鹿鸣',category:'治愈'},
+];
+let gallery;
+const show=()=>output.textContent=JSON.stringify({...events,motion:stage.dataset.motion,ready:stage.dataset.ready,canvases:stage.querySelectorAll('canvas').length},null,2);
+const mount=()=>{gallery?.destroy();events.mounts++;gallery=mountDiscGallery(stage,works,{reducedMotion:events.reduced,onHover:(work)=>{events.active.push(work.id);show();},onSelect:(work,rect)=>{events.selected.push({id:work.id,hasTexture:Boolean(rect.image)});show();},onError:(error)=>{events.errors.push(error.message);show();}});show();};
+document.getElementById('mount').onclick=mount;
+document.getElementById('destroy').onclick=()=>{gallery?.destroy();gallery=null;events.destroys++;show();};
+document.getElementById('next').onclick=()=>gallery?.next();
+document.getElementById('previous').onclick=()=>gallery?.previous();
+document.getElementById('reduce').onclick=event=>{events.reduced=!events.reduced;event.currentTarget.setAttribute('aria-pressed',String(events.reduced));event.currentTarget.textContent=`减少动态：${events.reduced?'开':'关'}`;mount();};
+document.getElementById('lose').onclick=()=>{const gl=stage.querySelector('canvas')?.getContext('webgl2');gl?.getExtension('WEBGL_lose_context')?.loseContext();};
+new MutationObserver(show).observe(stage,{attributes:true,attributeFilter:['data-motion','data-active-id','data-ready']});
+window.addEventListener('error',event=>{events.errors.push(event.message);show();});
+window.addEventListener('unhandledrejection',event=>{events.errors.push(String(event.reason));show();});
+mount();
+</script>
+</body>
+</html>

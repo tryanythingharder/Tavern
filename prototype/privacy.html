@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,viewport-fit=cover">
+<title>隐私政策 · 酒馆</title>
+<link rel="stylesheet" href="proto.css?v=20261028-12">
+<style>
+    body { background: #f7f7f8; color: #1b1b1d; font-family: "Helvetica Neue", "PingFang SC", "Noto Sans SC", Arial, sans-serif; }
+    .legal { max-width: 720px; margin: 0 auto; padding: 48px 20px 96px; }
+    .legal a.back { display: inline-flex; align-items: center; gap: 6px; color: #77777e; font-size: 13px; text-decoration: none; }
+    .legal h1 { margin: 20px 0 8px; font-size: 32px; letter-spacing: -.02em; }
+    .legal .meta { color: #77777e; font-size: 13px; }
+    .legal .demo { margin: 24px 0 32px; padding: 14px 16px; border: 1px solid #e6e6e8; border-radius: 12px; background: #fff; color: #4a4a50; font-size: 13px; line-height: 1.75; }
+    .legal h2 { margin: 32px 0 10px; font-size: 17px; }
+    .legal p, .legal li { color: #4a4a50; font-size: 14px; line-height: 1.85; }
+    .legal ul { padding-left: 1.2em; }
+    .legal footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e6e6e8; color: #77777e; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<main class="legal">
+    <a class="back" href="login.html">← 返回登录</a>
+    <h1>隐私政策</h1>
+    <p class="meta">本地原型占位文档 · 不是正式法律文本</p>
+    <div class="demo"><strong>这是原型示例。</strong>正式隐私政策需由法务起草后再替换本页。原型没有服务端：所有数据只存在你当前浏览器的标签页里。</div>
+    <h2>1. 原型收集什么</h2>
+    <p>什么都不上传。角色、会话、身份、点数示例等数据保存在当前标签页的 <code>sessionStorage</code>，关闭标签页即丢失；公告与视图偏好存在 <code>localStorage</code>。</p>
+    <h2>2. 正式版本会处理的数据</h2>
+    <ul>
+        <li>账号信息：邮箱、加密后的密码、昵称。</li>
+        <li>使用数据：会话内容、生成用量、点数流水（用于计费与客服）。</li>
+        <li>设备与安全数据：登录设备、IP、异常登录记录。</li>
+    </ul>
+    <h2>3. 你的权利</h2>
+    <p>正式版本需提供：导出全部个人数据、删除账号与内容、撤回授权、投诉渠道。原型里「我的 → 导入与数据」已画出导出与备份入口，但删除账号尚未实现。</p>
+    <h2>4. 第三方</h2>
+    <p>正式版本会使用模型、支付与对象存储服务，具体供应商与数据处理方式需在本页列明；原型不连接任何第三方。</p>
+    <footer>正式上线前，本页需由法务审阅并替换；数据边界见 <a href="DEV-CONSTRAINTS.md">DEV-CONSTRAINTS.md</a> §10。</footer>
+</main>
+</body>
+</html>

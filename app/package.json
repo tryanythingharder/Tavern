@@ -1,0 +1,28 @@
+{
+  "name": "tavern-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3100",
+    "build": "next build",
+    "start": "next start -p 3100",
+    "probe": "node scripts/production-probe.mjs",
+    "backup": "bash scripts/backup.sh",
+    "admin": "node scripts/promote-admin.mjs",
+    "check": "bash scripts/check.sh"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "next": "^15.5.29",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.5.2",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "typescript": "5.9.2"
+  }
+}

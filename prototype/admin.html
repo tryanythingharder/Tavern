@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>概览 · 酒馆管理后台</title>
+<link rel="stylesheet" href="proto.css?v=20261028-12"><link rel="stylesheet" href="admin-proto.css?v=20261109-a3">
+<style>
+/* =========================================================================
+   后台骨架：固定侧栏 + 主区
+   ========================================================================= */
+
+.p-admin {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    min-height: 100dvh;
+}
+
+/* ---- 侧栏 ---- */
+
+.p-aside {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: var(--s5) var(--s3);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+}
+
+.p-abrand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 var(--s3) 10px;
+}
+
+.p-abrand-tag {
+    padding: 0 var(--s3) var(--s5);
+}
+
+.p-anav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0 -4px;
+    padding: 0 4px;
+}
+
+.p-aside .p-side-foot {
+    padding-top: var(--s4);
+    border-top: 1px solid var(--border);
+}
+
+.p-aside .p-btn--block {
+    margin-top: var(--s2);
+}
+
+/* ---- 主区 ---- */
+
+.p-amain {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.p-atoolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s4);
+    padding: var(--s5) var(--s8) var(--s4);
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+}
+
+.p-atoolbar h1 {
+    font-size: var(--f-2xl);
+    font-weight: var(--fw-bold);
+    letter-spacing: -0.02em;
+    line-height: var(--lh-tight);
+}
+
+.p-atoolbar-sub {
+    margin-top: 3px;
+    font-size: var(--f-xs);
+    color: var(--muted);
+}
+
+.p-atoolbar-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--s2);
+}
+
+.p-acontent {
+    width: 100%;
+    max-width: 1320px;
+    padding: var(--s6) var(--s8) var(--s18);
+}
+
+.p-block {
+    margin-top: var(--s4);
+}
+
+/* ---- KPI ---- */
+
+.p-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s4);
+}
+
+.p-kpi-label {
+    font-size: var(--f-2xs);
+    letter-spacing: 0.02em;
+    color: var(--muted);
+}
+
+.p-kpi-value {
+    margin-top: 6px;
+    font-size: var(--f-3xl);
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-tight);
+    letter-spacing: -0.02em;
+}
+
+.p-kpi-delta {
+    margin-top: 6px;
+    font-size: var(--f-2xs);
+    color: var(--muted);
+}
+
+.p-kpi-delta--up {
+    color: var(--ok);
+}
+
+.p-kpi-delta--down {
+    color: var(--danger);
+}
+
+/* ---- 通用卡片头 ---- */
+
+.p-block-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s4) var(--s5) var(--s3);
+}
+
+.p-block-head h2 {
+    font-size: var(--f-lg);
+    font-weight: var(--fw-semi);
+    letter-spacing: -0.01em;
+}
+
+.p-block-head .p-btn {
+    margin-left: auto;
+}
+
+.p-rows {
+    overflow: hidden;
+}
+
+.p-rows .p-row {
+    border-radius: 0;
+}
+
+/* ---- 待处理队列 ---- */
+
+.p-queue .p-row {
+    border-top: 1px solid var(--border);
+    padding-inline: var(--s5);
+}
+
+.p-qthumb {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: var(--r-sm);
+}
+
+.p-qactions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--s2);
+}
+
+/* ---- 最近订单 ---- */
+
+.p-orders-card {
+    overflow: hidden;
+}
+
+.p-orders-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    flex-wrap: wrap;
+    padding: var(--s4) var(--s5);
+}
+
+.p-orders-head h2 {
+    font-size: var(--f-lg);
+    font-weight: var(--fw-semi);
+    letter-spacing: -0.01em;
+}
+
+.p-orders-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.p-orders-tools .p-search {
+    flex: 0 0 220px;
+    width: 220px;
+}
+
+.p-orders-card .p-table-wrap {
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.p-cell-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.p-icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+
+.p-icon-btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.p-icon-btn--lg {
+    width: 32px;
+    height: 32px;
+}
+
+.p-table-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s3);
+    padding: var(--s3) var(--s5);
+    border-top: 1px solid var(--border);
+}
+
+.p-foot-count {
+    font-size: var(--f-xs);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.p-foot-right {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.p-page-size {
+    width: 96px;
+    height: 32px;
+    padding-right: 28px;
+    background-position: right 10px center;
+    font-size: var(--f-xs);
+}
+
+/* ---- 移动端订单卡（桌面隐藏） ---- */
+
+.p-acards {
+    display: none;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.p-acard {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    height: 88px;
+    padding: 0 var(--s4);
+    border-top: 1px solid var(--border);
+}
+
+.p-acard-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.p-acard-t1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.p-acard-name {
+    font-size: var(--f-md);
+    font-weight: var(--fw-semi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.p-acard-time {
+    margin-left: auto;
+    font-size: var(--f-2xs);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.p-acard-t2 {
+    font-size: var(--f-xs);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.p-acard-acts {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+}
+
+/* ---- 移动端顶部标签条（桌面隐藏） ---- */
+
+.p-atabs {
+    display: none;
+}
+
+.p-atab-count {
+    font-size: var(--f-2xs);
+    font-weight: var(--fw-semi);
+    color: var(--muted);
+}
+
+.p-atabs a[aria-current="page"] .p-atab-count {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+/* =========================================================================
+   响应式
+   ========================================================================= */
+
+@media (max-width: 960px) {
+    .p-admin {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .p-aside {
+        display: none;
+    }
+
+    .p-atabs {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 10px 16px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        scrollbar-width: none;
+    }
+
+    .p-atabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .p-atabs a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+        height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--r-pill);
+        background: var(--surface);
+        color: var(--text-2);
+        font-size: var(--f-sm);
+        font-weight: var(--fw-semi);
+        white-space: nowrap;
+    }
+
+    .p-atabs a[aria-current="page"] {
+        background: var(--g900);
+        border-color: var(--g900);
+        color: #fff;
+    }
+
+    .p-atoolbar {
+        top: 65px;
+        padding: var(--s4);
+    }
+
+    .p-acontent {
+        padding: var(--s4) var(--s4) var(--s18);
+    }
+
+    .p-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .p-table-wrap {
+        display: none;
+    }
+
+    .p-acards {
+        display: block;
+    }
+
+    .p-orders-tools {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .p-orders-tools .p-search {
+        flex: 1 1 160px;
+        width: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    .p-atoolbar {
+        flex-wrap: wrap;
+        gap: var(--s3);
+    }
+
+    .p-atoolbar h1 {
+        font-size: var(--f-xl);
+    }
+
+    .p-kpi-value {
+        font-size: var(--f-2xl);
+    }
+
+    .p-block-head,
+    .p-orders-head {
+        padding-inline: var(--s4);
+    }
+
+    .p-queue .p-row {
+        padding-inline: var(--s4);
+    }
+
+    .p-table-foot {
+        padding: var(--s3) var(--s4);
+    }
+
+    .p-qactions .p-btn {
+        padding: 0 10px;
+    }
+}
+
+@media (max-width: 560px) {
+    /* 手机上仍保留两列，四个 KPI 不必各占一整屏 */
+    .p-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s3);
+    }
+
+    .p-kpis .p-card--pad {
+        padding: var(--s4);
+    }
+
+    .p-kpi-value {
+        font-size: var(--f-2xl);
+    }
+
+    .p-queue .p-row {
+        flex-wrap: wrap;
+        row-gap: var(--s2);
+    }
+
+    .p-qactions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .p-page-size {
+        display: none;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="p-admin">
+    <aside class="p-aside">
+        <div class="p-abrand">
+            <div class="p-mark">酒</div>
+            <div class="p-brand-name">酒馆</div>
+        </div>
+        <div class="p-abrand-tag">
+            <span class="p-pill p-pill--sm p-pill--outline">管理后台</span>
+        </div>
+
+        <nav class="p-anav" aria-label="后台导航">
+            <div class="p-nav-label">内容</div>
+            <a class="p-nav-item" href="#/overview" data-admin-view="overview" aria-current="page">概览</a>
+            <a class="p-nav-item" href="#/plaza" data-admin-view="plaza">广场审核<span class="p-nav-count">7</span></a>
+            <a class="p-nav-item" href="#/reports" data-admin-view="reports">举报处理<span class="p-nav-count">3</span></a>
+            <a class="p-nav-item" href="#/announcement" data-admin-view="announcement">公告</a>
+
+            <div class="p-nav-label">用户与交易</div>
+            <a class="p-nav-item" href="#/players" data-admin-view="players">玩家</a>
+            <a class="p-nav-item" href="#/orders" data-admin-view="orders">订单</a>
+            <a class="p-nav-item" href="#/codes" data-admin-view="codes">卡密</a>
+            <a class="p-nav-item" href="#/invites" data-admin-view="invites">邀请码</a>
+
+            <div class="p-nav-label">配置</div>
+            <a class="p-nav-item" href="#/gateway" data-admin-view="gateway">模型与网关</a>
+            <a class="p-nav-item" href="#/channels" data-admin-view="channels">渠道</a>
+
+            <div class="p-nav-label">系统</div>
+            <a class="p-nav-item" href="#/audit" data-admin-view="audit">审计日志</a>
+        </nav>
+
+        <div class="p-side-foot">
+            <div class="p-user-row">
+                <span class="p-avatar" style="--size:32px;--h:220">A</span>
+                <div class="p-row-main">
+                    <div class="p-user-name">admin</div>
+                    <div class="p-user-sub">超级管理员</div>
+                </div>
+            </div>
+            <a class="p-btn p-btn--sm p-btn--ghost p-btn--block" href="home.html">返回前台</a>
+        </div>
+    </aside>
+
+    <div class="p-amain">
+        <nav class="p-atabs" aria-label="后台导航（移动端）">
+            <a href="#/overview" data-admin-view="overview" aria-current="page">概览</a>
+            <a href="#/plaza" data-admin-view="plaza">广场审核<span class="p-atab-count">7</span></a>
+            <a href="#/reports" data-admin-view="reports">举报处理<span class="p-atab-count">3</span></a>
+            <a href="#/announcement" data-admin-view="announcement">公告</a>
+            <a href="#/players" data-admin-view="players">玩家</a>
+            <a href="#/orders" data-admin-view="orders">订单</a>
+            <a href="#/codes" data-admin-view="codes">卡密</a>
+            <a href="#/invites" data-admin-view="invites">邀请码</a>
+            <a href="#/gateway" data-admin-view="gateway">模型与网关</a>
+            <a href="#/channels" data-admin-view="channels">渠道</a>
+            <a href="#/audit" data-admin-view="audit">审计日志</a>
+        </nav>
+
+        <header class="p-atoolbar">
+            <div>
+                <h1>概览</h1>
+                <div class="p-atoolbar-sub">示例数据 · 静态演示</div>
+            </div>
+            <div class="p-atoolbar-actions">
+                <button class="p-btn p-btn--sm" type="button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/></svg>
+                    <span>刷新</span>
+                </button>
+                <button class="p-btn p-btn--sm p-btn--primary" type="button">导出 CSV</button>
+            </div>
+        </header>
+
+        <div class="p-admin-demo" role="note">本地演示后台：以下数据均为示例，审核、封禁、订单等操作不会发送到任何服务端。唯一会真实生效的是「公告」——保存后写入本浏览器，玩家端顶部会显示。</div>
+        <div class="p-acontent">
+            <!-- KPI -->
+            <div class="p-kpis">
+                <div class="p-card p-card--pad">
+                    <div class="p-kpi-label">玩家总数</div>
+                    <div class="p-kpi-value p-num">1,284</div>
+                    <div class="p-kpi-delta p-kpi-delta--up">+18 本周</div>
+                </div>
+                <div class="p-card p-card--pad">
+                    <div class="p-kpi-label">今日订单</div>
+                    <div class="p-kpi-value p-num">¥2,860</div>
+                    <div class="p-kpi-delta p-kpi-delta--up">+12.4% 较昨日</div>
+                </div>
+                <div class="p-card p-card--pad">
+                    <div class="p-kpi-label">待审作品</div>
+                    <div class="p-kpi-value p-num">7</div>
+                    <div class="p-kpi-delta p-kpi-delta--down">3 件已超 24 小时</div>
+                </div>
+                <div class="p-card p-card--pad">
+                    <div class="p-kpi-label">累计消耗</div>
+                    <div class="p-kpi-value p-num">1,284,900 点</div>
+                    <div class="p-kpi-delta p-kpi-delta--up">今日新增 332,000 点</div>
+                </div>
+            </div>
+
+            <section class="p-card p-card--pad p-block p-admin-modules">
+                <div class="p-block-head">
+                    <h2>管理版块</h2>
+                    <span class="p-small">内容、用户与交易、配置、系统</span>
+                </div>
+                <p class="p-admin-modules-intro">后台不是只有数据概览。点击任意模块进入对应管理界面。</p>
+                <div class="p-admin-module-grid">
+                    <a class="p-admin-module" href="#/plaza" data-admin-view="plaza"><strong>广场审核</strong><span>7 件待审 · 通过 / 拒绝 / 更新</span></a>
+                    <a class="p-admin-module" href="#/reports" data-admin-view="reports"><strong>举报处理</strong><span>3 条待处理 · 安全处置</span></a>
+                    <a class="p-admin-module" href="#/announcement" data-admin-view="announcement"><strong>公告</strong><span>编辑玩家端顶部公告</span></a>
+                    <a class="p-admin-module" href="#/players" data-admin-view="players"><strong>玩家</strong><span>余额、封禁、令牌状态</span></a>
+                    <a class="p-admin-module" href="#/orders" data-admin-view="orders"><strong>订单</strong><span>支付状态与导出</span></a>
+                    <a class="p-admin-module" href="#/codes" data-admin-view="codes"><strong>卡密</strong><span>批量生成与兑换记录</span></a>
+                    <a class="p-admin-module" href="#/invites" data-admin-view="invites"><strong>邀请码</strong><span>邀请制开关与一次性码</span></a>
+                    <a class="p-admin-module" href="#/gateway" data-admin-view="gateway"><strong>模型与网关</strong><span>模型白名单与计费配置</span></a>
+                    <a class="p-admin-module" href="#/channels" data-admin-view="channels"><strong>渠道</strong><span>上游渠道与连接测试</span></a>
+                    <a class="p-admin-module" href="#/audit" data-admin-view="audit"><strong>审计日志</strong><span>敏感操作留痕</span></a>
+                </div>
+            </section>
+
+            <!-- 待处理 -->
+            <section class="p-card p-rows p-queue p-block">
+                <div class="p-block-head">
+                    <h2>待处理</h2>
+                    <span class="p-pill p-pill--warn p-pill--sm">7 件</span>
+                    <button class="p-btn p-btn--sm p-btn--ghost" type="button">全部队列 →</button>
+                </div>
+
+                <div class="p-row">
+                    <div class="p-cover p-qthumb" style="--h:24" data-initial="山"></div>
+                    <div class="p-row-main">
+                        <div class="p-row-title">长夜观山</div>
+                        <div class="p-row-sub">@青梧 · 提交于 2 小时前 · 更新</div>
+                    </div>
+                    <div class="p-qactions">
+                        <button class="p-btn p-btn--sm p-btn--primary" type="button">通过</button>
+                        <button class="p-btn p-btn--sm p-btn--danger" type="button">拒绝</button>
+                    </div>
+                </div>
+
+                <div class="p-row">
+                    <div class="p-cover p-qthumb" style="--h:280" data-initial="星"></div>
+                    <div class="p-row-main">
+                        <div class="p-row-title">星港列车长</div>
+                        <div class="p-row-sub">@江晚舟 · 提交于 5 小时前 · 新提交</div>
+                    </div>
+                    <div class="p-qactions">
+                        <button class="p-btn p-btn--sm p-btn--primary" type="button">通过</button>
+                        <button class="p-btn p-btn--sm p-btn--danger" type="button">拒绝</button>
+                    </div>
+                </div>
+
+                <div class="p-row">
+                    <div class="p-cover p-qthumb" style="--h:160" data-initial="雨"></div>
+                    <div class="p-row-main">
+                        <div class="p-row-title">雨夜便利店</div>
+                        <div class="p-row-sub">@阿九 · 提交于 昨天 21:40 · 更新</div>
+                    </div>
+                    <div class="p-qactions">
+                        <button class="p-btn p-btn--sm p-btn--primary" type="button">通过</button>
+                        <button class="p-btn p-btn--sm p-btn--danger" type="button">拒绝</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 最近订单 -->
+            <section class="p-card p-orders-card p-block">
+                <div class="p-orders-head">
+                    <h2>最近订单</h2>
+                    <div class="p-orders-tools">
+                        <div class="p-tabs" role="tablist" aria-label="订单筛选">
+                            <button type="button" role="tab" aria-selected="true">全部</button>
+                            <button type="button" role="tab" aria-selected="false">已支付</button>
+                            <button type="button" role="tab" aria-selected="false">待支付</button>
+                        </div>
+                        <label class="p-search">
+                            <i aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16.2 16.2 3.8 3.8"/></svg>
+                            </i>
+                            <input class="p-input" type="text" placeholder="订单号或玩家" aria-label="搜索订单号或玩家">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="p-table-wrap">
+                    <table class="p-table">
+                        <thead>
+                            <tr>
+                                <th>订单号</th>
+                                <th>玩家</th>
+                                <th>商品</th>
+                                <th>金额</th>
+                                <th>点数</th>
+                                <th>状态</th>
+                                <th>时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="p-num">#261026-0842</td>
+                                <td>林见白</td>
+                                <td>点数充值 · 1000 元档</td>
+                                <td class="p-num">¥1,000</td>
+                                <td class="p-num">120,000</td>
+                                <td><span class="p-pill p-pill--ok p-pill--sm">已支付</span></td>
+                                <td class="p-num">14:32</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0842">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0842">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0839</td>
+                                <td>青梧</td>
+                                <td>点数充值 · 300 元档</td>
+                                <td class="p-num">¥300</td>
+                                <td class="p-num">33,000</td>
+                                <td><span class="p-pill p-pill--ok p-pill--sm">已支付</span></td>
+                                <td class="p-num">14:07</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0839">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0839">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0831</td>
+                                <td>沈砚居</td>
+                                <td>点数充值 · 100 元档</td>
+                                <td class="p-num">¥100</td>
+                                <td class="p-num">10,000</td>
+                                <td><span class="p-pill p-pill--ok p-pill--sm">已支付</span></td>
+                                <td class="p-num">13:41</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0831">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0831">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0827</td>
+                                <td>江晚舟</td>
+                                <td>点数充值 · 30 元档</td>
+                                <td class="p-num">¥30</td>
+                                <td class="p-num">3,000</td>
+                                <td><span class="p-pill p-pill--warn p-pill--sm">待支付</span></td>
+                                <td class="p-num">13:12</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0827">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0827">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0820</td>
+                                <td>白露未晞</td>
+                                <td>点数充值 · 1000 元档</td>
+                                <td class="p-num">¥1,000</td>
+                                <td class="p-num">120,000</td>
+                                <td><span class="p-pill p-pill--ok p-pill--sm">已支付</span></td>
+                                <td class="p-num">12:26</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0820">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0820">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0814</td>
+                                <td>苏叶</td>
+                                <td>点数充值 · 300 元档</td>
+                                <td class="p-num">¥300</td>
+                                <td class="p-num">33,000</td>
+                                <td><span class="p-pill p-pill--ok p-pill--sm">已支付</span></td>
+                                <td class="p-num">11:49</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0814">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0814">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0809</td>
+                                <td>陈默</td>
+                                <td>点数充值 · 100 元档</td>
+                                <td class="p-num">¥100</td>
+                                <td class="p-num">10,000</td>
+                                <td><span class="p-pill p-pill--danger p-pill--sm">已退款</span></td>
+                                <td class="p-num">10:38</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0809">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0809">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-num">#261026-0802</td>
+                                <td>阿九</td>
+                                <td>点数充值 · 30 元档</td>
+                                <td class="p-num">¥30</td>
+                                <td class="p-num">3,000</td>
+                                <td><span class="p-pill p-pill--ok p-pill--sm">已支付</span></td>
+                                <td class="p-num">09:57</td>
+                                <td>
+                                    <div class="p-cell-actions">
+                                        <button class="p-icon-btn" type="button" aria-label="查看订单 #261026-0802">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        <button class="p-icon-btn" type="button" aria-label="更多操作 #261026-0802">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <ul class="p-acards">
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">林见白</span>
+                                <span class="p-pill p-pill--ok p-pill--sm">已支付</span>
+                                <span class="p-acard-time">14:32</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0842</span> · ¥1,000 · 120,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0842">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0842">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">青梧</span>
+                                <span class="p-pill p-pill--ok p-pill--sm">已支付</span>
+                                <span class="p-acard-time">14:07</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0839</span> · ¥300 · 33,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0839">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0839">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">沈砚居</span>
+                                <span class="p-pill p-pill--ok p-pill--sm">已支付</span>
+                                <span class="p-acard-time">13:41</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0831</span> · ¥100 · 10,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0831">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0831">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">江晚舟</span>
+                                <span class="p-pill p-pill--warn p-pill--sm">待支付</span>
+                                <span class="p-acard-time">13:12</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0827</span> · ¥30 · 3,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0827">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0827">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">白露未晞</span>
+                                <span class="p-pill p-pill--ok p-pill--sm">已支付</span>
+                                <span class="p-acard-time">12:26</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0820</span> · ¥1,000 · 120,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0820">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0820">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">苏叶</span>
+                                <span class="p-pill p-pill--ok p-pill--sm">已支付</span>
+                                <span class="p-acard-time">11:49</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0814</span> · ¥300 · 33,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0814">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0814">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">陈默</span>
+                                <span class="p-pill p-pill--danger p-pill--sm">已退款</span>
+                                <span class="p-acard-time">10:38</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0809</span> · ¥100 · 10,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0809">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0809">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="p-acard">
+                        <div class="p-acard-main">
+                            <div class="p-acard-t1">
+                                <span class="p-acard-name">阿九</span>
+                                <span class="p-pill p-pill--ok p-pill--sm">已支付</span>
+                                <span class="p-acard-time">09:57</span>
+                            </div>
+                            <div class="p-acard-t2"><span class="p-num">#261026-0802</span> · ¥30 · 3,000 点</div>
+                        </div>
+                        <div class="p-acard-acts">
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="查看订单 #261026-0802">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="p-icon-btn p-icon-btn--lg" type="button" aria-label="更多操作 #261026-0802">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5h.01M12 12h.01M12 18.5h.01"/></svg>
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="p-table-foot">
+                    <span class="p-foot-count">1–8 / 共 1,284</span>
+                    <div class="p-foot-right">
+                        <button class="p-btn p-btn--sm p-btn--icon" type="button" aria-label="上一页" disabled>‹</button>
+                        <button class="p-btn p-btn--sm p-btn--icon" type="button" aria-label="下一页">›</button>
+                        <select class="p-select p-page-size" aria-label="每页条数">
+                            <option>20 条/页</option>
+                            <option>50 条/页</option>
+                            <option>100 条/页</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<a class="p-proto-back" href="index.html">←<span class="pb-txt"> 原型总览</span></a>
+<script src="admin-proto.js?v=20261109-a4" defer></script>
+
+</body>
+</html>

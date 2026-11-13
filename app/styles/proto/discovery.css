@@ -1,0 +1,162 @@
+/* Discovery exhibition: measured against a24.raviklaassens.com at 1440 × 800.
+   Keep this surface separate from the classic player layout. */
+body.p-cinema[data-page="home"] {
+    --disc-paper: #f5f5f2;
+    background: var(--disc-paper);
+}
+/* 首页是展陈式版式：左上角被作品信息面板占着，导航保持居中，账户区继续隐藏
+   （右上角被唱片覆盖，深色字压不住）。主导航补齐五项后，「作品索引」右移让位。 */
+body.p-cinema[data-page="home"] .p-cinema-nav {
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    padding: 0 100px 0 0;
+    border: 0;
+    background: transparent;
+    color: #151513;
+    backdrop-filter: none;
+    pointer-events: none;
+}
+body.p-cinema[data-page="home"] .p-cinema-nav-right { position: absolute; top: 6px; right: 10px; }
+body.p-cinema[data-page="home"] .p-cinema-nav.is-solid { background: transparent; border: 0; backdrop-filter: none; }
+body.p-cinema[data-page="home"] .p-cinema-nav > * { pointer-events: auto; }
+body.p-cinema[data-page="home"] .p-cinema-logo { order: -1; font-size: 17px; font-family: Georgia, "Songti SC", serif; }
+body.p-cinema[data-page="home"] .p-cinema-nav-left { display: flex; gap: 10px; }
+body.p-cinema[data-page="home"] .p-cinema-nav-left a { padding: 12px 5px; font-size: 13px; letter-spacing: 0; }
+body.p-cinema[data-page="home"] .p-cinema-icon,
+body.p-cinema[data-page="home"] .p-cinema-points,
+body.p-cinema[data-page="home"] .p-cinema-account,
+body.p-cinema[data-page="home"] .p-points { display: none; }
+body.p-cinema[data-page="home"] .p-view-switch { border: 1px solid #d4d4cc; background: #f5f5f2; padding: 2px; }
+body.p-cinema[data-page="home"] .p-view-switch button { min-height: 32px; color: #575750; padding: 6px 9px; font-size: 11px; }
+body.p-cinema[data-page="home"] .p-view-switch button[aria-pressed="true"] { color: #111; background: #e4e4de; }
+
+.p-cinema-discovery {
+    height: 100svh;
+    min-height: 540px;
+    background: var(--disc-paper, #f5f5f2);
+    isolation: auto;
+}
+.p-cinema-discovery::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    opacity: .045;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.84' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23000' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+.p-cinema-discovery-canvas { z-index: 1; inset: 0; }
+.p-cinema-discovery-canvas:focus-visible { outline: 2px solid #707069; outline-offset: -4px; }
+.p-cinema-discovery-meta { top: 6px; left: 6px; width: min(300px, 26vw); pointer-events: none; }
+.p-cinema-discovery-meta h1 {
+    max-width: none;
+    margin: 0 0 8px;
+    font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
+    font-size: clamp(28px, 2.2vw, 36px);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -.04em;
+}
+.p-cinema-discovery-meta .p-cinema-credits {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    margin: 0;
+    border-top: 1px solid #30302c;
+    border-bottom: 0;
+}
+.p-cinema-discovery-meta .p-cinema-credits dt,
+.p-cinema-discovery-meta .p-cinema-credits dd { padding: 4px 0; border-bottom: 1px solid #30302c; }
+.p-cinema-discovery-meta .p-cinema-credits dt { font-family: Georgia, "Songti SC", serif; font-size: 8px; line-height: 19px; letter-spacing: .1em; color: #222; }
+.p-cinema-discovery-meta .p-cinema-credits dd { font-size: 13px; line-height: 19px; color: #1c1c19; font-weight: 400; }
+.p-cinema-discovery-meta .p-cinema-credits > div:last-child > * { border-bottom: 0; }
+.p-disc-detail-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; pointer-events: auto; }
+
+.p-disc-index { position: absolute; z-index: 205; top: 0; left: calc(50% + 168px); }
+.p-disc-index summary { min-height: 44px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; list-style: none; }
+.p-disc-index summary::-webkit-details-marker { display: none; }
+.p-disc-index summary::after { content: "⌄"; }
+.p-disc-index[open] summary::after { content: "⌃"; }
+.p-disc-index summary span { font-size: 10px; color: #72726a; }
+.p-disc-index-list { background: #f5f5f2; border: 1px solid #c5c5bf; box-shadow: 0 18px 45px #0002; width: 260px; padding: 10px; max-height: min(65svh, 520px); overflow-y: auto; }
+.p-disc-index-list button,
+.p-disc-index-list a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 10px; min-height: 44px; width: 100%; border: 0; border-bottom: 1px solid #ddddd7; background: transparent; color: #222; text-align: left; font-size: 13px; cursor: pointer; }
+.p-disc-index-list button small { color: #676760; }
+.p-disc-index-list button[aria-pressed="true"] { background: #deded7; }
+.p-disc-index-list button:hover,
+.p-disc-index-list a:hover { background: #e8e8e1; }
+.p-disc-navigation { position: absolute; bottom: 26px; left: 12px; display: flex; align-items: center; gap: 10px; z-index: 3; }
+.p-disc-navigation button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; background: transparent; color: #222; border: 1px solid #a9a9a1; border-radius: 50%; cursor: pointer; }
+.p-disc-navigation button:disabled { opacity: .3; cursor: default; }
+.p-disc-navigation span { font-size: 11px; min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }
+.p-disc-help { position: absolute; bottom: 8px; right: 12px; z-index: 3; max-width: 250px; margin: 0; color: #696961; font-size: 10px; text-align: right; line-height: 1.5; }
+.p-cinema-discovery-quotes { left: 50%; right: auto; bottom: 36px; width: min(620px, 50vw); transform: translateX(-50%); gap: 24px; }
+.p-cinema-discovery-quotes blockquote { width: 50%; }
+.p-cinema-discovery-quotes .p-cinema-quote-source { font-family: Georgia, "Songti SC", serif; color: #494940; font-size: 9px; letter-spacing: .12em; margin: 0 0 8px; }
+.p-cinema-discovery-quotes p { margin: 0; font-family: "Songti SC", "Noto Serif SC", Georgia, serif; font-style: normal; font-size: 21px; line-height: 1.2; letter-spacing: -.02em; color: #171714; }
+.p-cinema-discovery-fallback { display: grid; inset: 215px 20px 140px; align-content: start; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; }
+.p-cinema-discovery-fallback > p { grid-column: 1/-1; font-size: 13px; }
+.p-cinema-discovery-fallback .p-cinema-poster-media { aspect-ratio: 1; }
+
+@media (max-width: 1000px) {
+    .p-cinema-discovery-meta { top: 64px; width: 260px; left: 16px; }
+    .p-cinema-discovery-quotes { width: 56vw; }
+    .p-cinema-discovery-quotes p { font-size: 18px; }
+    .p-disc-help { display: none; }
+}
+@media (max-width: 720px) {
+    body.p-cinema[data-page="home"] .p-cinema-nav { height: 48px; justify-content: flex-start; padding: 0 12px; gap: 12px; background: var(--disc-paper); }
+    body.p-cinema[data-page="home"] .p-cinema-nav-left { display: none; }
+    .p-disc-index { top: 2px; left: 82px; }
+    .p-disc-index-list { width: min(260px, calc(100vw - 96px)); }
+    .p-cinema-discovery { height: calc(100svh - var(--tabbar-h, 58px) - env(safe-area-inset-bottom)); min-height: 580px; }
+    .p-cinema-discovery-meta { top: 58px; left: 12px; width: calc(100% - 24px); }
+    .p-cinema-discovery-meta h1 { font-size: 30px; margin: 0 0 6px; }
+    .p-cinema-discovery-meta .p-cinema-credits { grid-template-columns: 110px 1fr; }
+    .p-cinema-discovery-meta .p-cinema-credits > div:last-child { display: none; }
+    .p-cinema-discovery-meta .p-cinema-credits dd { font-size: 12px; }
+    .p-cinema-discovery-meta .p-cinema-credits dt { font-size: 8px; }
+    .p-disc-detail-link { position: absolute; right: 0; top: -5px; }
+    .p-cinema-discovery-canvas { top: 165px; bottom: 155px; }
+    .p-cinema-discovery-quotes { display: flex; width: calc(100% - 36px); gap: 18px; bottom: 62px; }
+    .p-cinema-discovery-quotes p { font-size: 16px; line-height: 1.35; }
+    .p-cinema-discovery-quotes .p-cinema-quote-source { font-size: 8px; letter-spacing: .04em; }
+    .p-disc-navigation { bottom: 8px; left: 50%; transform: translateX(-50%); }
+    .p-cinema-discovery-fallback { inset: 0 12px; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+}
+@media (max-height: 650px) and (min-width: 721px) {
+    .p-cinema-discovery { min-height: 480px; }
+    .p-cinema-discovery-quotes { bottom: 24px; }
+    .p-cinema-discovery-quotes p { font-size: 17px; }
+    .p-cinema-discovery-meta { top: 48px; }
+}
+.p-cinema-discovery-meta,
+.p-cinema-discovery-quotes,
+.p-disc-navigation { transition: opacity 160ms ease; }
+.p-cinema-discovery:has([data-motion="opening"]) .p-cinema-discovery-meta,
+.p-cinema-discovery:has([data-motion="opening"]) .p-cinema-discovery-quotes,
+.p-cinema-discovery:has([data-motion="opening"]) .p-disc-navigation,
+.p-cinema-discovery:has([data-motion="selected"]) .p-cinema-discovery-meta,
+.p-cinema-discovery:has([data-motion="selected"]) .p-cinema-discovery-quotes,
+.p-cinema-discovery:has([data-motion="selected"]) .p-disc-navigation { opacity: 0; }
+.p-disc-index[open] .p-disc-index-list {
+    animation: disc-index-reveal 190ms cubic-bezier(.16,1,.3,1) both;
+    transform-origin: top center;
+}
+.p-disc-detail-link,
+.p-disc-navigation button,
+.p-disc-index-list button,
+.p-disc-index-list a {
+    transition: color 160ms ease, background 160ms ease, border-color 160ms ease, transform 200ms cubic-bezier(.16,1,.3,1);
+}
+.p-disc-navigation button:not(:disabled):hover { background: #e7e7df; border-color: #55554e; transform: translateY(-2px); }
+.p-disc-navigation button:not(:disabled):active { transform: translateY(0) scale(.94); }
+.p-disc-detail-link:hover { text-underline-offset: 7px; }
+@keyframes disc-index-reveal {
+    from { opacity: 0; transform: translateY(-5px) scale(.98); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .p-cinema-discovery * { transition: none !important; animation: none !important; }
+}

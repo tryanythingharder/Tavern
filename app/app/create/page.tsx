@@ -1,0 +1,88 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
+import { getCharacterView, listOwnedCharacters, listVersions } from '@/lib/characters';
+import { CharacterForm } from '@/components/character-form';
+import { VersionList } from '@/components/version-list';
+import { ProtoCover } from '@/components/proto-cover';
+import { WorkActions } from '@/components/work-actions';
+
+export const dynamic = 'force-dynamic';
+
+export default async function CreatePage({ searchParams }: { searchParams: Promise<{ edit?: string; tab?: string; status?: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/login');
+  const { edit, tab, status } = await searchParams;
+  const editing = edit ? getCharacterView(edit) : undefined;
+  const owned = editing && editing.ownerId === user.id ? editing : undefined;
+  const works = listOwnedCharacters(user.id);
+
+  // 我的作品：原型 create.html?tab=works 的列表视图
+  if (tab === 'works' && !owned) {
+    const filter = status === 'pending' || status === 'published' || status === 'draft' || status === 'archived' ? status : 'all';
+    const rows = filter === 'all' ? works : works.filter((item) => item.status === filter);
+    const tabs = [
+      ['all', '全部', works.length],
+      ['pending', '待审核', works.filter((item) => item.status === 'pending').length],
+      ['published', '已发布', works.filter((item) => item.status === 'published').length],
+      ['draft', '草稿', works.filter((item) => item.status === 'draft').length],
+      ['archived', '已下架', works.filter((item) => item.status === 'archived').length],
+    ] as const;
+
+    return (
+      <div className="p-inner">
+        <header className="p-page-title">
+          <div>
+            <h1>我的作品</h1>
+            <p>草稿、已发布与已下架的角色都在这里。</p>
+          </div>
+          <div className="p-page-title-actions">
+            <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+          </div>
+        </header>
+
+        <div className="p-filterbar">
+          <div className="p-tabs" role="tablist" aria-label="作品状态">
+            {tabs.map(([key, label, count]) => (
+              <Link
+                key={key}
+                href={key === 'all' ? '/create?tab=works' : `/create?tab=works&status=${key}`}
+                role="tab"
+                aria-selected={filter === key}
+              >
+                {label} {count}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-card p-rows">
+          {rows.map((work) => (
+            <div className="p-library-row" key={work.id}>
+              <ProtoCover character={work} className="p-library-cover" />
+              <div className="p-library-main">
+                <div className="p-library-name">{work.name}</div>
+                <div className="p-library-sub">{work.hook || '还没有写剧情钩子'} · {work.category}</div>
+              </div>
+              <WorkActions characterId={work.id} status={work.status} />
+            </div>
+          ))}
+          {!rows.length && (
+            <div className="p-empty">
+              <div className="p-empty-title">这个分类还没有作品</div>
+              <p className="p-empty-text">先去创建一个人物，再决定是否发布到广场。</p>
+              <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-inner">
+      <CharacterForm initial={owned} />
+      {owned && <VersionList characterId={owned.id} versions={listVersions(owned.id, user.id)} />}
+    </div>
+  );
+}

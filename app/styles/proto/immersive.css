@@ -1,0 +1,2251 @@
+/* ==========================================================================
+   Character.AI-aligned surface layer
+   参考 character.ai 登录后界面：浅灰底 / 白卡片 / 大圆角 / 胶囊输入 / 三栏
+   只覆盖外观与组件形态，不改页面结构与交互逻辑。
+   ========================================================================== */
+
+:root {
+    --ca-bg: #f7f7f8;
+    --ca-rail: #fbfbfb;
+    --ca-card: #ffffff;
+    --ca-sunken: #ebebec;
+    --ca-hover: #f0f0f1;
+    --ca-ink: #1b1b1d;
+    --ca-copy: #4a4a50;
+    --ca-muted: #77777e;
+    --ca-line: #e6e6e8;
+    --ca-line-strong: #d5d5d9;
+    --ca-accent: #4b5bf5;
+    --ca-accent-soft: #eceefe;
+    --ca-danger: #d9483f;
+    --ca-r-pill: 999px;
+    --ca-r-card: 24px;
+    --ca-r-md: 16px;
+    --ca-r-sm: 10px;
+    --ca-shadow: 0 1px 2px rgba(16, 16, 20, .04), 0 8px 24px rgba(16, 16, 20, .06);
+    --ca-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --ca-serif: "Songti SC", "STSong", "SimSun", "Noto Serif SC", Georgia, serif;
+}
+
+html { background: var(--ca-bg); }
+
+body[data-page]:not(.p-cinema):is([data-page="home"], [data-page="plaza"], [data-page="author"], [data-page="character"], [data-page="chat"], [data-page="chats"], [data-page="library"], [data-page="create"], [data-page="settings"], [data-page="rooms"], [data-page="notifications"]) {
+    --bg: var(--ca-bg);
+    --surface: var(--ca-card);
+    --surface-2: var(--ca-hover);
+    --surface-3: #e9e9eb;
+    --border: var(--ca-line);
+    --border-strong: var(--ca-line-strong);
+    --text: var(--ca-ink);
+    --text-2: var(--ca-copy);
+    --muted: var(--ca-muted);
+    --pp-canvas: var(--ca-bg);
+    --pp-paper: var(--ca-card);
+    --pp-soft: var(--ca-hover);
+    --pp-line: var(--ca-line);
+    --pp-line-strong: var(--ca-line-strong);
+    --pp-ink: var(--ca-ink);
+    --pp-copy: var(--ca-copy);
+    --pp-muted: var(--ca-muted);
+    --pp-accent: var(--ca-accent);
+    --pp-accent-soft: var(--ca-accent-soft);
+    --pp-focus: var(--ca-accent);
+    background: var(--ca-bg);
+    color: var(--ca-ink);
+    font-family: var(--ca-sans);
+}
+
+/* 1 / 外壳 ---------------------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-shell { background: var(--ca-bg); }
+body[data-page]:not(.p-cinema) .p-main { background: var(--ca-bg); }
+body[data-page]:not(.p-cinema) .p-page { background: transparent; }
+
+/* 2 / 左侧栏：白色轨道 + 圆角导航 ---------------------------------------- */
+body[data-page]:not(.p-cinema) .p-side {
+    padding: 18px 12px 14px;
+    gap: 6px;
+    background: var(--ca-rail);
+    border-right: 1px solid var(--ca-line);
+    backdrop-filter: none;
+}
+
+body[data-page]:not(.p-cinema) .p-side > * { flex-shrink: 0; }
+
+body[data-page]:not(.p-cinema) .p-brand {
+    gap: 8px;
+    padding: 0 8px 14px;
+    border-bottom: 0;
+}
+
+body[data-page]:not(.p-cinema) .p-brand .p-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: var(--ca-ink);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+}
+
+body[data-page]:not(.p-cinema) .p-brand-name {
+    font-family: var(--ca-sans);
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -.01em;
+    color: var(--ca-ink);
+}
+
+body[data-page]:not(.p-cinema) .p-nav { gap: 2px; }
+
+body[data-page]:not(.p-cinema) .p-nav-item {
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: var(--ca-r-sm);
+    color: var(--ca-copy);
+    font-size: 14.5px;
+    font-weight: 500;
+    transition: background .16s ease, color .16s ease;
+}
+
+body[data-page]:not(.p-cinema) .p-nav-item:hover { background: var(--ca-hover); color: var(--ca-ink); }
+
+body[data-page]:not(.p-cinema) .p-nav-item[aria-current="page"] {
+    background: #ececee;
+    color: var(--ca-ink);
+    font-weight: 650;
+    box-shadow: none;
+}
+
+body[data-page]:not(.p-cinema) .p-nav-label {
+    padding: 16px 12px 6px;
+    color: var(--ca-muted);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+body[data-page]:not(.p-cinema) .p-side-recent {
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: var(--ca-r-sm);
+    color: var(--ca-copy);
+    font-size: 14px;
+}
+
+body[data-page]:not(.p-cinema) .p-side-recent:hover { background: var(--ca-hover); color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-side-recent .p-avatar { border-radius: 50%; }
+body[data-page]:not(.p-cinema) .p-side-recent small { font-size: 11.5px; color: var(--ca-muted); }
+
+body[data-page]:not(.p-cinema) .p-side-foot {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--ca-line);
+}
+
+body[data-page]:not(.p-cinema) .p-user-row { border-radius: var(--ca-r-sm); padding: 8px; }
+body[data-page]:not(.p-cinema) .p-user-row:hover { background: var(--ca-hover); }
+body[data-page]:not(.p-cinema) .p-user-name { font-size: 13.5px; font-weight: 600; color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-user-sub { font-size: 11.5px; color: var(--ca-muted); }
+
+/* 3 / 顶栏 ---------------------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-topbar {
+    gap: 12px;
+    padding-inline: 20px;
+    background: var(--ca-bg);
+    border-bottom: 1px solid var(--ca-line);
+    backdrop-filter: none;
+}
+
+body[data-page]:not(.p-cinema) .p-search {
+    background: #ededef;
+    border: 1px solid transparent;
+    border-radius: var(--ca-r-pill);
+    padding-inline: 14px;
+}
+
+body[data-page]:not(.p-cinema) .p-search:focus-within {
+    background: #fff;
+    border-color: var(--ca-line-strong);
+    box-shadow: 0 0 0 3px rgba(75, 91, 245, .12);
+}
+
+body[data-page]:not(.p-cinema) .p-search .p-input,
+body[data-page]:not(.p-cinema) .p-search input { background: transparent; color: var(--ca-ink); font-size: 14px; }
+body[data-page]:not(.p-cinema) .p-search input::placeholder { color: var(--ca-muted); }
+
+body[data-page]:not(.p-cinema) .p-pill {
+    border-radius: var(--ca-r-pill);
+    background: #ececee;
+    border-color: transparent;
+    color: var(--ca-ink);
+    font-size: 13px;
+}
+
+body[data-page]:not(.p-cinema) .p-pill--outline {
+    background: #fff;
+    border-color: var(--ca-line);
+    color: var(--ca-copy);
+}
+
+body[data-page]:not(.p-cinema) .p-topbar-icon {
+    border-radius: 50%;
+    color: var(--ca-copy);
+}
+
+body[data-page]:not(.p-cinema) .p-topbar-icon:hover { background: var(--ca-hover); color: var(--ca-ink); }
+
+body[data-page]:not(.p-cinema) .p-avatar {
+    border-radius: 50%;
+    background: #e4e4e8;
+    color: var(--ca-copy);
+    font-weight: 600;
+}
+
+/* 4 / 按钮 ----------------------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-btn {
+    min-height: 40px;
+    padding: 0 18px;
+    border-radius: var(--ca-r-pill);
+    border: 1px solid var(--ca-line);
+    background: #fff;
+    color: var(--ca-ink);
+    font-size: 14px;
+    font-weight: 600;
+    transition: background .16s ease, border-color .16s ease;
+}
+
+body[data-page]:not(.p-cinema) .p-btn:hover { background: var(--ca-hover); border-color: var(--ca-line-strong); }
+
+body[data-page]:not(.p-cinema) .p-btn--primary {
+    background: var(--ca-ink);
+    border-color: var(--ca-ink);
+    color: #fff;
+    box-shadow: none;
+}
+
+body[data-page]:not(.p-cinema) .p-btn--primary:hover { background: #333338; border-color: #333338; color: #fff; }
+
+body[data-page]:not(.p-cinema) .p-btn--danger {
+    background: #fdeceb;
+    border-color: #f6cfcc;
+    color: var(--ca-danger);
+}
+
+body[data-page]:not(.p-cinema) .p-btn--sm { min-height: 34px; padding-inline: 14px; font-size: 13px; }
+body[data-page]:not(.p-cinema) .p-text-btn { color: var(--ca-accent); font-weight: 600; }
+body[data-page]:not(.p-cinema) .p-text-btn:hover { color: #3546e0; }
+
+/* 5 / 页面标题与列表 ------------------------------------------------------- */
+body[data-page]:not(.p-cinema):is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="settings"], [data-page="rooms"], [data-page="notifications"]) .p-page { padding-top: 28px; }
+
+body[data-page]:not(.p-cinema):is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="settings"], [data-page="rooms"], [data-page="notifications"]) .p-page-title {
+    gap: 16px;
+    margin-bottom: 22px;
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+body[data-page]:not(.p-cinema):is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="settings"], [data-page="rooms"], [data-page="notifications"]) .p-page-title h1 {
+    font-family: var(--ca-sans);
+    font-size: clamp(26px, 2.4vw, 32px);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -.02em;
+}
+
+body[data-page]:not(.p-cinema):is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="settings"], [data-page="rooms"], [data-page="notifications"]) .p-page-index {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--ca-muted);
+    font-size: 12px;
+    letter-spacing: 0;
+}
+
+body[data-page]:not(.p-cinema) :is(.p-card, .p-notification-list) {
+    background: var(--ca-card);
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    box-shadow: none;
+}
+
+body[data-page]:not(.p-cinema):is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="plaza"]) .p-filterbar {
+    background: #ededef;
+    border: 0;
+    border-radius: var(--ca-r-pill);
+    padding: 6px 10px;
+    margin-bottom: 18px;
+}
+
+body[data-page]:not(.p-cinema) .p-filterbar .p-search,
+body[data-page]:not(.p-cinema) .p-filterbar-main .p-search {
+    background: transparent;
+    border: 0;
+    border-radius: var(--ca-r-pill);
+}
+
+body[data-page]:not(.p-cinema) .p-filterbar-count { color: var(--ca-muted); font-size: 12.5px; }
+
+/* 6 / 会话与角色行：白卡 + 方图 ------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-chat-row,
+body[data-page]:not(.p-cinema) .p-library-row {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    background: var(--ca-card);
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-md);
+    box-shadow: none;
+    transition: background .16s ease, border-color .16s ease;
+}
+
+body[data-page]:not(.p-cinema) .p-chat-row:hover,
+body[data-page]:not(.p-cinema) .p-library-row:hover { background: #fcfcfd; border-color: var(--ca-line-strong); }
+
+body[data-page]:not(.p-cinema) .p-chat-open { align-items: center; gap: 14px; }
+
+body[data-page]:not(.p-cinema) .p-row-cover,
+body[data-page]:not(.p-cinema) .p-library-cover {
+    width: 64px;
+    height: 64px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    background: var(--ca-sunken);
+    box-shadow: none;
+}
+
+body[data-page]:not(.p-cinema) .p-chat-row-main { min-width: 0; }
+
+body[data-page]:not(.p-cinema) :is(.p-chat-row-name, .p-library-name) {
+    font-family: var(--ca-sans);
+    font-size: 15.5px;
+    font-weight: 650;
+    line-height: 1.4;
+    color: var(--ca-ink);
+}
+
+body[data-page]:not(.p-cinema) .p-chat-row-title { align-items: baseline; gap: 8px; }
+body[data-page]:not(.p-cinema) .p-chat-row-session { color: var(--ca-muted); font-size: 12.5px; }
+body[data-page]:not(.p-cinema) .p-chat-row-preview { margin: 4px 0 6px; color: var(--ca-copy); font-size: 13.5px; line-height: 1.6; }
+body[data-page]:not(.p-cinema) .p-library-sub { color: var(--ca-muted); font-size: 12px; }
+
+body[data-page]:not(.p-cinema) .p-chat-row > :last-child:not(.p-chat-open) { align-self: center; display: flex; gap: 6px; }
+
+body[data-page]:not(.p-cinema) .p-room-card {
+    background: var(--ca-card);
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    padding: 20px;
+    box-shadow: none;
+}
+
+body[data-page]:not(.p-cinema) .p-room-card + .p-room-card { margin-top: 10px; }
+body[data-page]:not(.p-cinema) .p-room-title { font-family: var(--ca-sans); font-size: 17px; font-weight: 650; }
+
+/* 7 / 封面与立绘 ----------------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-cover {
+    position: relative;
+    border-radius: var(--ca-r-md);
+    background: var(--ca-sunken);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+body[data-page]:not(.p-cinema) .p-cover > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+}
+
+body[data-page]:not(.p-cinema) .p-cover.has-portrait::after { display: none; }
+
+body[data-page]:not(.p-cinema) .p-cover.has-portrait::before {
+    background: linear-gradient(to top, rgba(12, 12, 14, .82) 0%, rgba(12, 12, 14, .18) 46%, transparent 74%);
+}
+
+body[data-page]:not(.p-cinema) .p-cover.has-scene img { filter: saturate(.95); }
+
+body[data-page]:not(.p-cinema) .p-cover::after {
+    color: rgba(255, 255, 255, .5);
+    text-shadow: none;
+}
+
+body[data-page]:not(.p-cinema) .p-cover-gate {
+    background: rgba(16, 16, 18, .72);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: var(--ca-r-sm);
+    color: #fff;
+    backdrop-filter: blur(6px);
+}
+
+body[data-page]:not(.p-cinema) .p-detail-cover {
+    border-radius: var(--ca-r-card);
+    box-shadow: var(--ca-shadow);
+}
+
+body[data-page]:not(.p-cinema) .p-detail-title h1 { font-family: var(--ca-sans); font-weight: 700; letter-spacing: -.02em; }
+
+/* 8 / 对话页：三栏消息应用 ------------------------------------------------- */
+body[data-page="chat"] { --read-max: 720px; }
+
+body[data-page="chat"] .p-chat {
+    background: var(--ca-bg);
+    border-right: 1px solid var(--ca-line);
+}
+
+body[data-page="chat"] .p-chat::before { display: none; }
+
+body[data-page="chat"] .p-chat-head {
+    height: calc(64px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    background: var(--ca-bg);
+    border-bottom: 1px solid var(--ca-line);
+    backdrop-filter: none;
+    z-index: 3;
+}
+
+body[data-page="chat"] .p-chat-name {
+    font-family: var(--ca-sans);
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: 0;
+    color: var(--ca-ink);
+}
+
+body[data-page="chat"] .p-chat-sub { color: var(--ca-muted); font-size: 12px; }
+
+body[data-page="chat"] .p-chat-icon {
+    border-radius: 50%;
+    color: var(--ca-copy);
+}
+
+body[data-page="chat"] .p-chat-icon:hover { background: var(--ca-hover); color: var(--ca-ink); }
+
+body[data-page="chat"] .p-rp-status {
+    z-index: 2;
+    padding: 8px var(--pp-chat-gutter);
+    background: var(--ca-bg);
+    border-bottom: 1px solid var(--ca-line);
+    color: var(--ca-muted);
+    font-size: 11.5px;
+}
+
+body[data-page="chat"] .p-rp-prologue {
+    margin-bottom: 24px;
+    padding: 6px 0 18px;
+    border-bottom: 1px solid var(--ca-line);
+}
+
+body[data-page="chat"] .p-rp-prologue h1 {
+    margin: 8px 0;
+    font-family: var(--ca-sans);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.3;
+}
+
+body[data-page="chat"] .p-rp-prologue :is(p, small, .p-eyebrow) { color: var(--ca-muted); font-size: 12.5px; }
+
+/* 角色消息：浅灰大圆角卡片，叙事用衬线 */
+body[data-page="chat"] .p-msg {
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 18px 20px;
+    background: var(--ca-sunken);
+    border-radius: var(--ca-r-card);
+}
+
+body[data-page="chat"] .p-msg-tools { margin-top: 10px; opacity: 1; }
+
+body[data-page="chat"] .p-msg-copy {
+    color: var(--ca-ink);
+    font-family: var(--ca-serif);
+    font-size: calc(15.5px * var(--rp-font-scale, 1));
+    line-height: 1.85;
+}
+
+body[data-page="chat"] .p-msg-copy p { margin: 0 0 .9em; }
+body[data-page="chat"] .p-msg-copy em { color: #55555c; font-style: italic; }
+
+body[data-page="chat"] .p-msg-name {
+    color: var(--ca-ink);
+    font-family: var(--ca-sans);
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0;
+}
+
+/* 玩家消息：白卡片描边 */
+body[data-page="chat"] .p-msg-user {
+    background: var(--ca-card);
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    padding: 16px 18px;
+}
+
+body[data-page="chat"] .p-msg-user .p-msg-copy {
+    font-family: var(--ca-sans);
+    font-size: calc(14.5px * var(--rp-font-scale, 1));
+    line-height: 1.7;
+}
+
+body[data-page="chat"] .p-msg-tools button {
+    color: var(--ca-muted);
+    border: 0;
+    border-radius: 50%;
+}
+
+body[data-page="chat"] .p-msg-tools button:hover { color: var(--ca-ink); background: rgba(0, 0, 0, .06); }
+body[data-page="chat"] .p-rp-candidate-index { color: var(--ca-muted); }
+
+body[data-page="chat"] .p-rp-system {
+    margin: 12px 0 20px;
+    padding: 12px 16px;
+    background: transparent;
+    border: 1px dashed var(--ca-line-strong);
+    border-radius: var(--ca-r-md);
+    color: var(--ca-muted);
+    font-size: 12.5px;
+}
+
+/* 输入区：胶囊 + 黑色圆形发送 */
+body[data-page="chat"] .p-chat-compose {
+    z-index: 3;
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    background: var(--ca-bg);
+    border-top: 1px solid var(--ca-line);
+    backdrop-filter: none;
+}
+
+body[data-page="chat"] .p-rp-compose-context { margin-bottom: 8px; color: var(--ca-muted); font-size: 12px; }
+
+body[data-page="chat"] .p-chat-compose-row { gap: 8px; align-items: flex-end; }
+
+body[data-page="chat"] .p-chat-input,
+body[data-page="chat"] .p-chat-compose textarea {
+    min-height: 52px;
+    padding: 14px 18px;
+    border-radius: 26px;
+    border: 1px solid var(--ca-line);
+    background: #fff;
+    color: var(--ca-ink);
+    font-family: var(--ca-sans);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+body[data-page="chat"] .p-chat-input:focus,
+body[data-page="chat"] .p-chat-compose textarea:focus {
+    border-color: var(--ca-line-strong);
+    box-shadow: 0 0 0 3px rgba(75, 91, 245, .1);
+}
+
+body[data-page="chat"] .p-chat-input::placeholder { color: var(--ca-muted); }
+
+body[data-page="chat"] .p-chat-send {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--ca-ink);
+    color: #fff;
+    box-shadow: none;
+}
+
+body[data-page="chat"] .p-chat-send:hover { background: #333338; }
+
+body[data-page="chat"] .p-compose-meta {
+    margin-top: 8px;
+    color: var(--ca-muted);
+    font-size: 11.5px;
+    justify-content: center;
+    text-align: center;
+}
+
+body[data-page="chat"] .p-chat-jump {
+    background: #fff;
+    border: 1px solid var(--ca-line);
+    color: var(--ca-copy);
+    border-radius: var(--ca-r-pill);
+    box-shadow: var(--ca-shadow);
+}
+
+/* 右侧角色栏：菜单式列表 */
+body[data-page="chat"] .p-rp-context {
+    padding: 22px 18px 28px;
+    background: var(--ca-rail);
+    border-left: 1px solid var(--ca-line);
+}
+
+body[data-page="chat"] .p-rp-context-head {
+    min-height: 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--ca-line);
+}
+
+body[data-page="chat"] .p-rp-context-head > :is(span, small) {
+    color: var(--ca-muted);
+    font-size: 11px;
+    letter-spacing: .08em;
+}
+
+body[data-page="chat"] .p-rp-context-head :is(h2, h3, strong) {
+    font-family: var(--ca-sans);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ca-ink);
+}
+
+body[data-page="chat"] .p-rp-context-section {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--ca-line);
+}
+
+body[data-page="chat"] .p-rp-context-label { margin-bottom: 6px; color: var(--ca-muted); font-size: 11.5px; }
+body[data-page="chat"] .p-rp-context-value { color: var(--ca-ink); font-size: 13.5px; line-height: 1.65; }
+body[data-page="chat"] .p-rp-context-note { color: var(--ca-muted); font-size: 11.5px; }
+
+body[data-page="chat"] .p-rp-context-action {
+    min-height: 32px;
+    margin-top: 4px;
+    padding: 0;
+    color: var(--ca-accent);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body[data-page="chat"] .p-rp-context-action:hover { color: #3546e0; }
+
+/* 9 / 弹窗、表单、提示 ----------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-modal-root { background: rgba(24, 24, 28, .38); backdrop-filter: blur(3px); }
+
+body[data-page]:not(.p-cinema) .p-modal {
+    background: #fff;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    box-shadow: 0 24px 64px rgba(16, 16, 20, .18);
+    color: var(--ca-ink);
+}
+
+body[data-page]:not(.p-cinema) .p-modal-head { border-bottom: 1px solid var(--ca-line); padding: 18px 20px; }
+body[data-page]:not(.p-cinema) .p-modal-head h3 { font-family: var(--ca-sans); font-size: 17px; font-weight: 700; color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-modal-close { border-radius: 50%; color: var(--ca-muted); }
+body[data-page]:not(.p-cinema) .p-modal-close:hover { background: var(--ca-hover); color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-modal > .p-modal-body { padding: 18px 20px; }
+body[data-page]:not(.p-cinema) .p-modal-actions { border-top: 1px solid var(--ca-line); padding: 14px 20px; gap: 10px; }
+body[data-page]:not(.p-cinema) .p-modal-body pre { background: var(--ca-sunken); border-radius: var(--ca-r-md); padding: 14px; font-size: 12px; }
+
+body[data-page]:not(.p-cinema) :is(.p-input, .p-textarea, .p-select) {
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-md);
+    background: #fff;
+    color: var(--ca-ink);
+    font-family: var(--ca-sans);
+    font-size: 14.5px;
+}
+
+body[data-page]:not(.p-cinema) :is(.p-input, .p-textarea, .p-select):focus {
+    border-color: var(--ca-accent);
+    box-shadow: 0 0 0 3px rgba(75, 91, 245, .12);
+    outline: none;
+}
+
+body[data-page]:not(.p-cinema) :is(.p-input, .p-textarea)::placeholder { color: var(--ca-muted); }
+body[data-page]:not(.p-cinema) .p-label { color: var(--ca-copy); font-size: 12.5px; font-weight: 600; }
+
+body[data-page]:not(.p-cinema) .p-choice {
+    background: #fff;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-md);
+    color: var(--ca-ink);
+    padding: 12px 14px;
+}
+
+body[data-page]:not(.p-cinema) .p-choice:hover { background: #fcfcfd; border-color: var(--ca-line-strong); }
+body[data-page]:not(.p-cinema) .p-choice[aria-pressed="true"] { border-color: var(--ca-accent); background: var(--ca-accent-soft); }
+body[data-page]:not(.p-cinema) .p-choice-sub { color: var(--ca-muted); }
+
+body[data-page]:not(.p-cinema) .p-toast {
+    background: #1f1f24;
+    border: 1px solid transparent;
+    border-radius: var(--ca-r-md);
+    color: #fff;
+    box-shadow: var(--ca-shadow);
+}
+
+body[data-page]:not(.p-cinema) .p-tabs button {
+    border-radius: var(--ca-r-pill);
+    border: 1px solid var(--ca-line);
+    background: #fff;
+    color: var(--ca-copy);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+body[data-page]:not(.p-cinema) .p-tabs button[aria-selected="true"] {
+    background: var(--ca-ink);
+    border-color: var(--ca-ink);
+    color: #fff;
+}
+
+/* 10 / 设置、通知、创作 ---------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-section > h2,
+body[data-page]:not(.p-cinema) .p-form-section-title {
+    font-family: var(--ca-sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ca-ink);
+    border-bottom: 1px solid var(--ca-line);
+}
+
+body[data-page]:not(.p-cinema) .p-row { padding: 16px 18px; border-bottom: 1px solid var(--ca-line); }
+body[data-page]:not(.p-cinema) .p-toc { border-right: 0; }
+body[data-page]:not(.p-cinema) .p-toc a { border-radius: var(--ca-r-sm); color: var(--ca-copy); }
+body[data-page]:not(.p-cinema) .p-toc a[aria-current="true"] { background: var(--ca-hover); color: var(--ca-ink); font-weight: 600; }
+body[data-page]:not(.p-cinema) .p-notification-row { border-radius: var(--ca-r-md); }
+body[data-page]:not(.p-cinema) .p-notification-row.is-unread { background: var(--ca-accent-soft); border-inline-start-color: var(--ca-accent); }
+
+body[data-page]:not(.p-cinema) .p-empty { border: 1px dashed var(--ca-line-strong); border-radius: var(--ca-r-card); }
+body[data-page]:not(.p-cinema) .p-empty-title { color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-empty-text { color: var(--ca-muted); }
+
+body[data-page="create"] .p-create-preview {
+    background: var(--ca-card);
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    box-shadow: var(--ca-shadow);
+}
+
+body[data-page="create"] .p-create-main > .p-card { background: #fff; border: 1px solid var(--ca-line); border-radius: var(--ca-r-card); }
+body[data-page="create"] .p-create-preview-name { font-family: var(--ca-sans); font-weight: 700; color: var(--ca-ink); }
+body[data-page="create"] :is(.p-create-preview-hook, .p-create-preview-greeting) { color: var(--ca-copy); }
+body[data-page="create"] .p-create-preview-greeting { border-top-color: var(--ca-line); font-family: var(--ca-serif); }
+
+/* 11 / 移动端 -------------------------------------------------------------- */
+body[data-page]:not(.p-cinema) .p-tabbar {
+    background: rgba(251, 251, 252, .96);
+    border-top: 1px solid var(--ca-line);
+    backdrop-filter: saturate(160%) blur(12px);
+}
+
+body[data-page]:not(.p-cinema) .p-tabbar a { color: var(--ca-muted); font-size: 11px; }
+body[data-page]:not(.p-cinema) .p-tabbar a[aria-current="page"] { color: var(--ca-ink); font-weight: 600; }
+
+
+/* 缩略图：成人向只加角标，不遮住人物（C.AI 的列表也不模糊封面） */
+body[data-page]:not(.p-cinema) :is(.p-row-cover, .p-library-cover, .p-create-cover) .p-cover-gate {
+    inset: 6px auto auto 6px;
+    padding: 1px 6px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(16, 16, 18, .78);
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+body[data-page]:not(.p-cinema) :is(.p-row-cover, .p-library-cover) .p-cover-gate strong { font-size: 10px; font-weight: 700; }
+body[data-page]:not(.p-cinema) :is(.p-row-cover, .p-library-cover) .p-cover-gate span { display: none; }
+
+body[data-page]:not(.p-cinema) :is(.p-row-cover, .p-library-cover).is-obscured img {
+    filter: none;
+}
+
+
+/* 详情页成人向：保留模糊立绘而不是纯黑块 */
+body[data-page]:not(.p-cinema) .p-detail-cover.is-obscured > img {
+    display: block;
+    filter: blur(20px) saturate(.75) brightness(.72);
+    transform: scale(1.06);
+}
+
+body[data-page]:not(.p-cinema) .p-detail-cover .p-cover-gate {
+    inset: auto 12px 12px 12px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+}
+
+
+/* 13 / 经典发现页：C.AI 卡片流 -------------------------------------------- */
+body[data-page]:not(.p-cinema) .ca-home { padding-bottom: 48px; }
+
+body[data-page]:not(.p-cinema) .ca-welcome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+body[data-page]:not(.p-cinema) .ca-welcome h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--ca-ink);
+}
+
+body[data-page]:not(.p-cinema) .ca-welcome p { margin: 2px 0 0; color: var(--ca-muted); font-size: 13px; }
+
+body[data-page]:not(.p-cinema) .ca-block { margin-bottom: 34px; }
+
+body[data-page]:not(.p-cinema) .ca-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+body[data-page]:not(.p-cinema) .ca-block-head h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--ca-ink);
+}
+
+body[data-page]:not(.p-cinema) .ca-block-head a {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--ca-muted);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+body[data-page]:not(.p-cinema) .ca-block-head a:hover { color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .ca-block-sub { color: var(--ca-muted); font-size: 12.5px; }
+
+body[data-page]:not(.p-cinema) .ca-rec-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+body[data-page]:not(.p-cinema) .ca-rec {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: var(--ca-card);
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-md);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .16s ease, background .16s ease;
+}
+
+body[data-page]:not(.p-cinema) .ca-rec:hover { border-color: var(--ca-line-strong); background: #fcfcfd; }
+
+body[data-page]:not(.p-cinema) .ca-rec-cover {
+    width: 64px;
+    height: 64px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+}
+
+body[data-page]:not(.p-cinema) .ca-rec-main { min-width: 0; }
+
+body[data-page]:not(.p-cinema) .ca-rec-name {
+    font-size: 14.5px;
+    font-weight: 650;
+    color: var(--ca-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body[data-page]:not(.p-cinema) .ca-rec-author { margin-top: 2px; font-size: 12px; color: var(--ca-muted); }
+
+body[data-page]:not(.p-cinema) .ca-rec-hook {
+    margin: 6px 0 0;
+    color: var(--ca-copy);
+    font-size: 12.5px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+body[data-page]:not(.p-cinema) .ca-rec-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    color: var(--ca-muted);
+    font-size: 11.5px;
+}
+
+body[data-page]:not(.p-cinema) .ca-rec-meta .p-icon { width: 14px; height: 14px; }
+
+body[data-page]:not(.p-cinema) .ca-scene-row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 178px;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+}
+
+body[data-page]:not(.p-cinema) .ca-scene-item { scroll-snap-align: start; }
+
+body[data-page]:not(.p-cinema) .ca-scene {
+    position: relative;
+    display: block;
+    aspect-ratio: 3 / 4;
+    border-radius: var(--ca-r-md);
+    overflow: hidden;
+    text-decoration: none;
+    background: var(--ca-sunken);
+}
+
+body[data-page]:not(.p-cinema) .ca-scene-cover { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: var(--ca-r-md); }
+
+body[data-page]:not(.p-cinema) .ca-scene-foot {
+    position: absolute;
+    inset: auto 10px 10px 10px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+body[data-page]:not(.p-cinema) .ca-scene-title {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.35;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, .65);
+}
+
+body[data-page]:not(.p-cinema) .ca-scene-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+    padding: 3px 10px 3px 3px;
+    border-radius: var(--ca-r-pill);
+    background: rgba(255, 255, 255, .94);
+    color: #1b1b1d;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+body[data-page]:not(.p-cinema) .ca-scene-cta .p-avatar { border-radius: 50%; }
+
+body[data-page]:not(.p-cinema) .ca-scene-author { margin-top: 6px; color: var(--ca-muted); font-size: 11.5px; }
+
+body[data-page]:not(.p-cinema) .ca-chat-list { display: grid; gap: 10px; }
+
+body[data-page]:not(.p-cinema) .ca-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+body[data-page]:not(.p-cinema) .ca-chip {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: var(--ca-r-pill);
+    border: 1px solid var(--ca-line);
+    background: #fff;
+    color: var(--ca-copy);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+body[data-page]:not(.p-cinema) .ca-chip:hover { border-color: var(--ca-line-strong); color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .ca-chip[aria-pressed="true"] { background: var(--ca-ink); border-color: var(--ca-ink); color: #fff; }
+
+body[data-page]:not(.p-cinema) .ca-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+/* 网格角色卡：竖版海报 + 名字/作者 */
+body[data-page]:not(.p-cinema) .p-work {
+    display: block;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+
+body[data-page]:not(.p-cinema) .p-work-media { position: relative; }
+
+body[data-page]:not(.p-cinema) .p-work-cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 14px;
+}
+
+body[data-page]:not(.p-cinema) .p-work-body { padding: 8px 2px 0; }
+body[data-page]:not(.p-cinema) .p-work-name { margin: 0; font-size: 14px; font-weight: 650; color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-work-author { margin: 2px 0 0; font-size: 12px; color: var(--ca-muted); }
+body[data-page]:not(.p-cinema) .p-work-desc { display: none; }
+
+body[data-page]:not(.p-cinema) .p-work-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+body[data-page]:not(.p-cinema) .p-work-stat { color: var(--ca-muted); font-size: 11.5px; }
+body[data-page]:not(.p-cinema) .p-work-nsfw { position: absolute; top: 8px; left: 8px; z-index: 2; }
+body[data-page]:not(.p-cinema) .p-work-fav { position: absolute; top: 8px; right: 8px; z-index: 2; }
+
+
+/* 15 / 角色详情（经典）：C.AI 单列档案页 ---------------------------------- */
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail {
+    display: block;
+    max-width: 780px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky {
+    position: static;
+    top: auto;
+    display: block;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-id { display: block; }
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-cover {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    max-height: 460px;
+    border-radius: var(--ca-r-card);
+    box-shadow: var(--ca-shadow);
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-title { margin-top: 18px; }
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-title h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--ca-ink);
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-by { margin: 0 0 10px; color: var(--ca-muted); font-size: 13px; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-by .p-link { color: var(--ca-ink); font-weight: 600; text-decoration: none; }
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-stats {
+    display: flex;
+    gap: 26px;
+    margin: 14px 0 4px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-stat-n { font-size: 16px; font-weight: 700; color: var(--ca-ink); }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-stat-l { font-size: 11.5px; color: var(--ca-muted); }
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky > div:last-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 6px;
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] #start-chat {
+    flex: 1;
+    min-height: 48px;
+    border-radius: var(--ca-r-pill);
+    font-size: 15px;
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-minor { display: flex; gap: 8px; margin: 0; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-minor .p-btn--icon { width: 48px; min-height: 48px; border-radius: 50%; }
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-main { margin-top: 20px; display: grid; gap: 12px; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-main .p-card { padding: 20px; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-card-head h2 { font-size: 15px; font-weight: 700; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-eyebrow { font-size: 11.5px; letter-spacing: .08em; color: var(--ca-muted); }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-quote { margin: 8px 0 0; padding: 0; border: 0; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-quote p { font-family: var(--ca-serif); font-size: 15px; line-height: 1.9; color: var(--ca-ink); }
+
+
+/* 详情页操作行：高度与胶囊统一 */
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-minor .p-btn {
+    min-height: 48px;
+    border-radius: var(--ca-r-pill);
+}
+
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky > .p-btn--ghost {
+    min-height: 44px;
+    margin-top: 4px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-pill);
+    background: #fff;
+    color: var(--ca-copy);
+    font-size: 13px;
+}
+
+/* 16 / 广场（经典）：去掉大标题，直接接筛选与卡片 ------------------------- */
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-page-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-page-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-page-index,
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-page-title p { display: none; }
+
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-work-grid { margin-top: 4px; }
+
+
+/* 17 / 右栏菜单行：整行可点 + 右侧箭头 ----------------------------------- */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-section { padding: 0; border-bottom: 0; }
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--ca-r-md);
+    background: transparent;
+    color: var(--ca-ink);
+    text-align: left;
+    text-decoration: none;
+}
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-action:hover { background: var(--ca-hover); color: var(--ca-ink); }
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-label {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--ca-muted);
+    letter-spacing: .02em;
+}
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-value {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ca-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-note {
+    margin: 2px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ca-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-go { display: inline-flex; color: var(--ca-muted); flex: 0 0 auto; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-rp-context-go .p-icon { width: 16px; height: 16px; }
+
+/* 18 / 可访问性 ------------------------------------------------------------ */
+body[data-page]:not(.p-cinema) :is(a, button, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--ca-accent);
+    outline-offset: 2px;
+}
+
+/* 19 / 广场筛选条：拆成独立胶囊，不要一条灰底长条 ------------------------- */
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 14px;
+}
+
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar .p-search {
+    background: #ededef;
+    border: 1px solid transparent;
+    border-radius: var(--ca-r-pill);
+    min-height: 44px;
+    padding-inline: 14px;
+}
+
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar .p-select,
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar .p-btn {
+    min-height: 44px;
+    border-radius: var(--ca-r-pill);
+    border: 1px solid var(--ca-line);
+    background: #fff;
+    padding-inline: 16px;
+    font-size: 13.5px;
+}
+
+body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar-count {
+    margin-left: auto;
+    padding-inline: 4px;
+    font-size: 12.5px;
+}
+
+/* 20 / 世界书多本管理 ------------------------------------------------------ */
+.p-lore-block { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--ca-line); }
+.p-lore-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.p-lore-head h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--ca-ink); }
+.p-lore-head span { color: var(--ca-muted); font-size: 12px; }
+.p-lore-books { display: grid; gap: 8px; }
+.p-lore-book { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #fff; border: 1px solid var(--ca-line); border-radius: 12px; }
+.p-lore-book input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; }
+.p-lore-book-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.p-lore-book-main strong { font-size: 13.5px; font-weight: 650; color: var(--ca-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-lore-book-main small { color: var(--ca-muted); font-size: 11.5px; }
+.p-lore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.p-lore-badge { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: #ececee; color: var(--ca-copy); font-size: 10.5px; font-weight: 600; vertical-align: middle; }
+.p-lore-toggles { display: flex; flex-wrap: wrap; gap: 18px; margin: 12px 0 4px; }
+.p-lore-toggles label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ca-copy); }
+
+/* 21 / 变量与状态栏 -------------------------------------------------------- */
+.p-var-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.p-var-chip { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; min-height: 28px; padding: 4px 10px; background: #fff; border: 1px solid var(--ca-line); border-radius: 999px; cursor: pointer; text-align: left; }
+.p-var-chip:hover { border-color: var(--ca-line-strong); }
+.p-var-chip:focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 1px; }
+.p-var-key { color: var(--ca-muted); font-size: 11.5px; flex: 0 0 auto; }
+.p-var-value { color: var(--ca-ink); font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-rp-context .p-var-bar { margin-top: 6px; }
+@media (max-width: 560px) {
+    .p-var-chip { min-height: 32px; padding: 5px 11px; }
+    .p-var-value { font-size: 13.5px; }
+}
+
+/* 22 / 窄屏状态栏：右栏隐藏时挪到输入框上方 ------------------------------- */
+.p-var-strip { margin: 0 0 8px; }
+.p-var-strip-btn { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 4px 0; background: none; border: 0; cursor: pointer; overflow-x: auto; scrollbar-width: none; text-align: left; }
+.p-var-strip-btn::-webkit-scrollbar { display: none; }
+.p-var-strip-btn .p-var-chip { flex: 0 0 auto; max-width: 70vw; cursor: inherit; }
+.p-var-strip-btn:focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 2px; border-radius: 12px; }
+@media (min-width: 1181px) {
+    body[data-page="chat"] .p-var-strip { display: none; }
+}
+
+/* 23 / 世界书高级字段：分组折叠、两列/三列表单 ----------------------------- */
+.p-lore-advanced { margin: 14px 0 0; padding: 10px 12px; background: #fff; border: 1px solid var(--ca-line); border-radius: 12px; }
+.p-lore-advanced > summary { min-height: 32px; display: flex; align-items: center; cursor: pointer; font-size: 13.5px; font-weight: 650; color: var(--ca-ink); list-style: none; }
+.p-lore-advanced > summary::-webkit-details-marker { display: none; }
+.p-lore-advanced > summary::after { content: "展开"; margin-left: auto; color: var(--ca-muted); font-size: 12px; font-weight: 500; }
+.p-lore-advanced[open] > summary::after { content: "收起"; }
+.p-lore-advanced > summary:focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 2px; border-radius: 8px; }
+.p-lore-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; align-items: end; }
+.p-lore-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.p-lore-grid .p-lore-toggles { margin: 0 0 12px; }
+.p-lore-grid > div { min-width: 0; }
+@media (max-width: 560px) {
+    .p-lore-grid, .p-lore-grid--3 { grid-template-columns: minmax(0, 1fr); }
+    .p-lore-toggles { gap: 10px 16px; }
+    .p-lore-toggles label { min-height: 32px; }
+}
+
+/* 24 / 消息操作：隐藏的消息、输入区的「代写 / 继续剧情」、窄屏工具行 ------- */
+body[data-page="chat"] .is-hidden .p-msg-copy { opacity: .55; }
+body[data-page="chat"] .p-msg-flag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #ececee; color: var(--ca-copy); font-size: 11px; font-weight: 600; vertical-align: 1px; }
+body[data-page="chat"] .p-compose-actions { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+body[data-page="chat"] .p-compose-actions .p-text-btn { min-height: 44px; padding-inline: 8px; }
+/* 窄屏：复制与分支收进「更多」，其余（编辑、重试、上一个、计数、下一个、更多）一行放下 */
+@media (max-width: 560px) {
+    body[data-page="chat"] .p-msg-tools { gap: 0; margin-inline: -6px; }
+    body[data-page="chat"] .p-msg-tools button { width: 40px; height: 44px; flex: 0 0 40px; }
+    body[data-page="chat"] .p-msg-tools :is([data-message-action="copy"], [data-message-action="branch"]) { display: none; }
+    body[data-page="chat"] .p-rp-candidate-index { flex: 0 0 auto; min-width: 34px; text-align: center; font-size: 12px; }
+}
+
+/* 25 / 快捷回复条：输入框上方一行，可横向滚动 ------------------------------ */
+.p-qr-bar { display: flex; gap: 6px; margin: 0 0 8px; overflow-x: auto; scrollbar-width: none; }
+.p-qr-bar::-webkit-scrollbar { display: none; }
+.p-qr-btn { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; background: #fff; border: 1px solid var(--ca-line); border-radius: 999px; color: var(--ca-copy); font-size: 13px; cursor: pointer; white-space: nowrap; }
+.p-qr-btn:hover { border-color: var(--ca-line-strong); color: var(--ca-ink); }
+.p-qr-btn:focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 1px; }
+@media (max-width: 560px) { .p-qr-btn { min-height: 40px; } }
+
+/* 26 / 消息工具行：常驻只留在最新一条角色回复；其余悬停、键盘聚焦或轻点后出现。
+   工具行保留占位（visibility 而不是 display），出现时不推挤正文。 */
+body[data-page="chat"] .p-msg .p-msg-tools { opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility 0s linear .16s; }
+body[data-page="chat"] .p-msg:is(:hover, :focus-within, .is-latest, .is-tools-open) .p-msg-tools { opacity: 1; visibility: visible; transition: opacity .16s ease; }
+@media (hover: none) {
+    /* 触屏：非最新消息的工具行收起高度，轻点消息展开，避免每条消息底部都空一截 */
+    body[data-page="chat"] .p-msg:not(.is-latest):not(.is-tools-open) .p-msg-tools { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body[data-page="chat"] .p-msg .p-msg-tools { transition: none; }
+}
+
+/* 27a / 右栏菜单行（影院与经典视图共用） ----------------------------------- */
+body[data-page="chat"] .p-rp-context-section { padding: 0; border-bottom: 0; }
+
+body[data-page="chat"] .p-rp-context-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--ca-r-md);
+    background: transparent;
+    color: var(--ca-ink);
+    text-align: left;
+    text-decoration: none;
+}
+
+body[data-page="chat"] .p-rp-context-action:hover { background: var(--ca-hover); color: var(--ca-ink); }
+
+body[data-page="chat"] .p-rp-context-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+body[data-page="chat"] .p-rp-context-label {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--ca-muted);
+    letter-spacing: .02em;
+}
+
+body[data-page="chat"] .p-rp-context-value {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ca-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body[data-page="chat"] .p-rp-context-note {
+    margin: 2px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ca-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body[data-page="chat"] .p-rp-context-go { display: inline-flex; color: var(--ca-muted); flex: 0 0 auto; }
+body[data-page="chat"] .p-rp-context-go .p-icon { width: 16px; height: 16px; }
+
+/* 27 / 右栏两层：「故事」常驻，「高级设置」折叠。行仍是 17 节的整行可点样式，这里只补分组与折叠头。 */
+body[data-page="chat"] .p-rp-context-group { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; }
+body[data-page="chat"] .p-rp-context-group .p-var-bar { margin: 4px 0 2px; }
+body[data-page="chat"] .p-rp-context-group .p-var-chip { min-height: 24px; padding: 2px 8px; cursor: inherit; }
+body[data-page="chat"] .p-rp-context-advanced { margin-top: 14px; padding-top: 6px; border-top: 1px solid var(--ca-line); }
+body[data-page="chat"] .p-rp-context-advanced > summary {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 56px;
+    padding: 10px 40px 10px 12px;
+    border-radius: var(--ca-r-md);
+    cursor: pointer;
+    list-style: none;
+}
+body[data-page="chat"] .p-rp-context-advanced > summary::-webkit-details-marker { display: none; }
+body[data-page="chat"] .p-rp-context-advanced > summary::after {
+    content: "";
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--ca-muted);
+    border-bottom: 1.5px solid var(--ca-muted);
+    transform: translateY(-70%) rotate(45deg);
+    transition: transform .16s ease;
+}
+body[data-page="chat"] .p-rp-context-advanced[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
+body[data-page="chat"] .p-rp-context-advanced > summary:hover { background: var(--ca-hover); }
+body[data-page="chat"] .p-rp-context-advanced-title { font-size: 13.5px; font-weight: 600; color: var(--ca-ink); }
+body[data-page="chat"] .p-rp-context-advanced-sub { font-size: 11px; color: var(--ca-muted); }
+
+/* 28 / 输入框上方合成一行：左边状态（窄屏）+ 快捷回复，右边「以 某某 的身份 · 故事设定」。
+   宽屏右栏已有状态，这里只留快捷回复；窄屏状态排在快捷回复前。整行可横向滚动，不再叠成三行。 */
+body[data-page="chat"] .p-compose-bar { display: flex; align-items: center; gap: 8px 16px; min-height: 40px; margin-bottom: 8px; }
+body[data-page="chat"] .p-compose-bar-main { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; overflow-x: auto; scrollbar-width: none; }
+body[data-page="chat"] .p-compose-bar-main::-webkit-scrollbar { display: none; }
+body[data-page="chat"] .p-compose-bar .p-var-strip, body[data-page="chat"] .p-compose-bar .p-qr-bar { margin: 0; flex: 0 0 auto; overflow: visible; }
+body[data-page="chat"] .p-compose-bar .p-var-strip-btn { width: auto; min-height: 36px; padding: 0; overflow: visible; }
+body[data-page="chat"] .p-compose-bar .p-var-chip { min-height: 30px; padding: 3px 10px; }
+body[data-page="chat"] .p-compose-bar .p-qr-btn { min-height: 32px; padding: 4px 12px; }
+@media (max-width: 1180px) {
+    body[data-page="chat"] .p-compose-bar .p-var-strip:not([hidden]) + .p-qr-bar:not([hidden])::before { content: ""; align-self: center; width: 1px; height: 18px; margin-right: 2px; background: var(--ca-line-strong); }
+}
+body[data-page="chat"] .p-compose-bar .p-rp-compose-context { flex: 0 0 auto; flex-wrap: nowrap; gap: 12px; margin: 0 0 0 auto; white-space: nowrap; }
+body[data-page="chat"] .p-compose-persona { color: var(--ca-muted); }
+body[data-page="chat"] .p-compose-persona b { font-weight: 600; color: var(--ca-copy); }
+
+/* 29 / 顶部：「本地模拟」提示从一整条横幅收成标题下的一行小字，手机上省出一行高度 */
+body[data-page="chat"] .p-rp-status { padding-block: 6px; font-size: 11.5px; }
+@media (max-width: 720px) {
+    body[data-page="chat"] .p-chat-head { height: calc(56px + env(safe-area-inset-top)); }
+    body[data-page="chat"] .p-chat-name { font-size: 16px; }
+    body[data-page="chat"] .p-chat-sub { font-size: 11.5px; }
+    body[data-page="chat"] .p-chat-title .p-avatar { width: 32px; height: 32px; }
+    body[data-page="chat"] .p-rp-status { padding: 4px var(--pp-chat-gutter); font-size: 11px; line-height: 1.5; }
+    body[data-page="chat"] .p-compose-bar { margin-bottom: 6px; min-height: 36px; }
+    body[data-page="chat"] .p-compose-persona { display: none; }
+    body[data-page="chat"] .p-compose-meta { min-height: 36px; padding-top: 2px; }
+    body[data-page="chat"] .p-compose-meta > #draft-status:not(.is-alert) { display: none; }
+    body[data-page="chat"] .p-compose-actions { margin-left: auto; }
+}
+
+/* 30 / 收尾：消息卡片底部不再为隐藏的工具行留空；状态 chip 不换行；输入框上方一行在窄屏可横向滑动 */
+@media (hover: hover) {
+    /* 鼠标设备：工具行隐藏时也收起高度，卡片底部不留一截空白；悬停时展开 */
+    body[data-page="chat"] .p-msg:not(.is-latest):not(.is-tools-open) .p-msg-tools { height: 0; margin-top: 0; overflow: hidden; }
+    body[data-page="chat"] .p-msg:not(.is-latest):is(:hover, :focus-within) .p-msg-tools { height: auto; margin-top: 10px; overflow: visible; }
+}
+body[data-page="chat"] .p-rp-context-group .p-var-bar { flex-wrap: wrap; gap: 4px; }
+body[data-page="chat"] .p-rp-context-group .p-var-chip { white-space: nowrap; }
+@media (max-width: 720px) {
+    body[data-page="chat"] .p-compose-bar-main { mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent); padding-right: 16px; }
+    body[data-page="chat"] .p-compose-bar .p-var-chip { min-height: 30px; padding: 3px 9px; }
+    body[data-page="chat"] .p-compose-bar .p-qr-btn { min-height: 32px; padding: 4px 11px; }
+}
+
+/* ==========================================================================
+   31 / 经典视图排版统一（只改经典视图；影院视图后续单独做）
+   ========================================================================== */
+
+/* 31.1 页面容器：所有列表页内容统一 1080px 居中，左右边距一致；角色详情 / 作者页用同一套 */
+body[data-page]:not(.p-cinema) .p-page { --classic-max: 1080px; }
+body[data-page]:not(.p-cinema):is([data-page="plaza"], [data-page="chats"], [data-page="library"], [data-page="rooms"], [data-page="create"], [data-page="settings"], [data-page="notifications"], [data-page="author"], [data-page="character"]) .p-inner {
+    max-width: var(--classic-max);
+    margin-inline: auto;
+}
+@media (min-width: 721px) {
+    body[data-page]:not(.p-cinema):is([data-page="plaza"], [data-page="chats"], [data-page="library"], [data-page="rooms"], [data-page="create"], [data-page="settings"], [data-page="notifications"], [data-page="author"], [data-page="character"]) .p-site-announcement {
+        max-width: var(--classic-max);
+        margin-inline: auto;
+    }
+}
+
+/* 31.2 社区提醒：从整条横幅改成一行轻提示，不再像系统警告 */
+body[data-page]:not(.p-cinema) .p-site-announcement {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 36px;
+    margin-top: 14px;
+    padding: 6px 6px 6px 14px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-pill);
+    background: var(--ca-card);
+    color: var(--ca-muted);
+    font-size: 12.5px;
+}
+body[data-page]:not(.p-cinema) .p-site-announcement > button { width: 28px; height: 28px; border-radius: 50%; }
+
+/* 31.3 页面标题：桌面左标题右操作、底部对齐；手机标题左对齐，操作按钮缩成一行小按钮 */
+body[data-page]:not(.p-cinema) .p-page-title { align-items: flex-end; }
+body[data-page]:not(.p-cinema) .p-page-title > div:first-child { min-width: 0; }
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-page-title {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 12px;
+        margin-bottom: 18px;
+    }
+    body[data-page]:not(.p-cinema) .p-page-title > div:first-child { flex: 1 1 100%; text-align: left; }
+    body[data-page]:not(.p-cinema) .p-page-title h1 { font-size: 24px; }
+    body[data-page]:not(.p-cinema) .p-page-title p { margin-top: 2px; font-size: 13px; }
+    body[data-page]:not(.p-cinema) .p-page-title-actions { width: auto; flex: 1 1 100%; justify-content: flex-start; gap: 8px; }
+    body[data-page]:not(.p-cinema) .p-page-title-actions .p-btn { flex: 0 0 auto; min-height: 40px; padding-inline: 16px; font-size: 13.5px; }
+    /* 广场：标题已隐藏副标题，操作与标题同一行 */
+    body[data-page]:not(.p-cinema)[data-page="plaza"] .p-page-title > div:first-child { flex: 1 1 auto; }
+    body[data-page]:not(.p-cinema)[data-page="plaza"] .p-page-title-actions { flex: 0 0 auto; }
+}
+
+/* 31.4 对话列表：手机上时间与条数放到名字行，预览占满宽度，不再被挤成窄列 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 40px;
+        grid-template-rows: auto auto;
+        gap: 2px 8px;
+        padding: 14px;
+    }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-open { grid-column: 1 / 3; grid-row: 1; align-items: flex-start; gap: 12px; padding-right: 40px; }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-row-cover { width: 52px; height: 52px; border-radius: 10px; }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-row-main { flex: 1; }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-row-preview { -webkit-line-clamp: 2; margin: 4px 0 4px; font-size: 13.5px; line-height: 1.6; }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-row-meta { grid-column: 1; grid-row: 2; display: flex; gap: 10px; padding-left: 64px; font-size: 11.5px; }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-row > .p-btn,
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-chat-row > a.p-btn { grid-column: 2; grid-row: 1; align-self: start; justify-self: end; width: 36px; height: 36px; min-height: 36px; }
+    body[data-page]:not(.p-cinema)[data-page="chats"] .p-library-sub { display: none; }
+}
+
+/* 31.5 列表筛选条：搜索框与下拉在手机上一行，统计文字单独一行靠左 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-filterbar { border-radius: var(--ca-r-md); padding: 8px; }
+    body[data-page]:not(.p-cinema) .p-filterbar-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    body[data-page]:not(.p-cinema) .p-filterbar-main .p-search { min-width: 0; }
+    body[data-page]:not(.p-cinema) .p-filterbar-main .p-select { width: auto; min-width: 0; max-width: 132px; }
+    body[data-page]:not(.p-cinema) .p-filterbar-count { display: block; padding: 6px 4px 0; text-align: left; }
+}
+
+/* 31.6 角色库：手机上四个按钮收成两列网格，不再横向挤出屏幕 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-library-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+    body[data-page]:not(.p-cinema) .p-library-actions .p-btn { width: 100%; min-height: 40px; }
+}
+
+/* 31.7 侧栏：桌面固定在视口里，内容滚动时侧栏不跟着露出空白 */
+@media (min-width: 721px) {
+    body[data-page]:not(.p-cinema) .p-side { position: sticky; top: 0; height: 100vh; height: 100dvh; align-self: start; }
+}
+
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-site-announcement { width: auto; margin: 10px 16px 0; }
+    body[data-page]:not(.p-cinema) .p-site-announcement > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* 31.8 广场筛选：搜索 + 排序一行，NSFW 开关与作品数第二行 */
+    body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main { grid-template-columns: minmax(0, 1fr) auto; }
+    body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main > .p-chip { justify-self: start; }
+    body[data-page]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main > .p-filterbar-count { align-self: center; justify-self: end; padding: 0 4px; }
+    /* 31.9 角色库：卡片里头像 + 文字一行，按钮在下方两列 */
+    body[data-page]:not(.p-cinema) .p-library-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 14px; }
+    body[data-page]:not(.p-cinema) .p-library-row .p-library-cover { width: 56px; height: 56px; }
+    body[data-page]:not(.p-cinema) .p-library-row .p-library-actions { grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid var(--ca-line); }
+    /* 筛选条：统计文字在第二行，不和搜索框挤 */
+    body[data-page]:not(.p-cinema):is([data-page="library"], [data-page="chats"]) .p-filterbar-main > .p-filterbar-count { grid-column: 1 / -1; }
+    body[data-page]:not(.p-cinema)[data-page="library"] .p-filterbar-main { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 32 / 侧栏卡片（房间说明、创作页私人试聊与预览）：卡片本身有内边距，标题线不贴边 */
+body[data-page]:not(.p-cinema):is([data-page="rooms"], [data-page="create"]) :is(.p-rooms-side, .p-create-side) > .p-card {
+    padding: 20px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    background: var(--ca-card);
+}
+body[data-page]:not(.p-cinema):is([data-page="rooms"], [data-page="create"]) :is(.p-rooms-side, .p-create-side) .p-form-section-title {
+    margin: 0 0 12px;
+    padding-bottom: 12px;
+    font-size: 15px;
+    font-weight: 650;
+}
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-side > .p-card:last-child { border-top-width: 1px; }
+
+/* 33 / 创作页手机：形象与封面左右并排，卡片之间留出节奏 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-main > .p-card { padding: 18px 16px; }
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-media { grid-template-columns: 88px minmax(0, 1fr); gap: 14px; }
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-avatar { width: 88px; }
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-cover { width: 88px; flex-basis: 88px; }
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-cover-wrap { gap: 14px; }
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-side { gap: 14px; }
+    body[data-page]:not(.p-cinema)[data-page="rooms"] .p-rooms-side { gap: 14px; }
+}
+
+/* 34 / 设置页手机：分区导航可以横滑，右侧淡出提示还有更多 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="settings"] .p-toc { mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: 20px; }
+}
+
+/* 35 / 创作页主栏卡片：同样补上内边距（原 polish 层在经典视图里把它清成 0，标题和字段贴着边框） */
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-main > .p-card {
+    padding: 24px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-card);
+    background: var(--ca-card);
+}
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-main > .p-card + .p-card { margin-top: 16px; }
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-main .p-form-section-title { margin: 0 0 14px; padding-bottom: 12px; font-size: 17px; font-weight: 650; }
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="create"] .p-create-main > .p-card { padding: 18px 16px; }
+}
+
+/* 36 / 创作页玩家视角预览：预览卡自带边框，内文需要内边距；小标题与段落之间留出层次 */
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-preview { margin: 4px 0 0; overflow: hidden; }
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-preview-body { padding: 18px 16px; }
+body[data-page]:not(.p-cinema)[data-page="create"] .p-create-preview-name { margin-bottom: 6px; font-size: 22px; line-height: 1.3; }
+body[data-page]:not(.p-cinema)[data-page="create"] .creator-preview-tags { margin: 10px 0 4px; }
+body[data-page]:not(.p-cinema)[data-page="create"] .creator-preview-player h4 { margin: 14px 0 2px; color: var(--ca-muted); font-size: 12px; font-weight: 600; }
+body[data-page]:not(.p-cinema)[data-page="create"] .creator-preview-player h4 + p { margin: 0; color: var(--ca-copy); font-size: 13px; line-height: 1.7; }
+
+/* 37 / 角色详情（经典）：桌面改左右两栏，左栏立绘与操作随滚动停留，右栏读内容；
+   「查看全部会话」降为文字链接，手机上操作只占两行 */
+@media (min-width: 1100px) {
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 36px;
+        align-items: start;
+        max-width: var(--classic-max);
+    }
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky {
+        position: sticky;
+        top: calc(var(--topbar-h) + 20px);
+        max-height: calc(100dvh - var(--topbar-h) - 40px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-cover { max-height: 300px; }
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-title h1 { font-size: 26px; }
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-main { margin-top: 0; }
+}
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky > div:last-child { flex-wrap: wrap; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky > div:last-child > #start-chat { flex: 1 0 100%; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-minor { flex: 1 0 100%; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-minor > .p-btn:not(.p-btn--icon) { flex: 1; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky > .p-btn--ghost {
+    width: auto;
+    min-height: 32px;
+    margin: 2px 0 0;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    color: var(--ca-muted);
+    font-size: 12.5px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-sticky > .p-btn--ghost:hover { color: var(--ca-ink); }
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-cover { max-height: 340px; }
+}
+/* 详情页无 --pad 的卡片：内部 .p-card-head / .p-sub 已自带 28px 左右内边距，卡片本身不再叠加，正文与「故事的开端」左边对齐 */
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-main > .p-card:not(.p-card--pad) { padding: 4px 0; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-main > .p-card:not(.p-card--pad) > :is(.p-card-head, .p-sub) { padding-inline: 20px; }
+body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-main > .p-card:not(.p-card--pad) > :is(.p-choice-list, div:not([class])) { padding: 12px 20px 16px; }
+/* 手机经典视图：polish 层把立绘压成 80×100 / 100×125，这里恢复整宽竖图（矮一些，首屏能看到名字与操作） */
+@media (max-width: 1099px) {
+    body[data-page]:not(.p-cinema)[data-page="character"] .p-detail-cover { width: 100%; height: auto; aspect-ratio: 4 / 3; max-height: 300px; }
+}
+
+/* 38 / 发现页（经典）：场景条在角色少时撑满整行（多时仍横向滚动）；手机上「为您推荐」改横向滑动，不再竖排占满首屏 */
+@media (min-width: 721px) {
+    body[data-page]:not(.p-cinema) .ca-scene-row { grid-auto-columns: minmax(178px, 1fr); }
+    body[data-page]:not(.p-cinema) .ca-scene { aspect-ratio: 1 / 1; }
+    body[data-page]:not(.p-cinema) .ca-scene-cover img { object-position: center 22%; }
+}
+body[data-page]:not(.p-cinema)[data-page="home"] .ca-welcome { margin-top: 20px; }
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .ca-rec-row {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: 78%;
+        overflow-x: auto;
+        margin: 0 -16px;
+        padding: 0 16px 6px;
+        scroll-padding-inline: 16px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+    }
+    body[data-page]:not(.p-cinema) .ca-rec-row::-webkit-scrollbar { display: none; }
+    body[data-page]:not(.p-cinema) .ca-rec { scroll-snap-align: start; }
+    body[data-page]:not(.p-cinema) .ca-scene-row { scrollbar-width: none; }
+    body[data-page]:not(.p-cinema) .ca-scene-row::-webkit-scrollbar { display: none; }
+}
+
+/* 39 / 作者页（经典）：头部卡补内边距（polish 层清成 0 后头像与按钮贴边）；标题字体与全站一致 */
+body[data-page]:not(.p-cinema)[data-page="author"] .p-author-hero { padding: 24px 28px; border: 1px solid var(--ca-line); }
+body[data-page]:not(.p-cinema)[data-page="author"] .p-author-main h1 { font-family: var(--ca-sans); font-weight: 700; letter-spacing: -.02em; font-size: 30px; }
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="author"] .p-author-hero { padding: 18px 16px; }
+    body[data-page]:not(.p-cinema)[data-page="author"] .p-author-main h1 { font-size: 24px; }
+}
+
+/* =========================================================================
+   40 / 按钮内部排版（经典视图）
+   问题：proto.css 给 .p-btn--sm 定死 height:32px、.p-btn 定死 height:40px，
+   而经典层又用 min-height 调高并改字号，两者打架；中文在 13px 下需要更高的行盒，
+   文字被顶到上下边缘，图标 + 文字的组合还会左右不均。
+   做法：统一改成「height:auto + min-height + 行高」，让内容自己决定高度。
+   ========================================================================= */
+
+/* 40.1 小按钮：行高归一，文字不再贴边 */
+body[data-page]:not(.p-cinema) :is(.p-btn, .p-btn--sm, .p-btn--lg) {
+    height: auto;
+    line-height: 1.25;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+body[data-page]:not(.p-cinema) .p-btn--sm {
+    min-height: 34px;
+    padding: 7px 14px;
+    gap: 6px;
+    font-size: 13px;
+}
+
+body[data-page]:not(.p-cinema) .p-btn {
+    min-height: 40px;
+    padding: 10px 18px;
+    gap: 7px;
+    font-size: 14px;
+}
+
+body[data-page]:not(.p-cinema) .p-btn--lg {
+    min-height: 48px;
+    padding: 13px 26px;
+    font-size: 15px;
+}
+
+/* 40.2 图标：固定尺寸，禁止被 flex 压扁，并让图标与文字基线对齐 */
+body[data-page]:not(.p-cinema) :is(.p-btn, .p-text-btn, .p-chip, .ca-chip, .p-back) > .p-icon,
+body[data-page]:not(.p-cinema) :is(.p-btn, .p-text-btn, .p-chip, .ca-chip, .p-back) > svg {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+}
+
+/* 40.3 纯图标按钮：固定方形、无文字内边距。
+   不能用 aspect-ratio + width:auto——在 grid/flex 里被拉伸时会变成巨大的圆（房间页踩过）。 */
+body[data-page]:not(.p-cinema) .p-btn--icon,
+body[data-page]:not(.p-cinema) .p-btn--icon.p-btn--sm {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    flex: 0 0 auto;
+    border-radius: 50%;
+}
+
+body[data-page]:not(.p-cinema) .p-btn--icon.p-btn--sm {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+}
+body[data-page]:not(.p-cinema) .p-btn--icon > :is(.p-icon, svg) { width: 17px; height: 17px; }
+
+/* 40.4 「+ 文字」这类块级按钮：图标与文字整体居中，不被长文案挤歪 */
+body[data-page]:not(.p-cinema) .p-btn--block {
+    width: 100%;
+    padding-inline: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-flex;
+}
+
+/* 40.5 文字按钮：行高与点击区一致，不再压着文字上沿 */
+body[data-page]:not(.p-cinema) .p-text-btn {
+    display: inline-flex;
+    align-items: center;
+    height: auto;
+    min-height: 28px;
+    padding: 3px 4px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* 40.6 筛选用 chips：内边距统一，文字垂直居中 */
+body[data-page]:not(.p-cinema) :is(.ca-chip, .p-chip) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    min-height: 34px;
+    padding: 7px 15px;
+    line-height: 1.25;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+/* 40.7 收藏心形等悬浮小圆钮：固定方形，图标居中 */
+body[data-page]:not(.p-cinema) :is(.p-work-fav, .p-work-nsfw, .p-topbar-icon, .p-notice-close) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    aspect-ratio: 1;
+    border-radius: 50%;
+}
+
+body[data-page]:not(.p-cinema) .p-work-fav > :is(.p-icon, svg) { width: 17px; height: 17px; }
+
+/* 40.8 顶栏图标钮在手机上维持 40px 触达面积 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-topbar-icon { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+    body[data-page]:not(.p-cinema) .p-btn--sm { min-height: 36px; padding: 8px 14px; }
+    body[data-page]:not(.p-cinema) .p-btn { min-height: 42px; padding: 11px 18px; }
+}
+
+/* 41 / 手机筛选条：统计文字单独占一行（原来和搜索框抢宽度，把搜索框挤到只剩一半、文字还折行） */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-filterbar-main .p-filterbar-count {
+        grid-column: 1 / -1;
+        padding: 2px 4px 0;
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    body[data-page]:not(.p-cinema) .p-filterbar .p-search { width: 100%; }
+    body[data-page]:not(.p-cinema) .p-filterbar .p-search input { min-width: 0; }
+}
+
+/* 42 / 分段标签：经典视图里每个标签是独立胶囊（白底 + 描边），
+   容器不该再有灰底与 3px 内边距，否则标签外会露出一圈灰底、右侧还多出一截 */
+body[data-page]:not(.p-cinema) .p-tabs {
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    overflow: visible;
+    /* 作品管理有 5 个筛选标签，窄屏会横向溢出：允许换行 */
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+body[data-page]:not(.p-cinema) .p-tabs button { height: auto; min-height: 38px; padding: 8px 16px; }
+body[data-page]:not(.p-cinema) .p-tabs button[aria-selected="true"] { box-shadow: none; }
+
+/* 43 / 手机输入框：16px 字号的占位文字在 390 宽下会折成两行、被 48px 高度裁掉，
+   这里把手机上的输入字号与占位字号分开，保证占位文案完整显示在一行内 */
+@media (max-width: 720px) {
+    body[data-page="chat"] .p-chat-input {
+        min-height: 48px;
+        padding: 12px 16px;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+    body[data-page="chat"] .p-chat-input::placeholder { font-size: 13px; }
+}
+
+/* 44 / 撤销提示：这是一条临时状态条，不该撑满整行、也不该让「撤销」紧贴文字。
+   改成自适应宽度的胶囊条，文字与按钮居中对齐，动作按钮靠右但保持紧凑。 */
+body[data-page]:not(.p-cinema) #library-undo .p-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    width: auto;
+    max-width: 100%;
+    margin-bottom: 16px;
+    padding: 10px 12px 10px 16px;
+    border-radius: var(--ca-r-pill);
+}
+body[data-page]:not(.p-cinema) #library-undo .p-notice > span { flex: 1 1 auto; }
+body[data-page]:not(.p-cinema) #library-undo .p-notice > .p-btn { flex: 0 0 auto; min-height: 32px; padding: 6px 14px; }
+
+/* =========================================================================
+   45 / 对话页的设定类弹窗（世界书 / 预设 / 正则 / 变量 / 上下文预览）
+   问题：右栏行为了保持一行，给 .p-rp-context-note 加了 nowrap + 省略号；
+   这条规则同时作用到弹窗里，导致说明文字被截断，nowrap 的固有宽度还把
+   列表项撑到 441px（容器只有 316px），手机上横向溢出。
+   弹窗里说明文字应当正常换行。
+   ========================================================================= */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal :is(.p-rp-context-note, .p-rp-context-list p, .p-lore-block p) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.7;
+}
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section { min-width: 0; max-width: 100%; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-list { min-width: 0; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal :is(.p-rp-context-section strong, .p-rp-context-list strong) { display: block; margin-bottom: 2px; }
+
+/* 45.1 预设 / 世界书行：手机上标题独占一行，编辑与删除换到下一行，避免标题被压成 110px */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="chat"] .p-lore-book {
+        flex-wrap: wrap;
+        row-gap: 10px;
+        padding: 12px;
+    }
+    body[data-page]:not(.p-cinema)[data-page="chat"] .p-lore-book > .p-lore-book-main { flex: 1 0 calc(100% - 26px); }
+    body[data-page]:not(.p-cinema)[data-page="chat"] .p-lore-book > .p-btn { flex: 1 1 0; min-width: 0; }
+    body[data-page]:not(.p-cinema)[data-page="chat"] .p-lore-book-main strong { white-space: normal; overflow: visible; }
+}
+
+/* 45.2 试跑结果：命中说明与下一个标题之间要有间距，别贴在一起 */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section + .p-rp-context-section { margin-top: 16px; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-note + .p-rp-context-section { margin-top: 16px; }
+
+/* 45.3 弹窗里的 <pre> 结果框（正则试跑、上下文预览）：pre 默认不换行，长句会被裁掉；
+   改成按容器宽度换行，超高时自身滚动 */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-value {
+    display: block;
+    max-width: 100%;
+    max-height: 220px;
+    margin: 6px 0 0;
+    padding: 10px 12px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: var(--ca-sans);
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--ca-copy);
+    background: var(--ca-sunken);
+    border-radius: 10px;
+}
+
+/* 45.4 弹窗里的分块列表（上下文预览、预设组装、世界书命中）：
+   右栏行的重置规则把 section 的 padding 与分隔线一起清掉了，弹窗里就变成
+   「标题紧贴上一段、块之间又靠段落外边距撑开」的散乱排版。这里给回统一节奏。 */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ca-line);
+}
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section:last-child { border-bottom: 0; padding-bottom: 4px; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section > :is(h3, strong) {
+    margin: 0 0 3px;
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--ca-ink);
+}
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section > p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--ca-muted);
+}
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal > .p-rp-context-note,
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal-body > .p-rp-context-note { margin: 0 0 4px; }
+
+/* 45.5 修正：45.2 的 margin 与列表 gap 叠加，块与块之间空了 40px+。
+   分隔线 + 上下 12px 内边距已经足够，这里把 margin 与 grid gap 都清零。 */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-list { gap: 0; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section { margin: 0; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-note + .p-rp-context-section { margin-top: 0; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-section:first-child { padding-top: 4px; }
+
+/* 46 / 分块列表：块名与 token 数放在同一行（左名右数），说明另起一行。
+   原来三行竖排，扫读时要一列一列看，改成两列后一眼能看出哪块最占预算。 */
+body[data-page="chat"] .p-modal .p-block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 16px;
+    flex-wrap: wrap;
+}
+body[data-page="chat"] .p-modal .p-block-name { font-size: 13.5px; font-weight: 650; color: var(--ca-ink); }
+body[data-page="chat"] .p-modal .p-block-meta {
+    color: var(--ca-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+body[data-page="chat"] .p-modal .p-block-row > .p-rp-context-note { margin: 3px 0 0; }
+
+/* 46.1 块列表嵌在「发送前的上下文」总览里，第一个块需要自己的上分隔线，
+   否则总览的预算说明会和「系统提示」连成一片；底部折叠项也要留出间距 */
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal .p-rp-context-list > .p-rp-context-section:first-child {
+    margin-top: 10px;
+    border-top: 1px solid var(--ca-line);
+}
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal > details { margin-top: 12px; }
+body[data-page]:not(.p-cinema)[data-page="chat"] .p-modal > details > summary {
+    padding: 6px 0;
+    color: var(--ca-copy);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* 46.2 影院视图的弹窗共用同一套块列表结构，补上分隔线与内边距（影院整体排版另做） */
+body.p-cinema[data-page="chat"] .p-modal .p-rp-context-list > .p-rp-context-section {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ca-line);
+}
+body.p-cinema[data-page="chat"] .p-modal .p-rp-context-list > .p-rp-context-section:first-child {
+    margin-top: 10px;
+    border-top: 1px solid var(--ca-line);
+}
+body.p-cinema[data-page="chat"] .p-modal .p-block-row > .p-rp-context-note { margin: 3px 0 0; }
+
+/* 47 / 手机顶栏：切换入口现在每页都有，一行放不下（搜索框被挤到 147px、占位文字截断）。
+   改成两行——搜索独占一行，切换与图标放下一行。 */
+@media (max-width: 720px) {
+    body[data-page] .p-topbar {
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        height: auto;
+        min-height: 56px;
+        padding-block: 8px;
+    }
+    body[data-page] .p-topbar .p-search {
+        flex: 1 0 100%;
+        order: -1;
+        max-width: none;
+    }
+    body[data-page] .p-topbar .p-view-switch { margin-right: auto; }
+    body[data-page] .p-topbar .p-pill--outline { display: none; }
+}
+
+/* 48 / 影院广场的筛选条搜索框：polish 层为了防 iOS 缩放写了 16px，但没放进媒体查询，
+   桌面端也用了 16px，占位文字「搜索角色、作者或剧情」被截断。桌面改回 13px，手机保留 16px。 */
+@media (min-width: 721px) {
+    body.p-cinema[data-page="plaza"] .p-cinema-showcase-bottom .p-search .p-input { font-size: 13px; }
+}
+
+/* =========================================================================
+   49 / 顶栏点数：悬停或点击展开「余额 + 本月分项消耗 + 充值」
+   后续要接生图、语音，分项先按「未开启 + 单价」展示，功能上线后只改数据。
+   ========================================================================= */
+.p-points { position: relative; display: inline-flex; }
+
+.p-points-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-r-pill, 999px);
+    background: #fff;
+    color: var(--ca-ink);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background .16s ease, border-color .16s ease;
+}
+
+.p-points-trigger:hover,
+.p-points-trigger[aria-expanded="true"] { background: var(--ca-hover); border-color: var(--ca-line-strong); }
+.p-points-trigger .p-icon { width: 15px; height: 15px; color: var(--ca-muted); }
+
+.p-points-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 140;
+    width: 296px;
+    max-width: calc(100vw - 32px);
+    padding: 16px;
+    border: 1px solid var(--ca-line);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 44px rgba(20, 20, 25, .13);
+}
+
+.p-points-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.p-points-head span { color: var(--ca-muted); font-size: 12px; }
+.p-points-head strong { color: var(--ca-ink); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.p-points-sub { margin: 4px 0 0; color: var(--ca-muted); font-size: 12px; line-height: 1.6; }
+
+.p-points-list { margin: 14px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--ca-line); }
+.p-points-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ca-line);
+}
+.p-points-name { color: var(--ca-ink); font-size: 13px; font-weight: 600; }
+.p-points-meta { color: var(--ca-copy); font-size: 12.5px; font-variant-numeric: tabular-nums; text-align: right; }
+.p-points-row.is-off .p-points-name { color: var(--ca-muted); font-weight: 500; }
+.p-points-row.is-off .p-points-meta { color: var(--ca-muted); font-size: 12px; }
+.p-points-row.is-off .p-points-meta em { margin-right: 6px; padding: 1px 6px; border-radius: 999px; background: var(--ca-hover); color: var(--ca-muted); font-size: 11px; font-style: normal; }
+
+.p-points-actions { display: flex; gap: 8px; margin-top: 14px; }
+.p-points-actions .p-btn { flex: 1; }
+
+.p-points-foot { margin: 10px 0 0; color: var(--ca-muted); font-size: 11px; line-height: 1.6; }
+
+@media (max-width: 720px) {
+    .p-points-panel { right: -8px; width: min(296px, calc(100vw - 24px)); }
+    .p-points-trigger { height: 34px; padding: 0 12px; }
+}
+
+/* =========================================================================
+   50 / 设置页：分区目录从正文里移进主站侧栏，顶部给「返回上一级」；
+   正文不再留一列目录，通栏排版。手机端侧栏不显示，目录条保留。
+   ========================================================================= */
+body[data-page]:not(.p-cinema) .p-side-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 8px 16px;
+    padding: 9px 12px;
+    border: 1px solid var(--ca-line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ca-copy);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease;
+}
+body[data-page]:not(.p-cinema) .p-side-back:hover { background: var(--ca-hover); color: var(--ca-ink); }
+body[data-page]:not(.p-cinema) .p-side-back .p-icon { width: 15px; height: 15px; }
+
+body[data-page]:not(.p-cinema) .p-side .p-nav-item[aria-current="true"],
+body[data-page]:not(.p-cinema) .p-side .p-nav-item.is-active {
+    background: #ececee;
+    color: var(--ca-ink);
+    font-weight: 650;
+}
+
+@media (min-width: 721px) {
+    body[data-page="settings"] .p-toc { display: none; }
+    body[data-page="settings"] .p-settings { display: block; }
+    body[data-page="settings"] .p-settings-main { max-width: 760px; }
+}
+body[data-page="settings"] .p-section { scroll-margin-top: calc(var(--topbar-h, 64px) + 20px); }
+
+/* 51 / 页面进场淡入：多页原型每次跳转都是整页重载，一点淡入能把「白屏闪烁」变成过渡 */
+@media (prefers-reduced-motion: no-preference) {
+    body[data-page] .p-page { animation: p-page-in .18s ease both; }
+}
+@keyframes p-page-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+}
+
+
+/* =========================================================================
+   52 / 经典视图补全旧令牌映射与状态色：proto.css 的 --accent/--danger/--ok/--warn
+   在经典视图没有映射，未读圆点/铃铛徽标/状态 pill 各用各色。
+   ========================================================================= */
+body[data-page]:not(.p-cinema) {
+    --accent: var(--ca-accent);
+    --danger: var(--ca-danger);
+    --primary: var(--ca-ink);
+    --ok: #2e7d43;
+    --warn: #9a6a1c;
+}
+
+body[data-page]:not(.p-cinema) .p-pill--ok { background: #e8f3ea; border-color: #cfe3d3; color: #2e7d43; }
+body[data-page]:not(.p-cinema) .p-pill--warn { background: #fbf1e0; border-color: #efdcb8; color: #9a6a1c; }
+body[data-page]:not(.p-cinema) .p-pill--danger { background: #fdecec; border-color: #f5cfcf; color: #c0392b; }
+
+/* ---- 2.3 双层卡框：library / 我的作品 / rooms 的列表容器不再套外层卡片框，
+        行本身就是白卡（polish 层的编辑部式分隔线列表在经典视图恢复） */
+body[data-page]:not(.p-cinema):is([data-page="library"], [data-page="create"], [data-page="rooms"]) .p-card.p-rows {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* ---- 2.7c 页面进场淡入延后定义，避免打断弹窗动画（占位说明行） */
+
+/* =========================================================================
+   53 / 聊天背景偏好（设置页「聊天外观」的三个 swatch，之前是死按钮）
+   默认 = 现状；暖灰 = 暖纸色；夜色 = 深色消息卡。只作用于会话页的阅读区。
+   ========================================================================= */
+body[data-chat-bg="warm"] { --ca-chat-bg: #f2eee7; }
+
+body[data-page="chat"][data-chat-bg="warm"] .p-chat { background: var(--ca-chat-bg); }
+
+
+/* 54 / 横向溢出兜底：叙事页在切页瞬间会先于样式渲染出 ~8px 的横向溢出，
+   移动端布局视口随之变宽（innerWidth 398），整页被等比缩小。
+   全站横向滚动本来就不是一个预期行为，在根上裁掉。 */
+/* 只裁 html：body 也设 hidden 会把滚动容器挪到 body，sticky 顶栏失效 */
+html { overflow-x: hidden; }
+
+/* polish 层给顶栏交互件统一 44px 触达面积（min-width:44px），点数触发钮在窄屏被压到 44px，
+   「1,240 点」文字溢出到顶栏外 8px。钉住按内容宽度。 */
+body[data-page] .p-topbar .p-points-trigger { min-width: max-content; white-space: nowrap; }
+
+/* polish 层叙事页手机顶栏是三列网格（搜索 / 44 / 44），点数面板进来后要给它自己的列 */
+@media (max-width: 720px) {
+    body:is([data-page="plaza"], [data-page="character"], [data-page="author"]):not(.p-cinema) .p-topbar {
+        grid-template-columns: minmax(0, 1fr) 44px minmax(max-content, auto) 44px;
+    }
+}
+
+/* =========================================================================
+   55 / 消息富文本：Markdown 子集 + 状态栏卡片 + 思考折叠 + 白名单表格
+   ========================================================================= */
+.p-md-table { margin: .6em 0; overflow-x: auto; }
+.p-md-table table { border-collapse: collapse; width: 100%; font-family: var(--ca-sans); font-size: .92em; }
+.p-md-table th, .p-md-table td { border: 1px solid var(--ca-line-strong); padding: 4px 8px; text-align: left; vertical-align: top; }
+.p-md-table th { background: var(--ca-hover); font-weight: 650; }
+
+.p-md-code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .9em; background: var(--ca-hover); padding: 1px 5px; border-radius: 5px; }
+.p-md-codeblock { margin: .6em 0; padding: 10px 12px; background: var(--ca-hover); border-radius: 10px; overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .88em; line-height: 1.6; }
+.p-md-codeblock code { font-family: inherit; }
+
+.p-md-quote { margin: .5em 0; padding: 2px 12px; border-inline-start: 3px solid var(--ca-line-strong); color: var(--ca-copy); }
+.p-md-list { margin: .4em 0; padding-inline-start: 1.5em; }
+.p-md-list li { margin: 2px 0; }
+.p-md-heading { margin: .7em 0 .2em; font-weight: 700; font-family: var(--ca-sans); }
+.p-md-heading[data-level="1"] { font-size: 1.2em; }
+.p-md-heading[data-level="2"] { font-size: 1.1em; }
+.p-md-heading[data-level="3"], .p-md-heading[data-level="4"] { font-size: 1.02em; }
+.p-md-hr { border: 0; border-top: 1px solid var(--ca-line-strong); margin: .9em 0; }
+
+.p-status-block { margin: .8em 0; padding: 10px 12px; border: 1px solid var(--ca-line-strong); border-radius: 10px; background: var(--ca-hover); font-family: var(--ca-sans); font-size: .92em; }
+.p-status-title { margin-bottom: 6px; color: var(--ca-muted); font-size: 11px; font-weight: 650; letter-spacing: .08em; }
+.p-status-row { display: flex; gap: 10px; padding: 2px 0; }
+.p-status-key { flex: 0 0 7em; color: var(--ca-muted); }
+.p-status-value { flex: 1; color: var(--ca-ink); overflow-wrap: anywhere; }
+
+.p-md-think { margin: .5em 0; }
+.p-md-think summary { cursor: pointer; color: var(--ca-muted); font-size: 12.5px; user-select: none; }
+.p-md-think-body { margin: 6px 0 0; padding: 8px 12px; border-inline-start: 3px solid var(--ca-line); color: var(--ca-muted); font-size: .92em; line-height: 1.7; }
+
+/* 夜色下的富文本 */
+
+/* 56 / 搜索与书签 */
+.p-search-hit { background: #ffe58f; border-radius: 3px; padding: 0 2px; }
+.p-msg.is-search-flash { outline: 2px solid var(--ca-accent); outline-offset: 2px; border-radius: var(--ca-r-card); transition: outline-color .6s ease; }
+.p-bookmark-flag { background: var(--ca-accent-soft); color: var(--ca-accent); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+body[data-page="chat"][data-chat-bg="night"] .p-search-hit { background: #5a4b12; color: #f3e6b8; }
+
+/* 57 / 角色表情（ST 默认表情图，本地关键词分类） */
+.p-msg-emotion { display: inline-flex; vertical-align: -3px; margin-left: 6px; }
+.p-msg-emotion img { width: 18px; height: 18px; border-radius: 50%; }
+
+/* 58 / 房间卡操作在手机上：主按钮占满剩余宽度，图标按钮跟在右侧一行 */
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema)[data-page="rooms"] .p-room-card .p-library-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding-top: 12px;
+    }
+    body[data-page]:not(.p-cinema)[data-page="rooms"] .p-room-card .p-library-actions > .p-btn:not(.p-btn--icon) { flex: 1 1 auto; width: auto; }
+    body[data-page]:not(.p-cinema)[data-page="rooms"] .p-room-card .p-library-actions > .p-btn--icon { flex: 0 0 auto; width: 40px; min-width: 40px; height: 40px; }
+}

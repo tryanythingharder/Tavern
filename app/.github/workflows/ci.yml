@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Start server and run production probe
+        env:
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3101
+        run: |
+          npx next start -p 3101 > /tmp/tavern-ci.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf http://127.0.0.1:3101/api/health && break
+            sleep 1
+          done
+          PROBE_BASE=http://127.0.0.1:3101 node scripts/production-probe.mjs
+      - name: Dependency audit (informational)
+        run: npm audit --omit=dev || true

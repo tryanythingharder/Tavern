@@ -1,0 +1,148 @@
+{
+  "title": "RP原型窄屏续作实现与验证交接",
+  "author": "prototype-builder",
+  "role": "P0/P1实现与实测记录；不代表独立验收通过",
+  "scope": "/Users/ellen/Desktop/酒馆/prototype/",
+  "state": "生产代码已按主理人指示冻结；本文件仅事实记录，未再改动实现或测试",
+  "design_system": "既有 Editorial Monocle（纸白近黑 / 宋体标题 / 编辑式细线）；未新选风格，未改动发现页与广场作用域",
+  "upstream_inputs_read": [
+    "tests/rp-mobile-requirements.json（AC1–AC5、优先级、边界、软键盘证据规则）",
+    "tests/rp-mobile-design.json（令牌、断点、视口预算、弹窗、触控、长文与RP不变量）"
+  ],
+  "changed_files": [
+    {
+      "file": "platform.js",
+      "points": [
+        "syncModals：由只设 body.overflow 改为记录并恢复 overflow/position/top/width，弹窗期间 body 固定并用 top=-scrollY 保位；关闭时按记录的 original inert 恢复每个子元素（原实现把非弹窗子元素 inert=true 后从不还原，会把 #app 永久置为 inert）；关闭后 window.scrollTo 恢复原滚动位置。",
+        "openModal：把标题与关闭按钮包进 <header class=\"p-modal-head\">，关闭按钮脱离滚动内容；关闭聚焦回调加 modalStack.at(-1) === overlay 判断，避免延迟聚焦复活已关闭层；恢复焦点前的判断由 closest('[inert=\"true\"]') 改为 closest('[inert]')（inert 属性带值时空字符串，旧判断恒不成立）。",
+        "新增 visibleViewport()：visualViewport 可用且 scale≈1 时取 height/offsetTop，否则回退 window.innerHeight/0；捏合缩放（scale≠1）不当作键盘压缩。",
+        "新增 resizeChatInput(input)：高度上限 max(56, min(160, 0.24 * 可见高度))，单一来源，替换 renderChat 内写死 160px 的 resize。",
+        "新增 syncVisibleViewport()：写 --rp-viewport-height / --rp-viewport-top，并置 html[data-rp-compact]（可见高度 < 480）；重算输入高度时保留 #chat-scroll 当前 scrollTop，不强制回到底部。",
+        "renderChat 的 input 事件改用 resizeChatInput；新增 compositionstart/compositionend 记录组合态；keydown 发送条件追加 keyCode!==229、dataset.composing!=='true' 与组合结束后 80ms 冷却；sendMessage 入口在组合态直接 return（覆盖点击发送按钮与“继续剧情”）。",
+        "页面挂载后调用 syncVisibleViewport() 并监听 window resize、visualViewport resize/scroll。"
+      ]
+    },
+    {
+      "file": "platform-polish.css",
+      "points": [
+        "新增弹窗层：.p-modal-root 用 --rp-viewport-top/--rp-viewport-height 定高与安全区内边距；.p-modal:has(> .p-modal-head) 改为 flex 纵向、overflow:hidden、max-height:100%；.p-modal-head 不参与滚动、关闭按钮固定为 44×44；只有 .p-modal-body 可滚动（overscroll-behavior:contain、overflow-wrap:anywhere）；底部 actions 不滚动；正文 pre 局部横滚。",
+        "既有 .p-modal max-height 由 calc(100dvh - 32px) 改为 100%（跟随新的可见视口容器，避免双重扣减）。",
+        "body[data-page=chat] .p-shell 改为 position:fixed + top:var(--rp-viewport-top) + height:var(--rp-viewport-height)，.p-chat 与 .p-rp-workbench 由 100dvh 改 100%，单一可见高度来源。",
+        ".p-chat-input：max-height 改为 max(56px, min(160px, 0.24 * 可见高度))，font-size 至少 16px，overflow-y:auto，边框由 --pp-line-strong 提到 --pp-muted（对比度不足承担必需控件边界）。",
+        "删除 .p-chat-head:has(> .p-rp-status) 的 height:auto / head-in 64px 双高度与外层 height 冲突；删除 max-height:640px 段内 .p-chat-input max-height:20dvh 与 .p-chat-input max-height:min(96px,24dvh) 两处覆盖，输入高度只由 JS 预算与一条 CSS 上限决定。",
+        "手机状态条与副标题辅助字 11px 提升到 12px（避免继续压缩）。",
+        "新增 html[data-rp-compact] 短可见视口规则：头部 54px、隐藏 .p-rp-compose-context（“故事设定”在头部 #chat-more 仍有同等入口）、composer 上留白收紧、compose-meta 不换行。",
+        "对比度修正（按设计规范在 soft 底改用 --pp-copy）：玩家消息内 .p-msg-tools 与其 button、.p-rp-candidate-index；创作/角色库 .p-choice-sub、.p-notice-main、.p-tag。",
+        "弹窗内 input/textarea/select 字号 max(16px, 1em)；弹窗内 .p-choice 系列 min-width:0 + overflow-wrap:anywhere；手机页标题（创作/角色库）34px。",
+        "新增 body:has(> .p-modal-root) .p-proto-back { visibility:hidden }，避免原型浮标在弹窗上方穿透。"
+      ]
+    },
+    {
+      "file": "chat.html, create.html, library.html, chats.html, rooms.html, settings.html, notifications.html, character.html",
+      "points": [
+        "8 个页面的资源查询串统一更新：JS ?v=20261104-rp-5 → ?v=20261104-rp-6；CSS ?v=20261104-rp-4 → ?v=20261104-rp-6。仅版本号变化，未改页面结构。"
+      ]
+    },
+    {
+      "file": "tests/rp-mobile-input.test.cjs（新增，8 项）",
+      "points": [
+        "复用 rp-state.test.cjs 的完整闭包 VM/DOM harness（不复制生产函数），新增 visibleViewport/resizeChatInput 为被加载的真实生产函数；未改动任何旧断言。"
+      ]
+    },
+    {
+      "file": "tests/rp-mobile-browser.html（新增，同源浏览器夹具）",
+      "points": [
+        "在固定 320/390/719/1650 尺寸的同源 iframe 中加载真实页面（chat/create/library），输出 scrollWidth、越界元素、头部/状态/阅读区/composer/输入/发送几何、弹窗 dialog/close/body 几何与滚动量；另提供矩阵、长草稿、弹窗滚到底、关闭检查、合成事件交互检查按钮。"
+      ]
+    },
+    {
+      "file": "platform.test.cjs（既有测试的最小兼容修改）",
+      "points": [
+        "仅两处：harness context 补 window:{innerHeight:800} 视口替身；chatHelpers 列表追加 syncVisibleViewport 依赖的真实生产函数 visibleViewport、resizeChatInput。未删除、未放弱任何既有断言。"
+      ]
+    }
+  ],
+  "before_after_measurements": {
+    "method": "同一 tests/rp-mobile-browser.html 夹具，同源 iframe 固定 CSS 视口 + 真实页面；数值为 report() 打印的 getBoundingClientRect / scrollWidth",
+    "same_fixture": true,
+    "items": [
+      {
+        "metric": "320×568 长设定弹窗滚到底后关闭按钮 y",
+        "viewport": "320×568",
+        "before": {"close_rect_y": -194, "close_rect_bottom": -150, "close_w": 44, "close_h": 44, "modal_scrollTop": 226, "bodyScrollTop": 0, "verdict": "关闭按钮随整块内容滚出视口，用户无法看到/点到，只能点遮罩或 Esc"},
+        "after": {"close_rect_y": 32, "close_rect_bottom": 76, "close_w": 44, "close_h": 44, "dialog": {"x": 16, "y": 16, "w": 288, "h": 536}, "modal_scrollTop": 0, "bodyScrollTop": 255, "verdict": "标题栏与 44×44 关闭常驻，正文为唯一滚动区，已滚到 body 底部"}
+      },
+      {
+        "metric": "320×360 长草稿时 #chat-scroll 高度",
+        "viewport": "320×360",
+        "before": {"reading_h": 70.21875, "composer_bottom": 360, "input_h": 72, "source": "修复前矩阵运行，读数自洽"},
+        "after": {"reading_h": null, "note": "修复后该尺寸的一致性读数未取得：夹具内 iframe 改高与 CSS 变量更新存在竞态，同一份 report 里出现 clientHeight=360 而布局 rect 仍按 568/844 计算的自相矛盾结果，故不报数值，按未复测处理", "code_level": "可见高度<480 时隐藏 composer 内的重复“故事设定”行、头部 54px、输入上限 0.24*H"}
+      },
+      {
+        "metric": "页面级横向溢出 scrollWidth 与 clientWidth 之差",
+        "rule": "允许 1px 取整误差",
+        "before": {
+          "chat.html?chat=chat-lin-1": {"320×568": 0, "390×844": 0, "719×788": 0, "1650×746": 0, "320×360": 0},
+          "create.html": {"320×568": 0, "390×844": 0, "719×788": 0, "1650×746": 0, "320×360": 0},
+          "library.html": {"320×568": 0, "390×844": 0, "719×788": 0, "1650×746": 0, "320×360": 0}
+        },
+        "after": {
+          "chat.html?chat=chat-lin-1": {"320×568": 0, "390×844": 0},
+          "create.html": {"320×568": null, "390×844": null},
+          "library.html": {"320×568": null, "390×844": null},
+          "719×788": null,
+          "1650×746": null,
+          "note": "修复后只重测了聊天页 320×568 与 390×844（均 0，越界元素列表为空，390 下 composer 底边=844、输入 160px、字号 19.2px）；其余组合因下述点击超时未取得读数，旧数值不能当作修复后结论"
+        }
+      },
+      {
+        "metric": "320×568 输入区/发送几何（修复后）",
+        "viewport": "320×568",
+        "value": {"head_h": 54, "status_h": 33.19, "reading_h": 212.31, "composer_h": 268.5, "composer_bottom": 568, "input_h_with_long_draft": 136.31, "input_font": "16px", "send": {"w": 48, "h": 54, "bottom": 494.81}}
+      }
+    ]
+  },
+  "tests_executed": [
+    {
+      "command": "node --test platform.test.cjs rp-state.test.cjs tests/disc-gallery.test.mjs tests/disc-motion.test.mjs tests/rp-chat-workbench.test.cjs tests/rp-pages-flow.test.cjs tests/rp-room-workbench.test.cjs",
+      "when": "首次实现后",
+      "result": "108 pass / 4 fail",
+      "failure_cause": "platform.test.cjs 的裁剪式 harness 未加载新增生产函数 resizeChatInput，报 ReferenceError；非行为回归失败",
+      "fix": "仅在 harness 补 window 视口替身并把这些真实生产函数加入加载列表；未改断言"
+    },
+    {
+      "command": "node --test tests/rp-mobile-input.test.cjs",
+      "result": "8 pass / 0 fail",
+      "covers": ["visualViewport 高度/顶部预算与恢复不丢草稿与阅读偏移", "缩放态与非缩放态回退、1 行最小高度", "composition 生命周期阻止 Enter 与点击发送", "keyCode 229 与组合结束尾随 Enter 不误发", "300 字符连续 URL 在保存失败与视口恢复后原样保留", "真实 openModal 嵌套不丢 body 样式/inert/滚动位置/触发焦点", "关闭按钮位于独立头部且不在滚动内容内", "Esc 关闭后延迟聚焦回调不会复活弹窗"]
+    },
+    {
+      "command": "node --test platform.test.cjs rp-state.test.cjs tests/disc-gallery.test.mjs tests/disc-motion.test.mjs tests/rp-chat-workbench.test.cjs tests/rp-pages-flow.test.cjs tests/rp-room-workbench.test.cjs tests/rp-mobile-input.test.cjs",
+      "result": "120 tests / 120 pass / 0 fail",
+      "note": "112 项既有基线未减少、未放弱；8 项为本轮新增"
+    }
+  ],
+  "browser_evidence": {
+    "browser": "browser_id 1 (WorkBuddy Browser), 仅自建 tab_id 1",
+    "tab_kept_for_lead": true,
+    "final_url": "http://127.0.0.1:8090/tests/rp-mobile-browser.html?run=acceptance",
+    "not_finalized": "未 finalize、未触碰用户既有标签与存档",
+    "screenshots": ["browser1/tab1 320×568 聊天页 + 测量 JSON（截图在会话内，未落盘文件）"],
+    "incident": "点击“运行窄屏闭环”按钮时收到一次 CDP Input.dispatchMouseEvent timed out；未循环重试。改用 ?run=acceptance 直接导航后脚本开始执行（实际发出了长消息、打开了设定弹窗、切到了 390×844），但在取得汇总 JSON 前标签进入不可控点击状态，因此闭环脚本没有完整结果。"
+  },
+  "not_verified": [
+    "真实 iOS Safari / Android Chrome 软键盘：完全未验证。iframe 改高只是 CSS 窄视口 + 合成事件的辅助证据，不等同真机键盘，也不能声称真机已通过。",
+    "长弹窗“末字段逐个可滚到并可操作”：只验证了正文为唯一滚动区、已滚到 body 底部、关闭按钮常驻可触达；未逐个字段确认。",
+    "创作 → 预览 → 保存 → 模拟公开 的 320/390 完整闭环：脚本已写但未取得结果 JSON，按未完成记录。",
+    "角色库选择角色 → 进入对话 → 返回 的 320/390 完整闭环：同上，未完成。",
+    "修复后 719×788 与 1650×746 复核：未重测（旧数值见 before，不能当作本轮结论）。",
+    "手指真实触控 44×44 命中、iOS 安全区 env() 真机实测、真实 IME 候选窗行为、长按/双击缩放。",
+    "屏幕阅读器与焦点顺序在真机/AT 下的表现。"
+  ],
+  "known_limitations": [
+    "test fixture 是同源 iframe 固定 CSS 视口 + 合成 DOM 事件（含合成 CompositionEvent），属渲染层辅助证据，不是真机验收。",
+    "视觉测试样本存档写在当前测试标签页的 sessionStorage，未动用户既有存档；如需复核请用新标签重新打开夹具。",
+    "修复后 320×360 读数存在竞态未取到一致值，因此该尺寸只保留修复前数值与代码层说明。",
+    "body:has(> .p-modal-root) 与 .p-modal:has(> .p-modal-head) 依赖 :has 支持（Chrome/Safari 已支持），更旧浏览器会退化到旧弹窗几何。"
+  ],
+  "third_party_scope_untouched": ["SillyTavern 真实后端", "计费与支付", "部署", "真实 AI 模型与检索", "发现页/广场视觉", "既有 RP 不变量（候选与前缀分支、角色与消息玩家快照、记忆/注释/最近12条关键词世界书、保存失败回滚、导出与本地模拟边界）——均未改动相关逻辑，120 项测试覆盖下全部通过"]
+}

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-CN" class="p-auth-page">
+<head>
+<meta charset="utf-8"><link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>注册 · 酒馆</title>
+<link rel="stylesheet" href="proto.css?v=20261028-12">
+<link rel="stylesheet" href="auth.css?v=20261109-1">
+
+</head>
+<body>
+
+<div class="p-auth">
+    <header class="p-auth-header">
+        <a class="p-auth-wordmark" href="home.html" aria-label="酒馆首页">(酒馆)</a>
+        <nav class="p-auth-nav" aria-label="账号操作">
+            <button class="is-primary" type="button" data-mode="register" aria-current="page">注册开聊</button>
+            <button type="button" data-mode="login">登录</button>
+        </nav>
+    </header>
+
+    <main class="p-auth-stage">
+        <section class="p-auth-panel" aria-label="账号登录与注册">
+            <div class="p-auth-card">
+                <section id="register-view" aria-labelledby="register-title">
+                    <p class="p-auth-kicker">你的下一段故事</p>
+                    <h1 id="register-title">和喜欢的角色，<br>开始你的故事。</h1>
+                    <p class="p-auth-lead">创建账号，随时回来继续未完的剧情。</p>
+                    <p class="p-auth-demo">本地原型：不会创建真实账号、不保存密码；点击后直接进入演示界面，故事只保存在当前标签页。</p>
+
+                    <div class="p-auth-choice" id="register-choice">
+                        <button class="p-btn p-btn--primary p-auth-button" id="begin-register" type="button" disabled>
+                            创建账号
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                        </button>
+                        <button class="p-auth-button p-auth-button--secondary" type="button" data-mode="login">已有账号，直接登录</button>
+                    </div>
+
+                    <form class="p-auth-form" id="register-form" novalidate hidden>
+                        <div class="p-auth-field">
+                            <label class="p-auth-label" for="register-handle">用户名</label>
+                            <input class="p-auth-input" id="register-handle" name="handle" type="text" placeholder="例如 linjianbai" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" aria-describedby="register-handle-hint" required>
+                            <span class="p-auth-hint" id="register-handle-hint">2–32 位小写字母、数字、连字符或下划线，注册后不可修改</span>
+                        </div>
+                        <div class="p-auth-field">
+                            <label class="p-auth-label" for="register-name">昵称 <span class="p-auth-optional">（选填）</span></label>
+                            <input class="p-auth-input" id="register-name" name="name" type="text" placeholder="角色如何称呼你" autocomplete="nickname" maxlength="64">
+                        </div>
+                        <div class="p-auth-field">
+                            <label class="p-auth-label" for="register-password">设置密码</label>
+                            <div class="p-auth-pass">
+                                <input class="p-auth-input" id="register-password" name="password" type="password" placeholder="至少 6 位字符" autocomplete="new-password" aria-describedby="register-password-hint" required>
+                                <button class="p-auth-eye" type="button" data-password="register-password" aria-label="显示密码" aria-pressed="false">
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                </button>
+                            </div>
+                            <span class="p-auth-hint" id="register-password-hint">建议使用字母、数字与符号组合</span>
+                        </div>
+                        <div class="p-auth-field">
+                            <label class="p-auth-label" for="register-password2">确认密码</label>
+                            <div class="p-auth-pass">
+                                <input class="p-auth-input" id="register-password2" name="password2" type="password" placeholder="再输入一次密码" autocomplete="new-password" required>
+                                <button class="p-auth-eye" type="button" data-password="register-password2" aria-label="显示密码" aria-pressed="false">
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-auth-field" id="invite-field" hidden>
+                            <label class="p-auth-label" for="register-invite">邀请码</label>
+                            <input class="p-auth-input" id="register-invite" name="invite" type="text" placeholder="输入你的邀请码" autocomplete="off" autocapitalize="characters" spellcheck="false">
+                        </div>
+                        <label class="p-auth-check"><input type="checkbox" id="register-age"><span>我已年满 18 周岁，并同意<a href="terms.html" target="_blank" rel="noopener">服务条款</a>与<a href="privacy.html" target="_blank" rel="noopener">隐私政策</a>。</span></label>
+                        <div class="p-auth-error" id="register-error" role="alert" hidden></div>
+                        <button class="p-auth-button p-auth-submit" type="submit" data-label="注册并开始">注册并开始</button>
+                    </form>
+                </section>
+
+                <section id="login-view" aria-labelledby="login-title" hidden>
+                    <p class="p-auth-kicker">欢迎回来</p>
+                    <h1 id="login-title">故事还在，<br>等你回来。</h1>
+                    <p class="p-auth-lead">继续你和角色的故事，进度会自动保存。</p>
+                    <p class="p-auth-demo">本地原型：登录不会校验真实账号与密码；故事只保存在当前标签页。</p>
+                    <form class="p-auth-form" id="login-form" novalidate>
+                        <div class="p-auth-field">
+                            <label class="p-auth-label" for="login-handle">用户名</label>
+                            <input class="p-auth-input" id="login-handle" name="handle" type="text" placeholder="你的用户名" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                        </div>
+                        <div class="p-auth-field">
+                            <label class="p-auth-label" for="login-password">密码</label>
+                            <div class="p-auth-pass">
+                                <input class="p-auth-input" id="login-password" name="password" type="password" placeholder="你的密码" autocomplete="current-password" required>
+                                <button class="p-auth-eye" type="button" data-password="login-password" aria-label="显示密码" aria-pressed="false">
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-auth-form-meta"><button class="p-auth-text-button" type="button" data-mode="recovery">忘记密码？</button></div>
+                        <div class="p-auth-error" id="login-error" role="alert" hidden></div>
+                        <button class="p-auth-button" type="submit" data-label="登录并继续">登录并继续</button>
+                    </form>
+                    <div class="p-auth-switch">还没有账号？<button type="button" data-mode="register">创建账号</button></div>
+                    <p class="p-auth-legal">继续即表示你已年满 18 周岁，并同意<a href="terms.html" target="_blank" rel="noopener">服务条款</a>与<a href="privacy.html" target="_blank" rel="noopener">隐私政策</a>。</p>
+                </section>
+
+                <section id="recovery-view" aria-labelledby="recovery-title" hidden>
+                    <p class="p-auth-kicker">账号恢复</p>
+                    <h1 id="recovery-title">找回你的账号。</h1>
+                    <div class="p-auth-recovery-note">目前请通过站点管理员重置密码。提供你的用户名即可，不要向任何人发送旧密码或验证码。<br><br>重置完成后，返回这里使用新密码登录。<br><br><strong>本地原型：</strong>没有真实账号服务，找回流程不会发送任何请求。</div>
+                    <button class="p-auth-button" type="button" data-mode="login">返回登录</button>
+                </section>
+            </div>
+        </section>
+
+        <aside class="p-auth-scene" aria-label="雨夜霓虹房间，一段等待开启的故事">
+            <img class="p-auth-art" src="img/cai-auth-scene.jpg" alt="窗外霓虹映进雨夜房间，新的故事等待开启">
+            <div class="p-auth-scene-copy">
+                <div class="p-auth-scene-label">雨夜 · 2077 · 新的身份</div>
+                <h2>有些故事，<br>等你推门才开始。</h2>
+                <p>城市还未入睡。今晚，你想成为谁？</p>
+            </div>
+        </aside>
+    </main>
+    <footer class="p-auth-footer">
+        <span>仅限 18 周岁以上 · 沉浸式角色扮演</span>
+        <a href="terms.html" target="_blank" rel="noopener">服务条款</a>
+        <a href="privacy.html" target="_blank" rel="noopener">隐私政策</a>
+    </footer>
+</div>
+
+<a class="p-proto-back" href="index.html">←<span class="pb-txt"> 原型总览</span></a>
+
+<script>
+(() => {
+    const $ = (id) => document.getElementById(id);
+    const query = new URLSearchParams(location.search);
+    const inviteRequired = query.get('invite') === '1';
+    let mode = 'register';
+    let busy = false;
+
+    function showError(kind, message) {
+        const box = $(kind + '-error');
+        box.textContent = message || '';
+        box.hidden = !message;
+    }
+
+    function setMode(next, expand = false) {
+        if (busy) return;
+        mode = next === 'recovery' ? 'recovery' : next === 'login' ? 'login' : 'register';
+        for (const name of ['register', 'login', 'recovery']) {
+            $(name + '-view').hidden = name !== mode;
+        }
+        document.querySelectorAll('[data-mode]').forEach(button => {
+            if (button.closest('.p-auth-nav')) {
+                if (button.dataset.mode === mode) button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            }
+        });
+        showError('login', '');
+        showError('register', '');
+        $('register-choice').hidden = expand || mode !== 'register';
+        $('register-form').hidden = !expand || mode !== 'register';
+        document.title = (mode === 'register' ? '注册' : mode === 'login' ? '登录' : '找回账号') + ' · 酒馆';
+        const focus = expand ? $('register-handle') : mode === 'login' ? $('login-handle') : null;
+        focus?.focus({ preventScroll: true });
+    }
+
+    function setBusy(form, active) {
+        busy = active;
+        form.setAttribute('aria-busy', String(active));
+        const button = form.querySelector('[type="submit"]');
+        button.disabled = active;
+        button.textContent = active ? (form.id === 'login-form' ? '登录中…' : '正在创建账号…') : button.dataset.label;
+    }
+
+    function validate(form) {
+        const kind = form.id === 'login-form' ? 'login' : 'register';
+        form.querySelectorAll('[aria-invalid="true"]').forEach(input => input.removeAttribute('aria-invalid'));
+        const handle = $(kind + '-handle');
+        const password = $(kind + '-password');
+        if (!handle.value.trim()) {
+            handle.setAttribute('aria-invalid', 'true');
+            handle.focus();
+            return '请输入用户名';
+        }
+        if (!password.value) {
+            password.setAttribute('aria-invalid', 'true');
+            password.focus();
+            return '请输入密码';
+        }
+        if (kind === 'register') {
+            if (!/^[a-z0-9][a-z0-9_-]{1,31}$/.test(handle.value.trim())) {
+                handle.setAttribute('aria-invalid', 'true');
+                handle.focus();
+                return '用户名需以字母或数字开头，使用 2–32 位小写字母、数字、连字符或下划线';
+            }
+            if (password.value.length < 6) {
+                password.setAttribute('aria-invalid', 'true');
+                password.focus();
+                return '密码至少需要 6 位字符';
+            }
+            if (password.value !== $('register-password2').value) {
+                $('register-password2').setAttribute('aria-invalid', 'true');
+                $('register-password2').focus();
+                return '两次输入的密码不一致';
+            }
+            if (!$('register-age').checked) {
+                $('register-age').focus();
+                return '请确认你已年满 18 周岁并同意服务条款';
+            }
+            if (inviteRequired && !$('register-invite').value.trim()) {
+                $('register-invite').setAttribute('aria-invalid', 'true');
+                $('register-invite').focus();
+                return '请输入邀请码';
+            }
+        }
+        return '';
+    }
+
+    document.querySelectorAll('[data-mode]').forEach(button => {
+        button.addEventListener('click', () => setMode(button.dataset.mode, button.dataset.mode === 'register'));
+    });
+
+    $('begin-register').addEventListener('click', () => {
+        $('register-choice').hidden = true;
+        $('register-form').hidden = false;
+        $('register-handle').focus();
+    });
+
+    document.querySelectorAll('[data-password]').forEach(button => {
+        button.addEventListener('click', () => {
+            const input = $(button.dataset.password);
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            button.setAttribute('aria-label', show ? '隐藏密码' : '显示密码');
+            button.setAttribute('aria-pressed', String(show));
+            input.focus({ preventScroll: true });
+        });
+    });
+
+    for (const kind of ['login', 'register']) {
+        $(kind + '-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (busy) return;
+            showError(kind, '');
+            const error = validate(event.currentTarget);
+            if (error) {
+                showError(kind, error);
+                return;
+            }
+            setBusy(event.currentTarget, true);
+            await new Promise(resolve => setTimeout(resolve, 550));
+            location.href = 'home.html';
+        });
+    }
+
+    $('invite-field').hidden = !inviteRequired;
+    $('register-invite').required = inviteRequired;
+    $('begin-register').disabled = false;
+    setMode(query.get('mode') === 'login' ? 'login' : 'register', query.get('form') === '1');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>酒馆 v2 · 原型总览</title>
+<link rel="stylesheet" href="proto.css?v=20261028-12">
+<style>
+    body {
+        background: var(--surface);
+    }
+
+    .idx-head {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 56px 24px 32px;
+    }
+
+    .idx-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+
+    .idx-brand .p-mark {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+        font-size: 19px;
+    }
+
+    .idx-brand span {
+        font-size: var(--f-sm);
+        font-weight: var(--fw-semi);
+        color: var(--muted);
+        letter-spacing: 0.04em;
+    }
+
+    .idx-head h1 {
+        font-size: clamp(28px, 4vw, 44px);
+        font-weight: var(--fw-bold);
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        max-width: 22ch;
+    }
+
+    .idx-head p {
+        margin-top: 16px;
+        max-width: 62ch;
+        font-size: var(--f-lg);
+        line-height: 1.65;
+        color: var(--text-2);
+    }
+
+    .idx-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+    }
+
+    /* 令牌速览 */
+    .idx-tokens {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px 8px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+    }
+
+    .idx-token-card {
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 18px;
+    }
+
+    .idx-token-card h3 {
+        font-size: var(--f-xs);
+        font-weight: var(--fw-semi);
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        margin-bottom: 14px;
+    }
+
+    .idx-swatches {
+        display: flex;
+        gap: 6px;
+    }
+
+    .idx-swatch {
+        flex: 1;
+        height: 40px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border);
+    }
+
+    .idx-scale {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        color: var(--text-2);
+    }
+
+    .idx-scale span {
+        color: var(--muted);
+        font-size: var(--f-2xs);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .idx-radii {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .idx-radii i {
+        display: block;
+        width: 40px;
+        height: 40px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+    }
+
+    /* 页面看板 */
+    .idx-board {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+    }
+
+    .idx-item {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .idx-item-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+
+    .idx-item-head h2 {
+        font-size: var(--f-lg);
+        font-weight: var(--fw-bold);
+        letter-spacing: -0.01em;
+    }
+
+    .idx-item-head a {
+        margin-left: auto;
+        font-size: var(--f-xs);
+        font-weight: var(--fw-semi);
+        color: var(--muted);
+        border-bottom: 1px solid var(--border-strong);
+        padding-bottom: 1px;
+    }
+
+    .idx-item-head a:hover {
+        color: var(--text);
+        border-color: var(--text);
+    }
+
+    .idx-item p {
+        font-size: var(--f-sm);
+        line-height: 1.6;
+        color: var(--text-2);
+    }
+
+    .idx-frame {
+        width: calc(1440px * 0.375);
+        height: calc(900px * 0.375);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        overflow: hidden;
+        background: var(--bg);
+        box-shadow: var(--sh-sm);
+        transition: box-shadow var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
+    }
+
+    .idx-frame:hover {
+        box-shadow: var(--sh-md);
+        border-color: var(--border-strong);
+    }
+
+    .idx-frame iframe {
+        width: 1440px;
+        height: 900px;
+        border: 0;
+        transform: scale(0.375);
+        transform-origin: top left;
+        pointer-events: none;
+    }
+
+    .idx-note {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px 96px;
+    }
+
+    .idx-note-inner {
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 28px;
+        background: var(--g25);
+    }
+
+    .idx-note h2 {
+        font-size: var(--f-lg);
+        font-weight: var(--fw-bold);
+        margin-bottom: 10px;
+    }
+
+    .idx-note p {
+        font-size: var(--f-sm);
+        line-height: 1.7;
+        color: var(--text-2);
+        max-width: 72ch;
+    }
+
+    .idx-note code {
+        padding: 1px 5px;
+        border-radius: 5px;
+        background: var(--surface-2);
+        font-size: 0.92em;
+    }
+
+    @media (max-width: 1230px) {
+        .idx-board {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .idx-frame {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 10;
+        }
+
+        .idx-frame iframe {
+            transform: scale(var(--frame-scale, 0.375));
+        }
+    }
+
+    @media (max-width: 760px) {
+        .idx-head {
+            padding-top: 32px;
+        }
+
+        .idx-board {
+            padding-top: 24px;
+            gap: 32px;
+        }
+
+        .idx-frame iframe {
+            transform: scale(var(--frame-scale, 0.375));
+        }
+
+        .idx-tokens {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+</style>
+</head>
+<body>
+
+<header class="idx-head">
+    <div class="idx-brand">
+        <div class="p-mark">酒</div>
+        <span>酒馆 · 界面原型 v2</span>
+    </div>
+    <h1>让每一段故事，<br>都有可以回来的地方。</h1>
+    <p>
+        RP 平台交互原型，支持经典 / 影院双模式。发现页以 Three.js 物理光盘选角，支持惯性换片、单盘旋转与翻面。身份、文本草稿、私人试聊、房间消息及策略已能在当前标签页保存回读；回复仍为本地模拟，不调用模型、不扣点。完整交付、录像与未实现边界见 <a href="README.md">说明</a>及 <a href="REVIEW-20261102-PASS2.md">第二轮验收</a>。
+    </p>
+    <div class="idx-meta">
+        <span class="p-pill p-pill--outline">12 个玩家页面 + 后台</span>
+        <span class="p-pill p-pill--outline">经典 / 影院双模式</span>
+        <span class="p-pill p-pill--outline">共享交互状态</span>
+        <span class="p-pill p-pill--outline">A24 白底编辑风</span>
+        <span class="p-pill p-pill--outline">纯静态 · Three.js 本地化</span>
+        <span class="p-pill p-pill--accent">桌面 1440 / 移动 390 两套断点</span>
+        <button class="p-pill p-pill--outline" id="reset-demo" type="button" style="cursor:pointer">重置演示数据</button>
+    </div>
+</header>
+
+<section class="idx-tokens">
+    <div class="idx-token-card">
+        <h3>中性色阶 · 13 阶</h3>
+        <div class="idx-swatches">
+            <i class="idx-swatch" style="background:var(--g50)"></i>
+            <i class="idx-swatch" style="background:var(--g100)"></i>
+            <i class="idx-swatch" style="background:var(--g200)"></i>
+            <i class="idx-swatch" style="background:var(--g300)"></i>
+            <i class="idx-swatch" style="background:var(--g400)"></i>
+            <i class="idx-swatch" style="background:var(--g500)"></i>
+            <i class="idx-swatch" style="background:var(--g600)"></i>
+            <i class="idx-swatch" style="background:var(--g700)"></i>
+            <i class="idx-swatch" style="background:var(--g900)"></i>
+        </div>
+    </div>
+    <div class="idx-token-card">
+        <h3>语义色</h3>
+        <div class="idx-swatches">
+            <i class="idx-swatch" style="background:var(--primary)"></i>
+            <i class="idx-swatch" style="background:var(--accent)"></i>
+            <i class="idx-swatch" style="background:var(--ok)"></i>
+            <i class="idx-swatch" style="background:var(--warn)"></i>
+            <i class="idx-swatch" style="background:var(--danger)"></i>
+        </div>
+    </div>
+    <div class="idx-token-card">
+        <h3>字阶 · 8 档</h3>
+        <div class="idx-scale">
+            <b style="font-size:26px;color:var(--text)">26</b>
+            <b style="font-size:22px;color:var(--text)">22</b>
+            <b style="font-size:18px;color:var(--text)">18</b>
+            <b style="font-size:16px;color:var(--text)">16</b>
+            <b style="font-size:14px;color:var(--text-2)">14</b>
+            <span>11–26px</span>
+        </div>
+    </div>
+    <div class="idx-token-card">
+        <h3>圆角 · 6 档</h3>
+        <div class="idx-radii">
+            <i style="border-radius:6px"></i>
+            <i style="border-radius:10px"></i>
+            <i style="border-radius:14px"></i>
+            <i style="border-radius:20px"></i>
+            <i style="border-radius:24px"></i>
+            <i style="border-radius:999px"></i>
+        </div>
+    </div>
+</section>
+
+<main class="idx-board">
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>登录 / 注册</h2>
+            <a href="login.html" target="_blank">打开 →</a>
+        </div>
+        <p>顶部切换登录注册，400px 白色悬浮认证卡覆盖在故事场景上；参考 Character.AI 的公开登录页。</p>
+        <div class="idx-frame"><iframe src="login.html" loading="lazy" title="登录页"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>发现（首页）</h2>
+            <a href="home.html" target="_blank">打开 →</a>
+        </div>
+        <p>经典 / 影院双模式；影院支持滚轮、拖动、键盘和作品索引换片。底部展示真实角色简介及互动节奏，不使用虚构五星短评。WebGL 不可用时退回角色列表。</p>
+        <div class="idx-frame"><iframe src="home.html" loading="lazy" title="首页"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>广场</h2>
+            <a href="plaza.html" target="_blank">打开 →</a>
+        </div>
+        <p>影院模式是白底 Three.js 光盘阵列；经典模式保留 3:4 卡片。两种模式都支持搜索、排序和 NSFW 同意状态。</p>
+        <div class="idx-frame"><iframe src="plaza.html" loading="lazy" title="广场"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>角色详情</h2>
+            <a href="character.html" target="_blank">打开 →</a>
+        </div>
+        <p>影院模式为全幅黑白剧照、超大无衬线角色名、白底内容区和入场幕布；经典模式保留 3:4 封面与双栏资料。两种模式都可继续对话、新建故事或查看全部会话。</p>
+        <div class="idx-frame"><iframe src="character.html" loading="lazy" title="角色详情"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>通知中心</h2>
+            <a href="notifications.html" target="_blank">打开 →</a>
+        </div>
+        <p>评论回复、版本更新、审核结果与系统提醒；支持未读筛选和全部标为已读。</p>
+        <div class="idx-frame"><iframe src="notifications.html" loading="lazy" title="通知中心"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>作者主页</h2>
+            <a href="author.html?name=青梧" target="_blank">打开 →</a>
+        </div>
+        <p>创作者公开简介、作品、创作声明与举报入口；从角色页和作品页都能进入。</p>
+        <div class="idx-frame"><iframe src="author.html?name=青梧" loading="lazy" title="作者主页"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>聊天</h2>
+            <a href="chat.html" target="_blank">打开 →</a>
+        </div>
+        <p>多行输入、流式生成、继续剧情、消息编辑/重生成与分支，身份和记忆设置都在会话内。</p>
+        <div class="idx-frame"><iframe src="chat.html" loading="lazy" title="聊天页"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>我的 / 设置</h2>
+            <a href="settings.html" target="_blank">打开 →</a>
+        </div>
+        <p>账号、点数、聊天外观、身份、角色库、导入与数据备份，集中但不混淆。</p>
+        <div class="idx-frame"><iframe src="settings.html" loading="lazy" title="我的"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>会话中心</h2>
+            <a href="chats.html" target="_blank">打开 →</a>
+        </div>
+        <p>独立会话列表，支持单聊/房间、多故事线、重命名、导出、分支与删除。</p>
+        <div class="idx-frame"><iframe src="chats.html" loading="lazy" title="会话中心"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>角色库</h2>
+            <a href="library.html" target="_blank">打开 →</a>
+        </div>
+        <p>已添加、我创建的与收藏分开管理；搜索、空态和角色状态完整，添加与收藏语义不再混用。</p>
+        <div class="idx-frame"><iframe src="library.html" loading="lazy" title="角色库"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>角色创作</h2>
+            <a href="create.html" target="_blank">打开 →</a>
+        </div>
+        <p>已添加、收藏和创作分别管理；公开字段与私有生成设定明确分开。</p>
+        <div class="idx-frame"><iframe src="create.html" loading="lazy" title="角色创作"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>多角色房间</h2>
+            <a href="rooms.html" target="_blank">打开 →</a>
+        </div>
+        <p>选择至少两个角色创建房间，管理成员、发言策略和费用提示。</p>
+        <div class="idx-frame"><iframe src="rooms.html" loading="lazy" title="多角色房间"></iframe></div>
+    </article>
+
+    <article class="idx-item">
+        <div class="idx-item-head">
+            <h2>管理后台</h2>
+            <a href="admin.html" target="_blank">打开 →</a>
+        </div>
+        <p>11 项导航按内容/用户与交易/配置/系统分 4 组；表格固定表头，移动端整表换成卡片列表。</p>
+        <div class="idx-frame"><iframe src="admin.html" loading="lazy" title="管理后台"></iframe></div>
+    </article>
+
+    <article class="idx-item" style="justify-content:center">
+        <div class="idx-note-inner">
+            <h2>交接说明</h2>
+            <p>
+                改之前先读 <code>README.md</code>：里面逐页列了「现状问题 → 改法 → 对应真实代码位置 → 实施难度」，
+                并标出哪些部分可以随便改、哪些会牵动后端、哪些不建议动。
+            </p>
+        </div>
+    </article>
+
+</main>
+
+<script>
+(() => {
+    const frames = [...document.querySelectorAll('.idx-frame')];
+    function fitFrames() {
+        for (const frame of frames) {
+            frame.style.setProperty('--frame-scale', frame.clientWidth / 1440);
+        }
+    }
+    new ResizeObserver(fitFrames).observe(document.querySelector('.idx-board'));
+    window.addEventListener('resize', fitFrames, { passive: true });
+    fitFrames();
+    document.getElementById('reset-demo').addEventListener('click', event => {
+        const button = event.currentTarget;
+        if (button.dataset.confirm !== 'true') {
+            button.dataset.confirm = 'true';
+            button.textContent = '再次点击确认重置';
+            setTimeout(() => { button.dataset.confirm = 'false'; button.textContent = '重置演示数据'; }, 4000);
+            return;
+        }
+        for (const key of Object.keys(sessionStorage)) {
+            if (key === 'rp-platform-state' || key === 'rp-nsfw' || key === 'rp-search' || key.startsWith('draft-')) sessionStorage.removeItem(key);
+        }
+        try { localStorage.setItem('rp-view-mode', 'cinema'); } catch {}
+        for (const frame of document.querySelectorAll('.idx-frame iframe')) frame.contentWindow.location.reload();
+        button.dataset.confirm = 'false';
+        button.textContent = '演示数据已重置';
+        setTimeout(() => { button.textContent = '重置演示数据'; }, 2200);
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+'use server';
+
+import { redirect } from 'next/navigation';
+import { confirmAge, createUser, endSession, findUserByEmail, isTwoFactorEnabled, startSession, verifyPassword } from '@/lib/auth';
+import { createAuthToken } from '@/lib/auth-tokens';
+import { authLink, mailConfigured, sendMail } from '@/lib/mail';
+import { STARTING_POINTS, ensureStartingPoints } from '@/lib/points';
+import { notify } from '@/lib/notifications';
+import { inviteRequired, inviteValid, redeemInvite } from '@/lib/invite';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { transaction } from '@/lib/db';
+
+export async function register(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+  const nickname = String(formData.get('nickname') ?? '').trim() || email.split('@')[0] || '旅人';
+  const invite = String(formData.get('invite') ?? '').trim().toUpperCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/login?error=' + encodeURIComponent('邮箱格式不对'));
+  if (password.length < 8) redirect('/login?error=' + encodeURIComponent('密码至少 8 位'));
+  if (formData.get('age') !== 'on') redirect('/login?error=' + encodeURIComponent('请确认已年满 18 岁并同意服务条款'));
+
+  const ip = await clientIp();
+  const ipLimit = rateLimit('register-ip', [ip], 5, 60 * 60 * 1000);
+  const emailLimit = rateLimit('register-email', [email], 3, 60 * 60 * 1000);
+  if (!ipLimit.ok || !emailLimit.ok) {
+    const wait = !ipLimit.ok ? ipLimit.retryAfter : !emailLimit.ok ? emailLimit.retryAfter : 60;
+    redirect('/login?error=' + encodeURIComponent(`注册尝试太频繁，请 ${Math.ceil(wait / 60)} 分钟后再试`));
+  }
+
+  if (findUserByEmail(email)) redirect('/login?error=' + encodeURIComponent('这个邮箱已经注册过了'));
+  if (inviteRequired() && !invite) redirect('/login?error=' + encodeURIComponent('当前注册需要邀请码'));
+  if (invite && !inviteValid(invite)) redirect('/login?error=' + encodeURIComponent('邀请码无效或已经被使用'));
+  const user = (() => {
+    try {
+      return transaction(() => {
+        const created = createUser(email, password, nickname.slice(0, 20));
+        // 邀请码在同一个事务里占用，避免两个注册请求同时通过 inviteValid
+        if (invite && !redeemInvite(invite, created.id)) throw new Error('INVITE_USED');
+        return created;
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'INVITE_USED') {
+        redirect('/login?error=' + encodeURIComponent('邀请码无效或已经被使用'));
+      }
+      throw error;
+    }
+  })();
+  confirmAge(user.id);
+  ensureStartingPoints(user.id);
+  notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS} 点。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/' });
+  // 注册后发验证邮件；发信失败不阻塞注册，用户可在「我的」里重发
+  try {
+    const token = createAuthToken(user.id, 'verify', 24 * 60 * 60 * 1000);
+    const link = authLink('/verify', token);
+    const sent = await sendMail({
+      to: email,
+      subject: '验证你的酒馆邮箱',
+      text: `欢迎来到酒馆。\n\n在 24 小时内打开这个链接验证邮箱：\n${link}\n\n验证后可以更安全地找回密码，也能收到审核结果通知。`,
+    });
+    if (!mailConfigured()) console.info('[mail:outbox] verification email written to outbox');
+    if (!sent.ok) console.warn('[mail] verify email failed:', sent.error);
+  } catch (error) {
+    console.warn('[mail] verify email failed:', error);
+  }
+  await startSession(user.id);
+  redirect('/');
+}
+
+export async function login(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+  const ip = await clientIp();
+  const ipLimit = rateLimit('login-ip', [ip], 30, 15 * 60 * 1000);
+  const accountLimit = rateLimit('login-account', [email, ip], 10, 15 * 60 * 1000);
+  if (!ipLimit.ok || !accountLimit.ok) {
+    const wait = !ipLimit.ok ? ipLimit.retryAfter : !accountLimit.ok ? accountLimit.retryAfter : 60;
+    redirect('/login?mode=login&error=' + encodeURIComponent(`登录尝试太频繁，请 ${Math.ceil(wait / 60)} 分钟后再试`));
+  }
+  const user = findUserByEmail(email);
+  if (!user || !verifyPassword(password, user.password_hash)) redirect('/login?mode=login&error=' + encodeURIComponent('邮箱或密码不对'));
+  if (user.status === 'banned') redirect('/login?mode=login&error=' + encodeURIComponent('账号已被限制，请联系管理员'));
+  if (isTwoFactorEnabled(user.id)) {
+    const token = createAuthToken(user.id, '2fa', 5 * 60 * 1000);
+    redirect('/login/2fa?token=' + encodeURIComponent(token));
+  }
+  await startSession(user.id);
+  redirect('/');
+}
+
+export async function logout() {
+  await endSession();
+  redirect('/');
+}

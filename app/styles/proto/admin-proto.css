@@ -1,0 +1,492 @@
+.p-admin-modules {
+    margin-top: 18px;
+}
+
+.p-admin-modules-intro {
+    padding: 0 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.p-admin-module-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px 20px 20px;
+}
+
+.p-admin-module {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-height: 82px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+.p-admin-module:hover {
+    border-color: var(--text);
+    background: var(--g25);
+}
+
+.p-admin-module strong {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.p-admin-module span {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.admin-view {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.admin-view-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-view-head h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.admin-view-head p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.admin-view-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-toolbar .p-search {
+    flex: 1 1 240px;
+    max-width: 380px;
+}
+
+.admin-toolbar .p-select {
+    width: auto;
+    min-width: 130px;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+}
+
+.admin-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.admin-table th {
+    height: 42px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.admin-table td {
+    height: 58px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-table tbody tr:hover {
+    background: var(--g25);
+}
+
+.admin-table .admin-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.admin-empty {
+    padding: 48px 20px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.admin-kpis {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 14px;
+}
+
+.admin-kpi {
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+}
+
+.admin-kpi-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.admin-kpi-value {
+    margin-top: 8px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.03em;
+}
+
+.admin-kpi-note {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.admin-form {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 18px;
+    padding: 20px;
+}
+
+.admin-form .is-wide {
+    grid-column: 1 / -1;
+}
+
+.admin-form label,
+.admin-form .p-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.admin-form .p-input,
+.admin-form .p-select,
+.admin-form .p-textarea {
+    width: 100%;
+}
+
+.admin-form-note {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+    margin-top: 5px;
+}
+
+.admin-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+}
+
+.admin-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.admin-switch input {
+    appearance: none;
+    width: 42px;
+    height: 24px;
+    margin: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--g300);
+    position: relative;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+
+.admin-switch input::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 160ms ease;
+}
+
+.admin-switch input:checked {
+    background: var(--g900);
+}
+
+.admin-switch input:checked::after {
+    transform: translateX(18px);
+}
+
+.admin-review {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 320px;
+    gap: 20px;
+    align-items: start;
+}
+
+.admin-review-list {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+}
+
+.admin-review-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 74px;
+    padding: 12px 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-review-row:last-child {
+    border-bottom: 0;
+}
+
+.admin-review-row:hover,
+.admin-review-row.is-active {
+    background: var(--g25);
+}
+
+.admin-review-row .p-row-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-review-preview {
+    padding: 20px;
+}
+
+.admin-review-preview h3 {
+    font-size: 18px;
+}
+
+.admin-review-cover {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 14px;
+    margin-bottom: 14px;
+}
+
+.admin-review-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+}
+
+.admin-review-text {
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+}
+
+.admin-review-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.admin-review-actions .p-btn {
+    flex: 1;
+}
+
+.admin-code {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--surface-2);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    user-select: all;
+}
+
+.admin-channel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-channel:last-child {
+    border-bottom: 0;
+}
+
+.admin-channel-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-channel-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.admin-channel-sub {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.admin-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 80;
+    max-width: 340px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--sh-md);
+    color: var(--text);
+    font-size: 13px;
+}
+
+@media (max-width: 960px) {
+    .p-admin-module-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .admin-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .admin-review { grid-template-columns: minmax(0,1fr); }
+}
+
+@media (max-width: 720px) {
+    .p-admin-module-grid { grid-template-columns: repeat(2, minmax(0,1fr)); padding: 12px 16px 16px; }
+    .p-admin-modules-intro { padding-inline: 16px; }
+    .admin-form { grid-template-columns: minmax(0,1fr); padding: 16px; }
+    .admin-toolbar { padding: 12px; }
+    .admin-toolbar .p-search { flex-basis: 100%; max-width: none; }
+    .admin-table-wrap { overflow: visible; border: 0; border-radius: 0; background: transparent; }
+    .admin-table { min-width: 0; display: block; }
+    .admin-table thead { display: none; }
+    .admin-table tbody { display: flex; flex-direction: column; gap: 10px; }
+    .admin-table tbody tr {
+        display: block;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+    }
+    .admin-table td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        height: auto;
+        padding: 6px 0;
+        border: 0;
+        text-align: right;
+        white-space: normal;
+    }
+    .admin-table td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: left;
+    }
+    .admin-table td[data-label="操作"] { display: block; padding-top: 10px; }
+    .admin-table td[data-label="操作"]::before { display: block; margin-bottom: 6px; }
+    .admin-table .admin-actions { justify-content: flex-end; flex-wrap: wrap; }
+    .admin-kpi-value { font-size: 22px; }
+}
+
+/* =========================================================================
+   与玩家端共享的组件补齐：admin.html 不加载 platform-pages.css，
+   这里补上后台用到的 p-notice / p-eyebrow / p-notice-main；
+   危险色与玩家端经典视图统一为 #d9483f。
+   ========================================================================= */
+:root { --danger: #d9483f; }
+
+.p-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.p-notice-main { flex: 1; min-width: 0; }
+.p-notice-title { margin-bottom: 2px; color: var(--text); font-weight: var(--fw-semi, 600); }
+.p-eyebrow { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+
+/* 广场审核：手机端没有右侧预览面板，行内直接提供通过 / 拒绝 */
+.admin-row-actions { display: none; gap: 6px; margin-left: auto; }
+
+@media (max-width: 960px) {
+    .admin-review-preview { display: none; }
+    .admin-row-actions { display: inline-flex; }
+    .admin-review-row { cursor: pointer; }
+}
+
+/* 本地演示后台常驻说明 */
+.p-admin-demo {
+    margin: 0 28px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2, #f1f1f1);
+    color: var(--text-2, #4b4b47);
+    font-size: 12.5px;
+    line-height: 1.65;
+}
+@media (max-width: 720px) {
+    .p-admin-demo { margin: 0 16px; }
+}

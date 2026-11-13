@@ -1,0 +1,263 @@
+/* A24-inspired editorial layer for discovery, character and author pages. */
+body.p-editorial {
+    --bg: #f2f1ed;
+    --surface: #faf9f5;
+    --surface-2: #e8e5de;
+    --surface-3: #ddd9d0;
+    --border: #d9d5cc;
+    --border-strong: #bcb5a8;
+    --text: #141412;
+    --text-2: #44413b;
+    --muted: #78736a;
+    --placeholder: #a29d94;
+    --primary: #111110;
+    --primary-hover: #2b2a27;
+}
+
+.p-editorial .p-side {
+    background: #f7f6f2;
+}
+
+.p-editorial .p-topbar {
+    background: rgba(242, 241, 237, .92);
+    backdrop-filter: blur(14px);
+}
+
+.p-editorial .p-card {
+    border-radius: 2px;
+}
+
+.p-editorial .p-work-cover {
+    border-radius: 2px;
+}
+
+.p-editorial .p-work:hover .p-work-cover {
+    transform: translateY(-4px);
+}
+
+.p-editorial .p-work-name {
+    font-size: 15px;
+}
+
+.p-editorial .p-work-desc {
+    font-size: 12.5px;
+}
+
+.p-editorial .p-hero {
+    height: 440px;
+    border-radius: 2px;
+    margin-bottom: var(--s6);
+}
+
+.p-editorial .p-hero-cover {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+}
+
+.p-editorial .p-hero-cover img {
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(.82) contrast(1.05);
+}
+
+.p-editorial .p-hero-cover.is-obscured img {
+    filter: blur(22px) brightness(.34) saturate(.7);
+    transform: scale(1.08);
+}
+
+.p-editorial .p-hero-shade {
+    z-index: 2;
+    background:
+        linear-gradient(90deg, rgba(8, 8, 8, .9) 0%, rgba(8, 8, 8, .5) 48%, rgba(8, 8, 8, .04) 82%),
+        linear-gradient(0deg, rgba(8, 8, 8, .72) 0%, transparent 54%);
+}
+
+.p-editorial .p-hero-body {
+    z-index: 3;
+    left: clamp(24px, 4vw, 48px);
+    bottom: clamp(28px, 5vw, 48px);
+    max-width: 660px;
+}
+
+.p-editorial .p-hero-body h2 {
+    margin: 14px 0 12px;
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: clamp(46px, 5.4vw, 68px);
+    font-weight: 600;
+    letter-spacing: -.045em;
+    line-height: 1.05;
+}
+
+.p-editorial .p-hero-body p {
+    max-width: 42ch;
+    margin-bottom: var(--s5);
+    color: rgba(255, 255, 255, .78);
+    font-size: 15px;
+    line-height: 1.75;
+}
+
+.p-editorial .p-hero-index {
+    position: absolute;
+    z-index: 2;
+    top: 28px;
+    right: 32px;
+    color: rgba(255, 255, 255, .58);
+    font-size: 12px;
+    letter-spacing: .2em;
+}
+
+.p-editorial .p-section-head h2 {
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+}
+
+.p-editorial .p-page-title h1 {
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 38px;
+    font-weight: 600;
+    letter-spacing: -.035em;
+}
+
+.p-editorial .p-detail {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 52px;
+}
+
+.p-editorial .p-detail-cover {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 2px;
+}
+
+.p-editorial .p-detail-title h1 {
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: -.04em;
+}
+
+.p-editorial .p-detail-stats {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.p-editorial .p-quote {
+    border-left-color: var(--text);
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 19px;
+    line-height: 1.85;
+}
+
+.p-editorial .p-card-head h2 {
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 17px;
+}
+
+.p-editorial .p-author-main h1 {
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 40px;
+    font-weight: 600;
+}
+
+@media (max-width: 1023px) {
+    .p-editorial .p-hero {
+        height: 360px;
+    }
+
+    .p-editorial .p-hero-body h2 {
+        font-size: clamp(40px, 8vw, 54px);
+    }
+}
+
+@media (max-width: 900px) {
+    .p-editorial .p-detail {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--s6);
+    }
+
+    .p-editorial .p-detail-cover {
+        width: 120px;
+        flex: 0 0 120px;
+        aspect-ratio: 1;
+    }
+
+    .p-editorial .p-detail-title h1 {
+        font-size: var(--f-2xl);
+    }
+}
+
+@media (max-width: 720px) {
+    .p-editorial .p-hero {
+        height: 320px;
+        border-radius: 2px;
+    }
+
+    .p-editorial .p-hero-body {
+        left: 20px;
+        right: 20px;
+        bottom: 22px;
+    }
+
+    .p-editorial .p-hero-body h2 {
+        margin: 10px 0 8px;
+        font-size: 40px;
+    }
+
+    .p-editorial .p-hero-body p {
+        display: -webkit-box;
+        max-width: 32ch;
+        margin-bottom: 16px;
+        font-size: 13px;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .p-editorial .p-hero-index {
+        top: 16px;
+        right: 16px;
+    }
+
+    .p-editorial .p-hero-cover .p-cover-gate {
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 16px 18px;
+        text-align: left;
+        background: linear-gradient(180deg, rgba(12,10,8,.58), rgba(12,10,8,.16) 64%, transparent);
+    }
+
+    .p-editorial .p-hero-cover .p-cover-gate strong {
+        font-size: 20px;
+    }
+
+    .p-editorial .p-hero-cover .p-cover-gate span {
+        max-width: 138px;
+        font-size: 11px;
+    }
+
+    .p-editorial .p-page-title h1 {
+        font-size: 32px;
+    }
+
+    .p-editorial .p-section-head h2 {
+        font-size: 23px;
+    }
+
+    .p-editorial .p-detail-cover {
+        width: 96px;
+        flex-basis: 96px;
+    }
+
+    .p-editorial .p-quote {
+        font-size: 17px;
+    }
+}

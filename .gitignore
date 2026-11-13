@@ -1,0 +1,27 @@
+# 依赖与构建产物
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# 密钥与运行时数据：绝不提交
+.env
+.env.*
+!.env.example
+.data/
+data/*.db
+data/*.db-*
+*.log
+
+# 本地参考与工具产物（不属于本项目源码）
+SillyTavern/
+.workbuddy/
+.zcode/
+prototype/review-artifacts/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

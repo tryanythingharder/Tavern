@@ -1,0 +1,132 @@
+{
+  "title": "RP原型窄屏续作 Phase4 独立质量审查",
+  "reviewer": "critique-reviewer（质量审查官 严过审）",
+  "date": "2026-11-04",
+  "scope": "/Users/ellen/Desktop/酒馆/prototype/",
+  "upstream_read": {
+    "tests/rp-mobile-requirements.json": "已读，作为验收口径（AC1–AC5、P0/P1/P2 优先级、软键盘证据规则）",
+    "tests/rp-mobile-design.json": "已读，作为设计约束（视口预算、弹窗结构、44px 触控、令牌与断点）",
+    "tests/rp-mobile-implementation.json": "不存在 —— builder 收尾证据 JSON 仍待补，本报告不以其为依据，结论均在缺该证据下独立得出"
+  },
+  "role_boundary": "只读生产代码；未修改任何实现、未修改夹具、未修复问题；仅新建本审查 JSON。",
+
+  "scores": [
+    {"dimension": "设计哲学", "score": 4, "reason": "明确延续 Editorial Monocle『一个可见高度预算』原则：--rp-viewport-height/--rp-viewport-top 作为单一预算来源，替代多祖先各自锁 100dvh；短屏用 data-rp-compact 折叠冗余上下文而不删必需操作。设计意图与代码一致，不是套模板。扣分点：data-rp-compact 阈值 480 与 @media(max-height:640px) 两套短屏判据并存，语义有重叠。"},
+    {"dimension": "视觉层次", "score": 4, "reason": "实开 390×844 截图确认：宋体大标题＋STORY 眉标＋细线分隔＋单一消息滚动区，视线由标题→正文→操作自然下落；弹窗改为『固定头/滚动正文/固定脚』后，关闭与确认不再随内容流动，层次稳定。扣分点：消息工具条 5 个图标的视觉权重略平均，主操作与次要操作区分度一般。"},
+    {"dimension": "执行质量", "score": 4, "reason": "工程细节扎实：全局 box-sizing:border-box 使 .p-modal-root 的 height 含 padding 不会溢出；.p-modal:has(>.p-modal-head) 用 flex 三段式，close 由绝对定位锚定在 position:relative 的头部，从根上修掉 proto.css:1201 关闭按钮随长内容滚走的问题；modalStack 保存 body 行内样式并在末次关闭时还原＋scrollTo；resize 时保留 #chat-scroll 偏移与草稿。扣分点见 P1/P2。"},
+    {"dimension": "特异性", "score": 4, "reason": "纸白近黑＋宋体标题＋0/2px 圆角＋细线，截图可辨识为『酒馆』编辑式体系；无紫色渐变、无 emoji 代替图标（统一 icon() SVG）、无圆角卡片＋左侧彩色边框套路。不会被误认为通用 AI 生成页。"},
+    {"dimension": "克制", "score": 4, "reason": "无装饰性 3D、无多余阴影堆叠，弹窗去掉了旧的大圆角与浮层阴影；短屏优先折叠上下文而非压缩触控（发送仍 48×54，关闭 44×44）。扣分点：#chat-jump、.p-proto-back、toast 三层浮标在极短屏仍是三个独立浮层，收敛度可再提高。"}
+  ],
+  "total_score": 20,
+  "total_max": 25,
+  "verdict": "PASS（有条件通过）",
+  "verdict_note": "5 维均 ≥3，P0=0，P1=2（其中 1 项为实现侧输入保护不一致，1 项为验证证据缺口）。代码修复可采信并合入，但不得对外宣称『手机端全场景已验证』：真实软键盘与 719/1650 本轮未由我复测。",
+
+  "p0": [],
+  "p1": [
+    {
+      "id": "P1-1",
+      "title": "弹窗内 Enter 确认缺少 keyCode 229 / composition 尾窗保护，与输入框策略不一致",
+      "file": "platform.js:570",
+      "code": "if (event.key === 'Enter' && event.target.tagName === 'INPUT' && !event.isComposing) $('[data-modal-confirm]',overlay)?.click();",
+      "why": "聊天输入框 platform.js:1312 已加 event.keyCode!==229、dataset.composing、compositionend 后 80ms 三道保护，但弹窗这条只判 isComposing。部分 Android 输入法在提交候选词的 Enter 上会给出 isComposing=false / keyCode=229，可能在用户还没打完就触发『保存/删除』确认；删除类弹窗（platform.js:1466 世界书删除、confirmAction）后果不可逆。",
+      "repro": "安卓 Chrome＋拼音输入法：打开 设定→世界书→编辑条目，在 #lore-title 中文组合态按 Enter 提交候选词，观察是否直接触发 data-modal-confirm。",
+      "fix": "把输入框的三道保护抽成共享函数（如 isImeCommitEvent(event, target)），弹窗 keydown 与 1312 行复用；同时对 INPUT 增加 event.target.type!=='checkbox' 判断。",
+      "severity_note": "未在真机复现，属代码级不一致，按 P1 计，不阻断合入。"
+    },
+    {
+      "id": "P1-2",
+      "title": "真实软键盘与 719/1650 本轮无独立证据，不得计入『全端通过』",
+      "file": "tests/rp-mobile-review.json（证据缺口，非代码缺陷）",
+      "why": "现有全部证据为 node 单测（含 visualViewport 双桩）＋同源 iframe 固定 CSS 视口夹具。二者都不能证明 iOS Safari / Android Chrome 真实键盘、地址栏收起、safe-area 下的行为；需求文件 AC2 与设计文件 real_keyboard 均明确要求真机证据方可标记已验证。",
+      "repro": "需按 design 文件 real_keyboard.sequence 在 iOS Safari 与 Android Chrome 各走一遍：聚焦→中文组合→换行→发送→设定往返→收起键盘。",
+      "fix": "对外结论改为『320/390 窄视口与交互闭环已验证；真实软键盘、719/1650 本轮未复测』。",
+      "severity_note": "不是实现问题，是发布口径问题；若对外宣传端到端通过，等同于不实陈述，故列 P1。"
+    }
+  ],
+  "p2": [
+    {
+      "id": "P2-1",
+      "title": "夹具断言缺陷：390×844 内容未溢出却强制要求 body.scrollTop>0",
+      "file": "tests/rp-mobile-browser.html:35",
+      "why": "我独立运行时该用例 fail，实测 close={x:314,y:53.34,w:44,h:44,bottom:97.34}、bodyScrollTop=0。位置与触控尺寸四项均满足，失败仅因内容在 844 高度下无需滚动。属断言过严导致的假阴性，不是产品缺陷（320×568 同用例 bodyScrollTop=255 已证明滚动路径正常）。",
+      "fix": "改为 (body.scrollHeight<=body.clientHeight+1 || body.scrollTop>0)，或在 390×844 用例注入超长正文后再断言滚动。"
+    },
+    {
+      "id": "P2-2",
+      "title": "已有 toast 区域会被 inert，弹窗内『保存失败』提示不可点关闭",
+      "file": "platform.js:460-469（syncModals 对 body 全部子节点设置 inert）",
+      "why": "弹窗打开时若 .p-toast-region 已存在，会被置 inert；此后在弹窗内触发的失败 toast（如 platform.js:1367 消息为空、1462 世界书校验失败）视觉上 z-index 60 高于弹窗，但关闭按钮不可交互、对读屏隐藏。4.2s 自动移除，影响有限。",
+      "fix": "syncModals 中跳过 .p-toast-region；或在弹窗上下文把失败提示渲染到 .p-modal-body 内的 .p-form-error。"
+    },
+    {
+      "id": "P2-3",
+      "title": "表单型弹窗首焦点落在关闭按钮，而非首个输入",
+      "file": "platform.js:572",
+      "why": "对『重命名故事／编辑条目／新建身份』这类表单弹窗，聚焦关闭按钮会让用户多按一次 Tab；对纯信息弹窗则合理。",
+      "fix": "openModal 增加 focusFirst 选项，存在 input/textarea 时优先聚焦首个可编辑字段。"
+    },
+    {
+      "id": "P2-4",
+      "title": "双指缩放（scale≠1）时降级为 innerHeight，固定壳可能超出可见区",
+      "file": "platform.js:480-484",
+      "why": "visibleViewport 在 |scale-1|>=0.01 时回退 window.innerHeight/offsetTop=0，此时 --rp-viewport-height 为布局视口高度，.p-shell（platform-polish.css:433-438）与 .p-modal-root（:355-360）按布局视口定位，用户放大后底部发送区可能落在可视区外。属已知取舍，未测。",
+      "fix": "如需支持缩放，scale≠1 时改用 visualViewport.height/offsetTop 并接受缩放下的重排；否则在文档标注『不支持页面缩放态』。"
+    }
+  ],
+
+  "verified_by_me": {
+    "commands": [
+      {"command": "node platform.test.cjs", "result": "tests 12 / pass 12 / fail 0"},
+      {"command": "node rp-state.test.cjs", "result": "tests 17 / pass 17 / fail 0"},
+      {"command": "node tests/disc-gallery.test.mjs", "result": "tests 30 / pass 30 / fail 0"},
+      {"command": "node tests/disc-motion.test.mjs", "result": "tests 15 / pass 15 / fail 0"},
+      {"command": "node tests/rp-chat-workbench.test.cjs", "result": "tests 21 / pass 21 / fail 0"},
+      {"command": "node tests/rp-pages-flow.test.cjs", "result": "tests 10 / pass 10 / fail 0"},
+      {"command": "node tests/rp-room-workbench.test.cjs", "result": "tests 7 / pass 7 / fail 0"},
+      {"command": "node tests/rp-mobile-input.test.cjs", "result": "tests 8 / pass 8 / fail 0"}
+    ],
+    "node_total": "120 / 120 通过（12+17+30+15+21+10+7+8），与 builder 报告的 120 一致；断言未被削弱（逐条读过 rp-mobile-input.test.cjs 8 项，均对 --rp-viewport-height/top、data-rp-compact、输入框 height、scrollTop、草稿值、modalStack 深度、body 样式还原、焦点还原做等值断言）",
+    "browser": {
+      "tool": "workbuddy-browser-use（browser_id=1，独立新建 tab_id=2，未触碰 builder 的 tab1，未 finalize）",
+      "url": "http://127.0.0.1:8791/tests/rp-mobile-browser.html?run=acceptance&size=320×568",
+      "fixture_result": "passed 37 / total 38（唯一失败＝P2-1 断言缺陷，非产品缺陷）",
+      "key_measurements": [
+        "320×568 长设定弹窗：关闭按钮 x=244 y=32 w=44 h=44 bottom=76，正文 bodyScrollTop=255 → 关闭与末字段可触达（独立复现 builder 的 y=32/44px 结论，且确认需要在滚到底之后仍成立）",
+        "320×568 合成组合输入不误发：pass（compositionstart + Enter + 显式点击发送，消息数不变）",
+        "320×568 发送长文（60 段中文 + 300 字符连续 URL）：pass，消息数 +2",
+        "320×568 候选切换：pass（索引回到 1 / 2，分支与原候选未被覆盖）",
+        "320×568 字号 0.85 / 1.2：scrollWidth 恒 320，输入框字号 16px / 19.2px（不低于 16px）",
+        "320×568 缩短至 360px 高：阅读区 123.42px（≥80 预算）、发送按钮 bottom=306≤360、输入框 86.39px；恢复 568 后 composerBottom=568、草稿值不变 → 无双重滚动锁死、不丢草稿、不丢阅读位置",
+        "320×568 草稿焦点恢复：关全部弹窗后 draft 保留、activeElement=#chat-more、body.style.position 已还原（非 fixed）",
+        "创作闭环 320：校验拦截并聚焦 #create-name、预览不含 PRIVATE_SENTINEL、保存公开按钮 y=262 h=44 不被底栏遮挡、仅『本地模拟审核』文案、.p-create-side max-height:none/overflow:visible（无内层限高）",
+        "角色库 320：操作入口 h=44 可达、选择身份后 #start-chat 250×50 可达、进入聊天后身份＝古风女侠",
+        "390×844 同套用例除 P2-1 外全部 pass（长弹窗关闭位置 y=53.34 bottom=97.34 合规，仅 scrollTop 断言不成立）"
+      ],
+      "visual_check": "已看 390×844 实开截图：宋体大标题／STORY 眉标／细线／单列阅读＋固定头尾成立，无横向溢出、无遮挡；视觉无 Anti-Slop 特征。"
+    },
+    "code_review": [
+      "platform.js:438-477 modalStack + syncModals：body 只保存一次行内 overflow/position/top/width，嵌套时复用首份快照 → 不存在二次 top 偏移；末次关闭才还原并 scrollTo(saved.x,saved.y)；非顶层 p-modal-root 置 inert=true + aria-hidden，其余 body 子节点（除 #modal-sentinel）置 inert → 嵌套弹窗（世界书列表→编辑→删除确认）语义正确。",
+      "platform.js:534-574 openModal：头部固定（position:relative）＋ close 44×44 锚定其上，.p-modal-body 单独 overflow-y:auto + overscroll-behavior:contain → 关闭控件永不随正文滚走；onConfirm 返回 false 时 return，不 close（保存失败不退出用户编辑）。",
+      "platform.js:491-500 syncVisibleViewport：单一预算写入根变量，resize/visualViewport.resize/visualViewport.scroll 三处触发；重设高度前先记录 #chat-scroll.scrollTop 再回写 → 不强制跳最新消息、不丢阅读位置；resizeChatInput 上限 max(56,min(160,0.24H)) 与 CSS platform-polish.css:568 同源，无双算。",
+      "platform-polish.css:355-392：.p-modal-root 用 top=--rp-viewport-top / height=--rp-viewport-height（不是 inset:0+100dvh），配合全局 box-sizing:border-box → 弹窗高度严格等于可见视口，不溢出、不与 body 的 position:fixed 锁滚动叠加。",
+      "platform-polish.css:433-438：聊天壳同样以视觉视口为唯一高度源，header 64/54px 与 composer 均 flex 不自缩，.p-chat-scroll 承担剩余 → 满足『header/composer 不缩、消息区 min-height:0』。",
+      "platform.js:1310-1315 + 1370-1379：compositionstart/end 状态、keyCode 229、80ms 尾窗三重保护；sendMessage 内再判 dataset.composing；『继续剧情』走 sendMessage(true) 且跳过推入玩家消息分支，草稿不被清空 → 不误插玩家发言。"
+    ]
+  },
+
+  "unverified": [
+    "真实软键盘（iOS Safari / Android Chrome 真机）：未验证，无任何机型、系统、截图或录像证据；iframe 缩短高度与 visualViewport 桩只是辅助证据。",
+    "safe-area-inset（刘海/Home 指示条）实机表现：未验证（桌面 iframe 中 env() 恒为 0）。",
+    "719×788 与 1650×746 本轮未由我复测：本轮只跑了 320/390 窄视口验收；宽屏无退化仅有历史证据与 builder 陈述。",
+    "双指缩放态（scale≠1）下的固定壳与弹窗定位：未验证（代码为显式回退策略，见 P2-4）。",
+    "P1-1（安卓输入法 Enter 提交候选误触发弹窗确认）未在真机复现，仅有代码路径分析。",
+    "tests/rp-mobile-implementation.json 仍缺：本审查未获得 builder 的收尾证据 JSON，如后续提交需与其结论比对。"
+  ],
+
+  "boundary_notes": [
+    "iframe 固定 CSS 视口改变的是同源文档视口，不是设备、不是 IME、不是地址栏重新展开；夹具页面自身也如此声明。",
+    "本轮结论不覆盖真实后端、计费支付、部署与真实模型能力；『本地模拟审核』『模板回复』『最近 12 条关键词匹配』文案与实现一致，未发现夸大为真实线上发布或真实模型。",
+    "审查期间临时静态服务（127.0.0.1:8791）仅供本夹具使用，审查结束后已停止；未 finalize 共享浏览器，tab_id=2 保留给主理人复核。"
+  ]
+}

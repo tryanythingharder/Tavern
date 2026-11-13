@@ -1,0 +1,858 @@
+/* 应用层微调：原型样式之后加载，只放必要的覆盖 */
+/* 原型列表/设置页统一 1080 居中；首页用更宽的 1120 */
+:root { --classic-max: 1080px; }
+body[data-page]:not(.p-cinema):not([data-page="chat"]) .p-inner {
+    --page-pad: clamp(16px, 3vw, 32px);
+    max-width: calc(var(--classic-max) + var(--page-pad) * 2);
+    margin: 0 auto;
+    padding: 28px var(--page-pad) 48px;
+}
+body[data-page="home"] .p-inner { max-width: calc(var(--classic-max) + var(--page-pad) * 2); }
+
+/* 对话页：工作台占满视口，内部滚动 */
+body[data-page="chat"] .p-inner {
+    max-width: 100%;
+    height: 100%;
+    padding: 0;
+}
+body[data-page="chat"] .p-chat-head .btn {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+/* 设置表单：标签与说明沿用原型的排版 */
+.p-field > label { display: block; margin-bottom: 6px; color: var(--ca-muted, var(--muted)); font-size: 12px; font-weight: 600; }
+.p-room-card { padding: 12px 16px; }
+
+/* 公告条 */
+.p-announcement { display: flex; align-items: center; gap: 10px; margin: 12px clamp(16px, 3vw, 32px) 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); font-size: var(--f-xs); }
+.p-announcement .p-icon { flex: 0 0 auto; color: var(--muted); }
+.p-announcement button { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 13px; cursor: pointer; }
+
+/* 影院视图（加载在原型样式之后，确保深色主题生效） */
+body[data-view="cinema"] {
+    --bg: #0b0b0e;
+    --surface: #141418;
+    --surface-2: #1d1d23;
+    --border: #26262e;
+    --border-strong: #3a3a45;
+    --text: #f3f3f6;
+    --text-2: #c9c9d1;
+    --muted: #8b8b96;
+    --g25: #101014;
+    --g50: #0b0b0e;
+    --g100: #1d1d23;
+    --g200: #26262e;
+    --g300: #3a3a45;
+    --g900: #f3f3f6;
+    --g800: #e4e4ea;
+    --accent-soft: #23243a;
+    --ca-bg: #0b0b0e;
+    --ca-paper: #141418;
+    --ca-ink: #f3f3f6;
+    --ca-copy: #c9c9d1;
+    --ca-muted: #8b8b96;
+    --ca-border: #26262e;
+    background: var(--bg) !important;
+    color: var(--text);
+}
+body[data-view="cinema"] .p-shell,
+body[data-view="cinema"] .p-main,
+body[data-view="cinema"] .p-inner,
+body[data-view="cinema"] .p-topbar { background: var(--bg); }
+body[data-view="cinema"] .p-side { background: #0e0e12; }
+body[data-view="cinema"] .p-card,
+body[data-view="cinema"] .p-notice,
+body[data-view="cinema"] .p-rows { background: var(--surface); }
+body[data-view="cinema"] .p-btn { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+body[data-view="cinema"] .p-btn--primary { background: #f3f3f6; border-color: #f3f3f6; color: #111; }
+body[data-view="cinema"] .p-input,
+body[data-view="cinema"] .p-textarea,
+body[data-view="cinema"] .p-select { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+body[data-view="cinema"] .p-nav-item[aria-current="page"] { background: #23232b; }
+/* 影院广场筛选条：经典视图是浅色面板，影院里要改成深色，否则白字白底 */
+body[data-view="cinema"] .p-filterbar { background: #141419; border-color: #26262f; }
+body[data-view="cinema"] .p-filterbar .p-search { background: #1c1c23; border-color: #2c2c36; }
+body[data-view="cinema"] .p-filterbar-count { color: #8a8a97; }
+body[data-view="cinema"] .p-chip[aria-pressed="true"],
+body[data-view="cinema"] .p-chip[aria-selected="true"],
+body[data-view="cinema"] .p-chip.is-active { color: #111; }
+body[data-view="cinema"] .p-page-title h1 { color: var(--text); }
+body[data-view="cinema"] .p-page-title p { color: var(--muted); }
+
+.cinema-shell { min-height: 100dvh; background: var(--bg); }
+.cinema-nav { position: sticky; top: 0; z-index: 40; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 60px; padding: 0 24px; border-bottom: 1px solid var(--border); background: rgba(11, 11, 14, .88); backdrop-filter: blur(14px); }
+.cinema-nav-left { display: flex; align-items: center; gap: 18px; }
+.cinema-nav-left a { color: var(--muted); font-size: var(--f-sm); font-weight: 600; }
+.cinema-nav-left a:hover, .cinema-nav-left a[aria-current="page"] { color: var(--text); }
+.cinema-logo { font-size: 15px; font-weight: 700; letter-spacing: .32em; color: var(--text); white-space: nowrap; flex: 0 0 auto; }
+.cinema-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.cinema-nav-right .p-view-switch { width: 136px; margin: 0; }
+.cinema-account { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #f3f3f6; color: #111; font-size: 12px; font-weight: 700; }
+.cinema-main { min-height: calc(100dvh - 60px); }
+.cinema-home { padding-top: 4px; }
+.cinema-curtain { padding: 22px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 26px; }
+.cinema-curtain > span { letter-spacing: .34em; font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.cinema-curtain h1 { margin: 10px 0 4px; font-size: 30px; letter-spacing: -.02em; color: var(--text); }
+.cinema-curtain p { margin: 0; color: var(--muted); font-size: var(--f-sm); }
+.cinema-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 26px 20px; }
+.cinema-poster-cover { position: relative; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.cinema-poster-cover img, .cinema-poster-cover > div { transition: transform 260ms ease; }
+.cinema-poster:hover .cinema-poster-cover img, .cinema-poster:hover .cinema-poster-cover > div { transform: scale(1.03); }
+.cinema-poster-fade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.88) 0%, rgba(0,0,0,.25) 52%, transparent 78%); }
+.cinema-poster-caption { position: absolute; inset: auto 0 0 0; display: grid; gap: 4px; padding: 14px; color: #fff; }
+.cinema-poster-caption strong { font-size: 17px; }
+.cinema-poster-caption span { font-size: 12px; color: rgba(255,255,255,.78); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cinema-poster-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--muted); font-size: var(--f-xs); }
+.cinema-detail-banner { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 26px; margin: 18px 0 26px; padding: 20px; border: 1px solid var(--border); border-radius: 18px; background: radial-gradient(120% 140% at 12% 0%, #1c1c26 0%, #101014 60%, #0c0c10 100%); }
+.cinema-detail-cover { aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: var(--surface-2); }
+.cinema-detail-banner h1 { margin: 8px 0; font-size: 34px; letter-spacing: -.02em; color: var(--text); }
+.cinema-detail-hook { margin: 0; color: var(--text-2); font-size: var(--f-lg); line-height: 1.7; }
+body[data-view="cinema"] .brand-mark { background: #f3f3f6; color: #111; }
+@media (max-width: 720px) {
+    .cinema-nav { grid-template-columns: auto 1fr auto; padding: 0 14px; gap: 10px; }
+    .cinema-nav-left { display: none; }
+    .cinema-nav-right .p-view-switch { width: 112px; }
+    .cinema-detail-banner { grid-template-columns: minmax(0, 1fr); }
+    .cinema-detail-cover { max-width: 160px; }
+    .cinema-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+}
+
+/* 影院顶栏的按钮/点数/通知在深色下可读 */
+.cinema-nav-right .pill,
+.cinema-nav-right .p-points-trigger {
+    background: #141418 !important;
+    color: #f3f3f6 !important;
+    border: 1px solid #3a3a45 !important;
+}
+.cinema-nav-right .p-points-trigger span,
+.cinema-nav-right .p-points-trigger small { color: var(--text); }
+.cinema-nav-right .p-view-switch { background: var(--surface-2); }
+.cinema-nav-right .p-view-switch button { color: var(--muted); }
+.cinema-nav-right .p-view-switch button[aria-pressed="true"] { background: #f3f3f6; color: #111; }
+
+/* 表单网格：原型没有定义 p-field-row，这里补齐 */
+.p-field { display: grid; gap: 6px; margin-bottom: 12px; }
+.p-field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: start; }
+/* 四项数据用四列，避免 3+1 的断行 */
+.p-detail-stats.is-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+    .p-detail-stats.is-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* 公告条与页面标题之间留出呼吸 */
+.p-announcement { width: auto; max-width: 560px; margin: 12px auto 6px; box-sizing: border-box; }
+.p-announcement > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-announcement button { width: 28px; min-width: 28px !important; height: 28px; min-height: 28px !important; flex: 0 0 28px; padding: 0; }
+body.announcement-off .p-announcement { display: none; }
+@media (max-width: 720px) {
+    .p-announcement { width: auto; margin: 10px 16px 0; }
+}
+.p-page-title { margin-top: 8px; }
+
+/* 全站侧栏统一宽度：原型在广场/发现用 244、工作台用 220，
+   切页时内容会横向跳 24px，这里统一成 244 */
+body[data-page] { --sidebar-w: 244px !important; }
+@media (min-width: 721px) { body[data-page] .p-topbar { height: 72px; } }
+
+/* 长短页切换时滚动条出现/消失会让内容横向跳 5px，始终预留滚动条槽 */
+html { scrollbar-gutter: stable; }
+
+/* 设置页：主导航保持不变，分区导航内嵌在页面里（桌面纵向、手机横向） */
+@media (min-width: 721px) {
+    body[data-page="settings"] .p-toc { display: flex; }
+    body[data-page="settings"] .p-settings { display: grid; }
+    body[data-page="settings"] .p-toc a.is-active {
+        border-color: transparent;
+        background: var(--surface-2);
+        color: var(--text);
+        font-weight: 600;
+        box-shadow: none;
+    }
+}
+@media (max-width: 720px) {
+    /* 手机顶栏实际两行约 124px，目录吸顶要落在它下面 */
+    body[data-page="settings"] .p-toc { top: 130px; }
+    body[data-page]:not([data-page="chat"]) .p-topbar { height: 130px; }
+    body[data-page="settings"] .p-toc a.is-active { color: #fff; }
+}
+
+/* 创作页：顶部固定操作条，长表单不用滚到底才能发布 */
+.p-create-actions-bar {
+    position: sticky;
+    top: 84px;
+    z-index: 6;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--sh-xs);
+}
+@media (max-width: 720px) {
+    .p-create-actions-bar { top: 138px; }
+    .p-library-actions .p-pill { width: auto; justify-self: start; }
+}
+
+/* 创作页：右栏受控内部滚动，sticky 后仍能看完整预览；封面/形象恢复原型尺寸 */
+body[data-page="create"] .p-create-side {
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-bottom: 8px;
+}
+@media (min-width: 721px) {
+    body[data-page="create"] .p-create-main > .p-card:first-child > .p-create-media { grid-template-columns: 104px minmax(0, 1fr); gap: 20px; }
+    body[data-page="create"] .p-create-media .p-create-avatar { width: 104px; }
+    body[data-page="create"] .p-create-cover-wrap { flex-direction: row; gap: 20px; align-items: flex-start; }
+    body[data-page="create"] .p-create-cover { width: 120px; flex-basis: 120px; }
+}
+
+/* 设置页：目录锚点跳转时给吸顶栏留出距离 */
+html { scroll-behavior: smooth; }
+.p-settings-main .p-section { scroll-margin-top: calc(var(--topbar-h, 72px) + 20px); }
+
+/* 法律页：原型 terms.html 的独立版式 */
+.legal {
+    max-width: 720px;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 48px 20px 96px;
+    background: #f7f7f8;
+    color: #1b1b1d;
+    font-family: "Helvetica Neue", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
+}
+.legal-back { display: inline-flex; align-items: center; gap: 6px; color: #77777e; font-size: 13px; text-decoration: none; }
+.legal h1 { margin: 20px 0 8px; font-size: 32px; letter-spacing: -.02em; }
+.legal .legal-meta { color: #77777e; font-size: 13px; }
+.legal .legal-demo { margin: 24px 0 32px; padding: 14px 16px; border: 1px solid #e6e6e8; border-radius: 12px; background: #fff; color: #4a4a50; font-size: 13px; line-height: 1.75; }
+.legal h2 { margin: 32px 0 10px; font-size: 17px; }
+.legal p, .legal li { color: #4a4a50; font-size: 14px; line-height: 1.85; }
+.legal ul { padding-left: 1.2em; }
+.legal .legal-footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e6e6e8; color: #77777e; font-size: 12.5px; }
+.legal a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+/* 后台侧栏：当前分区用原型 admin 的黑色胶囊 */
+body[data-page="admin"] .p-aside .p-nav-item[aria-current="page"] {
+    background: var(--text);
+    color: #fff;
+    font-weight: 650;
+}
+body[data-page="admin"] .p-aside .p-nav-item[aria-current="page"] .p-icon { color: #fff; }
+
+/* 原型后台在手机上有 65px 的移动顶栏；我们的后台没有，工具栏要贴 0 而不是 65px */
+@media (max-width: 1024px) {
+    body[data-page="admin"] .p-atoolbar { top: 0; }
+}
+/* 手机上由 p-atabs 吸顶导航，工具栏跟随内容滚动，避免两个 sticky 重叠 */
+@media (max-width: 960px) {
+    body[data-page="admin"] .p-atoolbar { position: static; }
+}
+
+/* 后台表格：短字段不换行，操作列保持一行 */
+.admin-table td:nth-child(1),
+.admin-table td:nth-child(3),
+.admin-table td:nth-child(4),
+.admin-table td:nth-child(5) { white-space: nowrap; }
+.admin-table .admin-actions { flex-wrap: nowrap; }
+.admin-content-anchor, .p-acontent [id] { scroll-margin-top: 96px; }
+@media (max-width: 960px) {
+    .admin-table td.admin-empty { display: block; width: 100%; justify-content: initial; text-align: center; }
+}
+
+/* 原型 tab 只有 button，链接形式的筛选 tab 补同样的外观 */
+.p-tabs a {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 var(--s4);
+    border-radius: 10px;
+    color: var(--text-2);
+    font-size: var(--f-sm);
+    font-weight: var(--fw-semi);
+    text-decoration: none;
+}
+.p-tabs a[aria-selected="true"] {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--sh-xs);
+}
+
+/* 文件选择框跟随输入框风格 */
+.p-input[type="file"],
+.input[type="file"] { padding: 8px 10px; cursor: pointer; }
+.p-input[type="file"]::file-selector-button,
+.input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+/* 手机对话头：标题可收缩，右侧搜索/设定不再被挤出屏幕 */
+@media (max-width: 720px) {
+    /* 原型三列固定 44px，但实际右侧有两个按钮，第三列改 auto 让标题让位 */
+    .p-chat-head-in { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 6px; }
+    body[data-page="chat"] .p-chat-head-in .p-chat-title { flex: 1 1 0; min-width: 0; overflow: hidden; }
+    .p-chat-title-text { min-width: 0; }
+    .p-chat-name, .p-chat-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .p-chat-head-in > div:last-child { flex-wrap: nowrap; }
+    .p-chat-head-in .btn { min-height: 30px; padding: 0 8px; font-size: 11.5px; white-space: nowrap; }
+}
+
+/* 手机底部标签栏会盖住内容，给页面留出安全距离 */
+@media (max-width: 1023px) {
+    body[data-page]:not([data-page="chat"]) .p-inner {
+        padding-bottom: calc(var(--tabbar-h, 58px) + 24px + env(safe-area-inset-bottom));
+    }
+}
+
+/* -------------------------------------------------------------------------
+   旧组件类统一到原型 p-* 外观：弹窗与部分编辑器仍在使用 .btn/.input/.field
+   ------------------------------------------------------------------------- */
+.btn {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 var(--s5);
+    border-radius: var(--r-pill);
+    font-size: var(--f-md);
+    font-weight: var(--fw-semi);
+    line-height: 1;
+}
+.btn--sm { height: 32px; min-height: 32px; padding: 0 var(--s3); font-size: var(--f-sm); }
+.btn--primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn--primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.btn--ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn--danger { background: transparent; border-color: transparent; color: var(--danger); }
+.input, .select {
+    height: var(--tap);
+    padding: 0 var(--s3);
+    border-radius: var(--r-md);
+    font-size: var(--f-md);
+}
+.textarea {
+    min-height: 96px;
+    padding: 10px var(--s3);
+    border-radius: var(--r-md);
+    font-size: var(--f-md);
+}
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field > label { font-size: var(--f-xs); font-weight: var(--fw-semi); color: var(--text-2); }
+.field-row { gap: 12px; }
+.tag {
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--text-2);
+    font-size: var(--f-2xs);
+    font-weight: var(--fw-semi);
+}
+.res-list {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg, 16px);
+    background: var(--surface);
+    overflow: hidden;
+}
+.res-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+}
+.res-row:last-child { border-bottom: 0; }
+
+/* 手机顶栏：收成单行 64px，搜索改为图标入口，释放首屏高度 */
+.p-topbar-search { display: none; }
+@media (max-width: 720px) {
+    body[data-page]:not([data-page="chat"]) .p-topbar {
+        display: flex;
+        align-items: center;
+        height: 64px;
+        padding: 10px 16px;
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+    body[data-page]:not([data-page="chat"]) .p-topbar .p-search { display: none; }
+    /* 右侧一组的起点：无论切换器是否显示，铃铛都靠右 */
+    body[data-page]:not([data-page="chat"]) .p-topbar .p-view-switch { margin-right: 0; }
+    body[data-page]:not([data-page="chat"]) .p-topbar .p-topbar-icon[href="/notifications"] { margin-left: auto; }
+    /* 未登录时没有铃铛/点数，头像自己靠右 */
+    body[data-page]:not([data-page="chat"]) .p-topbar:not(:has(.p-topbar-icon[href="/notifications"])) .p-avatar { margin-left: auto; }
+    .p-topbar-search { display: grid; }
+    body[data-page="settings"] .p-toc { top: 64px; }
+    .p-create-actions-bar { top: 72px; }
+    .p-view-switch button { min-height: 32px; padding: 0 9px; font-size: 11px; }
+    .p-points-trigger { padding: 0 8px; gap: 4px; }
+}
+@media (max-width: 360px) {
+    .p-topbar-search { display: none; }
+}
+
+/* 触屏消息操作：每条消息右上角常驻 ⋯，点开工具行 */
+.p-msg-more { display: none; }
+@media (hover: none), (max-width: 720px) {
+    body[data-page="chat"] .p-msg { position: relative; }
+    .p-msg-more {
+        display: inline-flex;
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        z-index: 2;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--ca-muted, var(--muted));
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .p-msg-more:hover, .p-msg-more[aria-expanded="true"] { background: rgba(0, 0, 0, .06); color: var(--ca-ink, var(--text)); }
+}
+
+/* 统一页面标题尺度：列表页 32/26，首页主标题 30/26 */
+body[data-page]:not(.p-cinema) .p-page-title h1 { font-size: clamp(28px, 2.4vw, 32px) !important; }
+body[data-page="home"] .ca-welcome h1 { font-size: 30px; }
+@media (max-width: 720px) {
+    body[data-page]:not(.p-cinema) .p-page-title h1 { font-size: 26px !important; }
+    body[data-page="home"] .ca-welcome h1 { font-size: 26px; }
+}
+
+/* 经典/影院切换统一 32px，不再在广场/角色页变成 44px */
+body .p-view-switch button { min-height: 32px !important; padding: 0 11px !important; font-size: 12px !important; }
+
+/* 次级文字对比度：muted 统一到 #6b6b73（白底约 5.2:1） */
+body { --muted: #6b6b73; --pp-muted: #6b6b73; --ca-muted: #6b6b73; }
+
+/* 空态统一为实底卡片，不再使用全站孤例的虚线框 */
+body[data-page] .p-empty { border-style: solid; background: var(--surface); }
+
+/* 手机设置分区导航：左右渐隐提示 + 滚动留白 */
+@media (max-width: 720px) {
+    body[data-page="settings"] .p-toc {
+        scroll-padding-inline: 16px;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent);
+        mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent);
+    }
+}
+
+/* 禁用按钮不再用 opacity 发灰，保证可读 */
+.p-btn:disabled, .btn:disabled { opacity: 1; background: var(--surface-2); border-color: var(--border); color: var(--muted); cursor: not-allowed; }
+.p-btn--primary:disabled { background: #e9e9eb; border-color: #e9e9eb; color: #6b6b73; }
+
+/* 对话里玩家气泡用轻底色区分，不改变左右布局 */
+body[data-page="chat"] .p-msg-user { background: #f1f2fb; border-color: transparent; }
+body[data-page="chat"] .p-msg-user .p-msg-name { color: var(--ca-muted, var(--muted)); font-size: 12px; }
+
+/* 320 级窄屏：顶栏只保留通知/点数/头像，避免控件互相挤压 */
+@media (max-width: 360px) {
+    body[data-page]:not([data-page="chat"]) .p-topbar { gap: 6px; }
+    body[data-page]:not([data-page="chat"]) .p-topbar-search { display: none !important; }
+    body[data-page]:not([data-page="chat"]) .p-view-switch { display: none; }
+    body[data-page]:not([data-page="chat"]) .p-points-trigger { font-size: 12px; padding: 0 7px; }
+}
+
+/* 广场分类在手机上单行横滑，不再折成多行 */
+@media (max-width: 720px) {
+    body[data-page="plaza"] .p-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    body[data-page="plaza"] .p-chips::-webkit-scrollbar { display: none; }
+}
+
+/* 顶栏点数胶囊不要被 flex 压扁，避免和头像重叠 */
+@media (max-width: 720px) {
+    body[data-page]:not([data-page="chat"]) .p-topbar .p-points { flex: 0 0 auto; }
+    body[data-page]:not([data-page="chat"]) .p-topbar .p-points-trigger { flex: 0 0 auto; width: auto; }
+}
+
+/* 分支会话提示：不打断对话，只说明来源并可回原故事 */
+.p-branch-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: var(--f-sm, 13px);
+}
+.p-branch-note a { color: var(--text); font-weight: var(--fw-semi, 600); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+@media (max-width: 720px) {
+    .p-branch-note { padding: 8px 12px; font-size: 12px; }
+}
+
+/* 对话内错误：用轻底色块承接，和输入区区分开 */
+body[data-page="chat"] .p-chat-compose .p-form-error {
+    padding: 10px 12px;
+    border: 1px solid #f2c9c4;
+    border-radius: 12px;
+    background: #fdf3f2;
+    color: #a53a31;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* 无立绘的角色封面：保留首字渐变色块，不被沉浸层的纯灰底覆盖 */
+body[data-page]:not(.p-cinema) .p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover) {
+    background:
+        radial-gradient(120% 90% at 20% 8%, #5a4c40 0%, transparent 58%),
+        radial-gradient(100% 90% at 88% 92%, #3c3129 0%, transparent 62%),
+        linear-gradient(160deg, #3a332d, #171412);
+}
+body[data-page]:not(.p-cinema) .p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover)::after {
+    color: rgba(255, 255, 255, .16);
+}
+
+/* 无立绘的场景卡也要保证白色标题可读 */
+body[data-page]:not(.p-cinema) .ca-scene-cover:not(.has-portrait)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(to top, rgba(12, 12, 14, .82) 0%, rgba(12, 12, 14, .2) 46%, transparent 74%);
+}
+
+/* 禁用按钮：压过页面级 primary 配色与 0.45 透明度，保证文字可读 */
+body[data-page] .p-btn:disabled,
+body[data-page] .p-btn--primary:disabled {
+    opacity: 1 !important;
+    background: #ededef !important;
+    border-color: #e2e2e5 !important;
+    color: #6b6b73 !important;
+}
+
+/* 后台手机导航末尾提供回前台入口，避免只有浏览器返回 */
+@media (max-width: 960px) {
+    .p-atabs a.p-atabs-back {
+        color: var(--muted);
+        background: transparent;
+        border-style: dashed;
+    }
+}
+
+/* 设置目录按语义分组：桌面显示组名，手机横滑时只留组间细线 */
+.p-toc-group { display: flex; flex-direction: column; gap: 4px; }
+.p-toc-label {
+    padding: 10px 12px 2px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+}
+.p-toc-group:first-child .p-toc-label { padding-top: 0; }
+@media (max-width: 720px) {
+    .p-toc { align-items: center; gap: 8px; }
+    .p-toc-group { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 8px; }
+    .p-toc-label { display: none; }
+    .p-toc-group + .p-toc-group::before {
+        content: '';
+        flex: 0 0 1px;
+        width: 1px;
+        height: 20px;
+        background: var(--border);
+    }
+}
+
+/* 角色详情封面：桌面统一 3:4 立绘；手机保留紧凑横向 hero，首屏能看到名字与操作 */
+body[data-page="character"] .p-detail-cover {
+    aspect-ratio: 3 / 4 !important;
+    height: auto !important;
+    max-height: none !important;
+}
+@media (max-width: 1099px) {
+    body[data-page="character"] .p-detail-cover {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 4 / 3 !important;
+        max-height: 300px !important;
+    }
+}
+
+/* =========================================================================
+   2026-11-12 全站排版审计修正
+   ========================================================================= */
+
+/* 后台侧栏：底部留白 + 滚动内边距，最后一项不被页脚压住 */
+body[data-page="admin"] .p-anav { padding-bottom: 8px; scroll-padding-block: 8px; }
+
+/* 后台玩家表：「今日」列允许在分隔符处换行，但每段数字不拆开 */
+.admin-table .p-nowrap { white-space: nowrap; }
+.admin-table .p-cell-sep { color: var(--muted); }
+
+/* 后台手机表格：只有带操作按钮的「操作」格才上下排，纯文本保持左右对齐 */
+@media (max-width: 720px) {
+    .admin-table td[data-label="操作"] { display: flex; padding-top: 6px; }
+    .admin-table td[data-label="操作"]::before { display: block; margin-bottom: 0; }
+    .admin-table td[data-label="操作"]:has(.admin-actions) { display: block; padding-top: 10px; }
+    .admin-table td[data-label="操作"]:has(.admin-actions)::before { margin-bottom: 6px; }
+}
+
+/* 后台手机 tab：两侧渐隐，滚动时不再出现被硬切的胶囊 */
+@media (max-width: 960px) {
+    .p-atabs {
+        scroll-padding-inline: 16px;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent);
+        mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent);
+    }
+}
+
+/* 设置目录：桌面限高并内部滚动，900 高度下最后一项也能完整看到 */
+@media (min-width: 721px) {
+    body[data-page="settings"] .p-toc {
+        max-height: calc(100dvh - 190px);
+        overflow-y: auto;
+        padding-right: 4px;
+        padding-bottom: 12px;
+        scrollbar-width: thin;
+    }
+}
+
+/* 搜索页：搜索框与按钮相邻，不再被 margin-right:auto 推到页面两端 */
+body[data-page="search"] .p-filterbar-main { max-width: 760px; }
+body[data-page="search"] .p-filterbar-main .p-search { margin-right: 0; max-width: none; flex: 1 1 auto; }
+
+/* 设置页多按钮行：手机上按可用宽度均分，三枚按钮不再 2+1 */
+@media (max-width: 720px) {
+    .p-library-actions { grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)) !important; }
+}
+
+/* 无立绘封面：深色暖调兜底，和立绘卡在同一网格里不突兀 */
+body[data-page]:not(.p-cinema) .p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover) {
+    background:
+        radial-gradient(120% 90% at 20% 8%, #5a4c40 0%, transparent 58%),
+        radial-gradient(100% 90% at 88% 92%, #3c3129 0%, transparent 62%),
+        linear-gradient(160deg, #3a332d, #171412);
+}
+body[data-page]:not(.p-cinema) .p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover)::after {
+    color: rgba(255, 255, 255, .16);
+}
+
+/* 设置页卡片操作行：手机上不再沿用房间卡的 64px 左缩进（那会让按钮整体右移） */
+@media (max-width: 720px) {
+    body[data-page]:not([data-page="rooms"]) .p-room-card > .p-library-actions { padding-left: 0; }
+}
+
+/* 无立绘封面的首字水印：完整落在封面内，不再被下边缘切掉一半 */
+body[data-page]:not(.p-cinema) .p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover)::after {
+    right: 7%;
+    bottom: 5%;
+}
+
+/* 后台操作区：隐藏数字输入的步进箭头，窄列里不挤掉占位文字 */
+.admin-actions input[type="number"]::-webkit-outer-spin-button,
+.admin-actions input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.admin-actions input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* 手机端「今日」等组合字段作为一个整体，不被 flex 拉开 */
+.admin-table .p-cell-group { display: inline; }
+
+/* 渠道编辑弹窗：双列表单 + 可滚动的模型勾选列表 */
+.channel-form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 720px) { .channel-form-grid { grid-template-columns: minmax(0, 1fr); } }
+.channel-models-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 16px 0 8px; }
+.channel-models {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+.channel-model-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; cursor: pointer; }
+.channel-model-row input { width: 15px; height: 15px; accent-color: var(--text); flex: 0 0 auto; }
+.channel-model-row code { font-size: 12px; word-break: break-all; }
+.channel-enabled { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+.channel-enabled input { width: 16px; height: 16px; accent-color: var(--text); }
+
+/* 渠道页分区标题：手机上按钮换到说明下方，不再挤压说明文字 */
+@media (max-width: 720px) {
+    .channel-section-head { flex-wrap: wrap; }
+    .channel-section-head > div { flex: 1 1 100%; }
+    .channel-section-head > .p-btn { align-self: flex-start; }
+}
+
+/* =========================================================================
+   搜索页：类型/题材/排序/视图筛选 + 作者结果 + 列表视图
+   ========================================================================= */
+
+/* 搜索结果卡不再因为只有 1 条就被 auto-fit 拉成整行 */
+body[data-page="search"] .p-work-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+body[data-page="plaza"] .p-work-grid,
+body[data-page="author"] .p-work-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+@media (max-width: 720px) {
+    body[data-page="search"] .p-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.search-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "types actions" "cats cats";
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 12px;
+}
+.search-tools .p-chips { margin: 0; }
+.search-types { grid-area: types; }
+.search-categories { grid-area: cats; }
+.search-tools-actions { grid-area: actions; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+@media (max-width: 900px) {
+    .search-tools { grid-template-columns: minmax(0, 1fr); grid-template-areas: "types" "cats" "actions"; }
+    .search-tools-actions { justify-content: flex-start; }
+}
+@media (max-width: 720px) {
+    .search-tools { gap: 8px; }
+    .search-tools .p-chips { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+}
+
+.p-chip[aria-current="page"] {
+    background: var(--g900);
+    border-color: var(--g900);
+    color: #fff;
+}
+
+/* 作者结果 */
+.p-author-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.p-author-result { display: flex; align-items: flex-start; gap: 12px; padding: 16px; min-width: 0; }
+.p-author-result-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.p-author-result-main strong { font-size: 15px; }
+.p-author-result-bio {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+.p-author-results.is-list { display: flex; flex-direction: column; gap: 10px; }
+.p-author-results.is-list .p-author-result { align-items: center; }
+@media (max-width: 720px) { .p-author-results { grid-template-columns: minmax(0, 1fr); } }
+
+/* 角色列表视图：同一张卡改成横向行，不复制组件 */
+body[data-page] .p-work-grid.is-list { display: flex; flex-direction: column; gap: 10px; }
+body[data-page] .p-work-grid.is-list .p-work {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+}
+body[data-page] .p-work-grid.is-list .p-work-cover { aspect-ratio: 1; height: 96px; border-radius: 10px; }
+body[data-page] .p-work-grid.is-list .p-work-body { padding: 0; justify-content: center; gap: 2px; }
+body[data-page] .p-work-grid.is-list .p-work-desc { display: -webkit-box; min-height: 0; -webkit-line-clamp: 1; }
+body[data-page] .p-work-grid.is-list .p-work-meta { padding-top: 4px; }
+body[data-page] .p-work-grid.is-list .p-work-fav { width: 28px; height: 28px; right: 6px; bottom: 6px; }
+body[data-page] .p-work-grid.is-list .p-work-fav .p-icon { width: 14px; height: 14px; }
+@media (max-width: 720px) {
+    body[data-page] .p-work-grid.is-list .p-work { grid-template-columns: 76px minmax(0, 1fr); gap: 12px; }
+    body[data-page] .p-work-grid.is-list .p-work-cover { height: 76px; }
+}
+
+/* 空态统一为实底卡片（immersive 的虚线规则优先级更高，这里对齐） */
+body[data-page]:not(.p-cinema) .p-empty {
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+/* 桌面顶栏：搜索输入框已经在左侧，右侧重复的搜索图标只在手机（输入框隐藏时）保留 */
+@media (min-width: 721px) {
+    body[data-page]:not(.p-cinema) .p-topbar .p-topbar-search { display: none; }
+}
+
+/* 列表页筛选条：搜索框与排序/NSFW 控件收在一组，计数靠右，不再散落在中间 */
+body[data-page]:is([data-page="plaza"], [data-page="chats"], [data-page="library"]) .p-filterbar-main .p-search {
+    margin-right: 0;
+    max-width: 520px;
+}
+
+/* 角色详情：返回链接与提示条和正文同宽，不再比正文左出 20px */
+body[data-page="character"]:not(.p-cinema) .p-character-top { max-width: 780px; margin: 0 auto; }
+@media (min-width: 1100px) {
+    body[data-page="character"]:not(.p-cinema) .p-character-top { max-width: var(--classic-max); }
+}
+
+/* 无立绘的场景卡：用深色暖调兜底，保证白色标题/开始对话与其它立绘卡一致 */
+body[data-page]:not(.p-cinema) .ca-scene-cover.p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover) {
+    background:
+        radial-gradient(120% 90% at 20% 8%, #5a4c40 0%, transparent 58%),
+        radial-gradient(100% 90% at 88% 92%, #3c3129 0%, transparent 62%),
+        linear-gradient(160deg, #3a332d, #171412);
+}
+body[data-page]:not(.p-cinema) .ca-scene-cover.p-cover:not(.has-portrait):not(.p-create-avatar):not(.p-create-cover)::after {
+    color: rgba(255, 255, 255, .14);
+}
+
+/* 广场手机筛选条：搜索独占一行，排序 / NSFW / 计数在同一行对齐 */
+@media (max-width: 720px) {
+    body[data-page="plaza"] .p-filterbar-main {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+    }
+    body[data-page="plaza"] .p-filterbar-main .p-search { grid-column: 1 / -1; max-width: none; }
+    body[data-page="plaza"] .p-filterbar-main .p-select { grid-column: 1; justify-self: start; }
+    body[data-page="plaza"] .p-filterbar-main .p-chip { grid-column: 2; justify-self: start; }
+    body[data-page="plaza"] .p-filterbar-main .p-filterbar-count { grid-column: 3; justify-self: end; margin-left: 0; }
+}
+
+/* 搜索筛选：每组前加小标签，类型/题材的两个「全部」不再混淆 */
+.search-tool { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.search-tool-label { flex: 0 0 auto; color: var(--muted); font-size: 12px; }
+@media (max-width: 720px) {
+    .search-tool-label { font-size: 11px; }
+}
+
+/* 广场手机筛选：父级规则要压过 immersive 的两列 grid */
+@media (max-width: 720px) {
+    body[data-page="plaza"]:not(.p-cinema) .p-filterbar-main {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+    }
+    body[data-page="plaza"]:not(.p-cinema) .p-filterbar-main .p-search { grid-column: 1 / -1; max-width: none; }
+    body[data-page="plaza"]:not(.p-cinema) .p-filterbar-main .p-select { grid-column: 1; justify-self: start; }
+    body[data-page="plaza"]:not(.p-cinema) .p-filterbar-main .p-chip { grid-column: 2; justify-self: start; }
+    body[data-page="plaza"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count { grid-column: 3; justify-self: end; margin-left: 0; }
+}
+
+/* 对话/角色库手机筛选：搜索独占一行，下拉与计数在下一行对齐 */
+@media (max-width: 720px) {
+    body[data-page="chats"]:not(.p-cinema) .p-filterbar-main,
+    body[data-page="library"]:not(.p-cinema) .p-filterbar-main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+    }
+    body[data-page="chats"]:not(.p-cinema) .p-filterbar-main .p-search,
+    body[data-page="library"]:not(.p-cinema) .p-filterbar-main .p-search { grid-column: 1 / -1; max-width: none; }
+    body[data-page="chats"]:not(.p-cinema) .p-filterbar-main .p-select { grid-column: 1; justify-self: start; }
+    body[data-page="chats"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count,
+    body[data-page="library"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count { grid-column: 2; justify-self: end; margin-left: 0; }
+}
