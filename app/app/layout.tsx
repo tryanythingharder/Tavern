@@ -26,6 +26,8 @@ import '../styles/proto/admin-proto.css';
 import '../styles/proto/admin-shell.css';
 import '../styles/proto/auth.css';
 import '../styles/app-overrides.css';
+// 重设计层：最后导入，只调整层次、质感与动效，不改配色令牌
+import '../styles/redesign.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100'),
@@ -61,6 +63,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="zh-CN">
       <body
+        // 首屏脚本会在 hydration 前改写 data-page / data-view / class，这是有意的
+        suppressHydrationWarning
         data-view={view}
         data-chat-bg={appearance.background}
         style={{ ['--rp-font-scale' as string]: String(appearance.fontScale / 100) }}

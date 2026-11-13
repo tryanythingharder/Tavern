@@ -7,6 +7,8 @@ import { CharacterCover } from '@/components/character-cover';
 import { ViewSwitch } from '@/components/view-switch';
 import { AnnouncementBar } from '@/components/announcement-bar';
 import { CheckinPopup } from '@/components/checkin-popup';
+import { MotionLayer } from '@/components/motion-layer';
+import { CommandPalette } from '@/components/command-palette';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -200,7 +202,14 @@ export function SiteShell({
     </div>
   ) : null;
 
-  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}</>;
+  const overlays = (
+    <>
+      <MotionLayer />
+      {userName && <CommandPalette recents={recents.map((recent) => ({ id: recent.id, name: recent.name, title: recent.title }))} />}
+    </>
+  );
+
+  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}<MotionLayer /></>;
 
   // 后台：原型 admin.html 的独立骨架（240px 侧栏 + 主区工具栏）
   if (adminPage) {
@@ -251,6 +260,7 @@ export function SiteShell({
           </nav>
           {children}
         </div>
+        {overlays}
       </div>
     );
   }
@@ -291,6 +301,7 @@ export function SiteShell({
           ))}
         </nav>
         {showCheckin && checkin && <CheckinPopup initial={checkin} />}
+        {overlays}
       </div>
     );
   }
@@ -350,6 +361,11 @@ export function SiteShell({
           <form className="p-search" action="/search" role="search">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
             <input className="p-input" type="search" name="q" placeholder="搜索角色、作者或剧情" aria-label="搜索角色、作者或剧情" />
+            {userName && (
+              <button className="rd-kbd-hint" type="button" aria-label="打开快速跳转（Ctrl/⌘ + K）" onClick={() => window.dispatchEvent(new Event('tavern:palette'))}>
+                <kbd>⌘</kbd><kbd>K</kbd>
+              </button>
+            )}
           </form>
           <Link className="p-topbar-icon p-topbar-search" href="/search" aria-label="搜索">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
@@ -379,6 +395,7 @@ export function SiteShell({
         ))}
       </nav>
       {showCheckin && checkin && <CheckinPopup initial={checkin} />}
+      {overlays}
     </div>
   );
 }

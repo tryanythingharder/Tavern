@@ -84,6 +84,8 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             media={{ image: imageConfigured(), tts: ttsConfigured(), imageCost: imageCost() }}
             title={chat.title}
             personaName={config.persona?.name}
+            characterCover={cover}
+            characterHue={character.hue}
           />
         </div>
 

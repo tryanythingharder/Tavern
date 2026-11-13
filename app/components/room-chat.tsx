@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RpText, TypingDots } from '@/components/rp-text';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
@@ -149,17 +150,22 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
     <>
       <div className="p-chat-scroll">
         <div className="p-chat-col">
-          {messages.map((message) => {
+          {messages.map((message, index) => {
             const member = memberOf(message.speakerId);
             const isUser = message.role === 'user';
+            const isLast = index === messages.length - 1;
             return (
-              <article key={message.id} className={`p-msg${isUser ? ' p-msg-user' : ''}`}>
+              <article key={message.id} className={`p-msg${isUser ? ' p-msg-user' : ''}${isLast ? ' is-latest' : ''}${isLast && streaming && !isUser ? ' is-streaming' : ''}`}>
                 <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : member?.hue ?? 212 }}>
                   {isUser ? '你' : member?.initial ?? '·'}
                 </span>
                 <div>
                   <div className="p-msg-name">{isUser ? userName : member?.name ?? '角色'}</div>
-                  <div className="p-msg-copy p-msg-text">{message.content || (streaming && !message.content ? '…' : '')}</div>
+                  <div className="p-msg-copy p-msg-text">
+                    {message.content
+                      ? <RpText text={message.content} streaming={isLast && streaming && !isUser} />
+                      : streaming ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
+                  </div>
                 </div>
               </article>
             );

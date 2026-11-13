@@ -8,6 +8,7 @@ import { getViewMode } from '@/lib/view';
 import { CinemaHome } from '@/components/cinema-home';
 import { HomeGrid } from '@/components/home-grid';
 import { ProtoAvatar, ProtoCover } from '@/components/proto-cover';
+import { HomeHero } from '@/components/home-hero';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,13 +41,11 @@ export default async function HomePage() {
   return (
     <div className="p-inner">
       <div className="ca-home">
-        <header className="ca-welcome">
-          <span className="p-avatar" style={{ ['--size' as string]: '40px', ['--h' as string]: 28 }}>{user ? Array.from(user.nickname)[0] : '林'}</span>
-          <div>
-            <h1>{returning ? '欢迎回来' : '欢迎来到酒馆'}，{user?.nickname ?? '旅人'}</h1>
-            <p>{returning ? '今天想和谁说说话？' : '从下面挑一个角色，写下第一句。'}</p>
-          </div>
-        </header>
+        <HomeHero
+          characters={[...(featured ? [featured] : []), ...safe].filter((character) => character.coverImage || character.ownerId === null).slice(0, 5)}
+          greeting={`${returning ? '欢迎回来' : '欢迎来到酒馆'}，${user?.nickname ?? '旅人'}`}
+          sub={returning ? '今天想和谁说说话？' : '挑一个角色，写下第一句。'}
+        />
 
         <section className="ca-block">
           <div className="ca-block-head"><h2>为您推荐</h2><Link href="/plaza">查看全部 {ARROW}</Link></div>
