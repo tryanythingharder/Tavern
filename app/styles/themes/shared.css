@@ -1,0 +1,44 @@
+/* 主题切换器与切换过渡（三套主题共用）。只用现有配色令牌。 */
+.th-switch button { min-width: 44px; }
+
+.th-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.th-picker-item {
+  display: flex; flex-direction: column; gap: 10px; padding: 10px; text-align: left;
+  border: 1px solid var(--ca-line, #e6e6e8); border-radius: 18px; background: var(--ca-card, #fff);
+  color: var(--ca-ink, #1b1b1d); cursor: pointer; font: inherit;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.th-picker-item:hover { transform: translateY(-2px); }
+.th-picker-item.is-active { border-color: var(--ca-accent, #4b5bf5); box-shadow: 0 0 0 3px var(--ca-accent-soft, #eceefe); }
+.th-picker-swatch { display: block; height: 88px; border-radius: 12px; border: 1px solid rgba(0,0,0,.06); }
+.th-picker-item--folio .th-picker-swatch {
+  background:
+    linear-gradient(#1b1b1d, #1b1b1d) 12px 14px / 46% 10px no-repeat,
+    linear-gradient(#77777e, #77777e) 12px 34px / 70% 3px no-repeat,
+    linear-gradient(#77777e, #77777e) 12px 42px / 62% 3px no-repeat,
+    linear-gradient(#1b1b1d, #1b1b1d) 12px 64px / calc(100% - 24px) 1px no-repeat,
+    #f7f7f8;
+}
+.th-picker-item--nocturne .th-picker-swatch {
+  background:
+    linear-gradient(#000, #000) 0 0 / 100% 10px no-repeat,
+    linear-gradient(#000, #000) 0 100% / 100% 10px no-repeat,
+    linear-gradient(#f3f3f6, #f3f3f6) 14px 34px / 40% 12px no-repeat,
+    radial-gradient(circle at 80% 60%, rgba(75, 91, 245, .55), transparent 45%),
+    #0b0b0e;
+}
+.th-picker-item--stage .th-picker-swatch {
+  background:
+    linear-gradient(#fff, #fff) 10px 10px / 44% calc(100% - 20px) no-repeat,
+    linear-gradient(#1b1b1d, #1b1b1d) calc(100% - 10px) 10px / 40% 44% no-repeat,
+    linear-gradient(#4b5bf5, #4b5bf5) calc(100% - 10px) calc(100% - 10px) / 40% 30% no-repeat,
+    #ebebec;
+}
+.th-picker-name { font-weight: 700; font-size: 14px; padding: 0 4px 4px; }
+
+/* 切换主题时整页淡入淡出（支持 View Transitions 的浏览器） */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .45s; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  .th-picker-item { transition: none; }
+}

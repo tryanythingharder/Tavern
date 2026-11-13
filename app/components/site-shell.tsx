@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { CharacterCover } from '@/components/character-cover';
-import { ViewSwitch } from '@/components/view-switch';
+import { ThemeSwitch } from '@/components/theme-switch';
+import type { Theme } from '@/lib/theme';
 import { AnnouncementBar } from '@/components/announcement-bar';
 import { CheckinPopup } from '@/components/checkin-popup';
 import { MotionLayer } from '@/components/motion-layer';
@@ -78,6 +79,7 @@ export function SiteShell({
   recents = [],
   costs = { text: 2, image: 20, tts: 5 },
   view = 'classic',
+  theme = 'nocturne',
   announcement = '',
   checkin = null,
 }: {
@@ -89,6 +91,7 @@ export function SiteShell({
   recents?: Recent[];
   costs?: { text: number; image: number; tts: number };
   view?: 'classic' | 'cinema';
+  theme?: Theme;
   announcement?: string;
   checkin?: { todayDone: boolean; streak: number; amount: number; day: string } | null;
 }) {
@@ -277,7 +280,7 @@ export function SiteShell({
           </nav>
           <Link className="cinema-logo" href="/">酒馆</Link>
           <div className="cinema-nav-right">
-            <ViewSwitch initial={view} />
+            <ThemeSwitch initial={theme} />
             {userName && (
               <Link className="pill" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
                 {icon('M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4')}
@@ -370,7 +373,7 @@ export function SiteShell({
           <Link className="p-topbar-icon p-topbar-search" href="/search" aria-label="搜索">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
           </Link>
-          <ViewSwitch initial={view} />
+          <ThemeSwitch initial={theme} />
           {userName && (
             <Link className="p-topbar-icon" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
               {icon('M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4')}
