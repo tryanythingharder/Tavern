@@ -1,13 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Theme } from '@/lib/theme';
 
-const OPTIONS: { id: Theme; label: string }[] = [
-  { id: 'folio', label: '书页' },
-  { id: 'nocturne', label: '夜幕' },
-  { id: 'stage', label: '戏台' },
+const OPTIONS: { id: Theme; label: string; hint?: string }[] = [
+  { id: 'folio', label: '书页', hint: '纸页衬线' },
+  { id: 'nocturne', label: '夜幕', hint: '暗场电影' },
+  { id: 'stage', label: '戏台', hint: '卡牌轻快' },
 ];
 
 export function setThemeCookie(next: Theme) {
@@ -17,6 +17,7 @@ export function setThemeCookie(next: Theme) {
 export function ThemeSwitch({ initial, variant = 'pill' }: { initial: Theme; variant?: 'pill' | 'cards' }) {
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>(initial);
+  useEffect(() => setTheme(initial), [initial]);
 
   const choose = (next: Theme) => {
     if (next === theme) return;
@@ -27,7 +28,7 @@ export function ThemeSwitch({ initial, variant = 'pill' }: { initial: Theme; var
       router.refresh();
     };
     const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || Boolean(document.body.dataset.uMotion);
     if (doc.startViewTransition && !reduce) doc.startViewTransition(apply);
     else apply();
   };
@@ -44,8 +45,11 @@ export function ThemeSwitch({ initial, variant = 'pill' }: { initial: Theme; var
             className={`th-picker-item th-picker-item--${option.id}${theme === option.id ? ' is-active' : ''}`}
             onClick={() => choose(option.id)}
           >
-            <span className="th-picker-swatch" aria-hidden="true" />
+            <span className="th-picker-swatch" aria-hidden="true">
+              <i className="th-mini-bar" /><i className="th-mini-line" /><i className="th-mini-line th-mini-line--short" /><i className="th-mini-bubble" />
+            </span>
             <span className="th-picker-name">{option.label}</span>
+            {option.hint && <span className="th-picker-hint">{option.hint}</span>}
           </button>
         ))}
       </div>

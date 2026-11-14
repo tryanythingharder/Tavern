@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { getAppearance } from '@/lib/prefs';
-import { AppearanceSettings } from '@/components/appearance-settings';
-import { ThemeSwitch } from '@/components/theme-switch';
-import { getTheme } from '@/lib/theme';
+import { AppearancePanel } from '@/components/appearance-panel';
+import { getAppearancePrefs, getTheme } from '@/lib/theme';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,19 +9,15 @@ export default async function AppearancePage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const theme = await getTheme();
+  const prefs = await getAppearancePrefs();
 
   return (
-    <>
-    <section className="p-section" id="theme">
-      <h2>界面主题</h2>
-      <p>书页像读小说，夜幕像看电影，戏台像收集角色卡。随时可以换。</p>
-      <ThemeSwitch initial={theme} variant="cards" />
+    <section className="p-section ua-page" id="appearance">
+      <h2>外观</h2>
+      <p>主题、字体、字号、对话文字颜色、圆角……都可以按你的习惯调。改动即时生效，只影响你自己的阅读体验。顶栏的「外观」按钮随时打开同一套设置。</p>
+      <div className="p-card p-card--pad ua-page-card">
+        <AppearancePanel theme={theme} initial={prefs} />
+      </div>
     </section>
-    <section className="p-section" id="appearance">
-      <h2>聊天外观</h2>
-      <p>只影响你的阅读体验，不改变其他玩家。</p>
-      <AppearanceSettings initial={getAppearance(user.id)} />
-    </section>
-    </>
   );
 }

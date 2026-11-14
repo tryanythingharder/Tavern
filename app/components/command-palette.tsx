@@ -19,7 +19,7 @@ const PAGES: Item[] = [
   { id: 'personas', label: '我的身份', href: '/me/personas', group: '设定', keywords: 'persona shenfen' },
   { id: 'regex', label: '正则', href: '/me/regex', group: '设定', keywords: 'regex zhengze' },
   { id: 'quick', label: '快捷回复', href: '/me/quick-replies', group: '设定', keywords: 'quick reply' },
-  { id: 'appearance', label: '外观', hint: '字号与背景', href: '/me/appearance', group: '设定', keywords: 'appearance waiguan' },
+  { id: 'appearance', label: '外观', hint: '主题、字体、配色', href: '/me/appearance', group: '设定', keywords: 'appearance waiguan' },
   { id: 'points', label: '点数与充值', href: '/me/points', group: '账号', keywords: 'points dianshu' },
   { id: 'notifications', label: '通知', href: '/notifications', group: '账号', keywords: 'notification tongzhi' },
   { id: 'security', label: '账号安全', href: '/me/security', group: '账号', keywords: 'security anquan 2fa' },

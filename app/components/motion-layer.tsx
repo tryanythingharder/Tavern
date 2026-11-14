@@ -57,7 +57,7 @@ export function MotionLayer() {
   // 页面切换：主区播放一次入场动画。用 Web Animations API，不改 React 管理的 class/attribute，
   // 避免和 hydration 冲突。滚动入场交给 CSS 的 animation-timeline: view()（见 redesign.css）。
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.dataset.uMotion) return;
     const main = document.querySelector<HTMLElement>('.p-main > .p-inner, .p-main > main, .cinema-main, .p-amain > :not(.p-atabs)');
     if (!main || typeof main.animate !== 'function') return;
     const animation = main.animate(

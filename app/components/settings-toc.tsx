@@ -21,7 +21,7 @@ const GROUPS = [
   {
     label: '聊天',
     items: [
-      { href: '/me/appearance', label: '聊天外观' },
+      { href: '/me/appearance', label: '外观' },
       { href: '/me/personas', label: '我的身份' },
       { href: '/me/quick-replies', label: '快捷回复' },
     ],

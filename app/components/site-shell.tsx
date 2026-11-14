@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { CharacterCover } from '@/components/character-cover';
-import { ThemeSwitch } from '@/components/theme-switch';
+import { AppearanceButton, AppearanceDrawer } from '@/components/appearance-drawer';
+import type { AppearancePrefs } from '@/lib/appearance';
 import type { Theme } from '@/lib/theme';
 import { AnnouncementBar } from '@/components/announcement-bar';
 import { CheckinPopup } from '@/components/checkin-popup';
@@ -82,6 +83,7 @@ export function SiteShell({
   theme = 'nocturne',
   announcement = '',
   checkin = null,
+  appearance,
 }: {
   children: ReactNode;
   userName?: string;
@@ -92,6 +94,7 @@ export function SiteShell({
   costs?: { text: number; image: number; tts: number };
   view?: 'classic' | 'cinema';
   theme?: Theme;
+  appearance?: AppearancePrefs;
   announcement?: string;
   checkin?: { todayDone: boolean; streak: number; amount: number; day: string } | null;
 }) {
@@ -208,6 +211,7 @@ export function SiteShell({
   const overlays = (
     <>
       <MotionLayer />
+      <AppearanceDrawer theme={theme} initial={appearance} />
       {userName && <CommandPalette recents={recents.map((recent) => ({ id: recent.id, name: recent.name, title: recent.title }))} />}
     </>
   );
@@ -280,7 +284,7 @@ export function SiteShell({
           </nav>
           <Link className="cinema-logo" href="/">酒馆</Link>
           <div className="cinema-nav-right">
-            <ThemeSwitch initial={theme} />
+            <AppearanceButton />
             {userName && (
               <Link className="pill" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
                 {icon('M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4')}
@@ -373,7 +377,7 @@ export function SiteShell({
           <Link className="p-topbar-icon p-topbar-search" href="/search" aria-label="搜索">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
           </Link>
-          <ThemeSwitch initial={theme} />
+          <AppearanceButton />
           {userName && (
             <Link className="p-topbar-icon" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
               {icon('M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4')}

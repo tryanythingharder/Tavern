@@ -7,6 +7,7 @@ import { toMessageView } from '@/lib/chat-view';
 import { ChatRoom } from '@/components/chat-room';
 import { ChatSettings } from '@/components/chat-settings';
 import { ChatSearch } from '@/components/chat-search';
+import { AppearanceButton } from '@/components/appearance-drawer';
 import { chatSettings, listLorebooks, listQuickReplies, loadGenerationConfig } from '@/lib/resources-db';
 import { summaryStatus } from '@/lib/memory';
 import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
@@ -92,6 +93,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                 <ChatSearch chatId={chat.id} characterName={character.name} />
                 <ChatSettings chatId={chat.id} />
+                <AppearanceButton className="btn btn--sm ua-trigger--chat" />
               </div>
             </div>
           </header>

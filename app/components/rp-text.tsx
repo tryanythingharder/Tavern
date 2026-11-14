@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 
 // RP 正文排版：把模型输出里的常见写法变成有层次的叙事
 //   *动作描写*  → 斜体、弱化的旁白
-//   「台词」“台词” "台词" → 强调的对白
+//   「台词」“台词” "台词" → 强调的对白；『心理』同层级，另加 rp-think
 //   ((OOC)) / （（OOC）） → 场外注释，最弱
 // 只生成 React 节点，不拼 HTML，避免注入；复制/编辑仍使用原文。
 
@@ -20,6 +20,8 @@ function inline(text: string, keyBase: string): ReactNode[] {
     if (token.startsWith('**')) out.push(<strong key={key}>{token.slice(2, -2)}</strong>);
     else if (token.startsWith('*')) out.push(<em key={key} className="rp-act">{token.slice(1, -1)}</em>);
     else if (token.startsWith('((') || token.startsWith('（（')) out.push(<span key={key} className="rp-ooc">{token}</span>);
+    // 『心理』仍算对白层级（主题样式不变），额外带 rp-think 供用户自定义颜色
+    else if (token.startsWith('『')) out.push(<span key={key} className="rp-say rp-think">{token}</span>);
     else out.push(<span key={key} className="rp-say">{token}</span>);
     last = start + token.length;
   }

@@ -18,7 +18,7 @@ export function HomeHero({ characters, greeting, sub }: { characters: HeroCharac
 
   useEffect(() => {
     if (paused || count < 2) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.dataset.uMotion === 'off') return;
     const timer = setTimeout(() => go(index + 1), 6500);
     return () => clearTimeout(timer);
   }, [index, paused, count, go]);

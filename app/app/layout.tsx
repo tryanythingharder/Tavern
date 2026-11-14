@@ -8,7 +8,8 @@ import { listChats } from '@/lib/db';
 import { imageCost, ttsCost } from '@/lib/media';
 import { pointsSummary } from '@/lib/points';
 import { getViewMode } from '@/lib/view';
-import { getTheme } from '@/lib/theme';
+import { getAppearancePrefs, getTheme } from '@/lib/theme';
+import { appearanceBodyProps } from '@/lib/appearance';
 import { getAppearance } from '@/lib/prefs';
 import { announcementText } from '@/lib/announcement';
 import { checkinStatus } from '@/lib/checkin';
@@ -34,6 +35,8 @@ import '../styles/themes/shared.css';
 import '../styles/themes/folio.css';
 import '../styles/themes/nocturne.css';
 import '../styles/themes/stage.css';
+// 用户自定义外观：只在 body[data-u-*] 存在时覆盖主题，必须最后导入
+import '../styles/themes/custom.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100'),
@@ -46,6 +49,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const view = await getViewMode();
   const theme = await getTheme();
   const appearance = getAppearance(user?.id ?? null);
+  const custom = await getAppearancePrefs();
+  const customBody = appearanceBodyProps(custom);
   const announcement = announcementText();
   const checkin = user ? checkinStatus(user.id) : null;
   let points = 0;
@@ -75,15 +80,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         data-view={view}
         data-theme={theme}
         data-chat-bg={appearance.background}
-        style={{ ['--rp-font-scale' as string]: String(appearance.fontScale / 100) }}
+        {...customBody.data}
+        style={{ ['--rp-font-scale' as string]: String(appearance.fontScale / 100), ...customBody.vars }}
       >
+        {/* 背景色调滤镜层：仅在用户选了色调时由 CSS 显示 */}
+        <div className="ua-tint" aria-hidden="true" />
         {/* 首屏在 hydration 前就定好页面/视图标记，避免切页时先闪一下旧排版 */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var p=location.pathname;var k=p==='/'?'home':p.indexOf('/c/')===0?'character':p.indexOf('/chats/')===0?'chat':p.indexOf('/chats')===0?'chats':p.indexOf('/a/')===0?'author':p.indexOf('/rooms/')===0?'chat':p.indexOf('/rooms')===0?'rooms':p.indexOf('/create')===0?'create':p.indexOf('/library')===0?'library':p.indexOf('/notifications')===0?'notifications':p.indexOf('/me')===0?'settings':p.indexOf('/admin')===0?'admin':(p.split('/')[1]||'home');var cinema=${JSON.stringify(view)}==='cinema'&&['home','plaza','character','author'].indexOf(k)>=0;document.body.dataset.page=k;document.body.dataset.view=cinema?'cinema':'classic';document.body.classList.toggle('p-cinema',cinema);try{if(localStorage.getItem('tavern-announcement-dismissed')==='1')document.body.classList.add('announcement-off')}catch(e){}})();`,
           }}
         />
-        <SiteShell userName={user?.nickname} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} announcement={announcement} checkin={checkin}>
+        <SiteShell userName={user?.nickname} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} appearance={custom} announcement={announcement} checkin={checkin}>
           {children}
         </SiteShell>
       </body>

@@ -6,6 +6,7 @@ import { getCharacterById } from '@/lib/db';
 import { getRoom, listRoomMessages } from '@/lib/rooms';
 import { listPersonas } from '@/lib/resources-db';
 import { RoomChat } from '@/components/room-chat';
+import { AppearanceButton } from '@/components/appearance-drawer';
 
 export const metadata: Metadata = { title: '房间' };
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
                   <div className="p-chat-sub">{activeCount}/{members.length} 位成员发言 · {strategyLabel}{room.autoMode ? ' · 自动推进' : ''}</div>
                 </div>
               </div>
+              <AppearanceButton className="p-chat-icon ua-trigger--icon" />
               <Link className="p-chat-icon" href="/rooms" aria-label="房间设置">
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></svg>
               </Link>
