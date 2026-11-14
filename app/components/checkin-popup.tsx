@@ -60,23 +60,25 @@ export function CheckinPopup({ initial }: { initial: Status }) {
     >
       <ErrorLine message={error} />
       {done ? (
-        <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+        <div className="checkin-hero" style={{ textAlign: 'center', padding: '8px 0 4px' }}>
           <div className="p-eyebrow">CHECKED IN</div>
-          <p style={{ margin: '10px 0 4px', fontSize: 34, fontWeight: 700, letterSpacing: '-.03em' }}>+{done.amount} 点</p>
+          <p className="checkin-amount" style={{ margin: '10px 0 4px', fontSize: 34, fontWeight: 700, letterSpacing: '-.03em' }}>+{done.amount} 点</p>
           <p className="p-small" style={{ margin: 0 }}>连续签到 {done.streak} 天 · 点数已到账</p>
         </div>
       ) : (
         <>
-          <div style={{ textAlign: 'center', padding: '4px 0 12px' }}>
+          <div className="checkin-hero" style={{ textAlign: 'center', padding: '4px 0 12px' }}>
             <div className="p-eyebrow">DAILY CHECK-IN</div>
-            <p style={{ margin: '10px 0 4px', fontSize: 34, fontWeight: 700, letterSpacing: '-.03em' }}>{status.amount} 点</p>
+            <p className="checkin-amount" style={{ margin: '10px 0 4px', fontSize: 34, fontWeight: 700, letterSpacing: '-.03em' }}>{status.amount} 点</p>
             <p className="p-small" style={{ margin: 0 }}>今天签到可领 · 连续第 {status.streak} 天</p>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 14 }}>
+          <div className="checkin-days" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 14 }}>
             {Array.from({ length: 7 }, (_, index) => (
               <span
                 key={index}
                 aria-hidden="true"
+                className="checkin-day"
+                data-done={index < Math.min(status.streak, 7) ? 'true' : undefined}
                 style={{
                   width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10.5, fontWeight: 700,
                   background: index < Math.min(status.streak, 7) ? 'var(--text)' : 'var(--surface-2)',

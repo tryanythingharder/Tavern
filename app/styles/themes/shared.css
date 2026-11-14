@@ -42,3 +42,11 @@
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
   .th-picker-item { transition: none; }
 }
+
+/* 窄屏顶栏：所有主题都不允许超出视口 */
+@media (max-width: 480px) {
+  html body .p-topbar { max-width: 100vw; overflow-x: clip; }
+  html body .p-topbar .th-switch { flex-shrink: 1; min-width: 0; }
+  html body .p-topbar .th-switch button { min-width: 0 !important; padding-inline: 8px !important; }
+  html body .p-topbar .p-points-trigger { padding-inline: 8px !important; }
+}

@@ -1436,3 +1436,10 @@ html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown) 
 /* 消息操作（手机抽屉 / 展开菜单） */
 html body[data-theme="folio"][data-page="chat"] .p-msg-more { border-radius: 0; background: transparent; color: var(--fo-muted); box-shadow: none; }
 html body[data-theme="folio"][data-page="chat"] .p-msg-more[aria-expanded="true"] { color: var(--fo-accent); background: var(--fo-accent-soft); }
+
+/* 登录页：书页化 */
+body[data-theme="folio"] .p-auth-scene { border-radius: 0; }
+body[data-theme="folio"] .p-auth-card { border-radius: 0; box-shadow: none; border: 1px solid #1b1b1d; }
+body[data-theme="folio"] .p-auth-card h1,
+body[data-theme="folio"] .p-auth-scene-copy h2 { font-family: "Noto Serif SC", "Songti SC", "STSong", serif; font-weight: 600; letter-spacing: 0; }
+body[data-theme="folio"] .p-auth-card :is(.p-input, .input) { border-radius: 0; }
