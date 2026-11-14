@@ -112,6 +112,11 @@ html body[data-theme="folio"][data-page] :is(.p-side-foot, .p-topbar) .p-avatar 
     html body[data-theme="folio"][data-page] .p-side-foot::before { display: none; }
 }
 
+@media (max-width: 1023px) {
+    html body[data-theme="folio"][data-page]:not(.p-cinema) .p-shell { grid-template-columns: minmax(0, 1fr); }
+    html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side { display: none; }
+}
+
 /* ---------- 顶栏：刊眉细线 ---------- */
 html body[data-theme="folio"][data-page]:not(.p-cinema) .p-topbar {
     height: 52px; padding: 0 var(--fo-pad); gap: 22px;
@@ -700,7 +705,7 @@ html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-p:has(> .rp-act:
 }
 html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-ooc { font-family: var(--fo-sans); font-size: .76em; color: var(--fo-muted); letter-spacing: .04em; }
 /* 首段下沉：章节后的第一段 */
-html body[data-theme="folio"][data-page="chat"] .p-rp-prologue ~ article.p-msg:not(.p-msg-user):first-of-type .p-msg-copy > .rp-p:first-child::first-letter {
+html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-copy > .rp-p.fo-dc::first-letter {
     float: left; margin: .08em .12em 0 0; font-size: 4.1em; line-height: .9; font-weight: 700; color: var(--fo-ink);
 }
 /* 打字机光标 */
@@ -789,7 +794,7 @@ html body[data-theme="folio"][data-page="chat"] .p-chat-send {
 }
 html body[data-theme="folio"][data-page="chat"] .p-chat-send .p-icon { display: none; }
 html body[data-theme="folio"][data-page="chat"] .p-chat-send::after { content: "落笔  ↵"; white-space: pre; }
-html body[data-theme="folio"][data-page="chat"] .p-chat-send:not(:disabled):hover { background: var(--fo-accent); }
+@media (hover: hover) { html body[data-theme="folio"][data-page="chat"] .p-chat-send:not(:disabled):hover { background: var(--fo-accent); } }
 html body[data-theme="folio"][data-page="chat"] .p-chat-send:disabled { background: var(--fo-sunken); color: var(--fo-muted); }
 html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop { background: var(--fo-ink); color: #fff; }
 html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop::before { content: none; display: none; }
@@ -880,13 +885,17 @@ html body[data-theme="folio"] .fo-ctool .fo-rt { margin-left: auto; font-family:
     html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1::before,
     html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1::after { flex-basis: 36px; }
     html body[data-theme="folio"][data-page="chat"] .p-rp-prologue p { font-size: 12px; }
-    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue ~ article.p-msg:not(.p-msg-user):first-of-type .p-msg-copy > .rp-p:first-child::first-letter { font-size: 3.3em; margin-top: .1em; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-copy > .rp-p.fo-dc::first-letter { font-size: 3.3em; margin-top: .1em; }
     html body[data-theme="folio"][data-page="chat"] .p-msg-user { margin: 0 0 24px 1.4em; padding: 12px 14px; }
     html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy { font-size: calc(14.5px * var(--rp-font-scale, 1)); }
     html body[data-theme="folio"][data-page="chat"] .p-msg-more { top: -4px; right: -8px; width: 30px; height: 30px; color: var(--fo-muted); }
     html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-more { top: 6px; right: 4px; }
     html body[data-theme="folio"][data-page="chat"] .p-msg-tools { opacity: 0; display: none; }
-    html body[data-theme="folio"][data-page="chat"] .p-msg.is-tools-open .p-msg-tools { display: flex; opacity: 1; transform: none; gap: 6px 14px; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg.is-tools-open .p-msg-tools {
+        position: static; display: flex !important; flex-wrap: wrap; grid-template-columns: none; width: auto; opacity: 1; transform: none; gap: 2px 16px;
+        margin-top: 12px; padding: 8px 0 0; border-top: 1px dotted var(--fo-line-strong); background: transparent; box-shadow: none;
+    }
+    html body[data-theme="folio"][data-page="chat"] .p-msg.is-tools-open .p-msg-tools :is(button, .p-msg-tool, a) { flex: 0 0 auto; width: auto; height: 32px; white-space: nowrap; writing-mode: horizontal-tb; font-size: 12.5px; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose { padding: 8px 18px 46px; background: var(--fo-bg); border-top: 1px solid var(--fo-line); animation: none; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col { width: auto; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row { gap: 10px; margin-top: 4px; }
@@ -945,3 +954,485 @@ html body[data-theme="folio"] .th-picker-swatch { border-radius: 0; }
     html body[data-theme="folio"] .fo-js .fo-reveal { opacity: 1; transform: none; }
     html body[data-theme="folio"] .fo-jacket { transform: none; }
 }
+
+/* ==========================================================================
+   内页 · 刊内栏目（广场 / 对话 / 我的 / 创作 / 通知 / 房间 / 角色页）
+   前缀带 :not(#fo) 以压过原型样式表里的高权重选择器。
+   ========================================================================== */
+html body[data-theme="folio"]:not(#fo) .p-inner { color: var(--fo-ink); }
+
+/* 栏目刊头：§ 号 + 巨号宋体 + 双线 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner > .p-page-title {
+    position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    margin: 18px 0 28px; padding: 0 0 18px; border: 0; background: none;
+    box-shadow: 0 2px 0 var(--fo-ink), 0 5px 0 var(--fo-bg), 0 6px 0 var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title > div:first-child { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title > div:first-child::before {
+    content: "§"; font-family: var(--fo-italic); font-style: italic; font-size: 17px; line-height: 1; color: var(--fo-muted); letter-spacing: 0;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-inner > .p-page-title > div:first-child::before { content: "§ ii — The Plaza · 本期全部篇目"; }
+html body[data-theme="folio"]:not(#fo)[data-page="chats"] .p-inner > .p-page-title > div:first-child::before { content: "§ iii — Manuscripts · 未完的手稿"; }
+html body[data-theme="folio"]:not(#fo)[data-page="create"] .p-inner > .p-page-title > div:first-child::before { content: "§ iv — Submissions · 投稿"; }
+html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-inner > .p-page-title > div:first-child::before { content: "§ v — Colophon · 读者设定"; }
+html body[data-theme="folio"]:not(#fo)[data-page="notifications"] .p-inner > .p-page-title > div:first-child::before { content: "Errata & Letters · 来函"; }
+html body[data-theme="folio"]:not(#fo)[data-page="rooms"] .p-inner > .p-page-title > div:first-child::before { content: "Ensemble · 群像篇"; }
+html body[data-theme="folio"]:not(#fo)[data-page="library"] .p-inner > .p-page-title > div:first-child::before { content: "Bookshelf · 藏书"; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title h1 {
+    margin: 0; font-family: var(--fo-display); font-weight: 700; font-size: clamp(40px, 5vw, 64px) !important; line-height: .95; letter-spacing: -.04em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title p {
+    display: block; margin: 4px 0 0; font-family: var(--fo-display); font-size: 14px; line-height: 1.7; color: var(--fo-copy); letter-spacing: .04em;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-page-title-actions { display: flex; gap: 10px; align-items: center; margin: 0; }
+
+/* 按钮：方角，主按钮墨色 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn, .btn) {
+    border-radius: 0; box-shadow: none; font-family: var(--fo-sans); letter-spacing: .08em; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-btn, .btn):not(.p-btn--primary):not(.btn--primary):not(.btn--ghost):not(.p-btn--ghost):not(.p-btn--icon) {
+    background: transparent; border: 1px solid var(--fo-ink); color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-btn, .btn):not(.p-btn--primary):not(.btn--primary):hover:not(:disabled) { background: var(--fo-hover); color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary) { background: var(--fo-ink); border: 1px solid var(--fo-ink); color: #fff; }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary):hover:not(:disabled) { background: var(--fo-accent); border-color: var(--fo-accent); color: #fff; }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary):disabled { background: var(--fo-sunken); border-color: var(--fo-sunken); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn, .btn):focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 2px; }
+
+/* 输入：书写线 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-inner, .page) :is(.p-input, .input, .p-select, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    border-radius: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); background: transparent; box-shadow: none;
+    font-family: var(--fo-display); color: var(--fo-ink); transition: border-color .3s ease;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-inner, .page) :is(.p-textarea, .textarea, textarea) {
+    border-radius: 0; border: 1px solid var(--fo-line-strong); background: var(--fo-card); box-shadow: none; font-family: var(--fo-display); color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-inner, .page) :is(.p-input, .input, .p-select, select, .p-textarea, textarea):focus {
+    outline: none; border-color: var(--fo-ink); box-shadow: 0 1px 0 var(--fo-accent);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-input, .input, textarea)::placeholder { color: var(--fo-muted); opacity: 1; }
+
+/* 筛选条：去底板，留一根线 */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar {
+    display: flex; flex-direction: column; gap: 14px; margin: 0 0 30px; padding: 0;
+    border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main { display: flex; align-items: center; gap: 22px; padding: 0; background: none; border: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search {
+    position: relative; flex: 0 1 380px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search:focus-within { border-color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search .p-input { height: 36px; width: 100%; padding: 0 0 0 26px; border: 0 !important; background: transparent; font-size: 14px; box-shadow: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search > :is(svg, .p-icon) { left: 0; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-select { height: 36px; min-width: 96px; padding: 0 22px 0 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); background-color: transparent; font-family: var(--fo-display); font-size: 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-count { margin-left: auto; font-family: var(--fo-italic); font-style: italic; font-size: 15px; color: var(--fo-muted); letter-spacing: .02em; white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-inner .p-filterbar { padding-bottom: 12px; border-bottom: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-chips { display: flex; flex-wrap: wrap; gap: 4px 26px; padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip,
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main > .p-chip {
+    position: relative; height: 30px; padding: 0; border: 0; border-radius: 0; background: transparent !important; box-shadow: none;
+    font-family: var(--fo-display); font-size: 14.5px; font-weight: 400; color: var(--fo-muted); letter-spacing: .12em; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip:hover { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip:is(.is-active, [aria-pressed="true"], [aria-selected="true"], [aria-current="true"]) { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip:is(.is-active, [aria-pressed="true"], [aria-selected="true"], [aria-current="true"])::after {
+    content: ""; position: absolute; left: 0; right: .12em; bottom: 0; height: 2px; background: var(--fo-accent);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar .p-filterbar-main > .p-chip { font-family: var(--fo-sans); font-size: 12px; letter-spacing: .1em; padding: 0 0 0 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main > .p-chip::before { content: ""; position: absolute; left: 0; top: 50%; width: 7px; height: 7px; margin-top: -4px; border: 1px solid var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main > .p-chip[aria-pressed="true"]::before { background: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar .p-filterbar-main > .p-chip[aria-pressed]::after { content: none; }
+
+/* 标签：#井号文字 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]) :is(.p-inner, .page) .p-pill {
+    height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+    font-family: var(--fo-display); font-size: 12.5px; font-weight: 400; color: var(--fo-copy); letter-spacing: .1em;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]) :is(.p-inner, .page) .p-pill::before { content: "#"; margin-right: 1px; color: var(--fo-line-strong); }
+
+/* 卡片：去阴影、去圆角，以细线分隔 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner :is(.p-card, .p-section, .p-notice, .p-empty) {
+    border-radius: 0; box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner .p-card:not(.p-work) { background: var(--fo-card); border: 1px solid var(--fo-line); }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner :is(.p-card, .p-section, .p-work, .p-chat-row)::after { content: none !important; display: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-eyebrow { font-family: var(--fo-sans); font-size: 11px; font-weight: 700; letter-spacing: .24em; color: var(--fo-muted); text-transform: none; }
+
+/* ---------- 广场：篇目画廊 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid { counter-reset: fo-work; gap: 44px 28px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work {
+    counter-increment: fo-work; position: relative; display: flex; flex-direction: column; overflow: visible;
+    padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover { transform: none; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-media { position: relative; overflow: hidden; border-radius: 0; background: var(--fo-sunken); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-media::before {
+    content: "No. " counter(fo-work, decimal-leading-zero); position: absolute; z-index: 2; left: 14px; top: 12px; pointer-events: none;
+    font-family: var(--fo-italic); font-style: italic; font-size: 17px; color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, .45);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-cover { display: block; border-radius: 0 !important; aspect-ratio: 3 / 4; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-cover img { border-radius: 0; filter: grayscale(.2); transition: transform 1.1s var(--fo-ease), filter .6s ease; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover .p-work-cover img { transform: scale(1.04); filter: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav {
+    top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 0; background: rgba(255, 255, 255, .9); border: 0; color: var(--fo-ink); box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav:hover { transform: none; background: #fff; color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav[aria-pressed="true"] { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-body { display: flex; flex-direction: column; flex: 1; gap: 0; padding: 16px 0 0; border-top: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-card-link { display: block; color: inherit; text-decoration: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-name {
+    display: flex; align-items: baseline; gap: 10px; margin: 0; font-family: var(--fo-display); font-weight: 700; font-size: 26px; line-height: 1.1; letter-spacing: -.03em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-author { margin: 6px 0 0; font-size: 12px; color: var(--fo-muted); letter-spacing: .06em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-desc {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(2 * 1.75em);
+    margin: 10px 0 0; font-family: var(--fo-display); font-size: 14px; line-height: 1.75; color: var(--fo-copy);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-meta {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: auto; padding: 10px 0 0; border-top: 1px solid var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-body > .p-card-link + .p-work-meta { margin-top: 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-stat { font-family: var(--fo-serif); font-size: 12.5px; color: var(--fo-muted); white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover .p-work-name { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-meta::after { content: "→"; order: 3; color: var(--fo-accent); opacity: 0; transform: translateX(-6px); transition: .4s var(--fo-ease); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover .p-work-meta::after { opacity: 1; transform: none; }
+
+/* ---------- 对话列表：手稿目录 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list { counter-reset: fo-ms; display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row {
+    counter-increment: fo-ms; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start; gap: 0 18px;
+    margin: 0; padding: 22px 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover { background: transparent; transform: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row::before {
+    content: ""; position: absolute; left: 0; top: -1px; width: 100%; height: 1px; background: var(--fo-ink); transform: scaleX(0); transform-origin: left; transition: transform .6s var(--fo-ease);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover::before { transform: scaleX(1); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open { display: grid; grid-template-columns: 56px 72px minmax(0, 1fr); gap: 0 20px; align-items: start; padding: 0; color: inherit; text-decoration: none; min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open::before {
+    content: counter(fo-ms, decimal-leading-zero); font-family: var(--fo-italic); font-style: italic; font-size: 40px; line-height: .9; color: var(--fo-muted); transition: color .35s;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover .p-chat-open::before { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-row-cover { width: 72px; height: 96px; border-radius: 0 !important; overflow: hidden; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-row-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; filter: grayscale(.2); transition: filter .5s; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover .p-row-cover img { filter: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-main { min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-title { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-name { font-family: var(--fo-display); font-weight: 700; font-size: 28px; line-height: 1.1; letter-spacing: -.03em; color: var(--fo-ink); white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-session { font-family: var(--fo-display); font-size: 13px; color: var(--fo-muted); letter-spacing: .14em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-session::before { content: "— "; font-family: var(--fo-italic); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-preview {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal;
+    max-width: 40em; margin: 8px 0 0; font-family: var(--fo-display); font-size: 14.5px; line-height: 1.8; color: var(--fo-copy);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-library-sub { margin-top: 8px; font-size: 11.5px; color: var(--fo-muted); letter-spacing: .08em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 6px; text-align: right; font-size: 12px; color: var(--fo-muted); white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-meta span:last-child { font-family: var(--fo-italic); font-style: italic; font-size: 20px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-action { padding-top: 2px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-action .p-btn { width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0 !important; background: transparent !important; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-action .p-btn:hover { color: var(--fo-ink); background: var(--fo-hover) !important; }
+
+/* ---------- 我的：目录 + 章节 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings { gap: 56px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc { counter-reset: fo-toc; padding: 0; background: transparent; border: 0; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc-group { counter-increment: fo-toc; display: flex; flex-direction: column; gap: 0; margin: 0 0 22px; padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc-label {
+    display: flex; align-items: baseline; gap: 10px; margin: 0; padding: 0 0 8px; border-bottom: 1px solid var(--fo-ink);
+    font-family: var(--fo-sans); font-size: 11px; font-weight: 700; letter-spacing: .24em; color: var(--fo-ink); text-transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc-label::before { content: counter(fo-toc, upper-roman); font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: 0; color: var(--fo-muted); min-width: 18px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a {
+    position: relative; display: flex; align-items: baseline; gap: 8px; height: auto; min-height: 0; padding: 9px 0 9px 28px; border: 0; border-bottom: 1px solid var(--fo-line); border-radius: 0;
+    background: transparent !important; font-family: var(--fo-display); font-size: 14px; font-weight: 400; color: var(--fo-copy); letter-spacing: .08em; transition: color .3s, padding .4s var(--fo-ease);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a::after { content: ""; flex: 1; order: 2; border-bottom: 1px dotted var(--fo-line-strong); transform: translateY(-4px); opacity: 0; transition: opacity .3s; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:hover { color: var(--fo-ink); padding-left: 32px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:hover::after { opacity: 1; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"]) { color: var(--fo-ink) !important; font-weight: 700; background: transparent !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"])::before {
+    content: ""; position: absolute; left: 0; top: 50%; width: 16px; height: 2px; margin-top: -1px; background: var(--fo-accent);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main { counter-reset: fo-sec; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section {
+    counter-increment: fo-sec; margin: 0 0 44px; padding: 14px 0 0; border: 0; border-top: 1px solid var(--fo-ink); background: transparent;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section > h2 {
+    display: flex; align-items: baseline; gap: 14px; margin: 0; padding: 0; border: 0;
+    font-family: var(--fo-display); font-weight: 700; font-size: 28px; line-height: 1.2; letter-spacing: -.02em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section > h2::before { content: "§" counter(fo-sec); font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 20px; color: var(--fo-muted); letter-spacing: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section > h2 + p { margin: 8px 0 22px; padding: 0; border: 0; font-family: var(--fo-display); font-size: 14px; line-height: 1.75; color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main .p-card { border: 0 !important; border-top: 1px solid var(--fo-line-strong) !important; background: transparent !important; padding-left: 0; padding-right: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main .p-label { font-family: var(--fo-sans); font-size: 11.5px; font-weight: 700; letter-spacing: .2em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main :is(.p-range-val, .p-hint) { font-family: var(--fo-serif); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main .p-range-val { font-family: var(--fo-italic); font-style: italic; font-size: 20px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-range { accent-color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-swatch-wrap { border-radius: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-swatch { border-radius: 0 !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-swatch-wrap.is-active .p-swatch { box-shadow: 0 0 0 1px var(--fo-bg), 0 0 0 2px var(--fo-ink) !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker { gap: 20px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item { padding: 0 0 12px; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none; text-align: left; transition: border-color .3s; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item:hover { border-color: var(--fo-ink); background: transparent; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item.is-active { border-bottom: 2px solid var(--fo-accent); box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-swatch { border-radius: 0; border: 1px solid var(--fo-line); }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-name { margin-top: 10px; padding: 0; font-family: var(--fo-display); font-size: 17px; font-weight: 700; letter-spacing: .1em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item.is-active .th-picker-name::after { content: " · 当前"; font-family: var(--fo-sans); font-weight: 400; font-size: 11px; letter-spacing: .14em; color: var(--fo-accent); }
+
+/* ---------- 角色页：卷首插图 + 篇章 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .rd-ambient { display: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-character-top { margin: 18px 0 18px; padding: 0; border: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-character-top a { font-size: 12.5px; color: var(--fo-muted); letter-spacing: .12em; text-decoration: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-character-top a:hover { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail { gap: 56px; align-items: start; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover {
+    position: relative; border-radius: 0 !important; box-shadow: none !important; transform: none !important; overflow: hidden; background: var(--fo-sunken);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover img { border-radius: 0 !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover::before {
+    content: "Frontispiece"; position: absolute; z-index: 2; left: 14px; top: 12px; font-family: var(--fo-italic); font-style: italic; font-size: 16px; color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, .45);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover::after { content: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-title { padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-title h1 {
+    margin: 22px 0 0; font-family: var(--fo-display); font-weight: 700; font-size: 60px; line-height: .95; letter-spacing: -.05em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-by { margin: 12px 0 0; font-size: 12.5px; color: var(--fo-muted); letter-spacing: .08em; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-by .p-link { color: var(--fo-ink); font-weight: 700; text-decoration: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-by .p-link:hover { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-tags { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 22px 0 22px; padding: 14px 0 !important;
+    border: 0 !important; border-top: 2px solid var(--fo-ink) !important; border-bottom: 1px solid var(--fo-ink) !important; background: transparent !important;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat { padding: 0 14px; border: 0; border-left: 1px solid var(--fo-line-strong); background: transparent; text-align: left; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat:first-child { padding-left: 0; border-left: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat-n { font-family: var(--fo-serif); font-weight: 500; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat-l { margin-top: 4px; font-size: 11px; color: var(--fo-muted); letter-spacing: .18em; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky form { display: flex; flex-direction: column; gap: 10px; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky .p-btn--block { width: 100%; height: 50px; min-height: 50px; font-size: 14px; letter-spacing: .14em; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky .p-btn--primary.p-btn--block::after { content: "→"; margin-left: 12px; transition: transform .45s var(--fo-ease); display: inline-block; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky .p-btn--primary.p-btn--block:hover::after { transform: translateX(5px); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin-top: 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor :is(.p-btn, .btn) {
+    height: 28px; min-height: 28px; padding: 0 !important; border: 0 !important; background: transparent !important; color: var(--fo-copy) !important; font-size: 12.5px; letter-spacing: .08em;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor :is(.p-btn, .btn):hover { color: var(--fo-accent) !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor .btn--ghost { color: var(--fo-muted) !important; }
+
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main { counter-reset: fo-chap; display: flex; flex-direction: column; gap: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card {
+    counter-increment: fo-chap; margin: 0 0 40px; padding: 16px 0 0 !important; overflow: visible;
+    border: 0 !important; border-top: 1px solid var(--fo-ink) !important; border-radius: 0; background: transparent !important; box-shadow: none !important;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card:first-child { border-top: 2px solid var(--fo-ink) !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card > .p-eyebrow,
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head {
+    display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; padding: 0; border: 0; background: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card > .p-eyebrow::before,
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head h2::before {
+    content: "§" counter(fo-chap, lower-roman); margin-right: 12px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 18px; letter-spacing: 0; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head h2 { margin: 0; font-family: var(--fo-display); font-weight: 700; font-size: 28px; line-height: 1.2; letter-spacing: -.02em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head h2 .p-small { margin-left: 8px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 20px; color: var(--fo-muted); letter-spacing: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head > .p-small { margin-left: auto; font-family: var(--fo-italic); font-style: italic; font-size: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card > .p-eyebrow { font-family: var(--fo-display); font-size: 28px; font-weight: 700; letter-spacing: -.02em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote {
+    position: relative; margin: 0; padding: 4px 0 0 1.4em; border: 0; background: none; box-shadow: none;
+    font-family: var(--fo-display); font-size: 21px; line-height: 1.9; color: var(--fo-copy); text-wrap: pretty;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote .rp-p { font: inherit; color: inherit; margin: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote::before {
+    content: "“"; position: absolute; left: -.06em; top: -.12em; font-family: var(--fo-italic); font-size: 60px; line-height: 1; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote :is(.rp-say, strong) { color: var(--fo-ink); font-weight: 700; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote .rp-act { color: var(--fo-muted); font-style: normal; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 0 24px; margin: 0; padding: 16px 0; border: 0; border-bottom: 1px solid var(--fo-line); background: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub .p-eyebrow { padding-top: 5px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub p { margin: 0; font-family: var(--fo-display); font-size: 15.5px; line-height: 1.9; color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card .small { font-family: var(--fo-display); font-size: 13.5px; color: var(--fo-muted); }
+
+/* ---------- 通知 / 创作 / 房间 小件 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs { display: flex; gap: 26px; padding: 0; margin: 0 0 22px; border: 0; border-bottom: 1px solid var(--fo-line-strong); background: transparent; border-radius: 0; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button {
+    position: relative; height: 36px; padding: 0; border: 0; border-radius: 0; background: transparent !important; box-shadow: none !important;
+    font-family: var(--fo-display); font-size: 14.5px; font-weight: 400; letter-spacing: .12em; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button:hover { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"]) { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"])::after { content: ""; position: absolute; left: 0; right: .12em; bottom: -1px; height: 2px; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-list { display: flex; flex-direction: column; gap: 0; border: 0; background: transparent; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-row {
+    position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 0 16px; margin: 0; padding: 18px 0;
+    border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent !important; box-shadow: none; color: inherit; text-decoration: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-row.is-unread { border-left: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-row.is-unread::before { content: ""; position: absolute; left: -18px; top: 22px; bottom: 22px; width: 2px; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-icon { width: 28px; height: 28px; border-radius: 0; background: transparent; color: var(--fo-muted); border: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-title { font-family: var(--fo-display); font-size: 17px; font-weight: 700; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-text { font-family: var(--fo-display); font-size: 14px; line-height: 1.8; color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-time { font-family: var(--fo-serif); font-size: 12px; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-unread-dot { border-radius: 0; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-form-section-title, .p-card-head h2, .p-card > h2, .p-card > h3, .p-empty-title) {
+    font-family: var(--fo-display); font-weight: 700; letter-spacing: -.01em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-form-section-title { padding-bottom: 10px; border-bottom: 1px solid var(--fo-ink); font-size: 18px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-empty-title { font-size: 24px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-empty-text { font-family: var(--fo-display); color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide { counter-reset: fo-rg; list-style: none; padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide li { counter-increment: fo-rg; position: relative; padding: 10px 0 10px 32px; border-bottom: 1px solid var(--fo-line); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide li::marker { content: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide li::before { content: counter(fo-rg, decimal-leading-zero); position: absolute; left: 0; top: 8px; font-family: var(--fo-italic); font-style: italic; font-size: 19px; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide strong { font-family: var(--fo-display); color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview, html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview-body { border-radius: 0 !important; box-shadow: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview-name { font-family: var(--fo-display); font-size: 26px; letter-spacing: -.03em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview :is(.p-create-preview-hook, .p-create-preview-greeting) { font-family: var(--fo-display); }
+
+/* ---------- 窄屏旁注抽屉 ---------- */
+html body[data-theme="folio"] .fo-notes-cb { position: fixed; top: 0; left: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+html body[data-theme="folio"] :is(.fo-notes-scrim, .fo-notes-btn, .fo-notes-close) { display: none; }
+@media (max-width: 1180px) {
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn {
+        display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; padding: 5px 9px; color: var(--fo-copy); white-space: nowrap; cursor: pointer;
+        border-left: 1px solid var(--fo-line-strong); transition: color .25s;
+    }
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn:hover { color: var(--fo-accent); }
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn .fo-k { font-family: var(--fo-italic); font-style: italic; color: var(--fo-accent); }
+    html body[data-theme="folio"] .fo-notes-cb:focus-visible ~ .fo-ctool .fo-notes-btn { outline: 2px solid var(--fo-accent); outline-offset: 1px; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-notes-cb:checked ~ .fo-margin {
+        display: flex; position: fixed; z-index: 90; top: 0; right: 0; bottom: 0; width: min(340px, 88vw);
+        background: var(--fo-bg); border-left: 1px solid var(--fo-ink); box-shadow: -30px 0 60px -30px rgba(27, 27, 29, .4);
+        animation: fo-drawer .5s var(--fo-ease) both;
+    }
+    html body[data-theme="folio"][data-page="chat"] .fo-notes-cb:checked ~ .fo-margin .fo-runhead { padding-top: env(safe-area-inset-top); height: calc(52px + env(safe-area-inset-top)); }
+    html body[data-theme="folio"][data-page="chat"] .fo-notes-cb:checked ~ .fo-margin :is(.fo-note, .fo-bmk) { animation-delay: calc(120ms + var(--i, 0) * 60ms); }
+    html body[data-theme="folio"] .fo-notes-cb:checked ~ .fo-notes-scrim {
+        display: block; position: fixed; inset: 0; z-index: 89; background: rgba(27, 27, 29, .28); cursor: pointer; animation: fo-fade .4s ease both;
+    }
+    html body[data-theme="folio"] .fo-notes-close { display: inline; margin-left: 4px; color: var(--fo-ink); cursor: pointer; letter-spacing: .1em; }
+    html body[data-theme="folio"] .fo-margin .fo-runhead--r { justify-content: space-between; gap: 14px; }
+}
+@media (max-width: 760px) {
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn { margin-left: auto; position: sticky; right: 0; background: var(--fo-bg); }
+}
+@keyframes fo-drawer { from { transform: translateX(100%); } to { transform: none; } }
+
+/* ---------- 手机：刊眉、角色页 ---------- */
+@media (max-width: 760px) {
+    html body[data-theme="folio"][data-page]:not(.p-cinema) .p-topbar { padding: 0 12px 0 8px; gap: 8px; }
+    html body[data-theme="folio"] .th-switch.p-view-switch button { padding: 0 6px !important; letter-spacing: .06em; }
+    html body[data-theme="folio"] .th-switch.p-view-switch button[aria-checked="true"]::after { left: 6px; right: 6px; }
+    html body[data-theme="folio"] .p-points-trigger { padding-left: 10px; }
+    html body[data-theme="folio"][data-page] .p-topbar > .p-avatar { width: 30px; height: 30px; flex: 0 0 30px; font-size: 13px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title { margin-top: 8px; padding-bottom: 16px; gap: 16px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title > div:first-child::before { font-size: 14px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-page-title-actions { width: 100%; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-page-title-actions > * { flex: 1; justify-content: center; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main { flex-wrap: wrap; gap: 10px 18px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search { flex: 1 1 100%; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 22px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 14px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-name { font-size: 20px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-desc { font-size: 13px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-media::before { font-size: 14px; left: 10px; top: 8px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav { top: 6px; right: 6px; width: 28px; height: 28px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-meta { flex-wrap: wrap; gap: 4px 8px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row { grid-template-columns: minmax(0, 1fr) auto; padding: 18px 0; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open { grid-template-columns: 56px minmax(0, 1fr); gap: 0 14px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open::before { display: none; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-row-cover { width: 56px; height: 76px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-name { font-size: 22px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-meta { display: none; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail { gap: 36px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-title h1 { font-size: 52px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky :is(form, .p-btn--block) { width: 100%; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote { font-size: 18px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub { grid-template-columns: 1fr; gap: 6px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-settings { gap: 24px; }
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor .p-notice-actions { display: inline-flex; align-items: center; margin: 0; padding: 0; }
+@media (max-width: 1180px) { html body[data-theme="folio"] .fo-ctool .fo-rt { display: none; } html body[data-theme="folio"] .fo-ctool .fo-notes-btn { margin-left: auto; } }
+
+/* ==========================================================================
+   浮层：对话框、签到、命令面板、点数下拉
+   ========================================================================== */
+html body[data-theme="folio"]:not(#fo) :is(.modal-backdrop, .p-modal-backdrop, .p-overlay, .rd-palette) {
+    background: rgba(27, 27, 29, .34); -webkit-backdrop-filter: blur(3px) grayscale(.4); backdrop-filter: blur(3px) grayscale(.4);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) {
+    border-radius: 0; border: 1px solid var(--fo-ink); background: var(--fo-bg); box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55), 0 0 0 6px rgba(255, 255, 255, .5);
+    color: var(--fo-ink); font-family: var(--fo-sans);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) {
+    position: relative; padding-bottom: 14px; border-bottom: 0;
+    box-shadow: inset 0 -2px 0 var(--fo-bg), inset 0 -3px 0 var(--fo-ink), inset 0 -5px 0 var(--fo-bg), inset 0 -6px 0 var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) :is(h2, h3, strong, .modal-title) {
+    font-family: var(--fo-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head)::before {
+    content: "†"; margin-right: 10px; font-family: var(--fo-italic); font-style: italic; font-size: 20px; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .icon-btn { border-radius: 0; border: 0; background: transparent; color: var(--fo-muted); box-shadow: none; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .icon-btn:hover { color: var(--fo-ink); background: var(--fo-hover); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .icon-btn:focus-visible { outline: 1px solid var(--fo-ink); outline-offset: 0; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-foot, .p-modal-foot) { border-top: 1px solid var(--fo-line-strong); background: transparent; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn, .p-btn) { border-radius: 0; box-shadow: none; letter-spacing: .08em; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn, .p-btn):not(.btn--primary):not(.p-btn--primary):not(.btn--ghost) { background: transparent; border: 1px solid var(--fo-ink); color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn--primary, .p-btn--primary) { background: var(--fo-ink); border: 1px solid var(--fo-ink); color: #fff; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn--primary, .p-btn--primary):hover:not(:disabled) { background: var(--fo-accent); border-color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, .input, .p-input, .p-select) {
+    border-radius: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); background-color: transparent; box-shadow: none; font-family: var(--fo-display); color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(textarea, .textarea, .p-textarea) { border-radius: 0; border: 1px solid var(--fo-line-strong); background: var(--fo-card); box-shadow: none; font-family: var(--fo-display); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(input, select, textarea):focus { outline: none; border-color: var(--fo-ink); box-shadow: 0 1px 0 var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) input[type="checkbox"] { accent-color: var(--fo-ink); border-radius: 0; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) { gap: 22px; padding: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) > button {
+    position: relative; padding: 0 0 8px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none !important;
+    font-family: var(--fo-display); font-size: 14px; letter-spacing: .12em; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"]) { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"])::after { content: ""; position: absolute; left: 0; right: .12em; bottom: -1px; height: 2px; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-label, label > span:first-child) { letter-spacing: .14em; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .p-eyebrow { font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 16px; letter-spacing: .02em; text-transform: none; color: var(--fo-muted); }
+/* 签到：期号式数字 + 方格连签 */
+html body[data-theme="folio"]:not(#fo) .modal p[style*="font-size: 34px"], html body[data-theme="folio"]:not(#fo) .modal p[style*="font-size:34px"] {
+    font-family: var(--fo-display) !important; font-size: 52px !important; line-height: 1 !important; letter-spacing: -.04em !important; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) .modal span[aria-hidden="true"][style*="border-radius"] {
+    border-radius: 0 !important; width: 30px !important; height: 30px !important; font-family: var(--fo-italic); font-style: italic; font-weight: 400 !important; font-size: 15px !important;
+    border: 1px solid var(--fo-line-strong);
+}
+html body[data-theme="folio"]:not(#fo) .modal span[aria-hidden="true"][style*="border-radius"][style*="color: rgb(255"],
+html body[data-theme="folio"]:not(#fo) .modal span[aria-hidden="true"][style*="border-radius"][style*="#fff"] { background: var(--fo-ink) !important; border-color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .modal .p-hint { font-family: var(--fo-display); color: var(--fo-muted); }
+
+/* 命令面板：索引卡 */
+html body[data-theme="folio"]:not(#fo) .rd-palette-panel { border-radius: 0; border: 1px solid var(--fo-ink); background: var(--fo-bg); box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search { padding: 16px 20px; border-bottom: 1px solid var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search input { padding: 0; border: 0 !important; border-radius: 0; background: transparent; box-shadow: none !important; outline: none; font-family: var(--fo-display); font-size: 18px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search .p-icon { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search kbd, html body[data-theme="folio"]:not(#fo) .rd-palette-foot kbd { border-radius: 0; border: 1px solid var(--fo-line-strong); background: transparent; box-shadow: none; font-family: var(--fo-serif); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list { padding: 4px 20px 10px; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-group { padding: 14px 0 6px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: .02em; color: var(--fo-muted); border-bottom: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button { position: relative; padding: 11px 0 11px 18px; border-radius: 0; border-bottom: 1px solid var(--fo-line); font-family: var(--fo-display); font-size: 15px; color: var(--fo-ink); background: transparent; transition: padding .35s var(--fo-ease), background .2s; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button::before { content: ""; position: absolute; left: 0; top: 50%; width: 0; height: 2px; margin-top: -1px; background: var(--fo-accent); transition: width .35s var(--fo-ease); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] { background: transparent; padding-left: 26px; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"]::before { width: 14px; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] .p-icon { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button small { font-family: var(--fo-sans); font-weight: 400; letter-spacing: .06em; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-empty { font-family: var(--fo-display); font-size: 14px; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-foot { padding: 10px 20px; border-top: 1px solid var(--fo-line-strong); font-size: 11.5px; letter-spacing: .06em; }
+
+/* 点数下拉与其他浮动菜单 */
+html body[data-theme="folio"]:not(#fo) .p-points-panel { background: var(--fo-bg); padding: 18px 20px; }
+html body[data-theme="folio"]:not(#fo) .p-points-panel :is(.btn, .p-btn) { border-radius: 0; }
+html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown, .p-popover) {
+    border-radius: 0; border: 1px solid var(--fo-ink); background: var(--fo-bg); box-shadow: 0 24px 48px -24px rgba(27, 27, 29, .4);
+}
+html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown) :is([role="menuitem"], button, a) { border-radius: 0; font-family: var(--fo-display); }
+html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown) :is([role="menuitem"], button, a):hover { background: var(--fo-hover); color: var(--fo-ink); }
+/* 消息操作（手机抽屉 / 展开菜单） */
+html body[data-theme="folio"][data-page="chat"] .p-msg-more { border-radius: 0; background: transparent; color: var(--fo-muted); box-shadow: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-more[aria-expanded="true"] { color: var(--fo-accent); background: var(--fo-accent-soft); }

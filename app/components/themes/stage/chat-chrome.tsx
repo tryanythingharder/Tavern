@@ -24,7 +24,14 @@ export function StageChatChrome({ chrome }: { chrome: ChatChromeData }) {
     setDock(document.querySelector<HTMLElement>('.p-chat-compose > .p-chat-col'));
     setHead(document.querySelector<HTMLElement>('.p-chat-title-text'));
     if (!scroller) return;
-    const recount = () => setCount(scroller.querySelectorAll('article.p-msg').length);
+    // 长动作描写在行内会折成两块，标记后由 CSS 改成独立的舞台提示块
+    const markActs = () => {
+      scroller.querySelectorAll<HTMLElement>('.p-msg-copy .rp-act').forEach((el) => {
+        const long = (el.textContent ?? '').trim().length > 14;
+        if (el.classList.contains('stg-act-long') !== long) el.classList.toggle('stg-act-long', long);
+      });
+    };
+    const recount = () => { setCount(scroller.querySelectorAll('article.p-msg').length); markActs(); };
     recount();
     const observer = new MutationObserver(recount);
     observer.observe(scroller, { childList: true, subtree: true });

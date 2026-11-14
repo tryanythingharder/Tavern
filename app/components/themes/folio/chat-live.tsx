@@ -154,11 +154,24 @@ function latestAssistant(): HTMLElement | null {
   return list.length ? list[list.length - 1] : null;
 }
 
+// 首段下沉只给以文字开头的段落：开头是「『“（* 或整段动作描写时不放大。
+function applyDropCap() {
+  const first = document.querySelector<HTMLElement>('.p-chat-scroll .p-rp-prologue ~ article.p-msg:not(.p-msg-user) .p-msg-copy > .rp-p:first-child');
+  document.querySelectorAll('.p-chat-scroll .rp-p.fo-dc').forEach((el) => { if (el !== first) el.classList.remove('fo-dc'); });
+  if (!first) return;
+  const firstArticle = document.querySelector('.p-chat-scroll .p-rp-prologue ~ article.p-msg');
+  const ok = Boolean(firstArticle && firstArticle.contains(first))
+    && /^[\p{L}\p{N}]/u.test((first.textContent ?? '').trimStart())
+    && !first.matches(':has(> .rp-act:only-child)');
+  first.classList.toggle('fo-dc', ok);
+}
+
 export function FolioComposerTools() {
   const [canRegen, setCanRegen] = useState(false);
   const [marked, setMarked] = useState(false);
   useEffect(() => {
     const update = () => {
+      applyDropCap();
       const latest = latestAssistant();
       const regen = latest?.querySelector<HTMLButtonElement>('button[aria-label="重新生成"]');
       setCanRegen(Boolean(regen && !regen.disabled && latest?.classList.contains('is-latest')));
@@ -183,6 +196,7 @@ export function FolioComposerTools() {
       <button type="button" onClick={regen} disabled={!canRegen} title="重写最新一段">⟲ 重写</button>
       <button type="button" onClick={mark} aria-pressed={marked} title="给最新一段夹书签">{marked ? '★' : '☆'} 书签</button>
       <span className="fo-rt">Enter 落笔 · Shift+Enter 另起一行</span>
+      <label htmlFor="fo-notes-toggle" className="fo-notes-btn" title="展开旁注：记忆、书签与进度"><span className="fo-k">†</span> 旁注</label>
     </div>
   );
 }

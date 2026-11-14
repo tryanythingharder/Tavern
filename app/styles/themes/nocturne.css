@@ -202,6 +202,8 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="home"] .p-announcement { p
 html body[data-theme="nocturne"]:not(#noc) .cinema-nav { background: var(--noc-glass); border-color: var(--noc-glass-line); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); }
 html body[data-theme="nocturne"]:not(#noc) .cinema-logo { font-family: var(--noc-serif); letter-spacing: .3em; }
 html body[data-theme="nocturne"]:not(#noc) .cinema-account { background: var(--noc-s2); color: var(--noc-text); border: 1px solid var(--noc-line-2); }
+html body[data-theme="nocturne"]:not(#noc) .p-topbar .p-search :is(input, .p-input) { padding-left: 30px; }
+html body[data-theme="nocturne"]:not(#noc) .noc-rail a { text-shadow: 0 1px 10px rgba(0, 0, 0, .9); }
 
 
 /* ---------- 03 / 通用组件：暗场下的按钮、卡片、表单、弹窗 ---------- */
@@ -499,6 +501,16 @@ html body[data-theme="nocturne"]:not(#noc) .noc-end-sub { margin: 16px 0 0; font
   html body[data-theme="nocturne"]:not(#noc) .noc-rail { display: none; }
 }
 
+/* 档期控制按钮别压住导语 */
+html body[data-theme="nocturne"]:not(#noc) .noc-ctrls { bottom: -6px; }
+/* 首页导航：遮幅黑边下方起步，滚出首屏后贴回顶部 */
+@supports (animation-timeline: scroll()) {
+  @media (min-width: 1024px) {
+    html body[data-theme="nocturne"]:not(#noc)[data-page="home"][data-page="home"]:not([data-page="chat"]) :is(.p-side, .p-topbar) { animation: noc-nav-lift linear both; animation-timeline: scroll(root); animation-range: 0 260px; }
+  }
+}
+@keyframes noc-nav-lift { from { top: 56px; } to { top: 16px; } }
+
 
 /* ---------- 05 / 对话页：场景底板 + 字幕 ---------- */
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] { --noc-barh: 30px; --read-max: 760px; }
@@ -599,7 +611,9 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-title .p-av
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-title .p-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; border-radius: 4px; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-name { font-family: var(--noc-serif); font-size: 21px; font-weight: 700; letter-spacing: .14em; line-height: 1.2; color: var(--noc-text); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-sub { margin-top: 4px; font-size: 10px; letter-spacing: .24em; color: var(--noc-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-head-in > div:last-child { padding: 5px; border-radius: 999px; background: rgba(20, 20, 24, .5); border: 1px solid var(--noc-glass-line); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+/* 玻璃放在伪元素上：backdrop-filter 会让 fixed 弹窗以它为包含块 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-head-in > div:last-child { position: relative; isolation: isolate; padding: 5px; border-radius: 999px; border: 1px solid var(--noc-glass-line); box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-head-in > div:last-child::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgba(20, 20, 24, .5); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); pointer-events: none; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-head .btn { min-height: 34px; height: 34px; padding: 0 15px; border: 0; border-radius: 999px; background: transparent; color: var(--noc-copy); font-size: 13px; box-shadow: none; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-head .btn:hover { background: rgba(255, 255, 255, .07); color: var(--noc-text); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-branch-note { position: relative; z-index: 5; background: rgba(35, 36, 58, .6); border: 1px solid rgba(75, 91, 245, .35); color: var(--noc-copy); border-radius: 12px; }
@@ -671,14 +685,14 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user .rp-say
 
 /* 消息操作：字幕下方的一排细胶囊 */
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 12px; padding-top: 0; border-top: 0; }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools button, html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .p-msg-tool {
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools > button, html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .p-msg-tool {
   width: 30px; height: 30px; padding: 0; border-radius: 999px; border: 1px solid var(--noc-line); background: rgba(11, 11, 14, .35); color: var(--noc-muted);
 }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .p-msg-tool { width: auto; padding: 0 10px; font-size: 12px; }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools button:hover:not(:disabled), html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .p-msg-tool:hover { color: var(--noc-text); border-color: var(--noc-line-2); background: rgba(255, 255, 255, .06); }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools button[aria-pressed="true"] { color: #8f99ff; border-color: rgba(75, 91, 245, .5); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools > button:hover:not(:disabled), html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .p-msg-tool:hover { color: var(--noc-text); border-color: var(--noc-line-2); background: rgba(255, 255, 255, .06); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools > button[aria-pressed="true"] { color: #8f99ff; border-color: rgba(75, 91, 245, .5); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user .p-msg-tools { justify-content: flex-end; }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user :is(.p-msg-tools button, .p-msg-tools .p-msg-tool) { background: rgba(11, 11, 14, .3); color: var(--noc-copy); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user :is(.p-msg-tools > button, .p-msg-tools .p-msg-tool) { background: rgba(11, 11, 14, .3); color: var(--noc-copy); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-candidate { background: rgba(11, 11, 14, .35); border: 1px solid var(--noc-line); border-radius: 999px; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-candidate button { border: 0; background: transparent; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-candidate-index { color: var(--noc-copy); }
@@ -758,7 +772,7 @@ html body[data-theme="nocturne"]:not(#noc) .rd-jump { background: rgba(20, 20, 2
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.p-msg-user) .rp-p:not(:has(.rp-say)) { font-size: calc(14px * var(--rp-font-scale, 1)); line-height: 1.8; }
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user { max-width: 84%; padding: 10px 14px 11px; margin-bottom: 28px; }
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user .p-msg-copy { font-size: calc(14px * var(--rp-font-scale, 1)); }
-  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools button { width: 36px; height: 36px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools > button { width: 36px; height: 36px; }
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-compose { padding: 6px 12px calc(env(safe-area-inset-bottom) + 14px); }
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-compose-row { padding: 7px; border-radius: 20px; gap: 6px; align-items: center; }
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-compose-row .p-chat-input { font-size: 15px; min-height: 38px; padding: 7px 6px; }
@@ -770,7 +784,22 @@ html body[data-theme="nocturne"]:not(#noc) .rd-jump { background: rgba(20, 20, 2
 @media (min-width: 901px) {
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.is-latest):not(.is-tools-open) .p-msg-tools { position: absolute; top: 100%; left: 0; z-index: 4; margin-top: 4px; }
   html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user:not(.is-latest):not(.is-tools-open) .p-msg-tools { left: auto; right: 0; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.is-latest):not(.is-tools-open) .p-msg-tools { width: max-content; flex-wrap: nowrap; padding: 4px; border-radius: 999px; background: rgba(11, 11, 14, .72); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
 }
+
+/* 就地渲染的弹窗：打开时撤掉字幕区遮罩、把对话列抬到导轨和档案卡之上 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-workbench > .p-chat:has(.modal-backdrop) { z-index: 20; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-scroll:has(.modal-backdrop) { -webkit-mask-image: none; mask-image: none; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:has(.modal-backdrop) { animation: none; z-index: 30; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .modal-backdrop { z-index: 100; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-scroll:has(.modal-backdrop) { z-index: 10; }
+/* 举报等弹窗就地嵌在 .p-msg-tools 里：把原型给工具按钮的尺寸还原 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .modal :is(button, .btn) { width: auto; min-width: 0; flex: 0 0 auto; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .modal .modal-foot :is(button, .btn) { height: 36px; padding: 0 16px; border-radius: 999px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .modal .icon-btn { width: 36px; height: 36px; padding: 0; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .modal { font-family: var(--noc-sans); text-align: left; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .modal-head h2 { font-family: var(--noc-serif); letter-spacing: .08em; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"]:has(.modal-backdrop) .noc-slate { opacity: 0; }
 
 
 /* ---------- 06 / 其他页面：保持暗场、衬线标题、靛蓝点缀 ---------- */
@@ -800,7 +829,7 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="character"] #start-chat, h
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .12) inset, 0 12px 40px rgba(75, 91, 245, .45);
 }
 html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-sticky { background: transparent; }
-@media (max-width: 1023px) { html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-sticky { background: rgba(11, 11, 14, .82); border-color: var(--noc-line); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); } }
+@media (max-width: 1023px) { html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-sticky { background: rgba(11, 11, 14, .94); border-color: var(--noc-line); } }
 html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-cover, html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-art { border-radius: 6px; box-shadow: 0 40px 90px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .06); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="character"] :is(.p-detail-stats b, .p-detail-stats strong) { font-family: var(--noc-serif); color: var(--noc-text); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-stats { border-color: var(--noc-line); }
@@ -933,3 +962,149 @@ html body[data-theme="nocturne"]:not(#noc) .rd-ambient img { opacity: .4; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="home"] .p-announcement { top: 124px; }
 html body[data-theme="nocturne"]:not(#noc) .noc-hero-meta { top: 136px; }
 @media (max-width: 1023px) { html body[data-theme="nocturne"]:not(#noc)[data-page="home"] .p-announcement { top: 72px; } }
+
+/* ---------- 10 / 第二轮：首页导航位置、广场海报墙、续看胶片条 ---------- */
+@media (min-width: 1024px) {
+  html body[data-theme="nocturne"]:not(#noc)[data-page="home"][data-page="home"]:not([data-page="chat"]) :is(.p-side, .p-topbar) { top: 56px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="home"][data-page="home"]:not([data-page="chat"]) .p-main { padding-top: 0; }
+}
+
+/* 角色页：剧照作为暗场底板 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .rd-ambient img { animation: none; opacity: .62; transform: scale(1.2); filter: blur(56px) brightness(.6) saturate(.95); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-cover { height: clamp(240px, 38vh, 400px); aspect-ratio: auto; box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .06); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-cover img { object-fit: cover; object-position: 50% 20%; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 0; border: 0; border-top: 1px solid var(--noc-line); border-bottom: 1px solid var(--noc-line); border-radius: 0; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-stats .p-stat { background: transparent; border: 0; border-radius: 0; padding: 10px 4px; text-align: center; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-stats .p-stat + .p-stat { border-left: 1px solid var(--noc-line); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-main .p-eyebrow { color: #7d89ff; font-size: 10.5px; letter-spacing: .3em; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-quote { border-left: 1px solid var(--noc-accent); font-family: var(--noc-serif); font-size: 18px; color: var(--noc-text); }
+
+/* 广场：海报墙 */
+html body[data-theme="nocturne"]:not(#noc) .p-filterbar { border-radius: 18px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .p-filterbar { padding: 10px 12px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .p-page-title h1::after, html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-page-title h1::after { margin-left: 14px; font-family: var(--noc-latin); font-style: italic; font-weight: 400; font-size: .48em; letter-spacing: .02em; color: var(--noc-muted); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .p-page-title h1::after { content: "Now Showing"; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-page-title h1::after { content: "Continue Watching"; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .p-page-title h1, html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-page-title h1 { white-space: nowrap; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid { counter-reset: noc-poster; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work { counter-increment: noc-poster; position: relative; border: 0; overflow: hidden; border-radius: 4px; padding: 0; box-shadow: 0 0 0 1px var(--noc-line), 0 24px 50px -24px rgba(0, 0, 0, .9); transition: transform .7s var(--noc-ease), box-shadow .7s var(--noc-ease); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px rgba(75, 91, 245, .55), 0 30px 70px rgba(0, 0, 0, .65), 0 0 50px rgba(75, 91, 245, .16); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-media { aspect-ratio: 2 / 3; height: auto; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work :is(.p-work-cover, .p-cover) { height: 100%; aspect-ratio: auto; border-radius: 0; box-shadow: none; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work:hover :is(.p-work-cover, .p-cover) { box-shadow: none; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-media::before { content: "No." counter(noc-poster, decimal-leading-zero); position: absolute; top: 14px; left: 16px; z-index: 3; font-family: var(--noc-latin); font-style: italic; font-size: 13px; color: rgba(243, 243, 246, .72); pointer-events: none; text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-media::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(11, 11, 14, .45) 0%, transparent 22%, transparent 45%, rgba(11, 11, 14, .97) 100%); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-fav { z-index: 3; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-body { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 0 18px 16px; background: transparent; pointer-events: none; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-body :is(a, button) { pointer-events: auto; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-name { font-size: 28px; letter-spacing: .14em; line-height: 1.15; text-shadow: 0 4px 24px rgba(0, 0, 0, .8); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-author { margin-top: 4px; font-size: 11px; letter-spacing: .2em; color: var(--noc-copy); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(243, 243, 246, .12); }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-meta .p-pill { background: transparent; border-color: rgba(243, 243, 246, .3); color: var(--noc-text); border-radius: 3px; font-size: 10.5px; letter-spacing: .14em; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-stat { color: var(--noc-copy); font-size: 11.5px; }
+html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-desc, html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-hook { color: var(--noc-copy); }
+
+/* 对话列表：续看胶片条 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-list { counter-reset: noc-reel; display: flex; flex-direction: column; gap: 18px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row {
+  counter-increment: noc-reel; position: relative; padding: 24px 22px; border: 0; border-radius: 4px; background: #050507;
+  box-shadow: 0 0 0 1px var(--noc-line), 0 24px 50px -30px rgba(0, 0, 0, .9);
+}
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row::before, html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row::after {
+  content: ""; position: absolute; left: 10px; right: 10px; height: 6px; pointer-events: none;
+  background: linear-gradient(90deg, #26262e 0 10px, transparent 10px) 0 0 / 22px 6px repeat-x; border-radius: 1px; opacity: .9;
+}
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row::before { top: 9px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row::after { bottom: 9px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row:hover { background: #08080b; box-shadow: 0 0 0 1px rgba(75, 91, 245, .45), 0 30px 60px -30px rgba(0, 0, 0, .9), 0 0 40px rgba(75, 91, 245, .1); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-open { gap: 22px; align-items: center; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-row-cover { width: 200px; height: 112px; flex: 0 0 200px; border-radius: 2px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-row-cover img { object-fit: cover; object-position: 50% 22%; filter: brightness(.78) saturate(.85); transition: filter .7s var(--noc-ease); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row:hover .p-row-cover img { filter: brightness(1) saturate(1); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-title { align-items: baseline; gap: 12px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-title::before { content: "REEL " counter(noc-reel, decimal-leading-zero); font-family: var(--noc-sans); font-size: 10px; letter-spacing: .3em; color: #7d89ff; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-name { font-size: 22px; font-weight: 700; letter-spacing: .12em; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-session { padding: 1px 7px; font-size: 11px; background: transparent; border: 1px solid var(--noc-line-2); color: var(--noc-muted); border-radius: 3px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-preview { margin-top: 8px; font-family: var(--noc-serif); font-style: italic; font-size: 15px; line-height: 1.75; color: var(--noc-copy); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-library-sub { margin-top: 6px; font-size: 11px; letter-spacing: .14em; color: var(--noc-muted); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-meta { font-family: var(--noc-latin); font-style: italic; }
+@media (max-width: 640px) {
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row { padding: 22px 12px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-row-cover { width: 96px; height: 72px; flex-basis: 96px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-open { gap: 12px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-name { font-size: 18px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chats"] .p-chat-row-preview { font-size: 13.5px; }
+}
+
+/* 设置：滑杆轨道 */
+html body[data-theme="nocturne"]:not(#noc) input[type="range"] { background: transparent; }
+html body[data-theme="nocturne"]:not(#noc) input[type="range"]::-webkit-slider-runnable-track { background: #3a3a45; height: 4px; border-radius: 4px; }
+html body[data-theme="nocturne"]:not(#noc) input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: #f3f3f6; box-shadow: 0 0 0 3px rgba(75, 91, 245, .55); }
+html body[data-theme="nocturne"]:not(#noc) input[type="range"]::-moz-range-track { background: #3a3a45; height: 4px; border-radius: 4px; }
+html body[data-theme="nocturne"]:not(#noc) input[type="range"]::-moz-range-progress { background: #4b5bf5; height: 4px; border-radius: 4px; }
+
+/* 404 等简单页：衬线标题 */
+html body[data-theme="nocturne"]:not(#noc) :is(.p-empty, .p-notfound, .not-found) h1 { font-family: var(--noc-serif); letter-spacing: .06em; }
+
+/* ---------- 11 / 手机修正 ---------- */
+@media (max-width: 1023px) {
+  html body[data-theme="nocturne"]:not(#noc) .p-tabbar { background: rgba(11, 11, 14, .93); }
+  html body[data-theme="nocturne"]:not(#noc) .p-tabbar a[aria-current="page"]::before { background: var(--noc-accent-soft); box-shadow: inset 0 0 0 1px rgba(75, 91, 245, .55), 0 0 18px rgba(75, 91, 245, .3); }
+  html body[data-theme="nocturne"]:not(#noc) .p-tabbar a[aria-current="page"] { color: var(--noc-text); }
+  /* 顶栏放得下：切换器和点数收紧 */
+  html body[data-theme="nocturne"]:not(#noc) .p-topbar { gap: 6px; padding-inline: 12px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-topbar .p-view-switch { padding: 2px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-topbar .p-view-switch button { padding: 0 8px !important; font-size: 11.5px !important; min-height: 30px !important; }
+  html body[data-theme="nocturne"]:not(#noc) .p-topbar .p-points-trigger { padding: 0 9px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-topbar > .p-avatar { width: 36px; height: 36px; flex: 0 0 36px; }
+  /* 角色页按钮通栏 */
+  html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-sticky > div:last-child { flex-direction: column; align-items: stretch; gap: 10px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-sticky form { width: 100%; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-detail-minor { justify-content: center; flex-wrap: wrap; }
+  /* 筛选条 */
+  html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-filterbar-main { flex-wrap: wrap; gap: 8px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-search { flex: 1 1 100%; grid-column: 1 / -1; justify-self: stretch; width: auto; max-width: none; }
+  html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-select { height: 38px; min-height: 38px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-chip { height: 34px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-filterbar-count { margin-left: auto; }
+}
+@media (max-width: 640px) {
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-body { padding: 0 12px 12px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-name { font-size: 20px; letter-spacing: .1em; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-author { font-size: 10px; letter-spacing: .12em; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-meta { margin-top: 8px; padding-top: 8px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-stat { font-size: 10.5px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-media::before { top: 10px; left: 12px; font-size: 11.5px; }
+  html body[data-theme="nocturne"]:not(#noc) .p-work-grid > .p-work .p-work-fav { width: 30px; height: 30px; top: 6px; right: 6px; }
+}
+@media (max-width: 900px) {
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.is-latest):not(.is-tools-open) .p-msg-tools { display: none; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools .p-msg-tool { width: auto; padding: 0 12px; white-space: nowrap; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-tools { gap: 6px; margin-inline: 0; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-more { top: -6px; right: -6px; color: var(--noc-muted); }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user .p-msg-more { top: 2px; right: 2px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user { padding-right: 40px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-more:is(:hover, [aria-expanded="true"]) { background: rgba(255, 255, 255, .08); color: var(--noc-text); }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-scroll { -webkit-mask-image: linear-gradient(transparent 0, transparent 22px, #000 70px, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(transparent 0, transparent 22px, #000 70px, #000 calc(100% - 16px), transparent); }
+}
+
+/* ---------- 12 / 弹窗包含块：设置弹窗（.modal-backdrop）是就地渲染的 position:fixed，
+   任何带 backdrop-filter / transform 的祖先都会把它困住。玻璃一律挪到 ::before 上。 ---------- */
+html body[data-theme="nocturne"]:not(#noc) :is(.p-topbar, .p-filterbar, .p-chat-compose-row, .p-msg-user) { isolation: isolate; }
+html body[data-theme="nocturne"]:not(#noc):not([data-page="admin"]) :is(.p-topbar, .p-filterbar),
+html body[data-theme="nocturne"]:not(#noc):not([data-page="admin"]):not([data-page="chat"]) .p-topbar,
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] :is(.p-chat-compose-row, .p-msg-user),
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html body[data-theme="nocturne"]:not(#noc) .p-topbar::before, html body[data-theme="nocturne"]:not(#noc) .p-filterbar::before, html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-chat-compose-row::before, html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
+}
+html body[data-theme="nocturne"]:not(#noc) .p-filterbar { position: sticky; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user { position: relative; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-card { background: rgba(20, 20, 24, .78); }
+@media (max-width: 1023px) {
+  html body[data-theme="nocturne"]:not(#noc)[data-page="home"] .p-topbar::before { display: none; }
+}
+
+html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-search:has(> svg) :is(input, .p-input) { padding-left: 36px; }

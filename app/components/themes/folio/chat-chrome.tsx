@@ -13,6 +13,9 @@ export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
 
   return (
     <>
+      {/* 窄屏：旁注抽屉（纯 CSS 开关，桌面不显示） */}
+      <input type="checkbox" id="fo-notes-toggle" className="fo-notes-cb" aria-label="展开旁注" />
+      <label htmlFor="fo-notes-toggle" className="fo-notes-scrim" aria-hidden="true" />
       <aside className="fo-plate" aria-label="角色书版">
         <div className="fo-runhead fo-runhead--l">
           <Link href="/">酒馆 No.{issue}</Link><span aria-hidden="true">/</span><Link href="/chats">对话</Link>
@@ -42,6 +45,7 @@ export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
         <div className="fo-runhead fo-runhead--r">
           <span className="fo-runhead-mark">☆ 书签 {chrome.bookmarks}</span>
           <FolioFolio initial={chrome.messageCount} />
+          <label htmlFor="fo-notes-toggle" className="fo-notes-close">收起 ✕</label>
         </div>
         <div className="fo-margin-body">
           <section>
