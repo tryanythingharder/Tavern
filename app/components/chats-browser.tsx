@@ -232,7 +232,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
               </div>
               <div className="p-chat-row-main">
                 <div className="p-chat-row-title"><span className="p-chat-row-name">{room.name}</span><span className="p-chat-row-session">多角色房间</span></div>
-                <p className="p-chat-row-preview">{room.lastMessage ?? '还没有消息'}</p>
+                <p className="p-chat-row-preview">{room.lastMessage ? cleanPreview(room.lastMessage) : '还没有消息'}</p>
                 <div className="p-library-sub">房间 · {room.count} 条消息</div>
               </div>
             </Link>
@@ -250,7 +250,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
                 </div>
                 <div className="p-chat-row-main">
                   <div className="p-chat-row-title"><span className="p-chat-row-name">{chat.name}</span><span className="p-chat-row-session">{chat.title}</span></div>
-                  <p className="p-chat-row-preview">{chat.lastMessage ?? '还没有消息'}</p>
+                  <p className="p-chat-row-preview">{chat.lastMessage ? cleanPreview(chat.lastMessage) : '还没有消息'}</p>
                   <div className="p-library-sub">本地保存 · {chat.count} 条消息</div>
                 </div>
               </Link>
@@ -360,4 +360,8 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
       )}
     </>
   );
+}
+
+function cleanPreview(text: string) {
+  return text.replace(/\*([^*]+)\*/g, '$1').replace(/\(\(([^)]*)\)\)/g, '').replace(/\s+/g, ' ').trim();
 }
