@@ -89,7 +89,8 @@ export function PushToggle() {
     finally { setBusy(false); }
   };
 
-  if (state === 'loading') return null;
+  // 开发环境不注册 SW，也就没法订阅；直接不显示，免得误导
+  if (state === 'loading' || state === 'dev') return null;
 
   const hint: Record<State, string> = {
     loading: '',

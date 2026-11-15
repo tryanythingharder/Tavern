@@ -1111,3 +1111,13 @@ html body[data-theme="stage"]:not(.p-cinema) .nf-kicker::after { content: " · �
 html body[data-theme="stage"]:not(.p-cinema) .nf-title { font-family: var(--stg-serif) !important; font-size: 44px !important; font-weight: 800; }
 html body[data-theme="stage"]:not(.p-cinema) .nf-copy { color: var(--stg-copy); font-size: 15px; }
 html body[data-theme="stage"]:not(.p-cinema) .nf-actions .btn { border-radius: 999px; }
+
+/* 手机：设置目录收成一行横向滚动的胶囊，组之间细线分隔（原来逐组换行居中，看起来散） */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc { flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: none; justify-content: flex-start; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc::-webkit-scrollbar { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-group { flex: none; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 6px; margin: 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-group + .p-toc-group { padding-left: 8px; border-left: 1px solid var(--stg-line, #e6e6e8); }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-label { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a { flex: none; white-space: nowrap; transform: none; }
+}

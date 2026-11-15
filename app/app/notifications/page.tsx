@@ -11,8 +11,8 @@ export default async function NotificationsPage() {
   if (!user) redirect('/login');
   return (
     <div className="p-inner">
-      <div style={{ marginBottom: 16 }}><PushToggle /></div>
       <NotificationsList initial={listNotifications(user.id)} />
+      <div style={{ marginTop: 24 }}><PushToggle /></div>
     </div>
   );
 }
