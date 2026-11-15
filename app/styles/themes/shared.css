@@ -80,3 +80,38 @@ html body[data-page="chat"] .p-chat-scroll .p-msg:not(.is-latest):not(.is-stream
 html body[data-page="chat"] .p-chat-compose .rd-jump { left: auto; right: 0; transform: translateY(12px) scale(.95); }
 html body[data-page="chat"] .p-chat-compose .rd-jump.is-visible { transform: none; }
 html body[data-theme="nocturne"][data-page="chat"] .p-chat-compose .rd-jump { background: rgba(20, 20, 24, .94); }
+
+/* ---------- RP：多版本回复切换（最新一条 AI 回复常驻） ---------- */
+.rp-swipe {
+  display: inline-flex; align-items: center; gap: 2px; margin-top: 12px; padding: 2px;
+  border: 1px solid var(--ca-line, var(--border, #e6e6e8)); border-radius: 999px;
+  color: var(--ca-copy, var(--muted, #4a4a50)); font-size: 12px; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--ca-card, var(--surface, #fff)) 70%, transparent);
+}
+.rp-swipe button {
+  display: inline-grid; place-items: center; width: 30px; height: 28px; padding: 0; border: 0; border-radius: 999px;
+  background: transparent; color: inherit; cursor: pointer; transition: background-color .15s ease, color .15s ease;
+}
+.rp-swipe button:hover:not(:disabled) { background: var(--ca-accent-soft, #eceefe); color: var(--ca-accent, #4b5bf5); }
+.rp-swipe button:disabled { opacity: .35; cursor: default; }
+.rp-swipe button .p-icon { width: 15px; height: 15px; }
+.rp-swipe-index { min-width: 42px; text-align: center; letter-spacing: .04em; }
+.rp-swipe-new { position: relative; }
+.rp-swipe-new::after { content: "+"; position: absolute; top: 3px; right: 5px; font-size: 10px; font-weight: 700; line-height: 1; }
+html body[data-page="chat"] .p-msg.is-latest .p-msg-tools .p-rp-candidate { display: none; }
+@media (max-width: 720px) { .rp-swipe button { width: 40px; height: 36px; } }
+html body[data-theme="nocturne"] .rp-swipe { border-color: rgba(255, 255, 255, .12); background: rgba(20, 20, 24, .55); color: #c9c9d1; }
+html body[data-theme="nocturne"] .rp-swipe button:hover:not(:disabled) { background: #23243a; color: #f3f3f6; }
+html body[data-theme="folio"] .rp-swipe { border-radius: 0; background: transparent; border-color: #d5d5d9; }
+html body[data-theme="folio"] .rp-swipe button { border-radius: 0; }
+
+/* ---------- RP：消息时间。默认悬停才出现；外观里打开「显示消息时间」后常驻 ---------- */
+.p-msg-name { display: flex; align-items: baseline; gap: 8px; }
+.p-msg-time {
+  font-size: 11px; font-weight: 400; letter-spacing: .02em; font-style: normal; font-variant-numeric: tabular-nums;
+  color: var(--ca-muted, var(--muted, #77777e)); opacity: 0; transition: opacity .2s ease;
+}
+.p-msg:hover .p-msg-time, .p-msg.is-tools-open .p-msg-time, body[data-u-stamps] .p-msg-time { opacity: 1; }
+html body[data-theme="nocturne"] .p-msg-time { color: #8b8b96; letter-spacing: .04em; }
+html body[data-page="chat"] .p-msg .rp-swipe { width: fit-content; max-width: max-content; justify-self: start; align-self: start; height: auto; min-height: 0; }
+html body[data-page="chat"] .p-msg .rp-swipe button { padding: 0 !important; min-height: 0 !important; min-width: 0; border: 0 !important; box-shadow: none !important; }

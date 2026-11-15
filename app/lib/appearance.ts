@@ -29,6 +29,7 @@ export type AppearancePrefs = {
   narrDim: Tri;
   avatars: boolean;
   names: boolean;
+  stamps: boolean; // 显示消息时间
   msgStyle: MsgStyle;
   accent: string | null;
   tint: Tint;
@@ -53,6 +54,7 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   narrDim: 'theme',
   avatars: true,
   names: true,
+  stamps: false,
   msgStyle: 'theme',
   accent: null,
   tint: 'none',
@@ -130,7 +132,7 @@ function num(value: unknown, min: number, max: number, step: number): number | n
 // 短键 ↔ 字段：cookie 里只放短键，保持很小
 const KEYS: Record<keyof AppearancePrefs, string> = {
   uiFont: 'uf', bodyFont: 'bf', uiScale: 'us', chatScale: 'cs', lineHeight: 'lh', chatWidth: 'cw', paraSpacing: 'ps',
-  sayColor: 'cd', actColor: 'cn', thinkColor: 'ct', narrItalic: 'ni', narrDim: 'nd', avatars: 'av', names: 'nm',
+  sayColor: 'cd', actColor: 'cn', thinkColor: 'ct', narrItalic: 'ni', narrDim: 'nd', avatars: 'av', names: 'nm', stamps: 'ts',
   msgStyle: 'ms', accent: 'ac', tint: 'bt', radius: 'r', border: 'b', shadow: 'sh', motion: 'm',
 };
 
@@ -153,6 +155,7 @@ export function sanitizeAppearance(raw: unknown): AppearancePrefs {
     narrDim: pick(get('narrDim'), TRI, 'theme'),
     avatars: get('avatars') !== false && get('avatars') !== 0,
     names: get('names') !== false && get('names') !== 0,
+    stamps: get('stamps') === true || get('stamps') === 1,
     msgStyle: pick(get('msgStyle'), ['theme', 'bubble', 'flat'] as const, 'theme'),
     accent: hex(get('accent')),
     tint: pick(get('tint'), ['none', 'paper', 'sepia', 'mist', 'sage', 'rose'] as const, 'none'),
@@ -204,6 +207,7 @@ export function appearanceBodyProps(prefs: AppearancePrefs): { data: Record<stri
   if (p.narrDim !== 'theme') data['data-u-nd'] = p.narrDim;
   if (!p.avatars) data['data-u-noavatar'] = '';
   if (!p.names) data['data-u-noname'] = '';
+  if (p.stamps) data['data-u-stamps'] = '';
   if (p.msgStyle !== 'theme') data['data-u-ms'] = p.msgStyle;
   if (p.accent) { data['data-u-accent'] = ''; vars['--u-accent'] = p.accent; }
   if (p.tint !== 'none') {
@@ -226,7 +230,7 @@ export function appearanceBodyProps(prefs: AppearancePrefs): { data: Record<stri
 export const SECTION_KEYS: Record<string, (keyof AppearancePrefs)[]> = {
   font: ['uiFont', 'bodyFont'],
   size: ['uiScale', 'chatScale', 'lineHeight', 'chatWidth', 'paraSpacing'],
-  text: ['sayColor', 'actColor', 'thinkColor', 'narrItalic', 'narrDim', 'avatars', 'names', 'msgStyle'],
+  text: ['sayColor', 'actColor', 'thinkColor', 'narrItalic', 'narrDim', 'avatars', 'names', 'stamps', 'msgStyle'],
   color: ['accent', 'tint'],
   shape: ['radius', 'border', 'shadow'],
   motion: ['motion'],

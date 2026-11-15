@@ -17,6 +17,7 @@ export type ChatMessageView = {
   selected: number;
   bookmark?: boolean;
   attachment?: ChatAttachmentView | null;
+  createdAt?: number;
 };
 
 type Props = {
@@ -50,6 +51,24 @@ function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
 
+// 消息时间：只在客户端格式化（服务器时区不同会导致 hydration 不一致）
+function MsgTime({ at }: { at?: number }) {
+  const [label, setLabel] = useState('');
+  const [full, setFull] = useState('');
+  useEffect(() => {
+    if (!at) return;
+    const d = new Date(at);
+    const now = new Date();
+    const hm = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const sameDay = d.toDateString() === now.toDateString();
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    setLabel(sameDay ? hm : d.toDateString() === y.toDateString() ? `昨天 ${hm}` : `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`);
+    setFull(d.toLocaleString('zh-CN', { hour12: false }));
+  }, [at]);
+  if (!at) return null;
+  return <time className="p-msg-time" dateTime={new Date(at).toISOString()} title={full || undefined} suppressHydrationWarning>{label}</time>;
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function friendlyError(message: string): string {
@@ -77,6 +96,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
   const [switching, setSwitching] = useState<number | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [openActions, setOpenActions] = useState<number | string | null>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
@@ -281,8 +301,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     const assistantKey = `local-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0 },
-      { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0 },
+      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0, createdAt: Date.now() },
+      { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
     const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => setDraft(''));
@@ -473,12 +493,27 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             const isEditing = editing !== null && editing.id === message.id;
             const isStreamingThis = streamingId === message.id;
             return (
-              <article key={message.id} id={`msg-${message.id}`} className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLatest ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}>
+              <article
+                key={message.id}
+                id={`msg-${message.id}`}
+                className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLatest ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
+                onTouchStart={!isUser && isLatest ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
+                onTouchEnd={!isUser && isLatest ? (event) => {
+                  // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版
+                  const start = swipeStart.current; swipeStart.current = null;
+                  if (!start || streaming || editing || numericId === null || !message.content) return;
+                  const t = event.changedTouches[0];
+                  const dx = t.clientX - start.x; const dy = t.clientY - start.y;
+                  if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+                  if (dx > 0 && message.selected > 0) void switchCandidate(message, message.selected - 1);
+                  else if (dx < 0) void (message.selected < message.candidateCount - 1 ? switchCandidate(message, message.selected + 1) : regenerate(message));
+                } : undefined}
+              >
                 <span className={`p-avatar${!isUser && characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : characterHue }}>
                   {isUser ? (personaName ? Array.from(personaName)[0] : '你') : characterCover ? <img src={characterCover} alt="" /> : Array.from(characterName)[0]}
                 </span>
                 <div>
-                  <div className="p-msg-name">{isUser ? '你' : characterName}</div>
+                  <div className="p-msg-name"><span className="p-msg-who">{isUser ? (personaName || '你') : characterName}</span><MsgTime at={message.createdAt} /></div>
                   {isEditing ? (
                     <div>
                       <textarea
@@ -522,6 +557,17 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                         <audio controls src={message.attachment.url} style={{ display: 'block', width: '100%', maxWidth: 360, marginTop: 8 }} />
                       )}
                     </>
+                  )}
+                  {!isEditing && !isUser && isLatest && numericId !== null && !isStreamingThis && message.content && (
+                    <div className="rp-swipe" role="group" aria-label="回复版本">
+                      <button type="button" aria-label="上一版回复" disabled={message.selected <= 0 || switching === numericId || streaming} onClick={() => void switchCandidate(message, message.selected - 1)}><Ico name="prev" /></button>
+                      <span className="rp-swipe-index" aria-live="polite">{Math.max(1, message.selected + 1)} / {Math.max(1, message.candidateCount)}</span>
+                      {message.selected < message.candidateCount - 1 ? (
+                        <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void switchCandidate(message, message.selected + 1)}><Ico name="next" /></button>
+                      ) : (
+                        <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="next" /></button>
+                      )}
+                    </div>
                   )}
                   {!isEditing && (
                     <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>

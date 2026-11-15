@@ -11,6 +11,7 @@ export type ChatMessageView = {
   selected: number;
   bookmark: boolean;
   attachment: ChatAttachment | null;
+  createdAt: number;
 };
 
 function parseAttachment(raw: string | null): ChatAttachment | null {
@@ -38,5 +39,6 @@ export function toMessageView(message: DbMessage): ChatMessageView {
     selected: message.selected,
     bookmark: message.bookmark === 1,
     attachment: parseAttachment(message.attachment),
+    createdAt: message.created_at,
   };
 }

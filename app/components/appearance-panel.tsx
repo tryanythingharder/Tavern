@@ -150,6 +150,7 @@ export function AppearancePanel({ theme, initial, showTheme = true }: { theme: T
         <div className="ua-toggles">
           <Toggle label="显示头像" checked={prefs.avatars} onChange={(avatars) => set({ avatars })} />
           <Toggle label="显示名字" checked={prefs.names} onChange={(names) => set({ names })} />
+          <Toggle label="显示消息时间" checked={prefs.stamps} onChange={(stamps) => set({ stamps })} />
         </div>
         <p className="ua-hint">文字颜色在亮色和暗色主题下共用，换主题后可以再调一下。</p>
       </Section>
