@@ -8,7 +8,6 @@
 /* ---------- 每套主题的参考色：给描边/文字/气泡用 ---------- */
 html body[data-theme="folio"] { --u-ref-line: var(--fo-line-strong); --u-ref-ink: var(--fo-ink); --u-ref-copy: var(--fo-copy); --u-ref-muted: var(--fo-muted); --u-ref-card: #fff; --u-ref-sunken: var(--fo-sunken); --u-ref-user: var(--fo-player); --u-ref-shadow: 27, 27, 29; }
 html body[data-theme="stage"] { --u-ref-line: var(--stg-line-strong); --u-ref-ink: var(--stg-ink); --u-ref-copy: var(--stg-copy); --u-ref-muted: var(--stg-muted); --u-ref-card: #fff; --u-ref-sunken: var(--stg-sunken); --u-ref-user: var(--stg-player); --u-ref-shadow: 27, 27, 29; }
-html body[data-theme="nocturne"] { --u-ref-line: var(--noc-line-2); --u-ref-ink: var(--noc-text); --u-ref-copy: var(--noc-copy); --u-ref-muted: var(--noc-muted); --u-ref-card: #141418; --u-ref-sunken: #1d1d23; --u-ref-user: #1b1c2b; --u-ref-shadow: 0, 0, 0; }
 
 /* ==========================================================================
    字体
@@ -105,7 +104,7 @@ html body[data-u-ms="bubble"][data-page="chat"][data-theme] .p-chat-scroll artic
 html body[data-u-ms="bubble"][data-page="chat"] .p-chat-scroll .p-msg.p-msg-user .p-msg-copy {
   background: var(--u-ref-user) !important; margin-left: auto;
 }
-html body[data-u-ms="bubble"][data-theme="nocturne"][data-page="chat"] .p-chat-scroll .p-msg:not(.p-msg-user) .p-msg-copy { background: rgba(20, 20, 24, .72) !important; backdrop-filter: blur(10px); }
+
 /* 平铺 */
 html body[data-u-ms="flat"][data-page="chat"] .p-chat-scroll .p-msg .p-msg-copy,
 html body[data-u-ms="flat"][data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user {
@@ -129,31 +128,13 @@ html body[data-u-accent] {
   --u-ref-user: color-mix(in srgb, var(--u-accent) 7%, #fff);
   accent-color: var(--u-accent);
 }
-html body[data-u-accent][data-theme="nocturne"] {
-  --u-accent-soft: color-mix(in srgb, var(--u-accent) 22%, #141418);
-  --noc-accent-soft: var(--u-accent-soft) !important; --ca-accent-soft: var(--u-accent-soft) !important;
-  --pp-accent-soft: var(--u-accent-soft) !important; --accent-soft: var(--u-accent-soft) !important;
-  --primary: var(--u-accent) !important; --primary-hover: color-mix(in srgb, var(--u-accent) 85%, #fff) !important;
-  --u-ref-user: color-mix(in srgb, var(--u-accent) 16%, #141418);
-}
+
 html body[data-u-accent] ::selection { background: var(--u-accent-soft); }
 /* 主题里写死靛蓝的显眼位置 */
 html body[data-u-accent] :is(.p-btn--primary, .btn--primary, .noc-btn--primary):not(:disabled) { background: var(--u-accent) !important; border-color: var(--u-accent) !important; color: #fff !important; }
 html body[data-u-accent][data-theme="folio"] :is(.p-btn--primary, .btn--primary):not(:disabled) { background: var(--fo-ink) !important; border-color: var(--fo-ink) !important; }
 html body[data-u-accent] .p-chat-send:not(:disabled):not(.is-stop) { background: var(--u-accent) !important; border-color: var(--u-accent) !important; color: #fff !important; }
-html body[data-u-accent][data-theme="nocturne"][data-page="chat"] .p-chat-scroll .p-msg.p-msg-user {
-  border-color: color-mix(in srgb, var(--u-accent) 40%, transparent) !important;
-  background: linear-gradient(color-mix(in srgb, var(--u-accent) 18%, rgba(20, 20, 24, .78)), color-mix(in srgb, var(--u-accent) 12%, rgba(20, 20, 24, .6))) !important;
-}
-html body[data-u-accent][data-theme="nocturne"][data-page="chat"] .p-chat-compose-row:focus-within { border-color: color-mix(in srgb, var(--u-accent) 65%, transparent) !important; box-shadow: 0 0 0 4px color-mix(in srgb, var(--u-accent) 14%, transparent), 0 18px 50px rgba(0, 0, 0, .45) !important; }
-html body[data-u-accent][data-theme="nocturne"] .p-chat-send:not(:disabled):not(.is-stop) { box-shadow: 0 8px 24px color-mix(in srgb, var(--u-accent) 50%, transparent) !important; }
-html body[data-u-accent][data-theme="nocturne"] .noc-acts-fill { background: linear-gradient(color-mix(in srgb, var(--u-accent) 30%, transparent), var(--u-accent)) !important; box-shadow: 0 0 10px var(--u-accent) !important; }
-html body[data-u-accent][data-theme="nocturne"] .noc-mk.is-now::before { box-shadow: 0 0 0 5px color-mix(in srgb, var(--u-accent) 18%, transparent), 0 0 16px var(--u-accent) !important; animation: none !important; }
-html body[data-u-accent][data-theme="nocturne"] :is(.p-btn--primary, .btn--primary, .noc-btn--primary):not(:disabled) { box-shadow: 0 0 0 1px rgba(255, 255, 255, .12) inset, 0 8px 26px color-mix(in srgb, var(--u-accent) 35%, transparent) !important; }
-html body[data-u-accent][data-theme="nocturne"] .th-picker-item.is-active { box-shadow: 0 0 0 3px color-mix(in srgb, var(--u-accent) 25%, transparent) !important; }
-html body[data-u-accent][data-theme="nocturne"] ::selection { background: color-mix(in srgb, var(--u-accent) 45%, transparent); color: #fff; }
-html body[data-u-accent][data-theme="nocturne"] :focus-visible { outline-color: color-mix(in srgb, var(--u-accent) 80%, transparent) !important; }
-html body[data-u-accent][data-theme="nocturne"] .p-aside .p-nav-item[aria-current="page"] { box-shadow: inset 2px 0 0 var(--u-accent) !important; }
+
 html body[data-u-accent] input[type="range"] { accent-color: var(--u-accent); }
 
 /* ==========================================================================
@@ -164,7 +145,7 @@ html body[data-u-tint] .ua-tint {
   display: block; position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
   background: var(--u-tint-light); mix-blend-mode: multiply;
 }
-html body[data-u-tint][data-theme="nocturne"] .ua-tint { background: var(--u-tint-dark); mix-blend-mode: screen; }
+
 @media print { .ua-tint { display: none !important; } }
 
 /* ==========================================================================
@@ -222,8 +203,7 @@ html body[data-u-shadow] { --stg-shadow: var(--u-shadow) !important; --stg-shado
 html body[data-u-shadow="none"] { --u-shadow: none; }
 html body[data-u-shadow="soft"] { --u-shadow: 0 1px 2px rgba(var(--u-ref-shadow), .06), 0 6px 18px -6px rgba(var(--u-ref-shadow), .14); }
 html body[data-u-shadow="strong"] { --u-shadow: 0 2px 4px rgba(var(--u-ref-shadow), .08), 0 22px 48px -14px rgba(var(--u-ref-shadow), .38); }
-html body[data-u-shadow][data-theme="nocturne"][data-u-shadow="soft"] { --u-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 26px -8px rgba(0, 0, 0, .55); }
-html body[data-u-shadow][data-theme="nocturne"][data-u-shadow="strong"] { --u-shadow: 0 2px 6px rgba(0, 0, 0, .5), 0 30px 60px -16px rgba(0, 0, 0, .85); }
+
 html body[data-u-shadow] :is(.p-card, .p-work, .ca-card, .p-rp-context, .p-rp-workbench .p-chat-compose, .p-chat-compose-row, .p-chat-scroll .p-msg-copy, .modal, .p-modal, .th-picker-item, .p-detail-sticky) {
   box-shadow: var(--u-shadow) !important;
 }
@@ -273,9 +253,7 @@ html body[data-theme="folio"] .p-topbar .ua-trigger,
 html body[data-theme="folio"] .cinema-nav .ua-trigger { border: 0; border-radius: 0; height: 32px; padding: 0 6px; font-weight: 400; letter-spacing: .12em; color: var(--fo-copy); }
 html body[data-theme="folio"] .p-topbar .ua-trigger:hover { background: transparent; color: var(--fo-ink); box-shadow: inset 0 -1px 0 var(--fo-ink); }
 /* 夜幕：玻璃胶囊 */
-html body[data-theme="nocturne"] .p-topbar .ua-trigger,
-html body[data-theme="nocturne"] .cinema-nav .ua-trigger { border-color: var(--noc-glass-line); background: var(--noc-glass); color: var(--noc-text); backdrop-filter: blur(14px); }
-html body[data-theme="nocturne"] .p-topbar .ua-trigger:hover { background: rgba(255, 255, 255, .08); }
+
 /* 戏台：黑底贴纸 */
 html body[data-theme="stage"] .p-topbar .ua-trigger { border: 0; background: var(--stg-sunken); color: var(--stg-ink); font-weight: 700; }
 html body[data-theme="stage"] .p-topbar .ua-trigger:hover { background: var(--stg-ink); color: #fff; transform: rotate(-2deg); }
@@ -384,7 +362,7 @@ html body[data-theme="stage"] .p-topbar .ua-trigger:hover { background: var(--st
 .th-mini-line { left: 10%; right: 26%; top: 34%; height: 5%; border-radius: 2px; background: rgba(0, 0, 0, .1); }
 .th-mini-line--short { right: 46%; top: 46%; }
 .th-mini-bubble { right: 10%; bottom: 12%; width: 42%; height: 18%; border-radius: 6px; background: rgba(75, 91, 245, .28); }
-.th-picker-item--nocturne .th-mini-bar, .th-picker-item--nocturne .th-mini-line { background: rgba(255, 255, 255, .18); }
+
 .th-picker-item--folio .th-picker-swatch i { border-radius: 0; }
 .th-picker-item--stage .th-mini-bubble { border-radius: 10px; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
 .th-picker-hint { display: block; padding: 0 4px 6px; font-size: 11px; color: var(--ua-muted, #6b6b73); }
@@ -416,24 +394,6 @@ html body[data-theme="folio"] .ua-toggle i, html body[data-theme="folio"] .ua-to
 html body[data-theme="folio"] .ua-panel .th-picker-item { padding: 0 0 10px; }
 
 /* ---------- 抽屉：夜幕（暗色玻璃） ---------- */
-html body[data-theme="nocturne"] .ua-overlay { background: rgba(0, 0, 0, .45); }
-html body[data-theme="nocturne"] .ua-drawer {
-  background: rgba(16, 16, 20, .86); backdrop-filter: blur(24px) saturate(1.2); -webkit-backdrop-filter: blur(24px) saturate(1.2);
-  color: var(--noc-text); border-left: 1px solid var(--noc-glass-line); box-shadow: -40px 0 80px -20px rgba(0, 0, 0, .7);
-  --ua-ink: var(--noc-text); --ua-copy: var(--noc-copy); --ua-muted: var(--noc-muted); --ua-line: rgba(243, 243, 246, .08); --ua-line-strong: var(--noc-line-2); --ua-sunken: #1d1d23; --ua-card: #141418; --ua-accent: var(--noc-accent);
-}
-html body[data-theme="nocturne"] .ua-panel { --ua-ink: var(--noc-text); --ua-copy: var(--noc-copy); --ua-muted: var(--noc-muted); --ua-line: rgba(243, 243, 246, .08); --ua-line-strong: var(--noc-line-2); --ua-sunken: #1d1d23; --ua-card: #141418; --ua-accent: var(--noc-accent); }
-html body[data-theme="nocturne"] .ua-drawer-title h2 { font-family: var(--noc-serif); font-size: 20px; letter-spacing: .2em; }
-html body[data-theme="nocturne"] .ua-drawer-title span { letter-spacing: .08em; }
-html body[data-theme="nocturne"] .ua-drawer-close:hover { background: rgba(255, 255, 255, .08); }
-html body[data-theme="nocturne"] .ua-section-head h3 { font-family: var(--noc-latin); font-weight: 400; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--noc-muted); }
-html body[data-theme="nocturne"] .ua-seg button { background: rgba(255, 255, 255, .03); }
-html body[data-theme="nocturne"] .ua-seg button.is-on { background: var(--noc-text); color: #0b0b0e; border-color: var(--noc-text); }
-html body[data-theme="nocturne"] .ua-color { border-color: rgba(255, 255, 255, .16); }
-html body[data-theme="nocturne"] .ua-color--theme { color: var(--noc-copy); }
-html body[data-theme="nocturne"] .ua-toggle i::after { background: #f3f3f6; }
-html body[data-theme="nocturne"] .ua-sample { background: rgba(0, 0, 0, .25); }
-html body[data-theme="nocturne"] .ua-sample .rp-say { font-family: var(--noc-serif); }
 
 /* ---------- 抽屉：戏台（白卡、贴纸、圆角） ---------- */
 html body[data-theme="stage"] .ua-drawer {

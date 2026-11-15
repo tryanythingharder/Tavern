@@ -35,7 +35,6 @@ import '../styles/redesign.css';
 // 三套主题：各自只在 body[data-theme=...] 下生效
 import '../styles/themes/shared.css';
 import '../styles/themes/folio.css';
-import '../styles/themes/nocturne.css';
 import '../styles/themes/stage.css';
 // 用户自定义外观：只在 body[data-u-*] 存在时覆盖主题，必须最后导入
 import '../styles/themes/custom.css';

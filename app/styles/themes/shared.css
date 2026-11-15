@@ -19,14 +19,7 @@
     linear-gradient(#1b1b1d, #1b1b1d) 12px 64px / calc(100% - 24px) 1px no-repeat,
     #f7f7f8;
 }
-.th-picker-item--nocturne .th-picker-swatch {
-  background:
-    linear-gradient(#000, #000) 0 0 / 100% 10px no-repeat,
-    linear-gradient(#000, #000) 0 100% / 100% 10px no-repeat,
-    linear-gradient(#f3f3f6, #f3f3f6) 14px 34px / 40% 12px no-repeat,
-    radial-gradient(circle at 80% 60%, rgba(75, 91, 245, .55), transparent 45%),
-    #0b0b0e;
-}
+
 .th-picker-item--stage .th-picker-swatch {
   background:
     linear-gradient(#fff, #fff) 10px 10px / 44% calc(100% - 20px) no-repeat,
@@ -51,7 +44,7 @@
   html body .p-topbar .p-points-trigger { padding-inline: 8px !important; }
 }
 
-/* RP 三种语域：心理『』默认与对白区分（folio / stage；nocturne 在自己的样式里） */
+/* RP 三种语域：心理『』默认与对白区分（folio / stage） */
 body:is([data-theme="folio"], [data-theme="stage"]) .p-msg-copy .rp-say.rp-think {
   opacity: .82;
   text-decoration: underline dotted;
@@ -79,7 +72,6 @@ html body[data-page="chat"] .p-chat-scroll .p-msg:not(.is-latest):not(.is-stream
 /* 「回到最新」靠右贴在输入框上沿，不再压住正文中间 */
 html body[data-page="chat"] .p-chat-compose .rd-jump { left: auto; right: 0; transform: translateY(12px) scale(.95); }
 html body[data-page="chat"] .p-chat-compose .rd-jump.is-visible { transform: none; }
-html body[data-theme="nocturne"][data-page="chat"] .p-chat-compose .rd-jump { background: rgba(20, 20, 24, .94); }
 
 /* ---------- RP：多版本回复切换（最新一条 AI 回复常驻） ---------- */
 .rp-swipe {
@@ -100,8 +92,7 @@ html body[data-theme="nocturne"][data-page="chat"] .p-chat-compose .rd-jump { ba
 .rp-swipe-new::after { content: "+"; position: absolute; top: 3px; right: 5px; font-size: 10px; font-weight: 700; line-height: 1; }
 html body[data-page="chat"] .p-msg.is-latest .p-msg-tools .p-rp-candidate { display: none; }
 @media (max-width: 720px) { .rp-swipe button { width: 40px; height: 36px; } }
-html body[data-theme="nocturne"] .rp-swipe { border-color: rgba(255, 255, 255, .12); background: rgba(20, 20, 24, .55); color: #c9c9d1; }
-html body[data-theme="nocturne"] .rp-swipe button:hover:not(:disabled) { background: #23243a; color: #f3f3f6; }
+
 html body[data-theme="folio"] .rp-swipe { border-radius: 0; background: transparent; border-color: #d5d5d9; }
 html body[data-theme="folio"] .rp-swipe button { border-radius: 0; }
 
@@ -112,7 +103,7 @@ html body[data-theme="folio"] .rp-swipe button { border-radius: 0; }
   color: var(--ca-muted, var(--muted, #77777e)); opacity: 0; transition: opacity .2s ease;
 }
 .p-msg:hover .p-msg-time, .p-msg.is-tools-open .p-msg-time, body[data-u-stamps] .p-msg-time { opacity: 1; }
-html body[data-theme="nocturne"] .p-msg-time { color: #8b8b96; letter-spacing: .04em; }
+
 html body[data-page="chat"] .p-msg .rp-swipe { width: fit-content; max-width: max-content; justify-self: start; align-self: start; height: auto; min-height: 0; }
 html body[data-page="chat"] .p-msg .rp-swipe button { padding: 0 !important; min-height: 0 !important; min-width: 0; border: 0 !important; box-shadow: none !important; }
 
@@ -132,9 +123,7 @@ html body[data-page="chat"] .p-msg .rp-swipe button { padding: 0 !important; min
 .file-drop-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .file-drop-text b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-drop-text small { font-size: 12px; color: var(--ca-muted, var(--muted, #77777e)); }
-html body[data-theme="nocturne"] .file-drop { background: #141418; border-color: #3a3a45; color: #f3f3f6; }
-html body[data-theme="nocturne"] .file-drop:hover, html body[data-theme="nocturne"] .file-drop.is-over { background: #23243a; border-color: #4b5bf5; }
-html body[data-theme="nocturne"] .file-drop-text small { color: #8b8b96; }
+
 html body[data-theme="folio"] .file-drop { border-radius: 0; background: #fff; }
 
 /* ---------- 点数记录：按天分组的细线账本（不用红绿，+ 用靛蓝，− 用墨色） ---------- */
@@ -157,12 +146,7 @@ details.pt-day[open] > .pt-day-h > span:first-child::after { content: " ▾"; }
 .pt-amt.is-in { color: var(--ca-accent, #4b5bf5); }
 .pt-amt.is-out { color: var(--ca-ink, var(--text, #1b1b1d)); }
 @media (max-width: 520px) { .pt-row { grid-template-columns: 40px minmax(0, 1fr) auto; } .pt-bal { display: none; } }
-html body[data-theme="nocturne"] .pt-day-h { color: #8b8b96; border-color: #2a2a33; }
-html body[data-theme="nocturne"] .pt-row { border-color: #1f1f26; }
-html body[data-theme="nocturne"] .pt-what { color: #c9c9d1; }
-html body[data-theme="nocturne"] :is(.pt-what b, .pt-amt.is-out) { color: #f3f3f6; }
-html body[data-theme="nocturne"] .pt-amt.is-in { color: #7d89ff; }
-html body[data-theme="nocturne"] :is(.pt-time, .pt-bal) { color: #8b8b96; }
+
 html body[data-theme="folio"] .pt-ledger { font-family: "Noto Serif SC", "Songti SC", serif; }
 html body[data-theme="folio"] .pt-day-h { border-bottom: 3px double #1b1b1d; color: #1b1b1d; }
 
@@ -185,8 +169,6 @@ html body .p-btn.p-create-cancel:hover { color: var(--ca-ink, var(--text, #1b1b1
 @media (max-width: 720px) { :is(.p-chat-act, .mp-trigger) { height: 36px; } }
 html body[data-theme="stage"] .p-chat-continue { display: none; }
 html body[data-theme="folio"] :is(.p-chat-act, .mp-trigger, .mp-pop) { border-radius: 0; font-family: "Noto Serif SC", "Songti SC", serif; }
-html body[data-theme="nocturne"] :is(.p-chat-act, .mp-trigger) { border-color: rgba(255, 255, 255, .16); color: #f3f3f6; letter-spacing: .04em; }
-html body[data-theme="nocturne"] :is(.p-chat-act, .mp-trigger):hover:not(:disabled) { background: #23243a; border-color: #4b5bf5; color: #f3f3f6; }
 
 /* 模型选择 */
 .mp { position: relative; display: inline-flex; min-width: 0; }
@@ -210,10 +192,7 @@ html body[data-theme="nocturne"] :is(.p-chat-act, .mp-trigger):hover:not(:disabl
 .mp-opt-name { font-size: 13.5px; font-weight: 600; word-break: break-all; }
 .mp-tag { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-style: normal; font-size: 11px; font-weight: 600; color: var(--ca-accent, #4b5bf5); background: var(--ca-accent-soft, #eceefe); }
 .mp-empty { padding: 8px 10px; margin: 0; }
-html body[data-theme="nocturne"] .mp-pop { background: #17171c; color: #f3f3f6; border-color: rgba(255, 255, 255, .12); }
-html body[data-theme="nocturne"] :is(.mp-head span, .mp-opt-note, .mp-empty) { color: #b4b4bc; }
-html body[data-theme="nocturne"] .mp-opt:hover { background: rgba(255, 255, 255, .06); }
-html body[data-theme="nocturne"] .mp-opt.is-on, html body[data-theme="nocturne"] .mp-tag { background: #23243a; color: #f3f3f6; }
+
 html body[data-theme="folio"] .mp-opt, html body[data-theme="folio"] .mp-search { border-radius: 0; }
 
 /* 新手提示条 */
@@ -221,8 +200,7 @@ html body[data-theme="folio"] .mp-opt, html body[data-theme="folio"] .mp-search 
   background: var(--ca-accent-soft, #eceefe); color: var(--ca-ink, #1b1b1d); }
 .pm-tip code { font-family: inherit; padding: 0 4px; border-radius: 4px; background: rgba(255, 255, 255, .7); }
 .pm-tip button { margin-left: auto; border: 0; background: transparent; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; opacity: .6; }
-html body[data-theme="nocturne"] .pm-tip { background: #23243a; color: #f3f3f6; }
-html body[data-theme="nocturne"] .pm-tip code { background: rgba(255, 255, 255, .1); }
+
 html body[data-theme="folio"] .pm-tip { border-radius: 0; background: transparent; border-left: 2px solid var(--ca-accent, #4b5bf5); }
 
 /* 设置目录里的 ST 术语（老玩家模式） */
@@ -252,10 +230,7 @@ html body[data-theme="folio"] .pm-opt { border-radius: 0; }
 .pm-skip { display: block; margin: 16px auto 0; border: 0; background: transparent; color: #77777e; font: inherit; font-size: 13px; cursor: pointer; }
 .pm-skip:hover { color: #1b1b1d; text-decoration: underline; }
 @media (max-width: 600px) { .pm-grid { grid-template-columns: 1fr; } .pm-card { padding: 22px; } }
-html body[data-theme="nocturne"] .pm-card { background: #141418; color: #f3f3f6; border: 1px solid rgba(255, 255, 255, .1); }
-html body[data-theme="nocturne"] :is(.pm-lead, .pm-choice span) { color: #b4b4bc; }
-html body[data-theme="nocturne"] .pm-choice { background: #1b1b21; border-color: rgba(255, 255, 255, .12); }
-html body[data-theme="nocturne"] .pm-choice .pm-badge { background: #23243a; color: #c9cdfd; }
+
 html body[data-theme="folio"] :is(.pm-card, .pm-choice, .pm-choice .pm-badge) { border-radius: 0; }
 html body[data-theme="folio"] .pm-card { border: 1px solid #1b1b1d; }
 html body[data-theme="folio"] .pm-card h2 { font-family: "Noto Serif SC", "Songti SC", serif; }
@@ -268,15 +243,14 @@ html body[data-theme="folio"] .pm-card h2 { font-family: "Noto Serif SC", "Songt
 .pt-prices { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; max-width: 460px; }
 .pt-prices li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: 8px; background: var(--ca-sunken, var(--surface-2, #f7f7f8)); font-size: 13px; }
 .pt-prices b { font-weight: 600; white-space: nowrap; }
-html body[data-theme="nocturne"] .pt-prices li { background: rgba(255, 255, 255, .05); }
+
 html body[data-theme="folio"] .pt-prices li { border-radius: 0; background: transparent; border-bottom: 1px solid rgba(27, 27, 29, .14); }
 
 /* 玩法模式：两步指引、进阶开关 */
 .pm-steps { display: flex; gap: 6px; margin: 0 0 14px; }
 .pm-steps i { width: 22px; height: 3px; border-radius: 2px; background: #d5d5d9; }
 .pm-steps i.is-on { background: #4b5bf5; }
-html body[data-theme="nocturne"] .pm-steps i { background: rgba(255, 255, 255, .16); }
-html body[data-theme="nocturne"] .pm-steps i.is-on { background: #4b5bf5; }
+
 .pm-toc-more, .pm-more { display: block; margin: 10px 0 0; padding: 6px 0; border: 0; background: transparent; color: var(--ca-accent, #4b5bf5); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
 .pm-toc-more:hover, .pm-more:hover { text-decoration: underline; }
 .pm-more { margin: 4px 0 14px; }

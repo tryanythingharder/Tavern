@@ -80,7 +80,7 @@ export function SiteShell({
   recents = [],
   costs = { text: 2, image: 20, tts: 5 },
   view = 'classic',
-  theme = 'nocturne',
+  theme = 'folio',
   announcement = '',
   checkin = null,
   appearance,

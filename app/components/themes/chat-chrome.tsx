@@ -1,6 +1,5 @@
 import type { Theme } from '@/lib/theme';
 import { FolioChatChrome } from '@/components/themes/folio/chat-chrome';
-import { NocturneChatChrome } from '@/components/themes/nocturne/chat-chrome';
 import { StageChatChrome } from '@/components/themes/stage/chat-chrome';
 
 // 对话页的主题装饰层：场景底板、章节导轨、角色卡等。
@@ -27,7 +26,6 @@ export type ChatChromeData = {
 };
 
 export function ThemeChatChrome({ theme, chrome }: { theme: Theme; chrome: ChatChromeData }) {
-  if (theme === 'folio') return <FolioChatChrome chrome={chrome} />;
   if (theme === 'stage') return <StageChatChrome chrome={chrome} />;
-  return <NocturneChatChrome chrome={chrome} />;
+  return <FolioChatChrome chrome={chrome} />;
 }

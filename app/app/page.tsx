@@ -6,7 +6,6 @@ import { hideNsfw } from '@/lib/prefs';
 import { getTheme } from '@/lib/theme';
 import type { HomeData } from '@/components/themes/types';
 import { FolioHome } from '@/components/themes/folio/home';
-import { NocturneHome } from '@/components/themes/nocturne/home';
 import { StageHome } from '@/components/themes/stage/home';
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +42,6 @@ export default async function HomePage() {
     categories: [...CATEGORIES],
   };
 
-  if (theme === 'folio') return <FolioHome data={data} />;
   if (theme === 'stage') return <StageHome data={data} />;
-  return <NocturneHome data={data} />;
+  return <FolioHome data={data} />;
 }
