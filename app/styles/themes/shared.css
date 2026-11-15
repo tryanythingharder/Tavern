@@ -407,3 +407,19 @@ body[data-u-backdrop][data-page="chat"] .chat-backdrop ~ .p-rp-workbench { posit
   html body[data-theme="stage"]:not(#stg)[data-page="chat"] .p-chat-meta > .p-chat-hint { display: none; }
   html body[data-theme="stage"]:not(#stg)[data-page="chat"] .p-chat-acts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
 }
+
+/* ─── 记忆示意条（对话设定 → 记忆） ─── */
+.mm { margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--ca-line, var(--border, #e6e6e8)); border-radius: var(--u-r, 14px); background: var(--ca-sunken, var(--surface-2, #f7f7f8)); }
+.mm-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; margin-bottom: 10px; }
+.mm-head span { font-size: 12px; color: var(--ca-muted, var(--muted, #77777e)); font-variant-numeric: tabular-nums; }
+.mm-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--ca-line, #e6e6e8); gap: 2px; }
+.mm-bar i { display: block; min-width: 4px; transition: width .4s ease; }
+.mm-legend { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; color: var(--ca-copy, var(--text-2, #4a4a50)); }
+.mm-legend li { display: flex; align-items: center; gap: 8px; }
+.mm-dot { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+.mm-sum { background: var(--ca-ink, #1b1b1d); }
+.mm-gap { background: var(--ca-accent-soft, #eceefe); box-shadow: inset 0 0 0 1px var(--ca-accent, #4b5bf5); }
+.mm-gap.is-off { background: repeating-linear-gradient(45deg, #d5d5d9 0 3px, transparent 3px 6px); box-shadow: none; }
+.mm-recent { background: var(--ca-accent, #4b5bf5); }
+.mm-pin { background: #77777e; }
+.mm-pin.is-off { background: transparent; box-shadow: inset 0 0 0 1px #d5d5d9; }

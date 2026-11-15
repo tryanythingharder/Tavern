@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>暂时断网 · 酒馆</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #f7f7f8; color: #1b1b1d; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif; }
+  main { min-height: 100%; display: grid; place-content: center; gap: 14px; padding: 24px; text-align: center; box-sizing: border-box; }
+  .mark { width: 64px; height: 64px; margin: 0 auto 6px; border-radius: 18px; background: #202024; color: #fff; display: grid; place-items: center; font-size: 30px; font-weight: 700; }
+  h1 { margin: 0; font-size: 20px; }
+  p { margin: 0; color: #4a4a50; font-size: 14.5px; line-height: 1.7; }
+  button { justify-self: center; margin-top: 8px; min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; background: #4b5bf5; color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark" aria-hidden="true">酒</div>
+  <h1>暂时连不上酒馆</h1>
+  <p>网络好像断了。你的故事都保存在服务器上，<br>连上网络后从刚才的地方接着写就好。</p>
+  <button type="button" onclick="location.reload()">重新连接</button>
+</main>
+<script>addEventListener('online', function () { location.reload(); });</script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import { CheckinPopup } from '@/components/checkin-popup';
 import { MotionLayer } from '@/components/motion-layer';
 import { CommandPalette } from '@/components/command-palette';
 import { OfflineBanner } from '@/components/offline-banner';
+import { SwRegister } from '@/components/sw-register';
 import { ErrorReporter } from '@/components/error-reporter';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
@@ -214,6 +215,7 @@ export function SiteShell({
     <>
       <MotionLayer />
       <OfflineBanner />
+      <SwRegister />
       <ErrorReporter />
       <AppearanceDrawer theme={theme} initial={appearance} />
       {userName && <CommandPalette recents={recents.map((recent) => ({ id: recent.id, name: recent.name, title: recent.title }))} />}

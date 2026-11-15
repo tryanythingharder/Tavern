@@ -342,6 +342,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
               <p className="small">加载中…</p>
             ) : (
               <>
+                <MemoryMap data={memory} ragOn={ragEnabled} manual={manualMemory.trim().length > 0} />
                 <h3 className="panel-title">自动摘要</h3>
                 <p className="small" style={{ marginTop: 0 }}>
                   已覆盖 {memory.status.covered} 条 · 落后 {memory.status.behind} 条 · 最近 {memory.recentWindow} 条始终按原文进入上下文
@@ -421,5 +422,31 @@ export function ChatSettings({ chatId }: { chatId: number }) {
         </Modal>
       )}
     </>
+  );
+}
+
+// 记忆示意：一条横轴 = 整段对话。左边已被摘要「压缩」，中间只能靠检索捞回，右边最近 N 条原文直送模型。
+function MemoryMap({ data, ragOn, manual }: { data: MemoryData; ragOn: boolean; manual: boolean }) {
+  const total = Math.max(1, data.messageCount);
+  const recent = Math.min(data.recentWindow, data.messageCount);
+  const covered = Math.min(data.status.covered, Math.max(0, data.messageCount - recent));
+  const gap = Math.max(0, data.messageCount - recent - covered);
+  const pct = (n: number) => `${(n / total) * 100}%`;
+  const segs = [
+    { key: 'sum', n: covered, label: '摘要', note: data.status.enabled ? `前 ${covered} 条已压缩成摘要` : '自动摘要已关闭' },
+    { key: 'gap', n: gap, label: ragOn ? '检索' : '未覆盖', note: ragOn ? `${gap} 条按相关度检索带回` : `${gap} 条暂时不会进入上下文` },
+    { key: 'recent', n: recent, label: '原文', note: `最近 ${recent} 条按原文发送` },
+  ];
+  return (
+    <div className="mm" aria-label="记忆覆盖示意">
+      <div className="mm-head"><b>这段故事的记忆</b><span>共 {data.messageCount} 条</span></div>
+      <div className="mm-bar" role="img" aria-label={segs.map((seg) => seg.note).join('，')}>
+        {segs.map((seg) => seg.n > 0 && <i key={seg.key} className={`mm-${seg.key}${seg.key === 'gap' && !ragOn ? ' is-off' : ''}`} style={{ width: pct(seg.n) }} title={seg.note} />)}
+      </div>
+      <ul className="mm-legend">
+        {segs.map((seg) => <li key={seg.key}><span className={`mm-dot mm-${seg.key}${seg.key === 'gap' && !ragOn ? ' is-off' : ''}`} />{seg.note}</li>)}
+        <li><span className={`mm-dot mm-pin${manual ? '' : ' is-off'}`} />{manual ? '手动记忆每轮都带上' : '还没写手动记忆'}</li>
+      </ul>
+    </div>
   );
 }
