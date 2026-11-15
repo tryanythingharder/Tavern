@@ -11,6 +11,7 @@ import { AnnouncementBar } from '@/components/announcement-bar';
 import { CheckinPopup } from '@/components/checkin-popup';
 import { MotionLayer } from '@/components/motion-layer';
 import { CommandPalette } from '@/components/command-palette';
+import { OfflineBanner } from '@/components/offline-banner';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -211,6 +212,7 @@ export function SiteShell({
   const overlays = (
     <>
       <MotionLayer />
+      <OfflineBanner />
       <AppearanceDrawer theme={theme} initial={appearance} />
       {userName && <CommandPalette recents={recents.map((recent) => ({ id: recent.id, name: recent.name, title: recent.title }))} />}
     </>
@@ -298,7 +300,7 @@ export function SiteShell({
             </Link>
           </div>
         </header>
-        <main className="cinema-main">{children}</main>
+        <main className="cinema-main" id="main-content" tabIndex={-1}>{children}</main>
         <nav className="p-tabbar" aria-label="主导航">
           {NAV.map((item) => (
             <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
@@ -390,6 +392,7 @@ export function SiteShell({
           </Link>
         </header>
         {!adminPage && !pathname.startsWith('/chats/') && !pathname.startsWith('/rooms/') && <AnnouncementBar text={announcement} />}
+        <span id="main-content" tabIndex={-1} className="main-anchor" />
         {children}
       </div>
 

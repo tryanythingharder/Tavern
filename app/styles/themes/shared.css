@@ -265,3 +265,49 @@ html body[data-theme="folio"] .pt-prices li { border-radius: 0; background: tran
 /* 新手模式：收起分支等进阶工具（功能仍在老玩家模式） */
 html body[data-mode="newbie"] .p-msg-tools button[aria-label="从这里创建分支"],
 html body[data-mode="newbie"] button[aria-label="从这里创建分支"] { display: none; }
+
+/* ===== 上线前收尾（2026-11-15）===== */
+/* 跳到正文：仅键盘聚焦时出现 */
+.skip-link { position: fixed; left: 12px; top: -48px; z-index: 1000; padding: 8px 14px; border-radius: 8px; background: #1b1b1d; color: #fff; font-size: 13px; text-decoration: none; transition: top .2s; }
+.skip-link:focus-visible { top: 12px; outline: 2px solid #4b5bf5; outline-offset: 2px; }
+.main-anchor { display: block; height: 0; outline: none; }
+#main-content:focus { outline: none; }
+
+/* 输入控件统一的键盘焦点环（P2-5）；鼠标点击不出现 */
+html body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--u-accent, #4b5bf5) 70%, transparent);
+  outline-offset: 2px;
+}
+html body[data-page="chat"] .p-chat-compose-row:focus-within textarea:focus-visible { outline: none; }
+
+/* 段落末行孤字（P2-1） */
+.rp-p, .p-msg-copy p { text-wrap: pretty; }
+
+/* 密码显示/隐藏 */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap > input { width: 100%; padding-right: 56px !important; }
+.pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-width: 44px; min-height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: #6b6b73; font-size: 12.5px; cursor: pointer; }
+.pw-toggle:hover { background: #eceefe; color: #1b1b1d; }
+.pw-toggle:focus-visible { outline: 2px solid #4b5bf5; outline-offset: 1px; }
+
+/* 戏台：未读角标用主色而非报错红（P2-13）；排序按钮不换行（P2-12） */
+html body[data-theme="stage"] .p-unread-badge { background: #4b5bf5; }
+html body[data-theme="stage"] .stg-seg :is(button, a) { white-space: nowrap; }
+
+/* 戏台手机：快捷动作条可横滑，右缘渐隐提示还有更多（P2-20） */
+@media (max-width: 720px) {
+  html body[data-theme="stage"] .stg-qa { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); padding-right: 24px; }
+  html body[data-theme="stage"] .stg-qa::-webkit-scrollbar { display: none; }
+  html body[data-theme="stage"] .stg-qa .stg-q { flex: 0 0 auto; }
+  html body[data-theme="stage"] .stg-qa :is(.stg-qa-sp, .stg-persona) { display: none; }
+}
+
+/* 登录页手机脚注：触控区 ≥ 40px（P2-19） */
+@media (max-width: 720px) {
+  .p-auth-foot a, .p-auth-footer a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 6px; }
+}
+.net-banner { position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 900; padding: 8px 16px; border-radius: 999px; font-size: 13px; box-shadow: 0 8px 24px rgba(27, 27, 29, .18); }
+.net-banner.is-offline { background: #1b1b1d; color: #fff; }
+.net-banner.is-back { background: #eceefe; color: #1b1b1d; }
+.lib-chatted { display: grid; gap: 8px; justify-items: center; margin: 4px 0 14px; }
+.lib-chatted-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }

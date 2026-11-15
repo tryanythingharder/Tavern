@@ -4,13 +4,16 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { inviteRequired } from '@/lib/invite';
 import { login, register } from './actions';
+import { PasswordInput } from '@/components/password-input';
 
 export const metadata: Metadata = { title: '登录' };
 
 const field = (id: string, label: string, type: string, extra: Record<string, string> = {}) => (
   <div className="p-auth-field">
     <label className="p-auth-label" htmlFor={id}>{label}</label>
-    <input className="p-auth-input" id={id} name={id.replace(/^(login|register)-/, '')} type={type} {...extra} />
+    {type === 'password'
+      ? <PasswordInput className="p-auth-input" id={id} name={id.replace(/^(login|register)-/, '')} {...extra} />
+      : <input className="p-auth-input" id={id} name={id.replace(/^(login|register)-/, '')} type={type} {...extra} />}
   </div>
 );
 

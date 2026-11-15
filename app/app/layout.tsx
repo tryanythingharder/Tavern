@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { SiteShell } from '@/components/site-shell';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
@@ -45,6 +45,9 @@ export const metadata: Metadata = {
   description: '和喜欢的角色开始一段故事。保持 SillyTavern 的能力，做成更好用的前端。',
 };
 
+// viewport-fit=cover 让 env(safe-area-inset-*) 在 iOS 刘海屏/底部横条上生效
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#ffffff' };
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   const view = await getViewMode();
@@ -87,6 +90,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         style={{ ['--rp-font-scale' as string]: String(appearance.fontScale / 100), ...customBody.vars }}
       >
         {/* 背景色调滤镜层：仅在用户选了色调时由 CSS 显示 */}
+        <a className="skip-link" href="#main-content">跳到正文</a>
         <div className="ua-tint" aria-hidden="true" />
         {/* 首屏在 hydration 前就定好页面/视图标记，避免切页时先闪一下旧排版 */}
         <script

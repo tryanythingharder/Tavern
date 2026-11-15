@@ -21,7 +21,7 @@ export function FolioReveal() {
           io.unobserve(entry.target);
         }
       }),
-      { rootMargin: '0px 0px -6% 0px' },
+      { rootMargin: '0px 0px 20% 0px' },
     );
     const observe = () => mark().forEach((el) => io.observe(el));
     observe();

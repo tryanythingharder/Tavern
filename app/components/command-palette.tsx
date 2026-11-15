@@ -32,6 +32,20 @@ export function CommandPalette({ recents = [] }: { recents?: { id: number; name:
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+  const [found, setFound] = useState<{ id: string; name: string; hook: string }[]>([]);
+  // 角色搜索：输入停顿 180ms 后查一次，最多 6 条
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setFound([]); return; }
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      fetch(`/api/characters/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        .then((r) => (r.ok ? r.json() : { characters: [] }))
+        .then((d) => setFound(d.characters ?? []))
+        .catch(() => {});
+    }, 180);
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [query]);
   const lastFocus = useRef<HTMLElement | null>(null);
 
   const close = useCallback(() => {
@@ -75,10 +89,12 @@ export function CommandPalette({ recents = [] }: { recents?: { id: number; name:
     const q = query.trim().toLowerCase();
     const story: Item[] = recents.map((recent) => ({ id: `chat-${recent.id}`, label: recent.name, hint: recent.title, href: `/chats/${recent.id}`, group: '继续故事' }));
     const all = [...story, ...PAGES];
-    const filtered = q ? all.filter((item) => `${item.label} ${item.hint ?? ''} ${item.keywords ?? ''}`.toLowerCase().includes(q)) : all;
+    const matched = q ? all.filter((item) => `${item.label} ${item.hint ?? ''} ${item.keywords ?? ''}`.toLowerCase().includes(q)) : all;
+    const chars: Item[] = q ? found.map((c) => ({ id: `char-${c.id}`, label: c.name, hint: c.hook, href: `/c/${c.id}`, group: '角色' })) : [];
+    const filtered = [...matched.filter((i) => i.group === '继续故事'), ...chars, ...matched.filter((i) => i.group !== '继续故事')];
     if (q) filtered.push({ id: 'search', label: `搜索「${query.trim()}」`, hint: '角色、作者与剧情', href: `/search?q=${encodeURIComponent(query.trim())}`, group: '搜索' });
     return filtered;
-  }, [query, recents]);
+  }, [query, recents, found]);
 
   useEffect(() => setActive(0), [query]);
 
