@@ -12,6 +12,7 @@ import { CheckinPopup } from '@/components/checkin-popup';
 import { MotionLayer } from '@/components/motion-layer';
 import { CommandPalette } from '@/components/command-palette';
 import { OfflineBanner } from '@/components/offline-banner';
+import { ErrorReporter } from '@/components/error-reporter';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -213,12 +214,13 @@ export function SiteShell({
     <>
       <MotionLayer />
       <OfflineBanner />
+      <ErrorReporter />
       <AppearanceDrawer theme={theme} initial={appearance} />
       {userName && <CommandPalette recents={recents.map((recent) => ({ id: recent.id, name: recent.name, title: recent.title }))} />}
     </>
   );
 
-  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}<MotionLayer /></>;
+  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}<MotionLayer /><ErrorReporter /></>;
 
   // 后台：原型 admin.html 的独立骨架（240px 侧栏 + 主区工具栏）
   if (adminPage) {

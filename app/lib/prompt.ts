@@ -14,6 +14,7 @@ import {
   type RegexRule,
 } from '@/lib/resources';
 import { estimateTokens } from '@/lib/usage';
+import { parseCardFields } from '@/lib/characters';
 
 // 提示词组装：把原型的 assemblePrompt 语义搬到服务端。
 // 块顺序来自预设；世界书按关键词扫描后进入「角色设定之前/之后/历史深度」等位置；
@@ -199,6 +200,8 @@ function overridePrompt(base: string, override: string | undefined, allowed: boo
 
 export function assemblePrompt(input: AssembleInput): AssembleResult {
   const { character, history, preset, persona, loreEntries, regexRules } = input;
+  // 作者写在卡里的高级字段；玩家自己的覆盖（/me/cards）优先
+  const cardFields = parseCardFields(character.card_fields);
   const triggered = input.trigger ?? 'normal';
 
   // 扫描文本：最近消息 + 角色设定 + 玩家身份（对应 ST 的 match_* 字段）
@@ -206,6 +209,8 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   const scanTexts = recent.map((message) => `${message.role === 'user' ? (persona?.name || '你') : character.name}：${message.content}`);
   if (character.description) scanTexts.push(character.description);
   if (character.pace) scanTexts.push(character.pace);
+  if (cardFields.personality) scanTexts.push(cardFields.personality);
+  if (cardFields.scenario) scanTexts.push(cardFields.scenario);
   if (persona?.description) scanTexts.push(persona.description);
 
   const scan = scanLore(loreEntries, scanTexts, { trigger: triggered });
@@ -214,17 +219,17 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   const blockText = (key: string): string => {
     switch (key) {
       case 'system':
-        return overridePrompt(preset.system, input.card?.systemPrompt, !preset.forbidOverrides);
+        return overridePrompt(preset.system, input.card?.systemPrompt?.trim() || cardFields.systemPrompt, !preset.forbidOverrides);
       case 'jailbreak':
-        return overridePrompt(preset.jailbreak, input.card?.postHistory, !preset.forbidOverrides);
+        return overridePrompt(preset.jailbreak, input.card?.postHistory?.trim() || cardFields.postHistory, !preset.forbidOverrides);
       case 'character':
         return [
           renderContextTemplate(preset.contextTemplate, {
             char: character.name,
             hook: character.hook,
             description: character.description,
-            personality: '',
-            scenario: '',
+            personality: cardFields.personality,
+            scenario: cardFields.scenario,
             legacy: '',
             instructions: character.pace,
           }),
@@ -238,7 +243,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
         // M2 还没有作者注释与出口宏：把 AN / EM / Outlet 位置的条目并入这个世界书块，避免条目被静默丢弃
         return loreBlock([...at('before'), ...at('anTop'), ...at('emTop'), ...at('anBottom'), ...at('emBottom'), ...at('outlet')]);
       case 'examples': {
-        const source = (input.card?.mesExample ?? '').trim();
+        const source = ((input.card?.mesExample ?? '').trim() || cardFields.mesExample).trim();
         if (!source) return '';
         const normalized = /^<START>/i.test(source) ? source : `<START>\n${source}`;
         return normalized

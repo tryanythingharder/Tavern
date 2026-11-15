@@ -418,6 +418,8 @@ ensureColumn('characters', 'owner_id', 'INTEGER');
 ensureColumn('characters', 'status', "TEXT NOT NULL DEFAULT 'published'");
 ensureColumn('characters', 'created_at', 'INTEGER');
 ensureColumn('characters', 'alternate_greetings', 'TEXT');
+// ST V2 卡的高级字段（personality / scenario / mes_example / system_prompt / post_history / creator_notes），JSON
+ensureColumn('characters', 'card_fields', 'TEXT');
 ensureColumn('characters', 'cover_image', 'TEXT');
 ensureColumn('characters', 'avatar_image', 'TEXT');
 ensureColumn('rooms', 'auto_mode', 'INTEGER NOT NULL DEFAULT 0');
@@ -439,6 +441,7 @@ export type DbCharacter = {
   id: string; name: string; author: string; initial: string; hue: number; category: string;
   tags: string; nsfw: number; chats: string; greeting: string; hook: string; description: string; pace: string;
   owner_id: number | null; status: string; created_at: number | null; alternate_greetings: string | null; cover_image: string | null; avatar_image: string | null; review_note: string | null;
+  card_fields?: string | null;
 };
 
 export type DbChat = {

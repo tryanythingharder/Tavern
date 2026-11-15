@@ -311,3 +311,30 @@ html body[data-theme="stage"] .stg-seg :is(button, a) { white-space: nowrap; }
 .net-banner.is-back { background: #eceefe; color: #1b1b1d; }
 .lib-chatted { display: grid; gap: 8px; justify-items: center; margin: 4px 0 14px; }
 .lib-chatted-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+/* 角色编辑器 · 高级字段 */
+.cf-adv > summary { list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; cursor: pointer; }
+.cf-adv > summary::-webkit-details-marker { display: none; }
+.cf-adv > summary .p-form-section-title { margin: 0; }
+.cf-adv > summary .p-form-section-title::after { content: ' ▸'; color: #6b6b73; }
+.cf-adv[open] > summary .p-form-section-title::after { content: ' ▾'; }
+.cf-adv[open] > summary { margin-bottom: 12px; }
+.cf-mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; }
+/* 角色页 · 多开场选择 */
+.op-pick { display: grid; gap: 8px; }
+.op-pick-head { display: flex; align-items: center; justify-content: space-between; }
+.op-pick-nav { display: inline-flex; gap: 4px; }
+.op-pick-nav button { width: 32px; height: 32px; border: 1px solid #d5d5d9; border-radius: 8px; background: #fff; color: #1b1b1d; font-size: 16px; cursor: pointer; }
+.op-pick-nav button:hover { border-color: #4b5bf5; color: #4b5bf5; }
+.op-pick-card { padding: 12px 14px; border: 1px solid #e6e6e8; border-radius: 10px; background: #f8f8fa; max-height: 220px; overflow: auto; touch-action: pan-y; }
+.op-pick-title { display: block; margin-bottom: 4px; font-size: 13px; color: #1b1b1d; }
+.op-pick-text { margin: 0; font-size: 13.5px; line-height: 1.75; color: #4a4a50; white-space: pre-wrap; }
+.op-pick-dots { display: flex; justify-content: center; gap: 6px; }
+.op-pick-dots i { width: 6px; height: 6px; border-radius: 50%; background: #d5d5d9; transition: background .2s, transform .2s; }
+.op-pick-dots i.is-on { background: #4b5bf5; transform: scale(1.25); }
+/* 页面级错误兜底 */
+.err-page { max-width: 560px; margin: 12vh auto; text-align: center; }
+.err-kicker { margin: 0; font-size: 12px; letter-spacing: .2em; color: #6b6b73; }
+.err-title { margin: 10px 0 8px; font-size: 30px; letter-spacing: -.02em; color: #1b1b1d; }
+.err-text { margin: 0 0 20px; color: #4a4a50; line-height: 1.8; }
+.err-text small { display: block; color: #6b6b73; }
+.err-actions { display: flex; gap: 8px; justify-content: center; }

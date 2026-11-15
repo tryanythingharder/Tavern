@@ -566,6 +566,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       <textarea
                         className="p-textarea"
                         value={editing.draft}
+                        rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
                         autoFocus
                         onChange={(event) => setEditing({ id: editing.id, draft: event.target.value })}
                         onKeyDown={(event) => {
