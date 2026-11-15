@@ -1472,3 +1472,9 @@ html body[data-theme="folio"]:not(#fo) .nf-actions .btn { border-radius: 0; }
 html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta { justify-content: space-between !important; }
 html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta > .p-chat-hint { display: none; }
 html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-continue { height: 28px; min-height: 0; padding: 0 12px; }
+
+/* 验收修复：弹窗标题栏与外框对齐（去掉白色光圈造成的第二道框线，† 与标题同一行） */
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) { box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) { display: flex; align-items: center; gap: 10px; margin: 0; background: transparent; border-radius: 0; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head)::before { margin-right: 0; line-height: 1; align-self: center; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) :is(h2, h3, strong, .modal-title) { margin: 0; flex: 1 1 auto; min-width: 0; }
