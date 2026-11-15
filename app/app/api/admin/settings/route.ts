@@ -5,7 +5,8 @@ import { imageConfig, ttsConfig } from '@/lib/media';
 import { logAdmin } from '@/lib/audit';
 import { pricePerPointCents, upstreamCostPer1kCents } from '@/lib/billing';
 import { modelFallbacks } from '@/lib/model';
-import { pointsPerThousand } from '@/lib/points';
+import { modelPrices, parseModelPrices, pointsPerThousand } from '@/lib/points';
+import { availableModels } from '@/lib/model';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,9 @@ function status() {
     billing: {
       textPer1k: pointsPerThousand(),
       upstreamCostPer1kCents: upstreamCostPer1kCents(),
+      // 按模型单独定价：每行「模型id=每千 tokens 点数」，没写的模型按统一价
+      modelPrices: Object.entries(modelPrices()).map(([id, price]) => `${id}=${price}`).join('\n'),
+      models: availableModels().map((item) => item.id),
     },
     model: {
       baseUrl: getSetting('model.baseUrl', process.env.TAVERN_MODEL_BASE_URL ?? ''),
@@ -93,7 +97,10 @@ export async function PATCH(request: Request) {
   write(body.tts, { baseUrl: 'tts.baseUrl', apiKey: 'tts.apiKey', model: 'tts.model', voice: 'tts.voice', cost: 'points.tts' });
   write(body.payment, { pricePerPointCents: 'billing.pricePerPointCents', provider: 'payment.provider', secret: 'payment.secret', checkoutUrl: 'payment.checkoutUrl', currency: 'payment.currency' });
   write(body.mail, { from: 'mail.from', resendKey: 'mail.resend_key' });
-  write(body.billing, { textPer1k: 'points.text', upstreamCostPer1kCents: 'billing.upstreamCostPer1kCents' });
+  if (body.billing && typeof body.billing.modelPrices === 'string' && body.billing.modelPrices.trim()) {
+    body.billing.modelPrices = JSON.stringify(parseModelPrices(body.billing.modelPrices));
+  }
+  write(body.billing, { modelPrices: 'points.models', textPer1k: 'points.text', upstreamCostPer1kCents: 'billing.upstreamCostPer1kCents' });
   write(body.model, { baseUrl: 'model.baseUrl', apiKey: 'model.apiKey', name: 'model.name', fallbacks: 'model.fallbacks' });
 
   const changed = ['image', 'tts', 'payment', 'mail', 'billing', 'model'].filter((key) => Boolean(body[key as keyof typeof body]));

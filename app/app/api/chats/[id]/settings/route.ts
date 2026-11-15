@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: Params) {
     settings: chatSettings(chat),
     model: chat.model ?? '',
     models: availableModels(),
-    presets: listPresets(user.id).map((preset) => ({ id: preset.id, name: preset.name })),
+    presets: listPresets(user.id).map((preset) => ({ id: preset.id, name: preset.name, params: preset.params })),
     personas: listPersonas(user.id).map((persona) => ({ id: persona.id, name: persona.name, boundCharacters: persona.boundCharacters })),
     lorebooks: listLorebooks(user.id).map((book) => ({ id: book.id, name: book.name, count: book.entries.length })),
   });

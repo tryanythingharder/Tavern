@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePlayMode } from '@/components/play-mode';
 
-type TocItem = { href: string; label: string; st?: string };
-const GROUPS: { label: string; newbieLabel?: string; items: TocItem[] }[] = [
+type TocItem = { href: string; label: string; st?: string; advanced?: boolean };
+// advanced：新手模式默认收起（功能仍在，点「显示进阶设置」或直接访问都能用）
+const GROUPS: { label: string; advanced?: boolean; items: TocItem[] }[] = [
   {
     label: '账号',
     items: [
@@ -30,7 +31,7 @@ const GROUPS: { label: string; newbieLabel?: string; items: TocItem[] }[] = [
   },
   {
     label: '资源',
-    newbieLabel: '进阶 · 老玩家常用',
+    advanced: true,
     items: [
       { href: '/me/presets', label: '预设', st: 'Preset' },
       { href: '/me/lorebooks', label: '世界书', st: 'World Info' },
@@ -42,7 +43,7 @@ const GROUPS: { label: string; newbieLabel?: string; items: TocItem[] }[] = [
     label: '数据',
     items: [
       { href: '/me/library', label: '角色库' },
-      { href: '/me/import', label: '导入与数据' },
+      { href: '/me/import', label: '导入与数据', st: 'ST 导入', advanced: true },
     ],
   },
 ];
@@ -52,6 +53,10 @@ export function SettingsToc() {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement | null>(null);
   const mode = usePlayMode();
+  const newbie = mode === 'newbie';
+  const onAdvanced = GROUPS.some((group) => group.items.some((item) => item.href === pathname && (group.advanced || item.advanced)));
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const reveal = !newbie || showAdvanced || onAdvanced;
 
   useEffect(() => {
     const active = navRef.current?.querySelector('a.is-active');
@@ -61,10 +66,10 @@ export function SettingsToc() {
 
   return (
     <nav className="p-toc" aria-label="设置目录" ref={navRef}>
-      {GROUPS.map((group) => (
+      {GROUPS.filter((group) => reveal || !group.advanced).map((group) => (
         <div className="p-toc-group" role="group" aria-label={group.label} key={group.label}>
-          <span className="p-toc-label">{mode === 'newbie' && group.newbieLabel ? group.newbieLabel : group.label}</span>
-          {group.items.map((section) => (
+          <span className="p-toc-label">{group.label}{group.advanced && newbie ? <small className="pm-st">进阶</small> : null}</span>
+          {group.items.filter((item) => reveal || !item.advanced).map((section) => (
             <Link
               key={section.href}
               href={section.href}
@@ -72,11 +77,16 @@ export function SettingsToc() {
               aria-current={pathname === section.href ? 'page' : undefined}
             >
               {section.label}
-              {mode === 'veteran' && section.st ? <small className="pm-st">{section.st}</small> : null}
+              {!newbie && section.st ? <small className="pm-st">{section.st}</small> : null}
             </Link>
           ))}
         </div>
       ))}
+      {newbie && !onAdvanced && (
+        <button type="button" className="pm-toc-more" onClick={() => setShowAdvanced((value) => !value)} aria-expanded={showAdvanced}>
+          {showAdvanced ? '收起进阶设置' : '显示进阶设置（预设、世界书、正则…）'}
+        </button>
+      )}
     </nav>
   );
 }

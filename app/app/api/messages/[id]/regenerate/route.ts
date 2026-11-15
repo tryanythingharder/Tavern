@@ -65,8 +65,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
   });
-  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens);
-  const reservation = reservePoints(user.id, maxCost, '重新生成', `chat:${chat.id}`);
+  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens, modelName(chat.model));
+  const reservation = reservePoints(user.id, maxCost, `重新生成 · ${modelName(chat.model)}`, `chat:${chat.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
   const generationId = startGeneration(user.id, chat.id, 'regenerate', modelName(chat.model));
   const encoder = new TextEncoder();
@@ -96,7 +96,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
         finishGeneration(generationId, { status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens), `chat:${chat.id}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, modelName(chat.model)), `chat:${chat.id}`);
         settled = true;
         const finalText = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
         if (finalText.trim()) {
@@ -127,7 +127,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full)), `chat:${chat.id}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), modelName(chat.model)), `chat:${chat.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

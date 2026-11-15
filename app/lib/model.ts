@@ -3,6 +3,7 @@
 import type { PresetParams } from '@/lib/resources';
 import { getSetting } from '@/lib/settings';
 import { channelCount, channelModels, channelRoutes, channelRoutesFor } from '@/lib/channels';
+import { modelPricePer1k } from '@/lib/points';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -84,18 +85,18 @@ export function modelName(preferred?: string | null): string {
 }
 
 // 玩家在对话里能选的模型（后台渠道启用的全部模型；没建渠道时用主线路 + 备用线路）。
-export type ModelOption = { id: string; source: string; isDefault: boolean };
+export type ModelOption = { id: string; source: string; isDefault: boolean; price: number };
 export function availableModels(): ModelOption[] {
   if (channelCount() > 0) {
     const list = channelModels();
     const fallback = modelRoutes()[0]?.model;
-    return list.map((item) => ({ id: item.id, source: item.channels.join(' / '), isDefault: item.id === fallback }));
+    return list.map((item) => ({ id: item.id, source: item.channels.join(' / '), isDefault: item.id === fallback, price: modelPricePer1k(item.id) }));
   }
   const { primary, fallbacks } = routeList();
   const seen = new Set<string>();
   return [primary, ...fallbacks]
     .filter((route) => route.baseUrl && route.apiKey && route.model && !seen.has(route.model) && Boolean(seen.add(route.model)))
-    .map((route, index) => ({ id: route.model, source: index === 0 ? '主线路' : '备用线路', isDefault: index === 0 }));
+    .map((route, index) => ({ id: route.model, source: index === 0 ? '主线路' : '备用线路', isDefault: index === 0, price: modelPricePer1k(route.model) }));
 }
 
 export function modelBaseUrl(): string {

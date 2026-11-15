@@ -387,6 +387,7 @@ ensureColumn('messages', 'selected', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('chats', 'branch_from_chat_id', 'INTEGER');
 ensureColumn('chats', 'branch_from_message_id', 'INTEGER');
 ensureColumn('chats', 'preset_id', 'INTEGER');
+ensureColumn('rooms', 'model', 'TEXT');
 ensureColumn('chats', 'persona_id', 'INTEGER');
 ensureColumn('chats', 'lorebook_ids', 'TEXT');
 ensureColumn('chats', 'summary', 'TEXT');

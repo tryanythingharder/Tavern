@@ -72,13 +72,13 @@ export async function POST(request: Request, context: Params) {
     regexRules: config.regexRules,
   });
   const promptTokens = estimatePromptTokens(prompt);
-  const maxCost = pointsCost(promptTokens + config.preset.params.maxTokens);
-  const reservation = reservePoints(user.id, maxCost, '房间生成', `room:${room.id}`);
+  const maxCost = pointsCost(promptTokens + config.preset.params.maxTokens, modelName(room.model));
+  const reservation = reservePoints(user.id, maxCost, `房间生成 · ${modelName(room.model)}`, `room:${room.id}`);
   if (!reservation.ok) {
     if (userRoomMessage) deleteRoomMessage(userRoomMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
   }
-  const generationId = startGeneration(user.id, null, 'room', modelName());
+  const generationId = startGeneration(user.id, null, 'room', modelName(room.model));
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -96,7 +96,7 @@ export async function POST(request: Request, context: Params) {
       // 先把本轮发言者告诉客户端，界面可以显示「谁正在输入」
       send({ type: 'speaker', speakerId: speaker.id, name: speaker.name });
       try {
-        for await (const event of streamChat(prompt, { signal: request.signal, params: config.preset.params })) {
+        for await (const event of streamChat(prompt, { signal: request.signal, params: config.preset.params, model: room.model })) {
           if (event.type === 'content') {
             full += event.text;
             send({ type: 'delta', text: event.text });
@@ -108,7 +108,7 @@ export async function POST(request: Request, context: Params) {
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? usedPromptTokens + completionTokens;
         finishGeneration(generationId, { status: 'done', promptTokens: usedPromptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens), `room:${room.id}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, modelName(room.model)), `room:${room.id}`);
         settled = true;
 
         // 模型偶尔会在开头自己加「白露：」，去掉以免和气泡上的名字重复
@@ -132,7 +132,7 @@ export async function POST(request: Request, context: Params) {
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens + estimateTokens(full)), `room:${room.id}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens + estimateTokens(full), modelName(room.model)), `room:${room.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

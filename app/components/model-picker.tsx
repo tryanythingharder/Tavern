@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePlayMode } from '@/components/play-mode';
 
-type ModelOption = { id: string; source: string; isDefault: boolean };
+type ModelOption = { id: string; source: string; isDefault: boolean; price?: number };
+
+const priceLabel = (price?: number) => (typeof price === 'number' ? `${price} 点/千 tokens` : '');
 
 // 模型名 → 给新手看的友好说明（只是猜测性标签，模型 id 原样保留）
 function friendly(id: string): string {
@@ -18,7 +20,8 @@ function friendly(id: string): string {
 }
 
 // 对话里的模型选择：列出后台启用渠道的全部模型，按会话保存
-export function ModelPicker({ chatId }: { chatId: number }) {
+export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: number }) {
+  const endpoint = roomId ? `/api/rooms/${roomId}/model` : `/api/chats/${chatId}/settings`;
   const mode = usePlayMode();
   const [models, setModels] = useState<ModelOption[]>([]);
   const [current, setCurrent] = useState('');
@@ -29,7 +32,7 @@ export function ModelPicker({ chatId }: { chatId: number }) {
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/chats/${chatId}/settings`, { cache: 'no-store' })
+    fetch(endpoint, { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { model?: string; models?: ModelOption[] } | null) => {
         if (!alive || !data) return;
@@ -38,7 +41,7 @@ export function ModelPicker({ chatId }: { chatId: number }) {
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [chatId]);
+  }, [endpoint]);
 
   useEffect(() => {
     if (!open) return;
@@ -58,7 +61,7 @@ export function ModelPicker({ chatId }: { chatId: number }) {
   const pick = async (id: string) => {
     setSaving(true);
     try {
-      const response = await fetch(`/api/chats/${chatId}/settings`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: id }) });
+      const response = await fetch(endpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: id }) });
       if (response.ok) setCurrent(id);
     } finally {
       setSaving(false);
@@ -71,13 +74,14 @@ export function ModelPicker({ chatId }: { chatId: number }) {
       <button type="button" className="mp-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((value) => !value)} title="切换这段对话使用的模型">
         <span className="mp-dot" aria-hidden="true" />
         <span className="mp-name">{shown}</span>
+        {priceLabel(models.find((item) => item.id === shown)?.price) ? <span className="mp-trigger-price">{models.find((item) => item.id === shown)?.price} 点/千</span> : null}
         <span aria-hidden="true">▾</span>
       </button>
       {open && (
         <div className="mp-pop" role="listbox" aria-label="选择模型">
           <div className="mp-head">
             <strong>选择模型</strong>
-            <span>{mode === 'newbie' ? '不同模型文风不同，可以随时换着试' : `${models.length} 个可用 · 仅对本对话生效`}</span>
+            <span>{mode === 'newbie' ? '不同模型文风和价格不同，可以随时换着试' : `${models.length} 个可用 · 仅对${roomId ? '本房间' : '本对话'}生效 · 按模型计价`}</span>
           </div>
           {models.length > 8 && (
             <input className="mp-search" placeholder="搜索模型" value={query} onChange={(event) => setQuery(event.target.value)} autoFocus />
@@ -85,13 +89,13 @@ export function ModelPicker({ chatId }: { chatId: number }) {
           <div className="mp-list">
             <button type="button" role="option" aria-selected={!active} className={`mp-opt${!active ? ' is-on' : ''}`} disabled={saving} onClick={() => void pick('')}>
               <span className="mp-opt-name">跟随默认</span>
-              <span className="mp-opt-note">{mode === 'veteran' ? `当前为 ${fallback}，按后台优先级自动切换线路` : '站点推荐的模型，线路不通时自动换'}</span>
+              <span className="mp-opt-note">{mode !== 'newbie' ? `当前为 ${fallback}，按后台优先级自动切换线路` : '站点推荐的模型，线路不通时自动换'}</span>
             </button>
             {filtered.map((item) => {
-              const note = mode === 'veteran' ? item.source : friendly(item.id);
+              const note = mode !== 'newbie' ? item.source : friendly(item.id);
               return (
                 <button key={item.id} type="button" role="option" aria-selected={active === item.id} className={`mp-opt${active === item.id ? ' is-on' : ''}`} disabled={saving} onClick={() => void pick(item.id)}>
-                  <span className="mp-opt-name">{item.id}{item.isDefault ? <em className="mp-tag">推荐</em> : null}</span>
+                  <span className="mp-opt-name">{item.id}{item.isDefault ? <em className="mp-tag">推荐</em> : null}{priceLabel(item.price) ? <em className="mp-price">{priceLabel(item.price)}</em> : null}</span>
                   {note ? <span className="mp-opt-note">{note}</span> : null}
                 </button>
               );

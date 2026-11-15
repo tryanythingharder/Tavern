@@ -90,8 +90,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     card: getOverride(user.id, chat.character_id),
   });
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
-  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens);
-  const reservation = reservePoints(user.id, maxCost, '对话生成', `chat:${chatId}`);
+  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens, modelName(chat.model));
+  const reservation = reservePoints(user.id, maxCost, `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) {
     deleteMessage(userMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
@@ -124,7 +124,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
         finishGeneration(generationId, { status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens), `chat:${chatId}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, modelName(chat.model)), `chat:${chatId}`);
         settled = true;
         // 展示正则只作用于角色输出；落库的是处理后的文本
         const finalText = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
@@ -149,7 +149,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full)), `chat:${chatId}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), modelName(chat.model)), `chat:${chatId}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

@@ -260,3 +260,34 @@ html body[data-theme="folio"] :is(.pm-card, .pm-choice, .pm-choice .pm-badge) { 
 html body[data-theme="folio"] .pm-card { border: 1px solid #1b1b1d; }
 html body[data-theme="folio"] .pm-card h2 { font-family: "Noto Serif SC", "Songti SC", serif; }
 @media (prefers-reduced-motion: reduce) { .pm-choice { transition: none; } .pm-choice:hover { transform: none; } }
+
+/* 按模型计价 */
+.mp-price { margin-left: 6px; font-style: normal; font-size: 11px; font-weight: 500; opacity: .7; white-space: nowrap; }
+.mp-trigger-price { font-size: 11px; opacity: .65; white-space: nowrap; }
+@media (max-width: 520px) { .mp-trigger-price { display: none; } .mp-name { max-width: 120px; } }
+.pt-prices { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; max-width: 460px; }
+.pt-prices li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: 8px; background: var(--ca-sunken, var(--surface-2, #f7f7f8)); font-size: 13px; }
+.pt-prices b { font-weight: 600; white-space: nowrap; }
+html body[data-theme="nocturne"] .pt-prices li { background: rgba(255, 255, 255, .05); }
+html body[data-theme="folio"] .pt-prices li { border-radius: 0; background: transparent; border-bottom: 1px solid rgba(27, 27, 29, .14); }
+
+/* 玩法模式：两步指引、进阶开关 */
+.pm-steps { display: flex; gap: 6px; margin: 0 0 14px; }
+.pm-steps i { width: 22px; height: 3px; border-radius: 2px; background: #d5d5d9; }
+.pm-steps i.is-on { background: #4b5bf5; }
+html body[data-theme="nocturne"] .pm-steps i { background: rgba(255, 255, 255, .16); }
+html body[data-theme="nocturne"] .pm-steps i.is-on { background: #4b5bf5; }
+.pm-toc-more, .pm-more { display: block; margin: 10px 0 0; padding: 6px 0; border: 0; background: transparent; color: var(--ca-accent, #4b5bf5); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.pm-toc-more:hover, .pm-more:hover { text-decoration: underline; }
+.pm-more { margin: 4px 0 14px; }
+@media (max-width: 720px) { .p-toc .pm-toc-more { flex: none; margin: 0; padding: 6px 10px; white-space: nowrap; } }
+
+/* 对话设定里的采样参数 */
+.cs-param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.cs-param { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.cs-param span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .8; }
+.cs-param .p-input { height: 34px; }
+
+/* 新手模式：收起分支等进阶工具（功能仍在老玩家模式） */
+html body[data-mode="newbie"] .p-msg-tools button[aria-label="从这里创建分支"],
+html body[data-mode="newbie"] button[aria-label="从这里创建分支"] { display: none; }

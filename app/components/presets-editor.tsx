@@ -3,19 +3,10 @@
 import { useState } from 'react';
 import { PROMPT_BLOCKS, defaultPreset, type Preset, type PresetParams } from '@/lib/resources';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { PARAM_FIELDS } from '@/lib/param-fields';
+import { usePlayMode } from '@/components/play-mode';
 
-const PARAM_FIELDS: [keyof PresetParams, string, number, number, number][] = [
-  ['temperature', 'temperature', 0, 2, 0.05],
-  ['topP', 'top_p', 0.05, 1, 0.01],
-  ['topK', 'top_k', 0, 200, 1],
-  ['minP', 'min_p', 0, 1, 0.01],
-  ['typicalP', 'typical_p', 0, 1, 0.01],
-  ['repetitionPenalty', 'repetition_penalty', 1, 2, 0.01],
-  ['presencePenalty', 'presence_penalty', -2, 2, 0.01],
-  ['frequencyPenalty', 'frequency_penalty', -2, 2, 0.01],
-  ['maxTokens', 'max_tokens', 16, 8192, 16],
-  ['seed', 'seed', -1, 2147483647, 1],
-];
+
 
 const blockLabel = (key: string) => PROMPT_BLOCKS.find(([value]) => value === key)?.[1] ?? key;
 
@@ -24,6 +15,10 @@ function newDraft(): Preset {
 }
 
 export function PresetsEditor({ initial }: { initial: Preset[] }) {
+  const mode = usePlayMode();
+  const [more, setMore] = useState(false);
+  // 「酒馆全功能」全部展开；「简单功能」/ 新手只露常用参数，其余点「更多参数」
+  const expanded = mode === 'full' || more;
   const [presets, setPresets] = useState<Preset[]>(initial);
   const [draft, setDraft] = useState<Preset | null>(null);
   const [busy, setBusy] = useState(false);
@@ -174,9 +169,9 @@ export function PresetsEditor({ initial }: { initial: Preset[] }) {
 
           <h3 className="p-form-section-title">采样参数</h3>
           <div className="p-field-row">
-            {PARAM_FIELDS.map(([key, label, min, max, step]) => (
+            {PARAM_FIELDS.filter((field) => expanded || field.core).map(({ key, label, min, max, step, help }) => (
               <div className="p-field" key={key} style={{ marginBottom: 8 }}>
-                <label htmlFor={`param-${key}`}>{label}</label>
+                <label htmlFor={`param-${key}`} title={help}>{label}</label>
                 <input
                   id={`param-${key}`}
                   className="p-input"
@@ -191,6 +186,13 @@ export function PresetsEditor({ initial }: { initial: Preset[] }) {
             ))}
           </div>
 
+          {mode !== 'full' && (
+            <button type="button" className="pm-more" aria-expanded={more} onClick={() => setMore((value) => !value)}>
+              {more ? '收起更多参数' : `更多参数（${PARAM_FIELDS.filter((field) => !field.core).length} 项采样参数、上下文模板、Instruct、提示块顺序）`}
+            </button>
+          )}
+
+          {expanded && (<>
           <h3 className="p-form-section-title" style={{ marginTop: 8 }}>上下文模板</h3>
           <div className="p-field">
             <textarea className="p-textarea" rows={7} value={draft.contextTemplate} onChange={(event) => setDraft({ ...draft, contextTemplate: event.target.value })} />
@@ -235,6 +237,8 @@ export function PresetsEditor({ initial }: { initial: Preset[] }) {
               </div>
             ))}
           </div>
+
+          </>)}
 
           <label className="p-check" style={{ marginTop: 14 }}>
             <input type="checkbox" checked={draft.forbidOverrides} onChange={(event) => setDraft({ ...draft, forbidOverrides: event.target.checked })} />

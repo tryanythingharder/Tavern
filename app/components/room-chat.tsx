@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RpText, TypingDots } from '@/components/rp-text';
+import { ModelPicker } from '@/components/model-picker';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
@@ -212,8 +213,8 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
             )}
           </div>
           <div className="p-compose-meta">
-            <span>Enter 发送 · Shift + Enter 换行</span>
-            <span>群聊回复由模型生成</span>
+            <span className="p-chat-acts"><ModelPicker roomId={roomId} /></span>
+            <span>Enter 发送 · Shift + Enter 换行 · 群聊回复由模型生成</span>
           </div>
         </div>
       </div>

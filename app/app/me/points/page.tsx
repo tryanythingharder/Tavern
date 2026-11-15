@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { listLedger, pointsSummary } from '@/lib/points';
+import { availableModels } from '@/lib/model';
 import { checkinStatus } from '@/lib/checkin';
 import { listOrders, pricePerPointCents } from '@/lib/billing';
 import { PointsActions } from '@/components/points-actions';
@@ -57,7 +58,13 @@ export default async function PointsPage() {
   return (
     <section className="p-section" id="points">
       <h2>点数与充值</h2>
-      <p>生成按 token 计费：每 1000 tokens 扣 {summary.perThousand} 点（不足 1 点按 1 点算）。</p>
+      <p>生成按 token 计费，不同模型价格不同（不足 1 点按 1 点算），在对话里点模型名就能换。</p>
+      <ul className="pt-prices" aria-label="各模型价格">
+        {availableModels().map((item) => (
+          <li key={item.id}><span>{item.id}</span><b>{item.price} 点 / 千 tokens</b></li>
+        ))}
+        {!availableModels().length && <li><span>默认模型</span><b>{summary.perThousand} 点 / 千 tokens</b></li>}
+      </ul>
       <div className="p-card p-card--pad">
         <div className="p-detail-stats">
           <div className="p-stat"><div className="p-stat-n">{summary.balance.toLocaleString('zh-CN')}</div><div className="p-stat-l">当前余额</div></div>

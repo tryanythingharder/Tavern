@@ -53,8 +53,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     content: `［代写］现在不要扮演${character.name}。请以「${who}」的身份、第一人称，写出${who}的下一句台词或动作（动作用 *星号* 包起来），60 字以内，只输出这一句本身，不要替${character.name}说话。${hint ? `方向：${hint}` : ''}`,
   });
   const maxTokens = Math.min(prompt.params.maxTokens, 200);
-  const maxCost = pointsCost(prompt.tokens + maxTokens);
-  const reservation = reservePoints(user.id, maxCost, '代写', `chat:${chatId}`);
+  const maxCost = pointsCost(prompt.tokens + maxTokens, modelName(chat.model));
+  const reservation = reservePoints(user.id, maxCost, `代写 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点）`, 402);
   const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();
@@ -73,12 +73,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         }
         const tokens = total || prompt.tokens + estimateTokens(full);
         finishGeneration(generationId, { status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(tokens), `chat:${chatId}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(tokens, modelName(chat.model)), `chat:${chatId}`);
         send({ type: 'done', text: full.trim(), cost: settlement.cost, balance: settlement.balance });
       } catch (error) {
         const aborted = request.signal.aborted;
         finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });
-        settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full)), `chat:${chatId}`);
+        settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), modelName(chat.model)), `chat:${chatId}`);
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '代写失败' });
       } finally {
         try { controller.close(); } catch { /* 已关闭 */ }

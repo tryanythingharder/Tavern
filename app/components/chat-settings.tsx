@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { usePlayMode } from '@/components/play-mode';
+import { PARAM_FIELDS } from '@/lib/param-fields';
+import type { PresetParams } from '@/lib/resources';
 
 type SettingsData = {
   settings: { presetId: number | null; personaId: number | null; lorebookIds: number[] | null };
-  presets: { id: number; name: string }[];
+  presets: { id: number; name: string; params?: PresetParams }[];
   personas: { id: number; name: string; boundCharacters: string[] }[];
   lorebooks: { id: number; name: string; count: number }[];
 };
@@ -42,7 +45,10 @@ const TABS: [Tab, string][] = [
 const formatTime = (value: number) => new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export function ChatSettings({ chatId }: { chatId: number }) {
+  const mode = usePlayMode();
   const [open, setOpen] = useState(false);
+  const [params, setParams] = useState<PresetParams | null>(null);
+  const [paramsDirty, setParamsDirty] = useState(false);
   const [tab, setTab] = useState<Tab>('gen');
   const [data, setData] = useState<SettingsData | null>(null);
   const [presetId, setPresetId] = useState<number | null>(null);
@@ -68,7 +74,10 @@ export function ChatSettings({ chatId }: { chatId: number }) {
     try {
       const result = await api<SettingsData>(`/api/chats/${chatId}/settings`);
       setData(result);
-      setPresetId(result.settings.presetId ?? result.presets[0]?.id ?? null);
+      const pid = result.settings.presetId ?? result.presets[0]?.id ?? null;
+      setPresetId(pid);
+      setParams(result.presets.find((preset) => preset.id === pid)?.params ?? null);
+      setParamsDirty(false);
       setPersonaId(result.settings.personaId);
       setAllBooks(result.settings.lorebookIds === null);
       setBookIds(result.settings.lorebookIds ?? []);
@@ -123,6 +132,12 @@ export function ChatSettings({ chatId }: { chatId: number }) {
         method: 'PATCH',
         body: JSON.stringify({ presetId, personaId, lorebookIds: allBooks ? null : bookIds }),
       });
+      // 老玩家在对话里直接调的采样参数写回当前预设（与 ST 一样，参数跟着预设走）
+      if (paramsDirty && params && presetId) {
+        await api(`/api/presets/${presetId}`, { method: 'PATCH', body: JSON.stringify({ params }) });
+        setData((prev) => prev ? { ...prev, presets: prev.presets.map((preset) => (preset.id === presetId ? { ...preset, params } : preset)) } : prev);
+        setParamsDirty(false);
+      }
       flashSaved();
     } catch (caught) {
       setError((caught as Error).message);
@@ -203,7 +218,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
           onClose={() => setOpen(false)}
           footer={
             <>
-              {tab === 'gen' && <button className="btn btn--sm" type="button" onClick={() => void runPreview()}>预览上下文</button>}
+              {tab === 'gen' && mode !== 'newbie' && <button className="btn btn--sm" type="button" onClick={() => void runPreview()}>预览上下文</button>}
               {tab === 'memory' && <button className="btn btn--sm" type="button" disabled={busy} onClick={() => void saveMemory(true)}>刷新摘要</button>}
               {tab === 'backup' && <button className="btn btn--sm" type="button" disabled={busy} onClick={() => void makeBackup()}>现在留一份</button>}
               {tab !== 'backup' && (
@@ -233,13 +248,21 @@ export function ChatSettings({ chatId }: { chatId: number }) {
               <p className="small">加载中…</p>
             ) : (
               <>
+                {mode === 'newbie' && <p className="p-hint" style={{ margin: '0 0 12px' }}>选一个「身份」，角色就知道你是谁。预设、世界书这些进阶设置在老玩家模式里（外观 → 玩法模式）。</p>}
                 <div className="field-row">
+                  {mode !== 'newbie' && (
                   <div className="field">
-                    <label>预设</label>
-                    <select className="select" value={presetId ?? ''} onChange={(event) => setPresetId(event.target.value ? Number(event.target.value) : null)}>
+                    <label>预设 <small className="pm-st">Preset</small></label>
+                    <select className="select" value={presetId ?? ''} onChange={(event) => {
+                      const next = event.target.value ? Number(event.target.value) : null;
+                      setPresetId(next);
+                      setParams(data.presets.find((preset) => preset.id === next)?.params ?? null);
+                      setParamsDirty(false);
+                    }}>
                       {data.presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
                     </select>
                   </div>
+                  )}
                   <div className="field">
                     <label>身份</label>
                     <select className="select" value={personaId ?? ''} onChange={(event) => setPersonaId(event.target.value ? Number(event.target.value) : null)}>
@@ -249,8 +272,24 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                   </div>
                 </div>
 
+                {mode !== 'newbie' && params && (
+                  <div className="field cs-params">
+                    <label>采样参数 <small className="pm-st">{mode === 'full' ? '全部 · 保存时写回当前预设' : '常用 · 完整参数在「预设」或酒馆全功能模式'}</small></label>
+                    <div className="cs-param-grid">
+                      {PARAM_FIELDS.filter((field) => mode === 'full' || field.core).map(({ key, label, min, max, step, help }) => (
+                        <label className="cs-param" key={key} title={help}>
+                          <span>{label}</span>
+                          <input className="p-input" type="number" min={min} max={max} step={step} value={params[key]}
+                            onChange={(event) => { setParams({ ...params, [key]: Number(event.target.value) }); setParamsDirty(true); }} />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {mode !== 'newbie' && (
                 <div className="field">
-                  <label>世界书</label>
+                  <label>世界书 <small className="pm-st">World Info</small></label>
                   <label className="check" style={{ marginBottom: 8 }}>
                     <input type="checkbox" checked={allBooks} onChange={(event) => setAllBooks(event.target.checked)} />
                     <span>使用全部世界书（新加的书自动生效）</span>
@@ -271,6 +310,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     </div>
                   )}
                 </div>
+                )}
 
                 {preview && (
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>

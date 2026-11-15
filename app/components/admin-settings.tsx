@@ -7,7 +7,7 @@ type Status = {
   image: { baseUrl: string; model: string; size: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   tts: { baseUrl: string; model: string; voice: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean };
-  billing: { textPer1k: number; upstreamCostPer1kCents: number };
+  billing: { textPer1k: number; upstreamCostPer1kCents: number; modelPrices?: string; models?: string[] };
   mail: { from: string; hasKey: boolean; mode: 'resend' | 'outbox' };
 };
 
@@ -15,7 +15,7 @@ type Form = {
   image: { baseUrl: string; apiKey: string; model: string; size: string; cost: string };
   tts: { baseUrl: string; apiKey: string; model: string; voice: string; cost: string };
   payment: { pricePerPointCents: string; provider: string; checkoutUrl: string; secret: string };
-  billing: { textPer1k: string; upstreamCostPer1kCents: string };
+  billing: { textPer1k: string; upstreamCostPer1kCents: string; modelPrices: string };
   mail: { from: string; resendKey: string };
 };
 
@@ -23,7 +23,7 @@ const EMPTY: Form = {
   image: { baseUrl: '', apiKey: '', model: '', size: '1024x1024', cost: '20' },
   tts: { baseUrl: '', apiKey: '', model: '', voice: 'alloy', cost: '5' },
   payment: { pricePerPointCents: '1', provider: '', checkoutUrl: '', secret: '' },
-  billing: { textPer1k: '2', upstreamCostPer1kCents: '0' },
+  billing: { textPer1k: '2', upstreamCostPer1kCents: '0', modelPrices: '' },
   mail: { from: '', resendKey: '' },
 };
 
@@ -54,7 +54,7 @@ export function AdminSettings() {
         image: { baseUrl: data.image.baseUrl, apiKey: '', model: data.image.model, size: data.image.size, cost: String(data.image.cost) },
         tts: { baseUrl: data.tts.baseUrl, apiKey: '', model: data.tts.model, voice: data.tts.voice, cost: String(data.tts.cost) },
         payment: { pricePerPointCents: String(data.payment.pricePerPointCents), provider: data.payment.provider, checkoutUrl: data.payment.checkoutUrl, secret: '' },
-        billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents) },
+        billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents), modelPrices: data.billing.modelPrices ?? '' },
         mail: { from: data.mail.from, resendKey: '' },
       });
     } catch (caught) {
@@ -227,7 +227,12 @@ export function AdminSettings() {
             <span className="p-small">用于后台粗算毛利；0 表示不计算。</span>
           </div>
         </div>
-        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing')}>{busy === 'billing' ? '保存中…' : '保存计费配置'}</button>
+        <div className="p-field">
+          <label htmlFor="model-prices">按模型定价（每行 模型id=每千 tokens 点数；没写的模型用上面的统一价）</label>
+          <textarea id="model-prices" className="p-textarea" rows={5} value={form.billing.modelPrices} placeholder={'claude-sonnet-4.5=6\ndeepseek-r1=3\ngpt-4o-mini=1'} onChange={(event) => setForm({ ...form, billing: { ...form.billing, modelPrices: event.target.value } })} />
+          {status?.billing.models?.length ? <span className="p-small">当前可选模型：{status.billing.models.join('、')}</span> : null}
+        </div>
+        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing', form.billing.modelPrices.trim() ? [] : ['modelPrices'])}>{busy === 'billing' ? '保存中…' : '保存计费配置'}</button>
       </section>
 
       <section className="p-card p-card--pad">
