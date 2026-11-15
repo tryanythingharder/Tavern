@@ -8,11 +8,11 @@ type ModelOption = { id: string; source: string; isDefault: boolean };
 // 模型名 → 给新手看的友好说明（只是猜测性标签，模型 id 原样保留）
 function friendly(id: string): string {
   const name = id.toLowerCase();
+  if (/gemini/.test(name)) return '上下文长，记得住更多剧情';
   if (/claude|opus|sonnet/.test(name)) return '文笔细腻，擅长长篇剧情';
-  if (/haiku|mini|flash|lite|turbo|small/.test(name)) return '响应快、省点数';
+  if (/haiku|-mini|flash|lite|turbo|small/.test(name)) return '响应快、省点数';
   if (/gpt-4|gpt-5|o1|o3|o4/.test(name)) return '理解力强，稳定全能';
   if (/deepseek|r1|reason|think/.test(name)) return '会先思考，逻辑和推理强';
-  if (/gemini/.test(name)) return '上下文长，记得住更多剧情';
   if (/qwen|glm|kimi|moonshot|doubao|yi-/.test(name)) return '中文语感自然';
   return '';
 }
