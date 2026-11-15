@@ -423,3 +423,24 @@ body[data-u-backdrop][data-page="chat"] .chat-backdrop ~ .p-rp-workbench { posit
 .mm-recent { background: var(--ca-accent, #4b5bf5); }
 .mm-pin { background: #77777e; }
 .mm-pin.is-off { background: transparent; box-shadow: inset 0 0 0 1px #d5d5d9; }
+
+/* ─── 福利卡：每日免费额度 / 首充 / 邀请 ─── */
+.gr-card { display: grid; gap: 0; }
+.gr-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ca-line, var(--border, #e6e6e8)); }
+.gr-row:first-child { padding-top: 0; }
+.gr-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.gr-row > div:first-child { min-width: 0; }
+.gr-row b { font-size: 14.5px; }
+.gr-row .p-small { margin: 4px 0 0; }
+.gr-meter { flex: none; width: 160px; display: grid; gap: 6px; text-align: right; font-size: 12.5px; color: var(--ca-muted, var(--muted, #77777e)); font-variant-numeric: tabular-nums; }
+.gr-meter b { font-size: 16px; color: var(--ca-ink, var(--text, #1b1b1d)); }
+.gr-meter > i { display: block; height: 6px; border-radius: 999px; background: var(--ca-line, #e6e6e8); overflow: hidden; }
+.gr-meter > i > i { display: block; height: 100%; background: var(--ca-accent, #4b5bf5); border-radius: inherit; }
+.gr-tag { flex: none; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--ca-accent, #4b5bf5); background: var(--ca-accent-soft, #eceefe); }
+.gr-link { flex: none; display: flex; gap: 8px; width: min(420px, 100%); }
+.gr-link .p-input { flex: 1; min-width: 0; font-size: 12.5px; }
+@media (max-width: 720px) {
+  .gr-row { flex-direction: column; align-items: stretch; }
+  .gr-meter { width: 100%; text-align: left; }
+  .gr-link { width: 100%; }
+}

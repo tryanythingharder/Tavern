@@ -7,6 +7,7 @@ import { authLink, mailConfigured, sendMail } from '@/lib/mail';
 import { STARTING_POINTS, ensureStartingPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
 import { inviteRequired, inviteValid, redeemInvite } from '@/lib/invite';
+import { isReferralCode, recordReferral, referrerFor } from '@/lib/growth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { transaction } from '@/lib/db';
 
@@ -29,13 +30,16 @@ export async function register(formData: FormData) {
 
   if (findUserByEmail(email)) redirect('/login?error=' + encodeURIComponent('这个邮箱已经注册过了'));
   if (inviteRequired() && !invite) redirect('/login?error=' + encodeURIComponent('当前注册需要邀请码'));
-  if (invite && !inviteValid(invite)) redirect('/login?error=' + encodeURIComponent('邀请码无效或已经被使用'));
+  // 好友邀请码（R-XXXXXX）与管理员邀请码（INV-…）共用一个输入框
+  const referral = invite && isReferralCode(invite) ? invite : '';
+  if (referral && !referrerFor(referral)) redirect('/login?error=' + encodeURIComponent('好友邀请码不存在，检查一下有没有抄错'));
+  if (invite && !referral && !inviteValid(invite)) redirect('/login?error=' + encodeURIComponent('邀请码无效或已经被使用'));
   const user = (() => {
     try {
       return transaction(() => {
         const created = createUser(email, password, nickname.slice(0, 20));
         // 邀请码在同一个事务里占用，避免两个注册请求同时通过 inviteValid
-        if (invite && !redeemInvite(invite, created.id)) throw new Error('INVITE_USED');
+        if (invite && !referral && !redeemInvite(invite, created.id)) throw new Error('INVITE_USED');
         return created;
       });
     } catch (error) {
@@ -47,7 +51,8 @@ export async function register(formData: FormData) {
   })();
   confirmAge(user.id);
   ensureStartingPoints(user.id);
-  notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS} 点。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/' });
+  const welcomeBonus = referral ? recordReferral(user.id, referral) : 0;
+  notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS + welcomeBonus} 点${welcomeBonus ? `（含好友邀请见面礼 ${welcomeBonus} 点）` : ''}。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/' });
   // 注册后发验证邮件；发信失败不阻塞注册，用户可在「我的」里重发
   try {
     const token = createAuthToken(user.id, 'verify', 24 * 60 * 60 * 1000);

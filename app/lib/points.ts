@@ -1,6 +1,7 @@
 import db, { transaction } from '@/lib/db';
 import { notify } from '@/lib/notifications';
 import { getSetting } from '@/lib/settings';
+import { consumeDailyFree, rewardReferrerOnFirstUse } from '@/lib/growth';
 
 // M4 点数：账本式记账。每笔都写 balance_after，余额 = 最后一笔的 balance_after，
 // 这样对账时能逐笔回放（比只存一个余额字段更可靠）。
@@ -101,15 +102,24 @@ export function reservePoints(userId: number, amount: number, note: string, refI
 }
 
 // 结算预扣：多退少补。补扣失败时记录告警，至少不会把已产生的成本退回去。
-export function settleGeneration(userId: number, reserved: number, actual: number, refId: string): { cost: number; balance: number } {
-  const cost = Math.max(0, Math.round(actual));
+export function settleGeneration(userId: number, reserved: number, actual: number, refId: string): { cost: number; free: number; balance: number } {
+  const total = Math.max(0, Math.round(actual));
+  // 每日免费额度先抵扣（后台 growth.dailyFree，0 = 关闭）
+  const free = consumeDailyFree(userId, total);
+  const cost = total - free;
+  if (free > 0) {
+    db.prepare('INSERT INTO points_ledger (user_id, kind, amount, balance_after, note, ref_id, created_at) VALUES (?,?,?,?,?,?,?)').run(userId, 'free', 0, balance(userId), `每日免费额度抵扣 ${free} 点 · ${refId}`, refId, Date.now());
+  }
   if (cost < reserved) {
     grantPoints(userId, reserved - cost, `结算退回 · ${refId}`, 'adjust');
   } else if (cost > reserved) {
     const extra = spendPoints(userId, cost - reserved, `补扣 · ${refId}`, refId);
     if (!extra.ok) console.warn('[points] 生成补扣失败', { userId, refId, extra: cost - reserved });
   }
-  return { cost, balance: balance(userId) };
+  if (total > 0) {
+    try { rewardReferrerOnFirstUse(userId); } catch (error) { console.warn('[growth] 邀请奖励失败', error); }
+  }
+  return { cost, free, balance: balance(userId) };
 }
 
 // 生成结束后扣费；余额刚跌破阈值时发一条站内通知（只发一次）。

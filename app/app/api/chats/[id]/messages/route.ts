@@ -17,6 +17,7 @@ import { loadGenerationConfig } from '@/lib/resources-db';
 import { memorySettings, ragChunks, refreshSummary, snapshotChat } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
+import { dailyFreeRemaining } from '@/lib/growth';
 import { toMessageView } from '@/lib/chat-view';
 
 export const dynamic = 'force-dynamic';
@@ -91,7 +92,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   });
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
   const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens, modelName(chat.model));
-  const reservation = reservePoints(user.id, maxCost, `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
+  const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) {
     deleteMessage(userMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
@@ -131,10 +132,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
           snapshotChat(chatId, user.id);
-          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, balance: settlement.balance });
+          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         } else {
           touchChat(chatId);
-          send({ type: 'done', messageId: null, cost: settlement.cost, balance: settlement.balance });
+          send({ type: 'done', messageId: null, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         }
       } catch (error) {
         // 中断或失败时，把已经生成的部分保存下来，并按实际 token 结算预扣

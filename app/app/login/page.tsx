@@ -17,10 +17,11 @@ const field = (id: string, label: string, type: string, extra: Record<string, st
   </div>
 );
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; mode?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; mode?: string; ref?: string }> }) {
   const user = await getCurrentUser();
   if (user) redirect('/');
-  const { error, mode } = await searchParams;
+  const { error, mode, ref } = await searchParams;
+  const refCode = typeof ref === 'string' && /^R-[A-Za-z0-9]{6}$/.test(ref) ? ref.toUpperCase() : '';
   const isLogin = mode === 'login';
   const needInvite = inviteRequired();
 
@@ -69,7 +70,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 <form action={register} className="p-auth-form">
                   {field('register-nickname', '昵称（选填）', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
-                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX-XXXX', ...(needInvite ? { required: 'required' } : {}) })}
+                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX-XXXX 或好友邀请码', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
                   {field('register-password', '密码', 'password', { required: 'required', minLength: '8', autoComplete: 'new-password' })}
                   <span className="p-auth-hint">密码至少 8 位；用 scrypt 哈希保存，不会以明文存储。</span>
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>

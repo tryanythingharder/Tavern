@@ -37,6 +37,7 @@ type Props = {
 type StreamEvent = {
   type: string;
   text?: string;
+  free?: number;
   message?: string;
   messageId?: number | null;
   content?: string;
@@ -95,7 +96,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const [error, setError] = useState('');
   const [failed, setFailed] = useState<{ type: 'send' } | { type: 'regen'; message: ChatMessageView } | null>(null);
-  const [billing, setBilling] = useState<{ cost: number; balance: number } | null>(null);
+  const [billing, setBilling] = useState<{ cost: number; balance: number; free?: number } | null>(null);
   const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
@@ -262,7 +263,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: text } : item)));
             } else if (event.type === 'done') {
               completed = true;
-              if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance });
+              if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free });
               setMessages((prev) =>
                 prev.map((item) =>
                   item.id === targetId
@@ -331,7 +332,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           try {
             const event = JSON.parse(line.slice(5));
             if (event.type === 'delta') { text += event.text; setDraft(text); }
-            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') setBilling({ cost: event.cost, balance: event.balance }); }
+            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free }); }
             else if (event.type === 'error') setError(event.message ?? '代写失败');
           } catch { /* 忽略坏分片 */ }
         }
@@ -761,7 +762,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               <ModelPicker chatId={chatId} />
             </span>
             <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
-            {billing && <span className="p-small">本回合 -{billing.cost} 点 · 余额 {billing.balance}</span>}
+            {billing && <span className="p-small">本回合 -{billing.cost} 点{billing.free ? `（免费额度抵扣 ${billing.free}）` : ''} · 余额 {billing.balance}</span>}
           </div>
         </div>
       </div>

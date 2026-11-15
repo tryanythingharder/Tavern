@@ -7,6 +7,7 @@ import { loadGenerationConfig } from '@/lib/resources-db';
 import { memorySettings } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
+import { dailyFreeRemaining } from '@/lib/growth';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   });
   const maxTokens = Math.min(prompt.params.maxTokens, 200);
   const maxCost = pointsCost(prompt.tokens + maxTokens, modelName(chat.model));
-  const reservation = reservePoints(user.id, maxCost, `代写 · ${modelName(chat.model)}`, `chat:${chatId}`);
+  const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `代写 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点）`, 402);
   const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();
@@ -74,7 +75,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const tokens = total || prompt.tokens + estimateTokens(full);
         finishGeneration(generationId, { status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(tokens, modelName(chat.model)), `chat:${chatId}`);
-        send({ type: 'done', text: full.trim(), cost: settlement.cost, balance: settlement.balance });
+        send({ type: 'done', text: full.trim(), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
       } catch (error) {
         const aborted = request.signal.aborted;
         finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });

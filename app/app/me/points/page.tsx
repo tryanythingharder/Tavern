@@ -7,10 +7,12 @@ import { checkinStatus } from '@/lib/checkin';
 import { listOrders, pricePerPointCents } from '@/lib/billing';
 import { PointsActions } from '@/components/points-actions';
 import { CheckinCard } from '@/components/checkin-card';
+import { GrowthCard } from '@/components/invite-card';
+import { dailyFreeRemaining, firstTopupEligible, growthConfig, referralCode, referralStats } from '@/lib/growth';
 
 export const dynamic = 'force-dynamic';
 
-const KIND_LABEL: Record<string, string> = { grant: '赠送', spend: '生成消耗', adjust: '结算调整', recharge: '充值', checkin: '每日签到' };
+const KIND_LABEL: Record<string, string> = { grant: '赠送', spend: '生成消耗', adjust: '结算调整', recharge: '充值', checkin: '每日签到', bonus: '奖励', free: '免费额度' };
 
 // 账本备注里带内部引用（chat:1、room:2、预扣 · …），转成人能读的文字
 function humanNote(raw: string | null | undefined): { text: string; chatId?: number } {
@@ -54,6 +56,9 @@ export default async function PointsPage() {
   const summary = pointsSummary(user.id);
   const ledger = listLedger(user.id, 100);
   const days = groupByDay(ledger as LedgerRow[]);
+  const growth = growthConfig();
+  const inviteOn = growth.inviteReward > 0 || growth.inviteeBonus > 0;
+  const stats = inviteOn ? referralStats(user.id) : { joined: 0, active: 0 };
 
   return (
     <section className="p-section" id="points">
@@ -74,6 +79,19 @@ export default async function PointsPage() {
         {summary.low && <p className="p-form-error">余额不多了，生成会被暂停。请联系管理员充值。</p>}
       </div>
       <div style={{ marginTop: 16 }}><CheckinCard initial={checkinStatus(user.id)} /></div>
+      <div style={{ marginTop: 16 }}>
+        <GrowthCard
+          dailyFree={growth.dailyFree}
+          dailyLeft={dailyFreeRemaining(user.id)}
+          firstTopupPct={growth.firstTopupPct}
+          firstTopup={firstTopupEligible(user.id)}
+          inviteReward={growth.inviteReward}
+          inviteeBonus={growth.inviteeBonus}
+          code={inviteOn ? referralCode(user.id) : null}
+          joined={stats.joined}
+          active={stats.active}
+        />
+      </div>
       <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} /></div>
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">点数记录</h2>

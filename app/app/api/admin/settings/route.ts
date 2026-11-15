@@ -1,3 +1,4 @@
+import { growthConfig } from '@/lib/growth';
 import { fail, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import { deleteSetting, getSetting, hasSetting, setSetting } from '@/lib/settings';
@@ -41,6 +42,7 @@ function status() {
       // 按模型单独定价：每行「模型id=每千 tokens 点数」，没写的模型按统一价
       modelPrices: Object.entries(modelPrices()).map(([id, price]) => `${id}=${price}`).join('\n'),
       models: availableModels().map((item) => item.id),
+      ...growthConfig(),
     },
     model: {
       baseUrl: getSetting('model.baseUrl', process.env.TAVERN_MODEL_BASE_URL ?? ''),
@@ -100,7 +102,13 @@ export async function PATCH(request: Request) {
   if (body.billing && typeof body.billing.modelPrices === 'string' && body.billing.modelPrices.trim()) {
     body.billing.modelPrices = JSON.stringify(parseModelPrices(body.billing.modelPrices));
   }
-  write(body.billing, { modelPrices: 'points.models', textPer1k: 'points.text', upstreamCostPer1kCents: 'billing.upstreamCostPer1kCents' });
+  for (const key of ['dailyFree', 'firstTopupPct', 'inviteReward', 'inviteeBonus'] as const) {
+    if (body.billing && typeof body.billing[key] === 'string') body.billing[key] = String(Math.max(0, Math.round(Number(body.billing[key]) || 0)));
+  }
+  write(body.billing, {
+    modelPrices: 'points.models', textPer1k: 'points.text', upstreamCostPer1kCents: 'billing.upstreamCostPer1kCents',
+    dailyFree: 'growth.dailyFree', firstTopupPct: 'growth.firstTopupPct', inviteReward: 'growth.inviteReward', inviteeBonus: 'growth.inviteeBonus',
+  });
   write(body.model, { baseUrl: 'model.baseUrl', apiKey: 'model.apiKey', name: 'model.name', fallbacks: 'model.fallbacks' });
 
   const changed = ['image', 'tts', 'payment', 'mail', 'billing', 'model'].filter((key) => Boolean(body[key as keyof typeof body]));

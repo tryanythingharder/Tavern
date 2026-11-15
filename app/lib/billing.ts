@@ -1,4 +1,5 @@
 import { createHmac, randomInt } from 'node:crypto';
+import { grantFirstTopupBonus } from '@/lib/growth';
 import db, { transaction } from '@/lib/db';
 import { balance, grantPoints, spendPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
@@ -173,7 +174,8 @@ export function markOrderPaid(orderId: number, providerOrderId?: string): { ok: 
     const changed = db.prepare("UPDATE orders SET status = 'paid', paid_at = ?, provider_order_id = ? WHERE id = ? AND status = 'pending'").run(Date.now(), providerOrderId ?? null, orderId);
     if (Number(changed.changes) === 0) return { ok: true, message: '订单已支付', points: row.points };
     grantPoints(row.user_id, row.points, `订单 #${orderId} 充值`, 'recharge');
-    notify(row.user_id, { type: 'points', title: `充值到账 +${row.points} 点`, body: `订单 #${orderId} 已确认`, link: '/me/points' });
+    const bonus = grantFirstTopupBonus(row.user_id, orderId, row.points);
+    notify(row.user_id, { type: 'points', title: `充值到账 +${row.points + bonus} 点`, body: bonus ? `订单 #${orderId} 已确认，含首充赠送 ${bonus} 点` : `订单 #${orderId} 已确认`, link: '/me/points' });
     return { ok: true, message: '已确认', points: row.points };
   });
 }
