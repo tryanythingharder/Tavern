@@ -68,7 +68,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens);
   const reservation = reservePoints(user.id, maxCost, '重新生成', `chat:${chat.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
-  const generationId = startGeneration(user.id, chat.id, 'regenerate', modelName());
+  const generationId = startGeneration(user.id, chat.id, 'regenerate', modelName(chat.model));
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -84,7 +84,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
           if (event.type === 'content') {
             full += event.text;
             send({ type: 'delta', text: event.text });

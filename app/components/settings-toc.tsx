@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { usePlayMode } from '@/components/play-mode';
 
-const GROUPS = [
+type TocItem = { href: string; label: string; st?: string };
+const GROUPS: { label: string; newbieLabel?: string; items: TocItem[] }[] = [
   {
     label: '账号',
     items: [
@@ -22,17 +24,18 @@ const GROUPS = [
     label: '聊天',
     items: [
       { href: '/me/appearance', label: '外观' },
-      { href: '/me/personas', label: '我的身份' },
-      { href: '/me/quick-replies', label: '快捷回复' },
+      { href: '/me/personas', label: '我的身份', st: 'Persona' },
+      { href: '/me/quick-replies', label: '快捷回复', st: 'Quick Reply' },
     ],
   },
   {
     label: '资源',
+    newbieLabel: '进阶 · 老玩家常用',
     items: [
-      { href: '/me/presets', label: '预设' },
-      { href: '/me/lorebooks', label: '世界书' },
-      { href: '/me/regex', label: '正则' },
-      { href: '/me/cards', label: '角色卡' },
+      { href: '/me/presets', label: '预设', st: 'Preset' },
+      { href: '/me/lorebooks', label: '世界书', st: 'World Info' },
+      { href: '/me/regex', label: '正则', st: 'Regex' },
+      { href: '/me/cards', label: '角色卡', st: 'Card 覆盖' },
     ],
   },
   {
@@ -48,6 +51,7 @@ const GROUPS = [
 export function SettingsToc() {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement | null>(null);
+  const mode = usePlayMode();
 
   useEffect(() => {
     const active = navRef.current?.querySelector('a.is-active');
@@ -59,7 +63,7 @@ export function SettingsToc() {
     <nav className="p-toc" aria-label="设置目录" ref={navRef}>
       {GROUPS.map((group) => (
         <div className="p-toc-group" role="group" aria-label={group.label} key={group.label}>
-          <span className="p-toc-label">{group.label}</span>
+          <span className="p-toc-label">{mode === 'newbie' && group.newbieLabel ? group.newbieLabel : group.label}</span>
           {group.items.map((section) => (
             <Link
               key={section.href}
@@ -68,6 +72,7 @@ export function SettingsToc() {
               aria-current={pathname === section.href ? 'page' : undefined}
             >
               {section.label}
+              {mode === 'veteran' && section.st ? <small className="pm-st">{section.st}</small> : null}
             </Link>
           ))}
         </div>

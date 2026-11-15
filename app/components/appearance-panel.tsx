@@ -1,5 +1,6 @@
 'use client';
 
+import { PlayModeSwitch } from '@/components/play-mode';
 import { useId, type ReactNode } from 'react';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { resetAppearance, setAppearance, useAppearance } from '@/components/appearance-store';
@@ -122,6 +123,10 @@ export function AppearancePanel({ theme, initial, showTheme = true }: { theme: T
           <ThemeSwitch initial={theme} variant="cards" />
         </Section>
       )}
+
+      <Section title="玩法模式" prefs={prefs}>
+        <PlayModeSwitch />
+      </Section>
 
       <Section title="字体" keys={SECTION_KEYS.font} prefs={prefs}>
         <Seg label="界面字体" value={prefs.uiFont} options={fontOpts} onChange={(uiFont) => set({ uiFont })} />

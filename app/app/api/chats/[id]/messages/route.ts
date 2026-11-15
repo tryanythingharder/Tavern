@@ -96,7 +96,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     deleteMessage(userMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
   }
-  const generationId = startGeneration(user.id, chatId, 'send', modelName());
+  const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -112,7 +112,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
           if (event.type === 'content') {
             full += event.text;
             send({ type: 'delta', text: event.text });

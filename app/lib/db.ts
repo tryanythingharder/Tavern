@@ -394,6 +394,7 @@ ensureColumn('chats', 'summary_prefs', 'TEXT');
 ensureColumn('characters', 'review_note', 'TEXT');
 ensureColumn('chats', 'rag_prefs', 'TEXT');
 ensureColumn('chats', 'memory', 'TEXT');
+ensureColumn('chats', 'model', 'TEXT');
 ensureColumn('messages', 'bookmark', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'attachment', 'TEXT');
 ensureColumn('room_messages', 'attachment', 'TEXT');
@@ -444,6 +445,7 @@ export type DbChat = {
   branch_from_chat_id: number | null; branch_from_message_id: number | null;
   preset_id: number | null; persona_id: number | null; lorebook_ids: string | null;
   summary: string | null; summary_prefs: string | null; rag_prefs: string | null; memory: string | null;
+  model?: string | null;
   created_at: number; updated_at: number;
 };
 export type DbMessage = {

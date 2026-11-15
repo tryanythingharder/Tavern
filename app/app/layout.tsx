@@ -9,6 +9,8 @@ import { imageCost, ttsCost } from '@/lib/media';
 import { pointsSummary } from '@/lib/points';
 import { getViewMode } from '@/lib/view';
 import { getAppearancePrefs, getTheme } from '@/lib/theme';
+import { getPlayMode } from '@/lib/play-mode-server';
+import { PlayModeChooser } from '@/components/play-mode';
 import { appearanceBodyProps } from '@/lib/appearance';
 import { getAppearance } from '@/lib/prefs';
 import { announcementText } from '@/lib/announcement';
@@ -48,6 +50,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const user = await getCurrentUser();
   const view = await getViewMode();
   const theme = await getTheme();
+  const playMode = await getPlayMode();
   const appearance = getAppearance(user?.id ?? null);
   const custom = await getAppearancePrefs();
   const customBody = appearanceBodyProps(custom);
@@ -79,6 +82,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         suppressHydrationWarning
         data-view={view}
         data-theme={theme}
+        data-mode={playMode ?? 'newbie'}
         data-chat-bg={appearance.background}
         {...customBody.data}
         style={{ ['--rp-font-scale' as string]: String(appearance.fontScale / 100), ...customBody.vars }}
@@ -94,6 +98,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SiteShell userName={user?.nickname} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} appearance={custom} announcement={announcement} checkin={checkin}>
           {children}
         </SiteShell>
+        {user && !playMode ? <PlayModeChooser /> : null}
       </body>
     </html>
   );

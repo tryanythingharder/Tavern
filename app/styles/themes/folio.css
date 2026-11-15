@@ -1471,7 +1471,7 @@ html body[data-theme="folio"]:not(#fo) .nf-copy { font-size: 15px; color: var(--
 html body[data-theme="folio"]:not(#fo) .nf-actions .btn { border-radius: 0; }
 html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta { justify-content: space-between !important; }
 html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta > .p-chat-hint { display: none; }
-html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-continue { height: 28px; min-height: 0; padding: 0 12px; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose :is(.p-chat-act, .mp-trigger) { height: 28px; min-height: 0; padding: 0 12px; }
 
 /* 验收修复：弹窗标题栏与外框对齐（去掉白色光圈造成的第二道框线，† 与标题同一行） */
 html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) { box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55); }

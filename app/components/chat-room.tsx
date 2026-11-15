@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
 import { RpText, TypingDots } from '@/components/rp-text';
+import { ModelPicker, NewbieTip } from '@/components/model-picker';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -295,6 +296,51 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   );
 
   // override：快捷动作（如「继续」）直接发送一段固定文本，不动用户正在写的草稿
+  // ST 的「代写」：让 AI 以玩家身份写一句，流式写进输入框，玩家改完再发
+  const [impersonating, setImpersonating] = useState(false);
+  const impersonate = useCallback(async () => {
+    if (impersonating || streaming) return;
+    setImpersonating(true);
+    setError('');
+    const hint = draft.trim();
+    setDraft('');
+    try {
+      const response = await fetch(`/api/chats/${chatId}/impersonate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hint }) });
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.message ?? '代写失败');
+        setDraft(hint);
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let text = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data:')) continue;
+          try {
+            const event = JSON.parse(line.slice(5));
+            if (event.type === 'delta') { text += event.text; setDraft(text); }
+            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') setBilling({ cost: event.cost, balance: event.balance }); }
+            else if (event.type === 'error') setError(event.message ?? '代写失败');
+          } catch { /* 忽略坏分片 */ }
+        }
+      }
+      inputRef.current?.focus();
+    } catch {
+      setError('代写失败，请稍后再试');
+    } finally {
+      setImpersonating(false);
+    }
+  }, [chatId, draft, impersonating, streaming]);
+
   const send = useCallback(async (override?: string) => {
     const text = (override ?? draft).trim();
     if (!text || streaming) return;
@@ -672,6 +718,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               ))}
             </div>
           )}
+          <NewbieTip />
           <div className="p-chat-compose-row">
             <textarea
               ref={inputRef}
@@ -697,7 +744,11 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             )}
           </div>
           <div className="p-chat-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
-            <button className="p-chat-continue" type="button" disabled={streaming || messages.length === 0} onClick={() => void send('*继续*')} title="不写台词，让角色把这一幕继续演下去">▸ 继续</button>
+            <span className="p-chat-acts">
+              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void send('*继续*')} title="不写台词，让角色把这一幕继续演下去">▸ 继续</button>
+              <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              <ModelPicker chatId={chatId} />
+            </span>
             <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
             {billing && <span className="p-small">本回合 -{billing.cost} 点 · 余额 {billing.balance}</span>}
           </div>
