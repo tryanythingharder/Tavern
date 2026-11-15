@@ -82,7 +82,7 @@ export function CheckinPopup({ initial }: { initial: Status }) {
                 style={{
                   width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10.5, fontWeight: 700,
                   background: index < Math.min(status.streak, 7) ? 'var(--text)' : 'var(--surface-2)',
-                  color: index < Math.min(status.streak, 7) ? '#fff' : 'var(--muted)',
+                  color: index < Math.min(status.streak, 7) ? 'var(--bg)' : 'var(--muted)',
                 }}
               >
                 {index + 1}

@@ -50,3 +50,28 @@
   html body .p-topbar .th-switch button { min-width: 0 !important; padding-inline: 8px !important; }
   html body .p-topbar .p-points-trigger { padding-inline: 8px !important; }
 }
+
+/* RP 三种语域：心理『』默认与对白区分（folio / stage；nocturne 在自己的样式里） */
+body:is([data-theme="folio"], [data-theme="stage"]) .p-msg-copy .rp-say.rp-think {
+  opacity: .82;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .32em;
+}
+/* ((OOC))：明确是出戏旁白，小一号 + 标签 */
+.p-msg-copy .rp-ooc { font-size: .82em; opacity: .78; }
+.p-msg-copy .rp-ooc::before {
+  content: "OOC"; display: inline-block; margin-right: 6px; padding: 0 5px;
+  border: 1px solid currentColor; border-radius: 4px;
+  font-size: 9.5px; line-height: 15px; letter-spacing: .08em; vertical-align: 1px; opacity: .8;
+}
+
+/* iOS Safari：输入框字号 < 16px 时聚焦会自动放大页面 */
+@media (max-width: 720px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea, select { font-size: max(16px, 1em) !important; }
+}
+
+/* 打开对话时历史消息立即可见：入场动画只留给最新一条和正在生成的 */
+html body[data-page="chat"] .p-chat-scroll .p-msg:not(.is-latest):not(.is-streaming) { animation: none; }

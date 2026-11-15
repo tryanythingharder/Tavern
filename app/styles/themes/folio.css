@@ -1015,7 +1015,7 @@ html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-input, .input,
 /* 筛选条：去底板，留一根线 */
 html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar {
     display: flex; flex-direction: column; gap: 14px; margin: 0 0 30px; padding: 0;
-    border: 0; border-radius: 0; background: transparent; box-shadow: none;
+    border: 0; border-radius: 0; background: var(--fo-bg); box-shadow: none; z-index: 15; top: 52px; padding-top: 14px;
 }
 html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main { display: flex; align-items: center; gap: 22px; padding: 0; background: none; border: 0; }
 html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search {

@@ -295,6 +295,9 @@ html body[data-theme="nocturne"]:not(#noc) .p-switch[aria-checked="true"], html 
 html body[data-theme="nocturne"]:not(#noc) .p-toc { background: transparent; }
 html body[data-theme="nocturne"]:not(#noc) .p-toc a { color: var(--noc-muted); }
 html body[data-theme="nocturne"]:not(#noc) .p-toc a:is(.is-active, [aria-current]) { color: var(--noc-text); }
+@media (max-width: 720px) {
+  html body[data-theme="nocturne"]:not(#noc) .p-toc a:is(.is-active, [aria-current]) { background: var(--noc-accent-soft); color: var(--noc-text); border-color: transparent; box-shadow: inset 0 0 0 1px rgba(75, 91, 245, .5); }
+}
 
 /* 光斑卡片：去掉浅色高光 */
 html body[data-theme="nocturne"]:not(#noc) :is(.ca-rec, .p-work, .p-continue-card, .ca-scene, .rd-glow)::after { background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(75, 91, 245, .12), transparent 60%); }
@@ -634,16 +637,17 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue .rd-
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue .p-eyebrow { display: flex; align-items: center; gap: 18px; font-size: 10.5px; letter-spacing: .32em; color: var(--noc-copy); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue .p-eyebrow::before, html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue .p-eyebrow::after { content: ""; width: 70px; height: 1px; background: #3a3a45; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue h1 { margin: 6px 0 0; font-family: var(--noc-serif); font-size: 30px; font-weight: 700; letter-spacing: .14em; color: var(--noc-text); }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue p { margin: 0; font-family: var(--noc-serif); font-style: italic; font-size: 13.5px; color: var(--noc-muted); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue p { margin: 0; font-family: var(--noc-serif); font-style: normal; letter-spacing: .06em; font-size: 13.5px; color: var(--noc-muted); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue :is(small, .p-eyebrow, p) { color: var(--noc-muted); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-rp-prologue .p-eyebrow { color: var(--noc-copy); }
 
 /* 消息：角色台词是字幕，玩家是靛蓝玻璃便签 */
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg {
   display: block; position: relative; margin: 0 0 38px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
-  animation: noc-sub-in 1.1s var(--noc-ease) both;
 }
-@keyframes noc-sub-in { from { opacity: 0; transform: translateY(22px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+/* 只给最新/流式消息做字幕入场；历史消息立即可见，不再整屏模糊 1–2 秒 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:is(.is-latest, .is-streaming) { animation: noc-sub-in .6s var(--noc-ease) both; }
+@keyframes noc-sub-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:hover { border: 0; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg > .p-avatar { display: none; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg > div { min-width: 0; }
@@ -653,22 +657,24 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-copy { font-
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-copy .rp-p { margin: 0 0 14px; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-copy .rp-p:last-child { margin-bottom: 0; }
 /* 没有台词的段落 = 舞台说明 */
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.p-msg-user) .rp-p:not(:has(.rp-say)) { max-width: 640px; font-style: italic; font-size: calc(15.5px * var(--rp-font-scale, 1)); color: var(--noc-muted); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.p-msg-user) .rp-p:not(:has(.rp-say)) { max-width: 640px; font-style: normal; letter-spacing: .03em; font-size: calc(15.5px * var(--rp-font-scale, 1)); color: var(--noc-muted); }
 /* 有台词的段落 = 字幕 */
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.p-msg-user) .rp-p:has(.rp-say) { font-size: calc(22px * var(--rp-font-scale, 1)); line-height: 1.62; color: var(--noc-copy); text-shadow: 0 2px 24px rgba(0, 0, 0, .6); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-say { font-weight: 400; color: var(--noc-text); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg:not(.is-latest):not(.p-msg-user) .rp-say { color: #e4e4ea; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg.is-latest:not(.p-msg-user) .rp-p:has(.rp-say) { font-size: calc(24px * var(--rp-font-scale, 1)); }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-act { font-style: italic; font-size: .72em; color: var(--noc-muted); letter-spacing: .02em; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-act { font-style: normal; font-size: .82em; color: var(--noc-muted); letter-spacing: .02em; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-p:not(:has(.rp-say)) .rp-act { font-size: 1em; }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-ooc { font-family: var(--noc-sans); font-size: 12px; color: #6f6f7a; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-ooc { font-family: var(--noc-sans); font-size: 12px; color: var(--noc-muted); }
+/* 心理『』：比台词轻一档，靛蓝细虚线，区别于对白 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg .rp-say.rp-think { color: var(--noc-copy); font-weight: 300; text-decoration: underline dotted rgba(125, 137, 255, .55); text-underline-offset: .32em; text-decoration-thickness: 1px; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg strong { color: var(--noc-text); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .rp-caret { display: inline-block; width: 2px; height: .95em; margin-left: 4px; vertical-align: -3px; background: var(--noc-accent); box-shadow: 0 0 10px var(--noc-accent); animation: noc-caret 1s steps(1) infinite; }
 @keyframes noc-caret { 50% { opacity: 0; } }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .rp-typing { color: #7d89ff; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .rp-typing i { background: var(--noc-accent); }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .rp-typing-label { color: #7d89ff; letter-spacing: .24em; font-size: 11px; }
-html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg.is-streaming { background: transparent; border: 0; animation: noc-sub-in 1.1s var(--noc-ease) both; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg.is-streaming { background: transparent; border: 0; }
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg.is-streaming .p-msg-name::after { content: "正在落笔"; color: #7d89ff; font-family: var(--noc-sans); font-style: normal; letter-spacing: .24em; }
 
 html body[data-theme="nocturne"]:not(#noc)[data-page="chat"] .p-msg-user {
@@ -860,6 +866,13 @@ html body[data-theme="nocturne"]:not(#noc) :is(.cai-auth, .p-auth, .auth, .auth-
 html body[data-theme="nocturne"]:not(#noc) :is(.cai-auth-card, .p-auth-card, .auth-card) { background: rgba(20, 20, 24, .7); border-color: var(--noc-glass-line); color: var(--noc-text); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
 html body[data-theme="nocturne"]:not(#noc) .legal { background: #0b0b0e; color: var(--noc-copy); }
 html body[data-theme="nocturne"]:not(#noc) .legal .legal-demo { background: #141418; border-color: var(--noc-line); }
+html body[data-theme="nocturne"]:not(#noc) .legal :is(p, li, strong, .legal-demo) { color: var(--noc-copy); }
+html body[data-theme="nocturne"]:not(#noc) .legal :is(h1, h2) { color: var(--noc-text); }
+html body[data-theme="nocturne"]:not(#noc) .legal :is(.legal-back, .legal-meta, .legal-footer) { color: var(--noc-muted); }
+html body[data-theme="nocturne"]:not(#noc) .legal .legal-footer { border-color: var(--noc-line); }
+html body[data-theme="nocturne"]:not(#noc) .legal { min-height: 100dvh; }
+html body[data-theme="nocturne"]:not(#noc):has(.legal) { background: var(--noc-bg); }
+html:has(body[data-theme="nocturne"] .legal) { background: #0b0b0e; }
 
 /* ---------- 后台 ---------- */
 html body[data-theme="nocturne"]:not(#noc) .p-admin { background: #0b0b0e; color: var(--noc-text); }
