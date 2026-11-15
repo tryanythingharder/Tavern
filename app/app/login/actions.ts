@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { confirmAge, createUser, endSession, findUserByEmail, isTwoFactorEnabled, startSession, verifyPassword } from '@/lib/auth';
 import { createAuthToken } from '@/lib/auth-tokens';
 import { authLink, mailConfigured, sendMail } from '@/lib/mail';
@@ -67,6 +68,7 @@ export async function register(formData: FormData) {
   } catch (error) {
     console.warn('[mail] verify email failed:', error);
   }
+  if (referral) (await cookies()).delete('tavern_ref');
   await startSession(user.id);
   redirect('/');
 }

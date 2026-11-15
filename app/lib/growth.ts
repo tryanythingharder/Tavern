@@ -139,3 +139,12 @@ export function referralStats(userId: number) {
   const row = db.prepare('SELECT COUNT(*) AS joined, COUNT(rewarded_at) AS active FROM referrals WHERE referrer_id = ?').get(userId) as { joined: number; active: number };
   return { joined: row.joined, active: row.active };
 }
+
+/** 注册页的邀请横幅：邀请人昵称 + 新人见面礼。码无效返回 null。 */
+export function referralInviter(code: string): { nickname: string; bonus: number } | null {
+  const id = referrerFor(code);
+  if (!id) return null;
+  const row = db.prepare('SELECT nickname FROM users WHERE id = ?').get(id) as { nickname: string } | undefined;
+  if (!row) return null;
+  return { nickname: row.nickname, bonus: growthConfig().inviteeBonus };
+}

@@ -25,6 +25,21 @@ export function GrowthCard(props: {
       setTimeout(() => setCopied(false), 1800);
     } catch { /* 剪贴板不可用时用户可以手动选中复制 */ }
   };
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+  useEffect(() => setCanShare(typeof navigator.share === 'function'), []);
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(props.code ?? '');
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1800);
+    } catch { /* 忽略 */ }
+  };
+  const share = async () => {
+    try {
+      await navigator.share({ title: '来酒馆和角色一起写故事', text: `用我的邀请码 ${props.code} 注册${props.inviteeBonus > 0 ? `，多得 ${props.inviteeBonus} 点` : ''}：`, url: link });
+    } catch { /* 用户取消 */ }
+  };
   const showInvite = Boolean(props.code) && (props.inviteReward > 0 || props.inviteeBonus > 0);
   if (!props.dailyFree && !(props.firstTopupPct && props.firstTopup) && !showInvite) return null;
 
@@ -61,9 +76,17 @@ export function GrowthCard(props: {
               {props.joined > 0 && <> 已邀请 {props.joined} 人，{props.active} 人已开聊。</>}
             </p>
           </div>
-          <div className="gr-link">
-            <input className="p-input" readOnly value={link || `邀请码 ${props.code}`} aria-label="邀请链接" onFocus={(event) => event.currentTarget.select()} />
-            <button className="p-btn p-btn--sm p-btn--primary" type="button" onClick={() => void copy()} disabled={!link}>{copied ? '已复制' : '复制链接'}</button>
+          <div className="gr-invite">
+            <div className="gr-code">
+              <span className="gr-code-label">我的邀请码</span>
+              <b className="gr-code-value">{props.code}</b>
+              <button className="p-btn p-btn--sm" type="button" onClick={() => void copyCode()}>{codeCopied ? '已复制' : '复制'}</button>
+            </div>
+            <div className="gr-link">
+              <input className="p-input" readOnly value={link || `邀请码 ${props.code}`} aria-label="邀请链接" onFocus={(event) => event.currentTarget.select()} />
+              <button className="p-btn p-btn--sm p-btn--primary" type="button" onClick={() => void (canShare ? share() : copy())} disabled={!link}>{canShare ? '分享' : copied ? '已复制' : '复制链接'}</button>
+            </div>
+            <span className="p-small">好友注册时填邀请码，或直接打开链接（码会自动带上）。</span>
           </div>
         </div>
       )}

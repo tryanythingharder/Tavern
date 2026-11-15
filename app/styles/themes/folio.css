@@ -1478,3 +1478,8 @@ html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) { box-shadow: 0 40p
 html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) { display: flex; align-items: center; gap: 10px; margin: 0; background: transparent; border-radius: 0; }
 html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head)::before { margin-right: 0; line-height: 1; align-self: center; }
 html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) :is(h2, h3, strong, .modal-title) { margin: 0; flex: 1 1 auto; min-width: 0; }
+
+/* 书页主题：邀请码框与注册页邀请横幅用直角，和其他卡片一致 */
+body[data-theme="folio"] .gr-code,
+body[data-theme="folio"] .p-auth-invite { border-radius: 0; }
+body[data-theme="folio"] .p-auth-invite-avatar { border-radius: 0; }

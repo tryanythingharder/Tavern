@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { referralInviter } from '@/lib/growth';
 import { getCurrentUser } from '@/lib/auth';
 import { inviteRequired } from '@/lib/invite';
 import { login, register } from './actions';
@@ -21,7 +23,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const user = await getCurrentUser();
   if (user) redirect('/');
   const { error, mode, ref } = await searchParams;
-  const refCode = typeof ref === 'string' && /^R-[A-Za-z0-9]{6}$/.test(ref) ? ref.toUpperCase() : '';
+  // 链接上的 ?ref= 优先，其次是之前逛站时记下的 cookie（middleware 写入）
+  const cookieRef = (await cookies()).get('tavern_ref')?.value ?? '';
+  const rawRef = typeof ref === 'string' && ref ? ref : cookieRef;
+  const refCode = /^R-[A-Z0-9]{6}$/i.test(rawRef) ? rawRef.toUpperCase() : '';
+  const inviter = refCode ? referralInviter(refCode) : null;
   const isLogin = mode === 'login';
   const needInvite = inviteRequired();
 
@@ -65,12 +71,18 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 <h1 id="register-title">和喜欢的角色，<br />开始你的故事。</h1>
                 <p className="p-auth-lead">创建账号，随时回来继续未完的剧情。</p>
 
+                {inviter && (
+                  <div className="p-auth-invite" role="note">
+                    <span className="p-auth-invite-avatar" aria-hidden="true">{inviter.nickname.slice(0, 1)}</span>
+                    <span><b>{inviter.nickname}</b> 邀请你来酒馆{inviter.bonus > 0 ? <>，注册即多得 <b>{inviter.bonus}</b> 点</> : null}。邀请码已帮你填好。</span>
+                  </div>
+                )}
                 {error && <p className="p-form-error" role="alert">{error}</p>}
 
                 <form action={register} className="p-auth-form">
                   {field('register-nickname', '昵称（选填）', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
-                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX-XXXX 或好友邀请码', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX-XXXX 或好友邀请码 R-XXXXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
                   {field('register-password', '密码', 'password', { required: 'required', minLength: '8', autoComplete: 'new-password' })}
                   <span className="p-auth-hint">密码至少 8 位；用 scrypt 哈希保存，不会以明文存储。</span>
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>
