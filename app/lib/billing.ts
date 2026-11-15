@@ -67,7 +67,7 @@ export function redeemCode(userId: number, input: string): { ok: boolean; messag
     const changed = db.prepare('UPDATE redeem_codes SET used_by = ?, used_at = ? WHERE id = ? AND used_by IS NULL').run(userId, Date.now(), row.id);
     if (Number(changed.changes) === 0) return { ok: false, message: '这个兑换码已经被使用过了' };
     const next = grantPoints(userId, row.amount, `兑换码 ${row.code}`, 'recharge');
-    notify(userId, { type: 'points', title: `兑换成功 +${row.amount} 点`, body: `兑换码 ${row.code}`, link: '/me/points' });
+    notify(userId, { type: 'points', title: `兑换成功 +${row.amount} 点`, body: `兑换码 ${row.code}`, link: '/me/points', push: false });
     return { ok: true, message: '兑换成功', amount: row.amount, balance: next };
   });
 }

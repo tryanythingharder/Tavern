@@ -52,7 +52,7 @@ export async function register(formData: FormData) {
   confirmAge(user.id);
   ensureStartingPoints(user.id);
   const welcomeBonus = referral ? recordReferral(user.id, referral) : 0;
-  notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS + welcomeBonus} 点${welcomeBonus ? `（含好友邀请见面礼 ${welcomeBonus} 点）` : ''}。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/' });
+  notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS + welcomeBonus} 点${welcomeBonus ? `（含好友邀请见面礼 ${welcomeBonus} 点）` : ''}。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/', push: false });
   // 注册后发验证邮件；发信失败不阻塞注册，用户可在「我的」里重发
   try {
     const token = createAuthToken(user.id, 'verify', 24 * 60 * 60 * 1000);

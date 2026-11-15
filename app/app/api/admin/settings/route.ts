@@ -102,12 +102,12 @@ export async function PATCH(request: Request) {
   if (body.billing && typeof body.billing.modelPrices === 'string' && body.billing.modelPrices.trim()) {
     body.billing.modelPrices = JSON.stringify(parseModelPrices(body.billing.modelPrices));
   }
-  for (const key of ['dailyFree', 'firstTopupPct', 'inviteReward', 'inviteeBonus'] as const) {
+  for (const key of ['dailyFree', 'firstTopupPct', 'inviteReward', 'inviteeBonus', 'inviteMax'] as const) {
     if (body.billing && typeof body.billing[key] === 'string') body.billing[key] = String(Math.max(0, Math.round(Number(body.billing[key]) || 0)));
   }
   write(body.billing, {
     modelPrices: 'points.models', textPer1k: 'points.text', upstreamCostPer1kCents: 'billing.upstreamCostPer1kCents',
-    dailyFree: 'growth.dailyFree', firstTopupPct: 'growth.firstTopupPct', inviteReward: 'growth.inviteReward', inviteeBonus: 'growth.inviteeBonus',
+    dailyFree: 'growth.dailyFree', firstTopupPct: 'growth.firstTopupPct', inviteReward: 'growth.inviteReward', inviteeBonus: 'growth.inviteeBonus', inviteMax: 'growth.inviteMax',
   });
   write(body.model, { baseUrl: 'model.baseUrl', apiKey: 'model.apiKey', name: 'model.name', fallbacks: 'model.fallbacks' });
 

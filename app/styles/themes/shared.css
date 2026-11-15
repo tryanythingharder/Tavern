@@ -443,4 +443,16 @@ body[data-u-backdrop][data-page="chat"] .chat-backdrop ~ .p-rp-workbench { posit
   .gr-row { flex-direction: column; align-items: stretch; }
   .gr-meter { width: 100%; text-align: left; }
   .gr-link { width: 100%; }
+  .gr-tag { align-self: flex-start; }
+}
+
+/* 通知页 · 系统推送开关 */
+.push-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.push-row > div:first-child { min-width: 0; }
+.push-row b { font-size: 14.5px; }
+.push-row .p-small { margin: 4px 0 0; }
+.push-actions { flex: none; display: flex; gap: 8px; }
+@media (max-width: 720px) {
+  .push-row { flex-direction: column; align-items: stretch; }
+  .push-actions { justify-content: flex-start; }
 }
