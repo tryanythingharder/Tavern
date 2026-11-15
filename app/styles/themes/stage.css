@@ -1094,3 +1094,12 @@ html body[data-theme="stage"]:not(.p-cinema) .p-toast, html body[data-theme="sta
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll { scroll-padding-top: 120px; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg { scroll-margin-top: 120px; }
 }
+
+/* 验收修复：法务 / 帮助页走戏台卡片版式 */
+html body[data-theme="stage"]:not(.p-cinema) .legal { max-width: 760px; padding-top: 56px; background: transparent; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .legal h1 { font-family: var(--stg-serif); font-size: 42px; font-weight: 800; letter-spacing: -.01em; }
+html body[data-theme="stage"]:not(.p-cinema) .legal h2 { display: flex; align-items: center; gap: 10px; font-family: var(--stg-serif); font-size: 18px; }
+html body[data-theme="stage"]:not(.p-cinema) .legal h2::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .legal :is(p, li) { color: var(--stg-copy); font-size: 15px; }
+html body[data-theme="stage"]:not(.p-cinema) .legal .legal-demo { border-radius: 18px; border-color: var(--stg-line); background: var(--stg-card); color: var(--stg-copy); box-shadow: 0 1px 0 var(--stg-line), 0 12px 30px -18px rgba(27, 27, 29, .25); }
+html body[data-theme="stage"]:not(.p-cinema) .legal .legal-back { display: inline-flex; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--stg-line-strong); background: var(--stg-card); color: var(--stg-ink); text-decoration: none; }
