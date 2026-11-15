@@ -150,7 +150,7 @@ export function StageChatChrome({ chrome }: { chrome: ChatChromeData }) {
 
         <div className="stg-char-body">
           <div>
-            <div className="stg-sec-h"><span>进度 · <b>{current === 0 ? '序幕' : `第${actNumeral(current)}幕`}</b></span><span className="stg-v">{inAct}<small> / {ACT}</small></span></div>
+            <div className="stg-sec-h"><span>本幕进度 · <b>{current === 0 ? '序幕' : `第${actNumeral(current)}幕`}</b></span><span className="stg-v">{inAct}<small> / {ACT}</small></span></div>
             <div className="stg-meter" aria-hidden="true">
               {Array.from({ length: ACT }, (_, i) => (
                 <i key={i} className={i < inAct - 1 ? 'is-f' : i === inAct - 1 ? 'is-a' : i === inAct ? 'is-n' : ''} style={{ animationDelay: `${0.2 + i * 0.04}s` }} />
@@ -209,7 +209,7 @@ export function StageChatChrome({ chrome }: { chrome: ChatChromeData }) {
             );
           })}
         </div>
-        <div className="stg-pct">{current + 1}/{total}<small>进度</small></div>
+        <div className="stg-pct" title={`本幕第 ${inAct} 回合，每幕 ${ACT} 回合`}>{inAct}/{ACT}<small>本幕</small></div>
       </nav>
 
       {head && createPortal(<span className="stg-head-act"><b>{current === 0 ? '序幕' : `第${actNumeral(current)}幕`}</b><span className="stg-ital">{current === 0 ? 'prologue' : `act ${current}`}</span></span>, head)}

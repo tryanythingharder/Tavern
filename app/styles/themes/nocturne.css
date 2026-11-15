@@ -1121,3 +1121,7 @@ html body[data-theme="nocturne"]:not(#noc)[data-page="character"] .p-card { back
 }
 
 html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-search:has(> svg) :is(input, .p-input) { padding-left: 36px; }
+
+/* 验收修复：角色页次要操作（收藏 / 加入角色库 / 举报）统一高度与基线 */
+html body[data-theme="nocturne"]:not(#noc) .p-detail-minor { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+html body[data-theme="nocturne"]:not(#noc) .p-detail-minor > :is(button, a, .btn, .p-btn) { min-height: 40px; display: inline-flex; align-items: center; margin: 0; }

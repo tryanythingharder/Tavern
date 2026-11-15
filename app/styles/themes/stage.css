@@ -97,7 +97,7 @@ html body[data-theme="stage"]:not(.p-cinema) .p-shell, html body[data-theme="sta
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search {
   height: 40px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); box-shadow: none;
 }
-html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; font-size: 13px; }
+html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; font-size: 13px; padding-left: 40px; }
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search kbd { font: 11px var(--stg-sans); border-radius: 7px; background: var(--stg-sunken); color: var(--stg-copy); }
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar > .p-avatar {
   width: 38px; height: 38px; border-radius: 50%; background: var(--stg-accent-soft); color: var(--stg-accent);
@@ -875,7 +875,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search {
   min-height: 44px; padding-inline: 16px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); box-shadow: 0 6px 16px -12px rgba(27, 27, 29, .4);
 }
 html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search:focus-within { border-color: var(--stg-accent); box-shadow: 0 0 0 3px var(--stg-accent-soft); }
-html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; padding-left: 40px; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar :is(.p-select, .p-btn) {
   min-height: 44px; border-radius: 999px; border: 1px solid var(--stg-line); background-color: #fff; font-weight: 700; font-size: 13px; color: var(--stg-ink);
 }
@@ -1087,4 +1087,10 @@ html body[data-theme="stage"]:not(.p-cinema) .p-toast, html body[data-theme="sta
   html body[data-theme="stage"]:not(.p-cinema) :is([class*="stg-"], .p-msg, .p-msg-copy)::before,
   html body[data-theme="stage"]:not(.p-cinema) :is([class*="stg-"], .p-msg, .p-msg-copy)::after { animation: none !important; transition: none !important; }
   html body[data-theme="stage"]:not(.p-cinema) .stg-stamp { transform: rotate(14deg); }
+}
+
+/* 验收修复：手机端吸顶头卡不再盖住滚动定位的消息 */
+@media (max-width: 720px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll { scroll-padding-top: 120px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg { scroll-margin-top: 120px; }
 }

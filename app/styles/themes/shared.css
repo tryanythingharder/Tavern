@@ -75,3 +75,8 @@ body:is([data-theme="folio"], [data-theme="stage"]) .p-msg-copy .rp-say.rp-think
 
 /* 打开对话时历史消息立即可见：入场动画只留给最新一条和正在生成的 */
 html body[data-page="chat"] .p-chat-scroll .p-msg:not(.is-latest):not(.is-streaming) { animation: none; }
+
+/* 「回到最新」靠右贴在输入框上沿，不再压住正文中间 */
+html body[data-page="chat"] .p-chat-compose .rd-jump { left: auto; right: 0; transform: translateY(12px) scale(.95); }
+html body[data-page="chat"] .p-chat-compose .rd-jump.is-visible { transform: none; }
+html body[data-theme="nocturne"][data-page="chat"] .p-chat-compose .rd-jump { background: rgba(20, 20, 24, .94); }

@@ -1443,3 +1443,10 @@ body[data-theme="folio"] .p-auth-card { border-radius: 0; box-shadow: none; bord
 body[data-theme="folio"] .p-auth-card h1,
 body[data-theme="folio"] .p-auth-scene-copy h2 { font-family: "Noto Serif SC", "Songti SC", "STSong", serif; font-weight: 600; letter-spacing: 0; }
 body[data-theme="folio"] .p-auth-card :is(.p-input, .input) { border-radius: 0; }
+
+/* 验收修复：手机端触控尺寸 + 设置菜单对齐 */
+@media (max-width: 720px) {
+    html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-msg-tools :is(button, .p-msg-tool) { min-height: 40px; padding-inline: 8px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-head-in .btn { min-height: 40px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-toc { align-items: flex-start; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+}
