@@ -294,8 +294,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     [resync],
   );
 
-  const send = useCallback(async () => {
-    const text = draft.trim();
+  // override：快捷动作（如「继续」）直接发送一段固定文本，不动用户正在写的草稿
+  const send = useCallback(async (override?: string) => {
+    const text = (override ?? draft).trim();
     if (!text || streaming) return;
     const stamp = Date.now();
     const assistantKey = `local-assistant-${stamp}`;
@@ -305,11 +306,11 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
-    const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => setDraft(''));
+    const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => { if (override === undefined) setDraft(''); });
     if (!accepted) {
       // 请求未被接受：撤掉本地乐观消息，避免留下空气泡
       setMessages((prev) => prev.filter((item) => item.id !== assistantKey && item.id !== `local-user-${stamp}`));
-      setDraft((current) => (current ? current : text));
+      if (override === undefined) setDraft((current) => (current ? current : text));
       setFailed({ type: 'send' });
     } else {
       setFailed(null);
@@ -695,8 +696,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
-            <span className="p-small">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
+          <div className="p-chat-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
+            <button className="p-chat-continue" type="button" disabled={streaming || messages.length === 0} onClick={() => void send('*继续*')} title="不写台词，让角色把这一幕继续演下去">▸ 继续</button>
+            <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
             {billing && <span className="p-small">本回合 -{billing.cost} 点 · 余额 {billing.balance}</span>}
           </div>
         </div>

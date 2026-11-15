@@ -1469,3 +1469,6 @@ html body[data-theme="folio"]:not(#fo) .nf-kicker::after { content: " · Errata"
 html body[data-theme="folio"]:not(#fo) .nf-title { font-family: var(--fo-display) !important; font-size: 44px !important; font-weight: 700; letter-spacing: .02em !important; padding-bottom: 16px; border-bottom: 3px double var(--fo-ink); }
 html body[data-theme="folio"]:not(#fo) .nf-copy { font-size: 15px; color: var(--fo-copy); line-height: 1.9; }
 html body[data-theme="folio"]:not(#fo) .nf-actions .btn { border-radius: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta { justify-content: space-between !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta > .p-chat-hint { display: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-continue { height: 28px; min-height: 0; padding: 0 12px; }

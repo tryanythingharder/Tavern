@@ -171,3 +171,18 @@ html body[data-theme="folio"] .pt-day-h { border-bottom: 3px double #1b1b1d; col
 html body .p-btn.p-create-cancel { background: transparent !important; border-color: transparent !important; box-shadow: none !important; color: var(--ca-muted, var(--muted, #77777e)) !important; }
 html body .p-btn.p-create-cancel:hover { color: var(--ca-ink, var(--text, #1b1b1d)) !important; text-decoration: underline; text-underline-offset: 3px; }
 .p-create-need { color: var(--ca-muted, var(--muted, #77777e)); }
+
+/* ---------- 输入框旁的「▸ 继续」：不写台词也能推进剧情（戏台有自己的快捷栏，隐藏） ---------- */
+.p-chat-continue {
+  display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 12px; margin-right: auto;
+  border: 1px solid var(--ca-line-strong, var(--border, #d5d5d9)); border-radius: 999px; background: transparent;
+  color: var(--ca-ink, var(--text, #1b1b1d)); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.p-chat-continue:hover:not(:disabled) { border-color: var(--ca-accent, #4b5bf5); color: var(--ca-accent, #4b5bf5); background: var(--ca-accent-soft, #eceefe); }
+.p-chat-continue:disabled { opacity: .4; cursor: default; }
+@media (max-width: 720px) { .p-chat-continue { height: 36px; } }
+html body[data-theme="stage"] .p-chat-continue { display: none; }
+html body[data-theme="folio"] .p-chat-continue { border-radius: 0; font-family: "Noto Serif SC", "Songti SC", serif; }
+html body[data-theme="nocturne"] .p-chat-continue { border-color: rgba(255, 255, 255, .16); color: #f3f3f6; letter-spacing: .08em; }
+html body[data-theme="nocturne"] .p-chat-continue:hover:not(:disabled) { background: #23243a; border-color: #4b5bf5; color: #f3f3f6; }
