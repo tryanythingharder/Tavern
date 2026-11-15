@@ -338,3 +338,72 @@ html body[data-theme="stage"] .stg-seg :is(button, a) { white-space: nowrap; }
 .err-text { margin: 0 0 20px; color: #4a4a50; line-height: 1.8; }
 .err-text small { display: block; color: #6b6b73; }
 .err-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* ─── 手机端目录抽屉（章节 + 书签），桌面端由主题自己的目录承担 ─── */
+.cns-fab { display: none; }
+@media (max-width: 1023px) {
+  .cns-fab {
+    display: inline-flex; align-items: center; gap: 6px; position: fixed; z-index: 40;
+    right: max(12px, env(safe-area-inset-right)); top: calc(66px + env(safe-area-inset-top));
+    min-height: 40px; padding: 0 14px 0 12px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--ca-line, #e6e6e8); background: color-mix(in srgb, var(--ca-card, #fff) 92%, transparent);
+    color: var(--ca-ink, #1b1b1d); box-shadow: 0 6px 20px rgba(27,27,29,.12); backdrop-filter: blur(8px); cursor: pointer;
+  }
+  .cns-fab svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+}
+.cns { position: fixed; inset: 0; z-index: 90; }
+.cns-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgba(27,27,29,.32); animation: cns-fade .2s ease; }
+.cns-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 78vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 8px 18px calc(20px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0;
+  background: var(--ca-card, #fff); color: var(--ca-ink, #1b1b1d); box-shadow: 0 -10px 40px rgba(27,27,29,.18);
+  animation: cns-up .28s cubic-bezier(.2,.8,.2,1);
+}
+.cns-grip { width: 40px; height: 4px; border-radius: 4px; background: var(--ca-line-strong, #d5d5d9); margin: 2px auto 10px; }
+.cns-head { display: flex; align-items: baseline; gap: 10px; }
+.cns-head b { font-size: 17px; }
+.cns-head span { font-size: 12px; color: var(--ca-muted, #77777e); }
+.cns-x { margin-left: auto; width: 36px; height: 36px; border: 0; border-radius: 999px; background: var(--ca-sunken, #f7f7f8); color: inherit; cursor: pointer; }
+.cns-jumps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 4px; }
+.cns-jumps button { min-height: 42px; border: 1px solid var(--ca-line, #e6e6e8); border-radius: 12px; background: transparent; color: inherit; font: inherit; font-size: 13.5px; cursor: pointer; }
+.cns-sheet h3 { margin: 16px 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .12em; color: var(--ca-muted, #77777e); }
+.cns-list { list-style: none; margin: 0; padding: 0; }
+.cns-list button {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 10px; width: 100%;
+  min-height: 44px; padding: 10px 4px; border: 0; border-bottom: 1px solid var(--ca-line, #e6e6e8); background: none;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.cns-list button[aria-current] .cns-n { color: var(--ca-accent, #4b5bf5); }
+.cns-n { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.cns-t { font-size: 13.5px; color: var(--ca-copy, #4a4a50); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cns-p { font-size: 12px; color: var(--ca-muted, #77777e); font-variant-numeric: tabular-nums; }
+.cns-empty { margin: 4px 0; font-size: 13px; color: var(--ca-muted, #77777e); }
+@keyframes cns-up { from { transform: translateY(100%); } }
+@keyframes cns-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cns-sheet, .cns-scrim { animation: none; } }
+body[data-u-motion="off"] :is(.cns-sheet, .cns-scrim) { animation: none; }
+
+/* ─── 输入预览：按 RP 排版显示草稿 ─── */
+.p-chat-preview {
+  position: relative; margin: 0 0 8px; padding: 10px 14px 4px; max-height: 32vh; overflow-y: auto;
+  border: 1px dashed var(--ca-line-strong, var(--border, #d5d5d9)); border-radius: var(--u-r, 14px);
+  background: var(--ca-sunken, var(--surface-2, #f7f7f8)); font-size: .95em;
+}
+.p-chat-preview-k { position: absolute; top: 6px; right: 10px; font-size: 11px; letter-spacing: .12em; color: var(--ca-muted, var(--muted, #77777e)); }
+.p-chat-preview .rp-p { margin: 0 0 6px; }
+.p-chat-pv[aria-pressed="true"] { color: var(--ca-accent, #4b5bf5); }
+
+/* ─── 角色立绘背景（外观里打开） ─── */
+.chat-backdrop { display: none; }
+body[data-u-backdrop][data-page="chat"] .chat-backdrop {
+  display: block; position: fixed; inset: -40px; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center 20%; filter: blur(32px) saturate(.85); opacity: .28;
+}
+body[data-u-backdrop][data-page="chat"] .chat-backdrop ~ .p-rp-workbench { position: relative; z-index: 1; }
+
+/* 戏台手机端原本整行隐藏 p-chat-meta，连带藏掉了代写 / 预览 / 模型选择；只藏提示文字 */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema):not(#stg)[data-page="chat"] .p-chat-compose > .p-chat-col > .p-chat-meta { display: flex !important; margin: 4px 0 0 !important; }
+  html body[data-theme="stage"]:not(#stg)[data-page="chat"] .p-chat-meta > .p-chat-hint { display: none; }
+  html body[data-theme="stage"]:not(#stg)[data-page="chat"] .p-chat-acts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+}

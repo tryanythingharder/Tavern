@@ -13,6 +13,7 @@ import { summaryStatus } from '@/lib/memory';
 import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
 import { ThemeChatChrome } from '@/components/themes/chat-chrome';
+import { ChatNavSheet } from '@/components/chat-nav-sheet';
 
 export const metadata: Metadata = { title: '对话' };
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,9 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
 
   return (
     <main className="p-inner">
+      {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
       <div className="p-rp-workbench" data-theme-chat={theme}>
+        <ChatNavSheet />
         <ThemeChatChrome
           theme={theme}
           chrome={{

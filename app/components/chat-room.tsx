@@ -88,6 +88,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState('');
+  const [preview, setPreview] = useState(false);
+  useEffect(() => { try { setPreview(localStorage.getItem('tavern_compose_preview') === '1'); } catch {} }, []);
+  const togglePreview = () => setPreview((on) => { try { localStorage.setItem('tavern_compose_preview', on ? '0' : '1'); } catch {} return !on; });
   const [streaming, setStreaming] = useState(false);
   const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const [error, setError] = useState('');
@@ -720,6 +723,12 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             </div>
           )}
           <NewbieTip />
+          {preview && draft.trim() && !streaming && (
+            <div className="p-chat-preview" aria-live="polite">
+              <span className="p-chat-preview-k">预览</span>
+              <div className="p-msg-copy"><RpText text={draft} /></div>
+            </div>
+          )}
           <div className="p-chat-compose-row">
             <textarea
               ref={inputRef}
@@ -748,6 +757,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             <span className="p-chat-acts">
               <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void send('*继续*')} title="不写台词，让角色把这一幕继续演下去">▸ 继续</button>
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
               <ModelPicker chatId={chatId} />
             </span>
             <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
