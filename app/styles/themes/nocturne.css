@@ -1125,3 +1125,11 @@ html body[data-theme="nocturne"]:not(#noc) .p-filterbar .p-search:has(> svg) :is
 /* 验收修复：角色页次要操作（收藏 / 加入角色库 / 举报）统一高度与基线 */
 html body[data-theme="nocturne"]:not(#noc) .p-detail-minor { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 html body[data-theme="nocturne"]:not(#noc) .p-detail-minor > :is(button, a, .btn, .p-btn) { min-height: 40px; display: inline-flex; align-items: center; margin: 0; }
+
+/* 验收修复：404 · 胶片断了 */
+html body[data-theme="nocturne"]:not(#noc) .nf { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; text-align: center; align-items: center; padding-top: 0 !important; }
+html body[data-theme="nocturne"]:not(#noc) .nf-kicker { font-family: var(--noc-latin); font-size: 11px; letter-spacing: .5em; color: var(--noc-muted); }
+html body[data-theme="nocturne"]:not(#noc) .nf-kicker::before { content: "REEL MISSING · "; }
+html body[data-theme="nocturne"]:not(#noc) .nf-title { font-family: var(--noc-serif) !important; font-size: 40px !important; font-weight: 700; letter-spacing: .16em !important; color: var(--noc-text); text-shadow: 0 2px 30px rgba(75, 91, 245, .25); }
+html body[data-theme="nocturne"]:not(#noc) .nf-copy { color: var(--noc-copy); letter-spacing: .04em; }
+html body[data-theme="nocturne"]:not(#noc) .nf-actions { justify-content: center; }

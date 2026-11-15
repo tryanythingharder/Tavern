@@ -1,5 +1,6 @@
 'use client';
 
+import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -350,7 +351,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
           </div>
           <div className="field">
             <label htmlFor="chat-import-file">选择文件</label>
-            <input id="chat-import-file" className="input" type="file" accept=".jsonl,.json,application/json" onChange={(event) => void readImportFile(event.target.files?.[0])} />
+            <FileDrop id="chat-import-file" accept=".jsonl,.json,application/json" title="选择 .jsonl / .json 聊天记录" hint="点击选择，或把 SillyTavern 导出的聊天记录拖到这里" onFile={(file) => void readImportFile(file)} />
           </div>
           <div className="field">
             <label htmlFor="chat-import-text">或粘贴内容</label>

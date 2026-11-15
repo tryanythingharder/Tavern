@@ -115,3 +115,59 @@ html body[data-theme="folio"] .rp-swipe button { border-radius: 0; }
 html body[data-theme="nocturne"] .p-msg-time { color: #8b8b96; letter-spacing: .04em; }
 html body[data-page="chat"] .p-msg .rp-swipe { width: fit-content; max-width: max-content; justify-self: start; align-self: start; height: auto; min-height: 0; }
 html body[data-page="chat"] .p-msg .rp-swipe button { padding: 0 !important; min-height: 0 !important; min-width: 0; border: 0 !important; box-shadow: none !important; }
+
+/* ---------- 文件选择（导入角色卡 / 聊天记录） ---------- */
+.file-drop {
+  position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 18px; cursor: pointer;
+  border: 1.5px dashed var(--ca-line-strong, var(--border, #d5d5d9)); border-radius: var(--u-r, 14px);
+  background: var(--ca-sunken, var(--surface-2, #f7f7f8)); color: var(--ca-ink, var(--text, #1b1b1d));
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.file-drop:hover, .file-drop.is-over { border-color: var(--ca-accent, #4b5bf5); background: var(--ca-accent-soft, #eceefe); }
+.file-drop:focus-within { outline: 2px solid var(--ca-accent, #4b5bf5); outline-offset: 2px; }
+.file-drop.is-disabled { opacity: .55; cursor: progress; }
+.file-drop.has-file { border-style: solid; }
+.file-drop-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.file-drop-ico { flex: none; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--ca-accent, #4b5bf5); }
+.file-drop-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.file-drop-text b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-drop-text small { font-size: 12px; color: var(--ca-muted, var(--muted, #77777e)); }
+html body[data-theme="nocturne"] .file-drop { background: #141418; border-color: #3a3a45; color: #f3f3f6; }
+html body[data-theme="nocturne"] .file-drop:hover, html body[data-theme="nocturne"] .file-drop.is-over { background: #23243a; border-color: #4b5bf5; }
+html body[data-theme="nocturne"] .file-drop-text small { color: #8b8b96; }
+html body[data-theme="folio"] .file-drop { border-radius: 0; background: #fff; }
+
+/* ---------- 点数记录：按天分组的细线账本（不用红绿，+ 用靛蓝，− 用墨色） ---------- */
+.pt-ledger { display: flex; flex-direction: column; gap: 18px; margin-top: 14px; }
+.pt-day-h { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 6px; padding: 0 0 6px; font-size: 12.5px; font-weight: 600; letter-spacing: .06em; color: var(--ca-muted, var(--muted, #77777e)); border-bottom: 1px solid var(--ca-line-strong, var(--border, #d5d5d9)); list-style: none; cursor: default; }
+details.pt-day > .pt-day-h { cursor: pointer; }
+details.pt-day > .pt-day-h::-webkit-details-marker { display: none; }
+details.pt-day > .pt-day-h > span:first-child::after { content: " ▸"; font-size: 10px; }
+details.pt-day[open] > .pt-day-h > span:first-child::after { content: " ▾"; }
+.pt-day-sum { font-variant-numeric: tabular-nums; }
+.pt-rows { list-style: none; margin: 0; padding: 0; }
+.pt-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto 64px; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--ca-line, var(--border, #e6e6e8)); font-size: 13.5px; }
+.pt-row:last-child { border-bottom: 0; }
+.pt-time, .pt-bal { font-size: 12px; color: var(--ca-muted, var(--muted, #77777e)); font-variant-numeric: tabular-nums; }
+.pt-bal { text-align: right; }
+.pt-what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ca-copy, var(--text, #4a4a50)); }
+.pt-what b { font-weight: 600; color: var(--ca-ink, var(--text, #1b1b1d)); }
+.pt-what a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); }
+.pt-amt { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.pt-amt.is-in { color: var(--ca-accent, #4b5bf5); }
+.pt-amt.is-out { color: var(--ca-ink, var(--text, #1b1b1d)); }
+@media (max-width: 520px) { .pt-row { grid-template-columns: 40px minmax(0, 1fr) auto; } .pt-bal { display: none; } }
+html body[data-theme="nocturne"] .pt-day-h { color: #8b8b96; border-color: #2a2a33; }
+html body[data-theme="nocturne"] .pt-row { border-color: #1f1f26; }
+html body[data-theme="nocturne"] .pt-what { color: #c9c9d1; }
+html body[data-theme="nocturne"] :is(.pt-what b, .pt-amt.is-out) { color: #f3f3f6; }
+html body[data-theme="nocturne"] .pt-amt.is-in { color: #7d89ff; }
+html body[data-theme="nocturne"] :is(.pt-time, .pt-bal) { color: #8b8b96; }
+html body[data-theme="folio"] .pt-ledger { font-family: "Noto Serif SC", "Songti SC", serif; }
+html body[data-theme="folio"] .pt-day-h { border-bottom: 3px double #1b1b1d; color: #1b1b1d; }
+
+/* ---------- 创作页：同行字段底部对齐；「取消」降为文字按钮；发布条件写清楚 ---------- */
+.p-create-main .p-field-row { align-items: end; }
+html body .p-btn.p-create-cancel { background: transparent !important; border-color: transparent !important; box-shadow: none !important; color: var(--ca-muted, var(--muted, #77777e)) !important; }
+html body .p-btn.p-create-cancel:hover { color: var(--ca-ink, var(--text, #1b1b1d)) !important; text-decoration: underline; text-underline-offset: 3px; }
+.p-create-need { color: var(--ca-muted, var(--muted, #77777e)); }

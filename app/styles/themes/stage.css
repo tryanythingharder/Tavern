@@ -1103,3 +1103,11 @@ html body[data-theme="stage"]:not(.p-cinema) .legal h2::before { content: ""; wi
 html body[data-theme="stage"]:not(.p-cinema) .legal :is(p, li) { color: var(--stg-copy); font-size: 15px; }
 html body[data-theme="stage"]:not(.p-cinema) .legal .legal-demo { border-radius: 18px; border-color: var(--stg-line); background: var(--stg-card); color: var(--stg-copy); box-shadow: 0 1px 0 var(--stg-line), 0 12px 30px -18px rgba(27, 27, 29, .25); }
 html body[data-theme="stage"]:not(.p-cinema) .legal .legal-back { display: inline-flex; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--stg-line-strong); background: var(--stg-card); color: var(--stg-ink); text-decoration: none; }
+
+/* 验收修复：404 · 此幕不存在 */
+html body[data-theme="stage"]:not(.p-cinema) .nf { max-width: 620px !important; margin-top: 56px; padding: 44px 40px 40px !important; border-radius: 28px; background: var(--stg-card); border: 1px solid var(--stg-line); box-shadow: 0 1px 0 var(--stg-line), 0 30px 60px -36px rgba(27, 27, 29, .35); }
+html body[data-theme="stage"]:not(.p-cinema) .nf-kicker { display: inline-flex; padding: 4px 12px; border-radius: 999px; background: var(--stg-ink); color: #fff; font-size: 11px; letter-spacing: .14em; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-kicker::after { content: " · 此幕不存在"; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-title { font-family: var(--stg-serif) !important; font-size: 44px !important; font-weight: 800; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-copy { color: var(--stg-copy); font-size: 15px; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-actions .btn { border-radius: 999px; }

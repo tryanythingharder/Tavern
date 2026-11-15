@@ -1461,3 +1461,11 @@ html body[data-theme="folio"]:not(#fo) .legal .legal-demo { border-radius: 0; bo
 html body[data-theme="folio"]:not(#fo) .legal .legal-footer { border-top-color: var(--fo-line-strong); color: var(--fo-muted); }
 html body[data-theme="folio"]:not(#fo) .legal .legal-back { color: var(--fo-muted); font-family: var(--fo-display); font-size: 14px; }
 html body[data-theme="folio"]:has(.legal) { background: var(--fo-bg); }
+
+/* 验收修复：404 · 勘误页 */
+html body[data-theme="folio"]:not(#fo) .nf { padding-top: 120px !important; font-family: var(--fo-display); }
+html body[data-theme="folio"]:not(#fo) .nf-kicker { font-family: var(--fo-italic); font-style: italic; font-size: 15px; letter-spacing: .04em; color: var(--fo-muted); text-transform: none; }
+html body[data-theme="folio"]:not(#fo) .nf-kicker::after { content: " · Errata"; }
+html body[data-theme="folio"]:not(#fo) .nf-title { font-family: var(--fo-display) !important; font-size: 44px !important; font-weight: 700; letter-spacing: .02em !important; padding-bottom: 16px; border-bottom: 3px double var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .nf-copy { font-size: 15px; color: var(--fo-copy); line-height: 1.9; }
+html body[data-theme="folio"]:not(#fo) .nf-actions .btn { border-radius: 0; }

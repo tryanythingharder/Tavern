@@ -171,6 +171,8 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
     </div>
   );
 
+  const missing = [!name.trim() && '名称', !hook.trim() && '剧情钩子', !greeting.trim() && '开场白'].filter(Boolean) as string[];
+  const publishHint = missing.length ? `发布前还需要填写：${missing.join('、')}` : '可以发布了';
   return (
     <>
       <header className="p-page-title">
@@ -205,8 +207,8 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             <button className="p-btn" type="button" disabled={busy !== null || !name.trim()} onClick={() => void submit('draft')}>
               {busy === 'draft' ? '保存中…' : '保存草稿'}
             </button>
-            <a className="p-btn" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
-            <span className="p-small">发布需要名称、钩子和开场白。</span>
+            <a className="p-btn p-btn--ghost p-create-cancel" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
+            <span className="p-small p-create-need">{publishHint}</span>
           </div>
           <section className="p-card p-card--pad">
             <h2 className="p-form-section-title">公开展示</h2>
@@ -341,8 +343,8 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             <button className="p-btn" type="button" disabled={busy !== null || !name.trim()} onClick={() => void submit('draft')}>
               {busy === 'draft' ? '保存中…' : '保存草稿'}
             </button>
-            <a className="p-btn" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
-            <span className="p-small">发布需要角色名称、剧情钩子和开场白。</span>
+            <a className="p-btn p-btn--ghost p-create-cancel" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
+            <span className="p-small p-create-need">{publishHint}</span>
             {saved && <span className="p-small">草稿已保存</span>}
             {autoSavedAt && !saved && <span className="p-small">本地自动保存 · {new Date(autoSavedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
             {initial && <span className="p-small">当前状态：{initial.status === 'draft' ? '草稿' : initial.status === 'archived' ? '已下架' : '已发布'}</span>}
