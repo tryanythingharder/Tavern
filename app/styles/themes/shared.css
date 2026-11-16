@@ -512,3 +512,48 @@ html body[data-theme="folio"] .p-auth-scene[data-scene="folio"] .p-auth-art { ob
 @media print {
   html body :is(.fo-reveal, .ca-block, .ca-rec, .ca-scene-item, .p-work, .p-continue-card, .p-section, [class*="stg-"]) { opacity: 1 !important; transform: none !important; translate: none !important; scale: none !important; animation: none !important; transition: none !important; }
 }
+
+/* 后台侧栏当前项：重设计层把当前项改成白底卡片，和后台的白字冲突（白底白字）。后台保持黑色胶囊 */
+html body[data-page="admin"]:not(.p-cinema) .p-aside .p-nav-item[aria-current="page"] { background: var(--ink, #1b1b1d); color: #fff; box-shadow: none; }
+html body[data-page="admin"]:not(.p-cinema) .p-aside .p-nav-item[aria-current="page"] .p-icon { color: #fff; }
+
+/* =========================================================================
+   多角色房间：两套主题的对话页布局都是围绕单角色对话（角色卡 / 旁注）做的，
+   房间没有那些组件，这里给房间单独一套「对话 + 右侧档案」布局
+   ========================================================================= */
+.room-empty { margin: clamp(24px, 8vh, 72px) auto 24px; max-width: 34em; text-align: center; }
+.room-empty-kicker { margin: 0 0 8px; font-size: 12px; letter-spacing: .18em; color: var(--ca-muted, #6b6b73); }
+.room-empty-title { margin: 0 0 10px; font-size: 26px; line-height: 1.25; }
+.room-empty-copy { margin: 0 0 18px; color: var(--ca-muted, #6b6b73); }
+.room-empty-cast { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.room-empty-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px 6px 6px; border: 1px solid var(--ca-line, #e6e6e8); border-radius: 999px; background: var(--ca-card, #fff); font: inherit; color: inherit; cursor: pointer; }
+.room-empty-chip:hover { border-color: var(--accent, #4b5bf5); }
+.room-empty-chip:focus-visible { outline: 2px solid var(--accent, #4b5bf5); outline-offset: 2px; }
+
+@media (min-width: 1024px) {
+  html body[data-theme][data-page="chat"] .p-rp-workbench[data-room] {
+    box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: minmax(0, 1fr); gap: 0; height: 100%; min-height: 0;
+  }
+  html body[data-theme][data-page="chat"] .p-rp-workbench[data-room] > .p-chat { grid-column: 1; grid-row: 1; min-width: 0; }
+  html body[data-theme][data-page="chat"] .p-rp-workbench[data-room] > .p-rp-context { display: block; grid-column: 2; grid-row: 1; overflow-y: auto; }
+}
+html body[data-theme][data-page="chat"] .p-rp-workbench[data-room] .p-rp-context-line { justify-content: flex-start; }
+
+/* 书页：右侧档案用旁注的版式 */
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench[data-room] > .p-rp-context { border-left: 1px solid var(--fo-line); background: var(--fo-bg); padding: 24px 22px; font-family: var(--fo-serif); }
+html body[data-theme="folio"] .room-empty-title { font-family: var(--fo-display); }
+html body[data-theme="folio"] .room-empty-chip { border-radius: 0; background: transparent; border-color: var(--fo-line-strong); }
+
+/* 戏台：显示返回键，聊天与档案各放进白卡片 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] { padding: 16px; gap: 16px; background: var(--stg-bg); box-sizing: border-box; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] > .p-chat { background: #fff; border-radius: var(--stg-r, 22px); box-shadow: var(--stg-shadow); overflow: hidden; display: flex; flex-direction: column; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-head .p-chat-icon { display: inline-flex; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-head-in { padding: 12px 16px; gap: 10px; align-items: center; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-compose { padding: 0 16px 14px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] > .p-rp-context { background: #fff; border-radius: var(--stg-r, 22px); box-shadow: var(--stg-shadow); padding: 20px; }
+html body[data-theme="stage"] .room-empty-chip { box-shadow: var(--stg-shadow); border-color: transparent; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-title { display: block; flex: 1; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-title-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-name { order: 0; font-size: 18px; font-weight: 700; padding: 0; border: 0; background: none; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-sub { order: 1; font-size: 12px; font-weight: 400; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-sub::before { content: none; display: none; }

@@ -2507,5 +2507,9 @@
  "契约": "Contract",
  "重生": "Rebirth",
  "穿越": "Isekai",
- "{0} 著": "by {0}"
+ "{0} 著": "by {0}",
+ "房间开场": "Room opening",
+ "群像 · 第一场": "Ensemble · Scene one",
+ "这场戏还没开始": "The scene hasn't started yet",
+ "先写一句开场，或者点名一位角色，让他先开口。": "Write an opening line, or call on a character to speak first."
 }

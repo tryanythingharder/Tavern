@@ -97,12 +97,12 @@ html body[data-theme="folio"][data-page] .p-side .p-side-recent :is(.p-cover, im
 html body[data-theme="folio"][data-page] .p-side .p-side-recent:hover :is(.p-cover, img) { filter: none; transform: none; }
 html body[data-theme="folio"][data-page] .p-side > .p-side-recent { margin-top: 2px; }
 html body[data-theme="folio"][data-page] .p-side .p-side-recents + .p-side-recent { margin-top: 10px; }
-html body[data-theme="folio"][data-page] .p-side-foot { margin-top: auto; padding: 14px 0 0; border: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-html body[data-theme="folio"][data-page] .p-side-foot::before {
+html body[data-theme="folio"][data-page] :not(.p-aside) > .p-side-foot { margin-top: auto; padding: 14px 0 0; border: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+html body[data-theme="folio"][data-page] :not(.p-aside) > .p-side-foot::before {
     content: "Tavern · Folio"; writing-mode: vertical-rl; font-family: var(--fo-serif); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--fo-muted);
 }
-html body[data-theme="folio"][data-page] .p-side-foot .p-user-row { padding: 0; width: auto; justify-content: center; background: transparent; }
-html body[data-theme="folio"][data-page] .p-side-foot .p-user-row > span:last-child { display: none; }
+html body[data-theme="folio"][data-page] :not(.p-aside) > .p-side-foot .p-user-row { padding: 0; width: auto; justify-content: center; background: transparent; }
+html body[data-theme="folio"][data-page] :not(.p-aside) > .p-side-foot .p-user-row > span:last-child { display: none; }
 html body[data-theme="folio"][data-page] :is(.p-side-foot, .p-topbar) .p-avatar {
     background: var(--fo-sunken) !important; color: var(--fo-copy) !important; border: 1px solid var(--fo-line-strong);
     font-family: var(--fo-display); font-weight: 700; box-shadow: none;
@@ -110,7 +110,7 @@ html body[data-theme="folio"][data-page] :is(.p-side-foot, .p-topbar) .p-avatar 
 @media (max-height: 820px) {
     html body[data-theme="folio"][data-page] .p-side .p-side-recents,
     html body[data-theme="folio"][data-page] .p-side > .p-side-recent,
-    html body[data-theme="folio"][data-page] .p-side-foot::before { display: none; }
+    html body[data-theme="folio"][data-page] :not(.p-aside) > .p-side-foot::before { display: none; }
 }
 
 @media (max-width: 1023px) {

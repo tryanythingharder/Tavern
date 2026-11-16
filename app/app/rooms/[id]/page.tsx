@@ -34,7 +34,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="p-inner">
-      <div className="p-rp-workbench">
+      <div className="p-rp-workbench" data-room="">
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">

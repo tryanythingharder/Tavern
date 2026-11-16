@@ -151,6 +151,21 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
     <>
       <div className="p-chat-scroll">
         <div className="p-chat-col">
+          {messages.length === 0 && (
+            <section className="room-empty" aria-label="房间开场">
+              <p className="room-empty-kicker">群像 · 第一场</p>
+              <h2 className="room-empty-title">这场戏还没开始</h2>
+              <p className="room-empty-copy">先写一句开场，或者点名一位角色，让他先开口。</p>
+              <div className="room-empty-cast">
+                {members.filter((member) => !member.muted).map((member) => (
+                  <button key={member.id} type="button" className="room-empty-chip" onClick={() => setDraft((value) => (value.includes(`@${member.name}`) ? value : `@${member.name} ${value}`))}>
+                    <span className="p-avatar" style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.initial}</span>
+                    {member.name}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           {messages.map((message, index) => {
             const member = memberOf(message.speakerId);
             const isUser = message.role === 'user';
