@@ -507,3 +507,8 @@ html body[data-theme="folio"] .p-auth-scene[data-scene="folio"] .p-auth-art { ob
   html body .p-auth-footer > span { flex-basis: 100%; text-align: center; }
   html body .p-auth-footer a { min-height: 44px; padding: 0 12px; }
 }
+
+/* 打印 / 截图：滚动入场的元素一律直接显示 */
+@media print {
+  html body :is(.fo-reveal, .ca-block, .ca-rec, .ca-scene-item, .p-work, .p-continue-card, .p-section, [class*="stg-"]) { opacity: 1 !important; transform: none !important; translate: none !important; scale: none !important; animation: none !important; transition: none !important; }
+}

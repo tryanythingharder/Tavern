@@ -665,7 +665,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-a
   border-left: 2px solid var(--stg-line-strong); background: var(--stg-hover); line-height: 1.75; font-size: .86em; color: var(--stg-copy);
 }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-act.stg-act-long::before { content: "✦ "; }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act.stg-act-long { background: #fff; border-left-color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act.stg-act-long { background: #fff; border-left-color: var(--stg-line-strong); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-say { color: var(--stg-ink); font-weight: 700; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy strong { color: var(--stg-ink); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-ooc { display: inline-block; padding: 0 8px; border: 1px dashed var(--stg-line-strong); border-radius: 999px; color: var(--stg-muted); font-size: .8em; line-height: 1.8; }
@@ -685,8 +685,9 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll ar
   background: var(--stg-player); border: 1px solid var(--stg-accent-soft); color: var(--stg-ink); box-shadow: none;
   padding: 11px 18px; border-radius: 26px 26px 8px 26px; line-height: 1.85; font-family: var(--stg-sans); font-size: calc(15px * var(--rp-font-scale, 1));
 }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act { background: #fff; border-color: var(--stg-accent-soft); color: var(--stg-accent); }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act::before { color: var(--stg-accent); }
+/* 动作统一一种样式：AI 与玩家都是同一款灰色舞台提示片，玩家气泡上只把底色换成白色以免糊在浅靛底上 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act { background: #fff; border-color: var(--stg-line); color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act::before { color: var(--stg-line-strong); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-tools { justify-content: flex-end; margin: 0 6px 0 0; }
 
 /* 生成中 */
@@ -705,7 +706,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll ar
   width: 30px; height: 28px; border-radius: 999px; color: var(--stg-muted); border: 1px solid transparent; background: transparent;
 }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools button:hover:not(:disabled) { background: #fff; border-color: var(--stg-line); color: var(--stg-ink); }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools .p-msg-tool { width: auto; padding: 0 10px; font-size: 11px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools .p-msg-tool:not([aria-label]) { width: auto; padding: 0 10px; font-size: 11px; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-candidate { background: #fff; border: 1px solid var(--stg-line); border-radius: 999px; font-size: 11px; color: var(--stg-copy); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-more { top: 30px; right: 6px; }
 
@@ -1147,3 +1148,12 @@ html body[data-theme="stage"]:not(.p-cinema) .nf-actions .btn { border-radius: 9
 html body[data-theme="stage"]:not(.p-cinema) :is(input, textarea, select, button) { font-family: inherit; }
 html body[data-theme="stage"]:not(.p-cinema) .p-create-preview-greeting { font-family: var(--stg-sans); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-author, html body[data-theme="stage"]:not(.p-cinema) .stg-author-cjk { font-family: var(--stg-sans); font-style: normal; }
+
+/* 手机输入区：快捷条右侧渐隐提示还能横滑；条和代写/预览行压矮，整块从 ~200px 降到 ~150px */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa { padding-top: 14px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa::after { content: ""; flex: 0 0 28px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa .stg-q { height: 34px; min-height: 34px; padding: 0 11px; font-size: 12.5px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-compose-row { margin-top: 6px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > .p-chat-meta :is(button, .btn, .p-btn, .mp-trigger) { height: 30px; min-height: 30px; padding-block: 0; font-size: 12px; }
+}
