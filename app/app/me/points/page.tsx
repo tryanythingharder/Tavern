@@ -1,3 +1,4 @@
+import { paymentCurrency as __cur } from '@/lib/billing';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
@@ -92,7 +93,7 @@ export default async function PointsPage() {
           active={stats.active}
         />
       </div>
-      <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} /></div>
+      <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} currency={__cur()} /></div>
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">点数记录</h2>
         <p className="p-small">每次生成结束后按网关返回的 usage 扣费，账本逐笔可对。</p>

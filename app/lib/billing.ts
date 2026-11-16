@@ -93,7 +93,7 @@ function paymentSecret(): string {
 }
 
 export function paymentCurrency(): string {
-  return getSetting('payment.currency', process.env.TAVERN_PAYMENT_CURRENCY ?? 'CNY');
+  return getSetting('payment.currency', process.env.TAVERN_PAYMENT_CURRENCY ?? 'USD');
 }
 
 // 结算页令牌使用独立派生密钥，绝不把 webhook 密钥的签名交给浏览器。

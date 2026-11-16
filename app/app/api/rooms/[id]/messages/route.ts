@@ -1,3 +1,4 @@
+import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
 import { addRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, listRoomMessages, pickSpeaker } from '@/lib/rooms';
@@ -40,6 +41,10 @@ export async function POST(request: Request, context: Params) {
   const auto = body.auto === true;
   const text = String(body.text ?? '').trim();
   if (!auto && !text) return fail('消息不能为空', 400);
+  if (text) {
+    const verdict = await moderateText(text);
+    if (!verdict.ok) return fail(verdict.message, 422);
+  }
 
   const quota = checkQuota(user.id);
   if (!quota.ok) return fail(quota.message, 429, quota.retryAfterSeconds);

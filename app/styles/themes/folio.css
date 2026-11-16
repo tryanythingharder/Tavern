@@ -70,7 +70,7 @@ html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-nav-item {
 }
 html body[data-theme="folio"][data-page] .p-side .p-nav-item .p-icon { display: none; }
 html body[data-theme="folio"][data-page] .p-side .p-nav-item span {
-    writing-mode: vertical-rl; font-size: 12.5px; letter-spacing: .12em; font-weight: 400; line-height: 1.15;
+    writing-mode: vertical-rl; font-size: 14px; letter-spacing: .2em; font-weight: 500; line-height: 1.15;
 }
 html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-nav-item::before {
     content: counter(fo-nav, lower-roman);
@@ -265,8 +265,8 @@ html body[data-theme="folio"] .fo-frame img { width: 100%; height: 100%; object-
 html body[data-theme="folio"] .fo-frame-initial { display: grid; place-items: center; height: 100%; background: var(--fo-ink); color: #fff; font-family: var(--fo-display); font-weight: 700; font-size: 220px; }
 html body[data-theme="folio"] .fo-folio { position: absolute; top: 16px; left: 16px; color: #fff; font-family: var(--fo-italic); font-style: italic; font-size: 18px; text-shadow: 0 1px 10px rgba(0, 0, 0, .35); }
 html body[data-theme="folio"] .fo-stamp {
-    position: absolute; right: 16px; bottom: 16px; padding: 7px 10px; color: #fff; font-size: 11px; letter-spacing: .2em;
-    border: 1px solid rgba(255, 255, 255, .55); background: rgba(0, 0, 0, .18); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    position: absolute; right: 16px; bottom: 16px; padding: 7px 10px; color: #fff; font-size: 12px; font-weight: 600; letter-spacing: .18em; text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+    border: 1px solid rgba(255, 255, 255, .55); background: rgba(0, 0, 0, .42); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 html body[data-theme="folio"] .fo-cv-photo figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 11.5px; color: var(--fo-muted); letter-spacing: .04em; }
 html body[data-theme="folio"] .fo-cv-photo figcaption .fo-it { font-size: 14px; color: var(--fo-ink); }

@@ -1,3 +1,4 @@
+import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import {
   addMessage,
@@ -60,6 +61,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const body = (await request.json().catch(() => ({}))) as { text?: string };
   const text = String(body.text ?? '').trim();
   if (!text) return fail('消息不能为空', 400);
+  if (text) {
+    const verdict = await moderateText(text);
+    if (!verdict.ok) return fail(verdict.message, 422);
+  }
 
   // 先校验再落库：被限流时不该留下一条没有回复的玩家消息
   const quota = checkQuota(user.id);

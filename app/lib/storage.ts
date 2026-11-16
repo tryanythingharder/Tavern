@@ -2,6 +2,11 @@ import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import db from '@/lib/db';
+import { reportError } from '@/lib/monitor';
+import { s3Config, s3Delete, s3Get, s3Put } from '@/lib/s3';
+
+const MIME: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg' };
+// 配置了对象存储时：先写本地（立刻可读），后台上传；成功后默认删掉本地副本（TAVERN_S3_KEEP_LOCAL=1 保留做缓存）。
 
 // 运行时生成的文件（生图、语音、导入的角色卡封面）不能放 public/：
 // next start 只服务构建时已知的 public 文件，运行时新写入的会 404。
@@ -20,10 +25,17 @@ export function saveMedia(buffer: Buffer, extension: string, meta: MediaMeta = {
     meta.visibility ?? 'public',
     Date.now(),
   );
+  if (s3Config()) {
+    void s3Put(name, buffer, MIME[extension] ?? 'application/octet-stream')
+      .then(() => {
+        if (process.env.TAVERN_S3_KEEP_LOCAL !== '1') unlinkSync(join(mediaDir, name));
+      })
+      .catch((error: Error) => reportError({ source: 'server', message: `媒体上传对象存储失败（本地副本保留）：${error.message}`, path: 'storage' }));
+  }
   return `/media/${name}`;
 }
 
-export function readMedia(name: string, requesterId: number | null = null): { buffer: Buffer; extension: string; visibility: 'public' | 'private' } | null {
+export async function readMedia(name: string, requesterId: number | null = null): Promise<{ buffer: Buffer; extension: string; visibility: 'public' | 'private' } | null> {
   if (!/^[a-zA-Z0-9-]+\.[a-z0-9]+$/.test(name)) return null;
   const row = db.prepare('SELECT owner_id, visibility FROM media_files WHERE name = ?').get(name) as
     | { owner_id: number | null; visibility: string }
@@ -34,6 +46,12 @@ export function readMedia(name: string, requesterId: number | null = null): { bu
   try {
     const buffer = readFileSync(join(mediaDir, name));
     return { buffer, extension: name.split('.').pop() ?? 'bin', visibility };
+  } catch {
+    // 本地没有：去对象存储取
+  }
+  try {
+    const buffer = await s3Get(name);
+    return buffer ? { buffer, extension: name.split('.').pop() ?? 'bin', visibility } : null;
   } catch {
     return null;
   }
@@ -47,6 +65,7 @@ export function deleteMediaByOwner(ownerId: number): void {
     } catch {
       // 文件已经不在了
     }
+    void s3Delete(row.name);
   }
   db.prepare('DELETE FROM media_files WHERE owner_id = ?').run(ownerId);
 }
