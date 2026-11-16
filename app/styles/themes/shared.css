@@ -467,3 +467,13 @@ body[data-u-backdrop][data-page="chat"] .chat-backdrop ~ .p-rp-workbench { posit
 .p-auth-invite b { color: var(--ca-accent, #4b5bf5); font-weight: 650; }
 .p-auth-invite-avatar { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ca-accent, #4b5bf5); color: #fff; font-weight: 700; font-size: 15px; }
 @media (max-width: 720px) { .gr-invite { width: 100%; } }
+
+/* 后台：支付渠道 / 存储驱动插件列表 */
+.p-plugin-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
+.p-plugin-list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 12px; border: 1px solid var(--g200, #e5e5e7); border-radius: 10px; }
+.p-plugin-list li.is-active { border-color: var(--accent, #4b5bf5); background: var(--accent-soft, #eceefe); }
+.p-plugin-name code { font-size: 11.5px; color: var(--g500, #77777d); }
+.p-plugin-state { font-size: 12px; color: var(--g600, #5f5f66); align-self: center; }
+.p-plugin-list li.is-active .p-plugin-state { color: var(--accent, #4b5bf5); font-weight: 600; }
+.p-plugin-hint { grid-column: 1 / -1; color: var(--g500, #77777d); word-break: break-word; }
+body[data-theme="folio"] .p-plugin-list li { border-radius: 0; }

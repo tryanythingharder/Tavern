@@ -1,22 +1,23 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getSetting } from '@/lib/settings';
 import type { Order } from '@/lib/billing';
+import type { PaymentProvider, WebhookResult } from '@/lib/payments/types';
 
 // Stripe Checkout（零依赖，直接调 REST）。配置 TAVERN_STRIPE_SECRET_KEY + TAVERN_STRIPE_WEBHOOK_SECRET 即启用，
-// 优先于通用托管结算页。Webhook 地址：/api/payments/stripe，订阅 checkout.session.completed。
-export function stripeKey(): string {
+// Webhook 地址：/api/payments/stripe，订阅 checkout.session.completed。
+function stripeKey(): string {
   return getSetting('payment.stripeKey', process.env.TAVERN_STRIPE_SECRET_KEY ?? '');
 }
 
-export function stripeWebhookSecret(): string {
+function stripeWebhookSecret(): string {
   return getSetting('payment.stripeWebhookSecret', process.env.TAVERN_STRIPE_WEBHOOK_SECRET ?? '');
 }
 
-export function stripeEnabled(): boolean {
+function stripeEnabled(): boolean {
   return Boolean(stripeKey() && stripeWebhookSecret());
 }
 
-export async function stripeCheckout(order: Order, currency: string, site: string, email?: string): Promise<string | null> {
+async function stripeCheckout(order: Order, currency: string, site: string, email?: string): Promise<string | null> {
   const key = stripeKey();
   if (!key) return null;
   const form = new URLSearchParams();
@@ -59,3 +60,28 @@ export function verifyStripeSignature(rawBody: string, header: string | null, se
     return b.length === expected.length && timingSafeEqual(b, expected);
   });
 }
+
+export const stripeProvider: PaymentProvider = {
+  id: 'stripe',
+  label: 'Stripe Checkout',
+  configHint: 'TAVERN_STRIPE_SECRET_KEY + TAVERN_STRIPE_WEBHOOK_SECRET；webhook 订阅 checkout.session.completed',
+  configured: stripeEnabled,
+  createCheckout: (order, ctx) => stripeCheckout(order, ctx.currency, ctx.siteUrl, ctx.email),
+  async parseWebhook(request): Promise<WebhookResult> {
+    const secret = stripeWebhookSecret();
+    if (!secret) return { kind: 'error', status: 503, message: 'Stripe 未配置' };
+    const raw = await request.text();
+    if (!verifyStripeSignature(raw, request.headers.get('stripe-signature'), secret)) return { kind: 'error', status: 401, message: '签名不对' };
+    const event = JSON.parse(raw) as { id?: string; type?: string; data?: { object?: Record<string, unknown> } };
+    if (event.type !== 'checkout.session.completed' && event.type !== 'checkout.session.async_payment_succeeded') return { kind: 'ignore', reason: String(event.type) };
+    const session = (event.data?.object ?? {}) as { id?: string; client_reference_id?: string; payment_status?: string; amount_total?: number; currency?: string; metadata?: { orderId?: string } };
+    if (session.payment_status !== 'paid') return { kind: 'ignore', reason: 'unpaid' };
+    return {
+      kind: 'paid',
+      orderId: Number(session.metadata?.orderId ?? session.client_reference_id),
+      amountCents: Number(session.amount_total),
+      currency: String(session.currency ?? '').toUpperCase(),
+      reference: String(session.id ?? event.id ?? ''),
+    };
+  },
+};

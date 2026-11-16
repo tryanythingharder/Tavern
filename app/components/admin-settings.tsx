@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 
+type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
 type Status = {
   image: { baseUrl: string; model: string; size: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   tts: { baseUrl: string; model: string; voice: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
-  payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean };
+  payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean; currency: string; providers: Plugin[]; storage: Plugin[] };
   billing: { textPer1k: number; upstreamCostPer1kCents: number; modelPrices?: string; models?: string[]; dailyFree?: number; firstTopupPct?: number; inviteReward?: number; inviteeBonus?: number; inviteMax?: number };
   mail: { from: string; hasKey: boolean; mode: 'resend' | 'outbox' };
 };
@@ -254,22 +255,34 @@ export function AdminSettings() {
 
       <section className="p-card p-card--pad">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <h2 className="p-form-section-title" style={{ margin: 0 }}>支付网关</h2>
-          <Badge ok={Boolean(status?.payment.hasSecret)} text={status?.payment.hasSecret ? '回调密钥已设置' : '回调密钥未设置'} />
+          <h2 className="p-form-section-title" style={{ margin: 0 }}>支付渠道</h2>
+          <Badge ok text={`当前：${status?.payment.providers.find((item) => item.active)?.label ?? '手动确认'}`} />
         </div>
         <p className="small" style={{ marginTop: 0 }}>
-          回调地址：<code>/api/payments/webhook</code>，签名 = <code>HMAC-SHA256(密钥, orderId|amount|currency|status|timestamp)</code>，并校验金额、币种与 10 分钟时间窗。接真实网关时把验签逻辑换成对应网关的规则即可。
+          插件式：每个渠道在 <code>lib/payments/</code> 一个文件，回调地址 <code>/api/payments/&lt;渠道 id&gt;</code>。选中的渠道没配好时自动退到下一个已配置的，最后是手动确认。币种 {status?.payment.currency}。
         </p>
+        <PluginList items={status?.payment.providers ?? []} />
         <div className="p-field-row">
           <div className="p-field"><label>每点价格（分）</label><input aria-label="每点价格（分）" className="p-input" type="number" min={1} value={form.payment.pricePerPointCents} onChange={(event) => setForm({ ...form, payment: { ...form.payment, pricePerPointCents: event.target.value } })} /></div>
-          <div className="p-field"><label>网关名称（备注）</label><input aria-label="网关名称（备注）" className="p-input" value={form.payment.provider} placeholder="例如：易支付 / Stripe" onChange={(event) => setForm({ ...form, payment: { ...form.payment, provider: event.target.value } })} /></div>
-          <div className="p-field"><label>回调密钥（留空不改）</label><input aria-label="回调密钥（留空不改）" className="p-input" type="password" value={form.payment.secret} placeholder={status?.payment.hasSecret ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, payment: { ...form.payment, secret: event.target.value } })} /></div>
-          <div className="p-field"><label>结算页 URL（选填）</label><input aria-label="结算页 URL（选填）" className="p-input" value={form.payment.checkoutUrl} placeholder="https://pay.example.com/checkout" onChange={(event) => setForm({ ...form, payment: { ...form.payment, checkoutUrl: event.target.value } })} /></div>
+          <div className="p-field"><label>收款渠道</label><select aria-label="收款渠道" className="p-input" value={form.payment.provider} onChange={(event) => setForm({ ...form, payment: { ...form.payment, provider: event.target.value } })}><option value="">自动（第一个已配置的）</option>{(status?.payment.providers ?? []).map((item) => <option key={item.id} value={item.id}>{item.label}{item.configured ? '' : '（未配置）'}</option>)}</select></div>
+          <div className="p-field"><label>通用结算页回调密钥（留空不改）</label><input aria-label="回调密钥（留空不改）" className="p-input" type="password" value={form.payment.secret} placeholder={status?.payment.hasSecret ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, payment: { ...form.payment, secret: event.target.value } })} /></div>
+          <div className="p-field"><label>通用结算页 URL</label><input aria-label="结算页 URL（选填）" className="p-input" value={form.payment.checkoutUrl} placeholder="https://pay.example.com/checkout" onChange={(event) => setForm({ ...form, payment: { ...form.payment, checkoutUrl: event.target.value } })} /></div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'payment'} onClick={() => void save('payment')}>{busy === 'payment' ? '保存中…' : '保存支付配置'}</button>
           <button className="p-btn p-btn--sm" type="button" disabled={busy === 'payment' || !status?.payment.hasSecret} onClick={() => void save('payment', ['secret'])}>清除密钥</button>
         </div>
+      </section>
+
+      <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <h2 className="p-form-section-title" style={{ margin: 0 }}>媒体存储</h2>
+          <Badge ok text={`当前：${status?.payment.storage.find((item) => item.active)?.label ?? '本地磁盘'}`} />
+        </div>
+        <p className="small" style={{ marginTop: 0 }}>
+          插件式：每个驱动在 <code>lib/storage-drivers/</code> 一个文件。用环境变量 <code>TAVERN_STORAGE_DRIVER</code> 指定，留空自动选第一个已配置的；密钥只走环境变量。
+        </p>
+        <PluginList items={status?.payment.storage ?? []} />
       </section>
 
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
@@ -290,5 +303,19 @@ export function AdminSettings() {
         </div>
       </section>
     </>
+  );
+}
+
+function PluginList({ items }: { items: Plugin[] }) {
+  return (
+    <ul className="p-plugin-list">
+      {items.map((item) => (
+        <li key={item.id} className={item.active ? 'is-active' : undefined}>
+          <span className="p-plugin-name"><b>{item.label}</b> <code>{item.id}</code></span>
+          <span className="p-plugin-state">{item.active ? '使用中' : item.configured ? '已配置' : '未配置'}</span>
+          <span className="p-plugin-hint small">{item.hint}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

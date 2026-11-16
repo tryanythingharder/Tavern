@@ -1,7 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
-import { checkoutLink, createOrder, listOrders, paymentCurrency, pricePerPointCents } from '@/lib/billing';
+import { createOrder, listOrders, paymentCurrency, pricePerPointCents } from '@/lib/billing';
 import { siteUrl } from '@/lib/mail';
-import { stripeCheckout, stripeEnabled } from '@/lib/stripe';
+import { activeProvider } from '@/lib/payments';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,13 +20,11 @@ export async function POST(request: Request) {
   if (!Number.isFinite(points) || points < 10 || points > 100000) return fail('充值点数要在 10 到 100000 之间', 400);
   const unit = pricePerPointCents();
   const order = createOrder(user.id, points, Math.round(points) * unit);
-  let payUrl = checkoutLink(order);
-  if (stripeEnabled()) {
-    try {
-      payUrl = await stripeCheckout(order, paymentCurrency(), siteUrl(request), user.email);
-    } catch (error) {
-      return fail(`支付暂不可用：${(error as Error).message}`, 502);
-    }
+  let payUrl: string | null = null;
+  try {
+    payUrl = await activeProvider().createCheckout(order, { siteUrl: siteUrl(request), currency: paymentCurrency(), email: user.email });
+  } catch (error) {
+    return fail(`支付暂不可用：${(error as Error).message}`, 502);
   }
   return json({ order, pricePerPointCents: unit, payUrl }, 201);
 }

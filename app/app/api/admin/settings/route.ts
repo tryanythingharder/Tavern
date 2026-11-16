@@ -1,10 +1,12 @@
+import { providerSummary } from '@/lib/payments';
+import { driverSummary } from '@/lib/storage-drivers';
 import { growthConfig } from '@/lib/growth';
 import { fail, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import { deleteSetting, getSetting, hasSetting, setSetting } from '@/lib/settings';
 import { imageConfig, ttsConfig } from '@/lib/media';
 import { logAdmin } from '@/lib/audit';
-import { pricePerPointCents, upstreamCostPer1kCents } from '@/lib/billing';
+import { paymentCurrency, pricePerPointCents, upstreamCostPer1kCents } from '@/lib/billing';
 import { modelFallbacks } from '@/lib/model';
 import { modelPrices, parseModelPrices, pointsPerThousand } from '@/lib/points';
 import { availableModels } from '@/lib/model';
@@ -33,8 +35,10 @@ function status() {
       pricePerPointCents: pricePerPointCents(),
       provider: getSetting('payment.provider', ''),
       checkoutUrl: getSetting('payment.checkoutUrl', ''),
-      currency: getSetting('payment.currency', 'CNY'),
+      currency: paymentCurrency(),
       hasSecret: Boolean(getSetting('payment.secret', process.env.TAVERN_PAYMENT_SECRET ?? '')),
+      providers: providerSummary(),
+      storage: driverSummary(),
     },
     billing: {
       textPer1k: pointsPerThousand(),

@@ -1,4 +1,5 @@
 import { createHash, createHmac } from 'node:crypto';
+import type { StorageDriver } from '@/lib/storage-drivers/types';
 
 // S3 兼容对象存储（AWS S3 / Cloudflare R2 / Backblaze B2 / MinIO），零依赖 SigV4，path-style。
 // 启用：TAVERN_S3_ENDPOINT、TAVERN_S3_BUCKET、TAVERN_S3_ACCESS_KEY、TAVERN_S3_SECRET_KEY，可选 TAVERN_S3_REGION（默认 auto）、TAVERN_S3_PREFIX。
@@ -59,3 +60,13 @@ export async function s3Delete(key: string): Promise<void> {
   const { url, headers } = signS3('DELETE', cfg, key);
   await fetch(url, { method: 'DELETE', headers }).catch(() => undefined);
 }
+
+export const s3Driver: StorageDriver = {
+  id: 's3',
+  label: 'S3 兼容对象存储',
+  configHint: 'TAVERN_S3_ENDPOINT / BUCKET / ACCESS_KEY / SECRET_KEY（可选 REGION、PREFIX）；AWS S3、Cloudflare R2、B2、MinIO 通用',
+  configured: () => Boolean(s3Config()),
+  put: s3Put,
+  get: s3Get,
+  delete: s3Delete,
+};

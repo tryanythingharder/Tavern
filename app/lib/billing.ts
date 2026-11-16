@@ -1,13 +1,14 @@
-import { createHmac, randomInt } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import { grantFirstTopupBonus } from '@/lib/growth';
 import db, { transaction } from '@/lib/db';
 import { balance, grantPoints, spendPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
 import { getSetting } from '@/lib/settings';
+import { activeProvider } from '@/lib/payments';
 
 // M4 充值：兑换码 + 订单。
-// 支付网关还没接（需要商户资质）：订单先落 pending，由管理员手动确认，
-// 或者由 /api/payments/webhook（HMAC 校验）回调确认。两条路都写账本并通知用户。
+// 订单先落 pending；在线渠道见 lib/payments（插件式，回调 /api/payments/<渠道>），
+// 或由管理员手动确认。两条路都写账本并通知用户。
 export function pricePerPointCents(): number {
   return Math.max(1, Number(getSetting('billing.pricePerPointCents', process.env.TAVERN_PRICE_PER_POINT_CENTS ?? '1')));
 }
@@ -83,51 +84,13 @@ function orderFromRow(row: OrderRow): Order {
 export function createOrder(userId: number, points: number, priceCents: number): Order {
   const value = Math.max(1, Math.round(points));
   const price = Math.max(1, Math.round(priceCents));
-  const provider = getSetting('payment.provider', 'manual') || 'manual';
+  const provider = activeProvider().id;
   const result = db.prepare('INSERT INTO orders (user_id, points, price_cents, status, provider, created_at) VALUES (?,?,?,?,?,?)').run(userId, value, price, 'pending', provider, Date.now());
   return orderFromRow(db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(result.lastInsertRowid)) as OrderRow);
 }
 
-function paymentSecret(): string {
-  return getSetting('payment.secret', process.env.TAVERN_PAYMENT_SECRET ?? '');
-}
-
 export function paymentCurrency(): string {
   return getSetting('payment.currency', process.env.TAVERN_PAYMENT_CURRENCY ?? 'USD');
-}
-
-// 结算页令牌使用独立派生密钥，绝不把 webhook 密钥的签名交给浏览器。
-function checkoutSecret(): string {
-  const explicit = getSetting('payment.checkoutSecret', process.env.TAVERN_PAYMENT_CHECKOUT_SECRET ?? '');
-  if (explicit) return explicit;
-  const webhook = paymentSecret();
-  return webhook ? createHmac('sha256', webhook).update('checkout').digest('hex') : '';
-}
-
-// 通用托管结算页：配置了 payment.checkoutUrl 时，创建订单后跳转过去。
-// 参数：orderId / points / amount（分）/ expires（Unix 秒）/ token。
-// token = HMAC-SHA256(checkoutSecret, `${orderId}|${points}|${amount}|${expires}`)
-// 它与 webhook 的签名密钥不同，即使浏览器拿到 token 也不能伪造支付回调。
-export function checkoutLink(order: Order): string | null {
-  const base = getSetting('payment.checkoutUrl', process.env.TAVERN_PAYMENT_CHECKOUT_URL ?? '');
-  if (!base) return null;
-  try {
-    const url = new URL(base);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    const expires = Math.floor(Date.now() / 1000) + 30 * 60;
-    url.searchParams.set('orderId', String(order.id));
-    url.searchParams.set('points', String(order.points));
-    url.searchParams.set('amount', String(order.priceCents));
-    url.searchParams.set('expires', String(expires));
-    const secret = checkoutSecret();
-    if (secret) {
-      const token = createHmac('sha256', secret).update(`${order.id}|${order.points}|${order.priceCents}|${expires}`).digest('hex');
-      url.searchParams.set('token', token);
-    }
-    return url.toString();
-  } catch {
-    return null;
-  }
 }
 
 export function listOrders(userId: number, limit = 20): Order[] {
