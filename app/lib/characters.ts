@@ -267,7 +267,7 @@ export function updateCharacter(ownerId: number, id: string, input: CharacterInp
       ? (row.status === 'published' ? 'published' : 'pending')
       : row.status;
 
-  // 内容有变化才留版本，最多 5 版
+  // 内容有变化才留版本，最多 VERSION_KEEP 版
   const nextCard = input.card !== undefined ? JSON.stringify(normalizeCardFields(input.card)) : (row.card_fields ?? null);
   const before = JSON.stringify([row.name, row.hook, row.greeting, row.description, row.pace, row.tags, row.category, row.nsfw, row.card_fields ?? null]);
   const after = JSON.stringify([values.name, values.hook, values.greeting, values.description, values.pace, JSON.stringify(values.tags), values.category, values.nsfw ? 1 : 0, nextCard]);
@@ -323,10 +323,13 @@ function mediaFromDataUrl(data: unknown, ownerId: number): string | null {
 
 export type CharacterVersion = { id: number; revision: number; createdAt: number; snapshot: Record<string, unknown> };
 
+export const VERSION_KEEP = 20;
+
 function snapshotVersion(characterId: string): void {
   const row = db.prepare('SELECT * FROM characters WHERE id = ?').get(characterId) as DbCharacter | undefined;
   if (!row) return;
-  const count = (db.prepare('SELECT COUNT(*) AS count FROM character_versions WHERE character_id = ?').get(characterId) as { count: number }).count;
+  // 用最大版本号 +1（按条数算的话，旧版被清掉后会出现重复的版本号）
+  const count = (db.prepare('SELECT COALESCE(MAX(revision), 0) AS count FROM character_versions WHERE character_id = ?').get(characterId) as { count: number }).count;
   const snapshot = {
     name: row.name,
     hook: row.hook,
@@ -338,13 +341,15 @@ function snapshotVersion(characterId: string): void {
     category: row.category,
     nsfw: row.nsfw === 1,
     status: row.status,
+    // ST 高级字段（性格、场景、对话示例、系统提示等）也要留，否则恢复旧版会把它们丢掉
+    card: parseCardFields(row.card_fields),
   };
   db.prepare('INSERT INTO character_versions (character_id, revision, snapshot, created_at) VALUES (?,?,?,?)').run(characterId, count + 1, JSON.stringify(snapshot), Date.now());
   db.prepare(`
         DELETE FROM character_versions WHERE character_id = ? AND id NOT IN (
-            SELECT id FROM character_versions WHERE character_id = ? ORDER BY id DESC LIMIT 5
+            SELECT id FROM character_versions WHERE character_id = ? ORDER BY id DESC LIMIT ?
         )
-    `).run(characterId, characterId);
+    `).run(characterId, characterId, VERSION_KEEP);
 }
 
 export function listVersions(characterId: string, ownerId: number): CharacterVersion[] {

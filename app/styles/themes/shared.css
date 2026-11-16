@@ -557,3 +557,50 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[d
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-name { order: 0; font-size: 18px; font-weight: 700; padding: 0; border: 0; background: none; color: var(--stg-ink); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-sub { order: 1; font-size: 12px; font-weight: 400; color: var(--stg-muted); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-sub::before { content: none; display: none; }
+
+/* 作品版本预览 */
+.version-preview { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--ca-sunken, #f4f4f5); display: grid; gap: 10px; }
+.version-preview dt { font-size: 12px; color: var(--ca-muted, #6b6b73); margin-bottom: 2px; }
+.version-preview dd { margin: 0; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+html body[data-theme="folio"] .version-preview { border-radius: 0; background: transparent; border-left: 2px solid var(--fo-line-strong); }
+
+/* 创作者数据 */
+.cs { display: grid; gap: 16px; }
+.cs .p-filterbar { margin: 0; }
+.cs-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.cs-tile { padding: 16px 18px; }
+.cs-tile-label { font-size: 12px; color: var(--ca-muted, #6b6b73); }
+.cs-tile-value { font-size: 28px; font-weight: 700; line-height: 1.2; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.cs-tile-sub { font-size: 12px; color: var(--ca-muted, #6b6b73); }
+.cs-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; height: 180px; align-items: end; margin-top: 12px; }
+.cs-bar { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 20px; }
+.cs-bar-fill { width: 100%; max-width: 36px; border-radius: 6px 6px 2px 2px; background: var(--accent, #4b5bf5); opacity: .85; }
+.cs-bar-n { font-size: 11px; line-height: 16px; color: var(--ca-copy, #4a4a50); font-variant-numeric: tabular-nums; }
+.cs-bar-day { position: absolute; bottom: 0; font-size: 11px; color: var(--ca-muted, #6b6b73); white-space: nowrap; }
+.cs[data-days="30"] .cs-bar-day { display: none; }
+.cs[data-days="30"] .cs-bar:nth-child(5n+1) .cs-bar-day { display: block; }
+.cs-scroll { overflow-x: auto; }
+.cs-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.cs-table th { text-align: left; font-weight: 500; font-size: 12px; color: var(--ca-muted, #6b6b73); padding: 12px 20px; border-bottom: 1px solid var(--ca-line, #e6e6e8); white-space: nowrap; }
+.cs-table td { padding: 12px 20px; border-bottom: 1px solid var(--ca-line, #e6e6e8); white-space: nowrap; }
+.cs-table tr:last-child td { border-bottom: 0; }
+.cs-name { font-weight: 600; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .cs-tile-value { font-family: var(--fo-display); }
+html body[data-theme="folio"] .cs-bar-fill { border-radius: 0; background: var(--fo-ink, #1b1b1d); opacity: .8; }
+@media (prefers-reduced-motion: no-preference) {
+  .cs-bar-fill { transform-origin: bottom; animation: cs-grow .5s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes cs-grow { from { transform: scaleY(0); } }
+}
+html body[data-u-motion] .cs-bar-fill { animation: none; }
+html body[data-theme] .cs .cs-chart, html body[data-theme] .version-list { padding: 20px 22px; }
+html body[data-theme="folio"] .cs .cs-chart .p-form-section-title { padding-bottom: 10px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="create"] .cs-head h1::after { content: "who's playing"; }
+html body[data-theme="folio"] .version-row { border-radius: 0 !important; }
+.cs, .cs > * { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) {
+  .cs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cs-tile { padding: 14px; }
+  .cs-tile-value { font-size: 24px; }
+  .cs-bars { gap: 3px; height: 150px; }
+  .cs-table th, .cs-table td { padding: 10px 12px; }
+}
