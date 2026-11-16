@@ -641,7 +641,7 @@ export function startGeneration(userId: number, chatId: number | null, kind: 'se
 
 export function finishGeneration(
   id: number,
-  patch: { status: GenerationStatus; promptTokens?: number; completionTokens?: number; totalTokens?: number; estimated?: boolean; error?: string | null },
+  patch: { status: GenerationStatus; promptTokens?: number; completionTokens?: number; totalTokens?: number; estimated?: boolean; error?: string | null; model?: string },
 ) {
   const promptTokens = patch.promptTokens ?? 0;
   const completionTokens = patch.completionTokens ?? 0;
@@ -651,6 +651,8 @@ export function finishGeneration(
         SET status = ?, prompt_tokens = ?, completion_tokens = ?, total_tokens = ?, estimated = ?, error = ?, finished_at = ?
         WHERE id = ?
     `).run(patch.status, promptTokens, completionTokens, totalTokens, patch.estimated ? 1 : 0, patch.error ?? null, Date.now(), id);
+  // 记下实际接通的模型（failover 后可能与选中的不同）
+  if (patch.model) db.prepare('UPDATE generation_events SET model = ? WHERE id = ?').run(patch.model, id);
 }
 
 export function countGenerationsSince(userId: number, since: number): number {

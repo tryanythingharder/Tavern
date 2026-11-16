@@ -105,6 +105,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();
 
+  // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）
+  let billedModel = modelName(chat.model);
   const stream = new ReadableStream({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -119,7 +121,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       let settled = false;
       try {
         for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
-          if (event.type === 'content') {
+          if (event.type === 'route') {
+            billedModel = event.model;
+          } else if (event.type === 'content') {
             full += event.text;
             send({ type: 'delta', text: event.text });
           } else if (event.type === 'usage') {
@@ -129,8 +133,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const promptTokens = usage?.promptTokens ?? prompt.tokens;
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
-        finishGeneration(generationId, { status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, modelName(chat.model)), `chat:${chatId}`);
+        finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `chat:${chatId}`);
         settled = true;
         // 展示正则只作用于角色输出；落库的是处理后的文本
         const finalText = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
@@ -148,6 +152,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         if (partial.trim()) addMessage(chatId, 'assistant', partial, [partial]);
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
+          model: billedModel,
           status: aborted ? 'aborted' : 'error',
           promptTokens: prompt.tokens,
           completionTokens: estimateTokens(full),
@@ -155,7 +160,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), modelName(chat.model)), `chat:${chatId}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), billedModel), `chat:${chatId}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

@@ -86,6 +86,8 @@ export async function POST(request: Request, context: Params) {
   const generationId = startGeneration(user.id, null, 'room', modelName(room.model));
   const encoder = new TextEncoder();
 
+  // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）
+  let billedModel = modelName(room.model);
   const stream = new ReadableStream({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -102,7 +104,9 @@ export async function POST(request: Request, context: Params) {
       send({ type: 'speaker', speakerId: speaker.id, name: speaker.name });
       try {
         for await (const event of streamChat(prompt, { signal: request.signal, params: config.preset.params, model: room.model })) {
-          if (event.type === 'content') {
+          if (event.type === 'route') {
+            billedModel = event.model;
+          } else if (event.type === 'content') {
             full += event.text;
             send({ type: 'delta', text: event.text });
           } else if (event.type === 'usage') {
@@ -112,8 +116,8 @@ export async function POST(request: Request, context: Params) {
         const usedPromptTokens = usage?.promptTokens ?? promptTokens;
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? usedPromptTokens + completionTokens;
-        finishGeneration(generationId, { status: 'done', promptTokens: usedPromptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, modelName(room.model)), `room:${room.id}`);
+        finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: usedPromptTokens, completionTokens, totalTokens, estimated: !usage });
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `room:${room.id}`);
         settled = true;
 
         // 模型偶尔会在开头自己加「白露：」，去掉以免和气泡上的名字重复
@@ -130,6 +134,7 @@ export async function POST(request: Request, context: Params) {
         if (partial.trim()) addRoomMessage(room.id, 'assistant', speaker.id, partial);
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
+          model: billedModel,
           status: aborted ? 'aborted' : 'error',
           promptTokens,
           completionTokens: estimateTokens(full),
@@ -137,7 +142,7 @@ export async function POST(request: Request, context: Params) {
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens + estimateTokens(full), modelName(room.model)), `room:${room.id}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens + estimateTokens(full), billedModel), `room:${room.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

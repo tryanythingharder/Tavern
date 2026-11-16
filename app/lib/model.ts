@@ -138,7 +138,9 @@ export async function testModelRoute(route: ModelRoute): Promise<{ text: string;
 export type StreamEvent =
   | { type: 'reasoning'; text: string }
   | { type: 'content'; text: string }
-  | { type: 'usage'; promptTokens: number; completionTokens: number; totalTokens: number };
+  | { type: 'usage'; promptTokens: number; completionTokens: number; totalTokens: number }
+  // 实际接通的线路模型（failover 后可能不是选中的那个），计费以它为准
+  | { type: 'route'; model: string };
 
 export type StreamOptions = {
   signal?: AbortSignal;
@@ -190,6 +192,7 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
 
   // 先主线路，再按顺序尝试备用线路；只在还没开始流式输出时切换，不会重复扣用户费用。
   let response: Response | null = null;
+  let usedModel = '';
   let lastError = '';
   for (let routeIndex = 0; routeIndex < routes.length; routeIndex += 1) {
     const route = routes[routeIndex];
@@ -199,6 +202,7 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
         const candidate = await request(route);
         if (candidate.ok && candidate.body) {
           response = candidate;
+          usedModel = route.model;
           break;
         }
         const detail = await candidate.text().catch(() => '');
@@ -216,6 +220,7 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
   if (!response?.ok || !response.body) {
     throw new Error(`模型线路均不可用${lastError ? `：${lastError}` : ''}`);
   }
+  yield { type: 'route', model: usedModel };
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';

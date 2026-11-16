@@ -60,6 +60,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();
 
+  // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）
+  let billedModel = modelName(chat.model);
   const stream = new ReadableStream({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -69,17 +71,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       let total = 0;
       try {
         for await (const event of streamChat(prompt.messages, { signal: request.signal, params: { ...prompt.params, maxTokens }, stop: prompt.stop, model: chat.model })) {
-          if (event.type === 'content') { full += event.text; send({ type: 'delta', text: event.text }); }
+          if (event.type === 'route') {
+            billedModel = event.model;
+          } else if (event.type === 'content') { full += event.text; send({ type: 'delta', text: event.text }); }
           else if (event.type === 'usage') total = event.totalTokens;
         }
         const tokens = total || prompt.tokens + estimateTokens(full);
-        finishGeneration(generationId, { status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(tokens, modelName(chat.model)), `chat:${chatId}`);
+        finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(tokens, billedModel), `chat:${chatId}`);
         send({ type: 'done', text: full.trim(), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
       } catch (error) {
         const aborted = request.signal.aborted;
         finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });
-        settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), modelName(chat.model)), `chat:${chatId}`);
+        settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), billedModel), `chat:${chatId}`);
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '代写失败' });
       } finally {
         try { controller.close(); } catch { /* 已关闭 */ }
