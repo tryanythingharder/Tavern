@@ -3,6 +3,7 @@
 import { PlayModeSwitch } from '@/components/play-mode';
 import { useId, type ReactNode } from 'react';
 import { ThemeSwitch } from '@/components/theme-switch';
+import { LanguageSwitch } from '@/components/language-switch';
 import { resetAppearance, setAppearance, useAppearance } from '@/components/appearance-store';
 import {
   ACCENT_PRESETS,
@@ -118,6 +119,9 @@ export function AppearancePanel({ theme, initial, showTheme = true }: { theme: T
 
   return (
     <div className="ua-panel">
+      <section className="ua-section">
+        <LanguageSwitch />
+      </section>
       {showTheme && (
         <Section title="主题" prefs={prefs}>
           <ThemeSwitch initial={theme} variant="cards" />

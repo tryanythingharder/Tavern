@@ -21,7 +21,7 @@ function read(): State {
   const heads: string[] = [];
   articles.forEach((article, i) => {
     if (i % PER_CHAPTER === 0) heads.push(excerpt(article));
-    if (article.querySelector('button[aria-label="书签"][aria-pressed="true"]')) marks.push({ id: article.id, n: i + 1, text: excerpt(article) });
+    if (article.querySelector('button[data-act="bookmark"][aria-pressed="true"]')) marks.push({ id: article.id, n: i + 1, text: excerpt(article) });
   });
   return { ids: articles.map((a) => a.id), heads, marks };
 }

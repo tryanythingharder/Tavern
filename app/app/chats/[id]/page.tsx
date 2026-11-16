@@ -1,3 +1,4 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -15,7 +16,9 @@ import { getTheme } from '@/lib/theme';
 import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
 
-export const metadata: Metadata = { title: '对话' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '对话' });
+}
 export const dynamic = 'force-dynamic';
 
 export default async function ChatPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string; at?: string }> }) {

@@ -1,0 +1,31 @@
+/* 英文界面：CSS 伪元素里的中文文案换成英文。选择器与原规则相同，前面加 html[data-lang="en"] 提高优先级 */
+html[data-lang="en"] .p-lore-advanced > summary::after { content: "Expand"; }
+html[data-lang="en"] .p-lore-advanced[open] > summary::after { content: "Collapse"; }
+
+html[data-lang="en"] body[data-theme="folio"][data-page="chat"] .p-msg.is-streaming:not(.p-msg-user) .p-msg-name::before { content: "writing"; }
+html[data-lang="en"] body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-name::after { content: "·  writes"; }
+html[data-lang="en"] body[data-theme="folio"][data-page="chat"] .p-chat-send::after { content: "Write  ↵"; }
+html[data-lang="en"] body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop::after { content: "Stop"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-inner > .p-page-title > div:first-child::before { content: "§ ii — The Plaza · Every piece in this issue"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="chats"] .p-inner > .p-page-title > div:first-child::before { content: "§ iii — Manuscripts · Unfinished"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="create"] .p-inner > .p-page-title > div:first-child::before { content: "§ iv — Submissions"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-inner > .p-page-title > div:first-child::before { content: "§ v — Colophon · Reader settings"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="notifications"] .p-inner > .p-page-title > div:first-child::before { content: "Errata & Letters"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="rooms"] .p-inner > .p-page-title > div:first-child::before { content: "Ensemble"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page="library"] .p-inner > .p-page-title > div:first-child::before { content: "Bookshelf"; }
+html[data-lang="en"] body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item.is-active .th-picker-name::after { content: " · current"; }
+
+html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue .p-eyebrow::before { content: "● Scene"; }
+html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.is-streaming .p-msg-name::after { content: "writing"; }
+html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover::after { content: "ON STAGE · Character card"; }
+html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .nf-kicker::after { content: " · This act doesn't exist"; }
+
+/* 登录页脚的语言切换 */
+.lang-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; }
+.lang-link:hover { color: var(--accent, #4b5bf5); }
+
+/* 英文词更长：书页对话的书写工具栏在窄一些的桌面上收起快捷键提示，避免与按钮重叠 */
+@media (max-width: 1560px) {
+  html[data-lang="en"] body[data-theme="folio"] .fo-ctool .fo-rt { display: none; }
+  html[data-lang="en"] body[data-theme="folio"] .fo-ctool .fo-notes-btn { margin-left: auto; }
+}

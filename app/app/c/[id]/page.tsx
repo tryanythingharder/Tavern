@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RpText } from '@/components/rp-text';
@@ -30,12 +31,12 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const character = getCharacterView(id);
-  if (!character) return { title: '找不到这个角色' };
+  if (!character) return { title: tr('找不到这个角色') };
   return {
     title: character.name,
     description: character.hook,
     openGraph: {
-      title: `${character.name} · 酒馆`,
+      title: tr('{0} · 酒馆').replace('{0}', character.name),
       description: character.hook,
       images: character.ownerId === null ? [`/characters/${character.id}.jpg`] : [],
     },

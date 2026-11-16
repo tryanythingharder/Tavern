@@ -17,7 +17,7 @@ function read(): DomState {
   const articles = Array.from(document.querySelectorAll<HTMLElement>('.p-chat-scroll article.p-msg'));
   const marks: Mark[] = [];
   articles.forEach((article, i) => {
-    if (article.querySelector('button[aria-label="书签"][aria-pressed="true"]')) {
+    if (article.querySelector('button[data-act="bookmark"][aria-pressed="true"]')) {
       const text = (article.querySelector('.p-msg-copy')?.textContent ?? '').replace(/\s+/g, ' ').trim();
       marks.push({ id: article.id, page: i + 1, text: text.slice(0, 40) || '（图片）' });
     }
@@ -173,9 +173,9 @@ export function FolioComposerTools() {
     const update = () => {
       applyDropCap();
       const latest = latestAssistant();
-      const regen = latest?.querySelector<HTMLButtonElement>('button[aria-label="重新生成"]');
+      const regen = latest?.querySelector<HTMLButtonElement>('button[data-act="regen"]');
       setCanRegen(Boolean(regen && !regen.disabled && latest?.classList.contains('is-latest')));
-      setMarked(latest?.querySelector('button[aria-label="书签"]')?.getAttribute('aria-pressed') === 'true');
+      setMarked(latest?.querySelector('button[data-act="bookmark"]')?.getAttribute('aria-pressed') === 'true');
     };
     update();
     const target = document.querySelector('.p-chat') ?? document.body;
@@ -184,8 +184,8 @@ export function FolioComposerTools() {
     return () => mo.disconnect();
   }, []);
 
-  const regen = () => latestAssistant()?.querySelector<HTMLButtonElement>('button[aria-label="重新生成"]')?.click();
-  const mark = () => latestAssistant()?.querySelector<HTMLButtonElement>('button[aria-label="书签"]')?.click();
+  const regen = () => latestAssistant()?.querySelector<HTMLButtonElement>('button[data-act="regen"]')?.click();
+  const mark = () => latestAssistant()?.querySelector<HTMLButtonElement>('button[data-act="bookmark"]')?.click();
 
   return (
     <div className="fo-ctool" role="toolbar" aria-label="书写工具">

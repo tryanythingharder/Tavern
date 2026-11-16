@@ -1,7 +1,10 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 
-export const metadata: Metadata = { title: '隐私政策' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '隐私政策' });
+}
 
 // 模板文本：上线前按实际部署地区（如个人信息保护法 / GDPR）补充数据保留期与处理者清单。
 export default function PrivacyPage() {

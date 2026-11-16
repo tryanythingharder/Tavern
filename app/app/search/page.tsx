@@ -1,3 +1,4 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { searchCharacterViews } from '@/lib/characters';
@@ -7,7 +8,9 @@ import { getBlockedAuthors } from '@/lib/blocked';
 import { hideNsfw } from '@/lib/prefs';
 import { ProtoWorkCard } from '@/components/proto-work-card';
 
-export const metadata: Metadata = { title: '搜索' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '搜索' });
+}
 export const dynamic = 'force-dynamic';
 
 const CATEGORIES = ['全部', '奇幻', '现代', '悬疑', '治愈'];

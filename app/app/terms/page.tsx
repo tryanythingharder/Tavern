@@ -1,7 +1,10 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 
-export const metadata: Metadata = { title: '服务条款' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '服务条款' });
+}
 
 // 这是可用的条款模板，正式上线前请让法务按实际运营主体与地区审核。
 export default function TermsPage() {

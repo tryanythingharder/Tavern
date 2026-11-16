@@ -1,3 +1,4 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
@@ -6,7 +7,9 @@ import { listRooms } from '@/lib/rooms';
 import { listCharacterViews, listOwnedCharacters } from '@/lib/characters';
 import { ChatsBrowser } from '@/components/chats-browser';
 
-export const metadata: Metadata = { title: '对话' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '对话' });
+}
 export const dynamic = 'force-dynamic';
 
 export default async function ChatsPage() {

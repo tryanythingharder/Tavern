@@ -263,8 +263,8 @@ html body[data-theme="folio"] .pt-prices li { border-radius: 0; background: tran
 .cs-param .p-input { height: 34px; }
 
 /* 新手模式：收起分支等进阶工具（功能仍在老玩家模式） */
-html body[data-mode="newbie"] .p-msg-tools button[aria-label="从这里创建分支"],
-html body[data-mode="newbie"] button[aria-label="从这里创建分支"] { display: none; }
+html body[data-mode="newbie"] .p-msg-tools button[data-act="branch"],
+html body[data-mode="newbie"] button[data-act="branch"] { display: none; }
 
 /* ===== 上线前收尾（2026-11-15）===== */
 /* 跳到正文：仅键盘聚焦时出现 */

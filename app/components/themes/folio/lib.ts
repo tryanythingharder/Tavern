@@ -1,3 +1,4 @@
+import { currentLocale } from '@/lib/i18n/runtime';
 // 书页主题的小工具：期号、罗马数字、拼音式拉丁名等纯函数（服务端/客户端通用）
 
 const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
@@ -7,6 +8,7 @@ export function pad(n: number): string {
 }
 
 export function cnYear(year: number): string {
+  if (currentLocale() === 'en') return String(year);
   return String(year).split('').map((d) => CN_DIGITS[Number(d)]).join('');
 }
 

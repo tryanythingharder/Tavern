@@ -1,3 +1,4 @@
+import { currentLocale } from '@/lib/i18n/runtime';
 // 戏台主题的小工具：只做展示层的格式化，不查询数据。
 
 const CATEGORY_EN: Record<string, string> = {
@@ -38,7 +39,10 @@ export function stampCount(raw: string): string {
 
 /** 大数字：≥1 万用「x.x万」 */
 export function bigCount(n: number): { value: string; unit: string } {
-  if (n >= 10000) return { value: String(Math.floor(n / 1000) / 10), unit: '万' };
+  if (n >= 10000) {
+    if (currentLocale() === 'en') return n >= 1e6 ? { value: String(Math.floor(n / 1e5) / 10), unit: 'M' } : { value: String(Math.floor(n / 100) / 10), unit: 'k' };
+    return { value: String(Math.floor(n / 1000) / 10), unit: '万' };
+  }
   return { value: n.toLocaleString('en-US'), unit: '' };
 }
 

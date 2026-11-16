@@ -1,9 +1,12 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AuthPage } from '@/components/auth-page';
 import { TwoFactorLogin } from '@/components/two-factor-login';
 
-export const metadata: Metadata = { title: '两步验证' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '两步验证' });
+}
 
 export default async function TwoFactorPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;

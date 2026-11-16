@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LanguageSwitch } from '@/components/language-switch';
 import { AuthScene } from '@/components/auth-scene';
 import type { ReactNode } from 'react';
 
@@ -31,6 +32,7 @@ export function AuthPage({ kicker, title, lead, children }: { kicker: string; ti
         <Link href="/support">帮助</Link>
         <Link href="/terms">服务条款</Link>
         <Link href="/privacy">隐私政策</Link>
+        <LanguageSwitch variant="link" />
       </footer>
     </div>
   );

@@ -1,5 +1,7 @@
 'use client';
 
+import { syncPref } from '@/components/sync-prefs';
+
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PLAY_MODE_COOKIE, PLAY_MODES, parsePlayMode, type PlayMode } from '@/lib/play-mode';
@@ -9,6 +11,7 @@ const EVENT = 'tavern-mode-change';
 function writeMode(mode: PlayMode) {
   document.cookie = `${PLAY_MODE_COOKIE}=${mode}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
   document.body.dataset.mode = mode;
+  void syncPref('mode', mode);
   window.dispatchEvent(new CustomEvent(EVENT, { detail: mode }));
 }
 

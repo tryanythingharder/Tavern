@@ -1,3 +1,4 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { SiteShell } from '@/components/site-shell';
@@ -15,6 +16,9 @@ import { appearanceBodyProps } from '@/lib/appearance';
 import { getAppearance } from '@/lib/prefs';
 import { announcementText } from '@/lib/announcement';
 import { checkinStatus } from '@/lib/checkin';
+import Script from 'next/script';
+import { LocaleGuard } from '@/components/locale-guard';
+import { getLocale, dictVersion } from '@/lib/i18n/server';
 import './globals.css';
 // 原型样式：直接引入，让页面 DOM 使用原型的 p-* / ca-* 类名
 // 顺序对齐原型的 chat.html：immersive 最后，页面级覆盖才生效
@@ -38,15 +42,19 @@ import '../styles/themes/folio.css';
 import '../styles/themes/stage.css';
 // 用户自定义外观：只在 body[data-u-*] 存在时覆盖主题，必须最后导入
 import '../styles/themes/custom.css';
+// 英文界面下替换 CSS 伪元素里的中文
+import '../styles/i18n-en.css';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100'),
   title: { default: '酒馆 · 角色扮演', template: '%s · 酒馆' },
   description: '和喜欢的角色开始一段故事。保持 SillyTavern 的能力，做成更好用的前端。',
   applicationName: '酒馆',
   appleWebApp: { capable: true, title: '酒馆', statusBarStyle: 'default' },
   icons: { apple: '/icons/apple-touch-icon.png' },
-};
+});
+}
 
 // viewport-fit=cover 让 env(safe-area-inset-*) 在 iOS 刘海屏/底部横条上生效
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#ffffff' };
@@ -61,6 +69,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const customBody = appearanceBodyProps(custom);
   const announcement = announcementText();
   const checkin = user ? checkinStatus(user.id) : null;
+  const locale = await getLocale();
   let points = 0;
   let unread = 0;
   let recents: { id: number; characterId: string; name: string; initial: string; hue: number; owner: number | null; title: string }[] = [];
@@ -81,7 +90,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     costs = { text: pointsSummary(user.id).perThousand, image: imageCost(), tts: ttsCost() };
   }
   return (
-    <html lang="zh-CN">
+    <html lang={locale === 'en' ? 'en' : 'zh-CN'} data-lang={locale}>
+      <head>
+        {/* 界面语言：英文时在 hydration 前加载词典，客户端渲染与服务端一致 */}
+        <script dangerouslySetInnerHTML={{ __html: `window.__TAVERN_LANG=${JSON.stringify(locale)};` }} />
+        {locale === 'en' ? <Script src={`/i18n-en.js?v=${dictVersion()}`} strategy="beforeInteractive" /> : null}
+      </head>
       <body
         // 首屏脚本会在 hydration 前改写 data-page / data-view / class，这是有意的
         suppressHydrationWarning
@@ -105,6 +119,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {children}
         </SiteShell>
         {user && !playMode ? <PlayModeChooser /> : null}
+        <LocaleGuard locale={locale} />
       </body>
     </html>
   );

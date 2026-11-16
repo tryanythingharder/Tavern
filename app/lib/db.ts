@@ -410,6 +410,8 @@ ensureColumn('users', 'email_verified_at', 'INTEGER');
 ensureColumn('users', 'totp_secret', 'TEXT');
 ensureColumn('users', 'totp_recovery', 'TEXT');
 ensureColumn('users', 'totp_enabled_at', 'INTEGER');
+// 跟账号走的界面偏好（语言、主题、玩法模式、外观），JSON
+ensureColumn('users', 'ui_prefs', 'TEXT');
 ensureColumn('sessions', 'created_at', 'INTEGER');
 ensureColumn('sessions', 'user_agent', 'TEXT');
 ensureColumn('sessions', 'ip', 'TEXT');

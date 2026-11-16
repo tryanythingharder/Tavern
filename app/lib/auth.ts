@@ -1,3 +1,4 @@
+import { SYNCED_COOKIES, getUiPrefs, mergeUiPrefs } from './ui-prefs';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import db, { transaction } from '@/lib/db';
@@ -148,6 +149,16 @@ export async function startSession(userId: number) {
   // 本地 HTTP 开发不能带 Secure；生产只要站点地址是 https（或显式开启）就强制 Secure
   const secure = (process.env.NEXT_PUBLIC_SITE_URL ?? '').startsWith('https://') || process.env.TAVERN_COOKIE_SECURE === '1';
   store.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: SESSION_DAYS * 24 * 60 * 60, secure });
+  // 界面偏好跟账号走：账号里存过就写回这台设备；还没存过就把这台设备当前的设置存进账号
+  const saved = getUiPrefs(userId);
+  if (Object.keys(saved).length) {
+    // cookies().set 会再做一次 URL 编码，外观串本身已编码，先解开一层
+    for (const [name, value] of Object.entries(saved)) store.set(name, name === 'tavern_appearance' ? decodeURIComponent(value) : value, { path: '/', maxAge: 365 * 24 * 60 * 60, sameSite: 'lax' });
+  } else {
+    const current: Record<string, string> = {};
+    for (const name of SYNCED_COOKIES) { const value = store.get(name)?.value; if (value) current[name] = name === 'tavern_appearance' ? encodeURIComponent(value) : value; }
+    if (Object.keys(current).length) mergeUiPrefs(userId, current);
+  }
 }
 
 export async function currentSessionToken(): Promise<string | null> {

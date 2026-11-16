@@ -1,3 +1,4 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -8,7 +9,9 @@ import { listPersonas } from '@/lib/resources-db';
 import { RoomChat } from '@/components/room-chat';
 import { AppearanceButton } from '@/components/appearance-drawer';
 
-export const metadata: Metadata = { title: '房间' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '房间' });
+}
 export const dynamic = 'force-dynamic';
 
 const STRATEGY_LABEL: Record<string, string> = { natural: '自然（叫名字优先）', roundRobin: '轮流', manual: '手动指定', pooled: '随机' };

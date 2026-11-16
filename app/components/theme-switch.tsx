@@ -1,5 +1,7 @@
 'use client';
 
+import { syncPref } from '@/components/sync-prefs';
+
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Theme } from '@/lib/theme';
@@ -11,6 +13,7 @@ const OPTIONS: { id: Theme; label: string; hint?: string }[] = [
 
 export function setThemeCookie(next: Theme) {
   document.cookie = `tavern_theme=${next}; path=/; max-age=31536000; samesite=lax`;
+  void syncPref('theme', next);
 }
 
 export function ThemeSwitch({ initial, variant = 'pill' }: { initial: Theme; variant?: 'pill' | 'cards' }) {

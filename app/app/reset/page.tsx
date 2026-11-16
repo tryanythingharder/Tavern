@@ -1,9 +1,12 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AuthPage } from '@/components/auth-page';
 import { ResetForm } from '@/components/auth-forms';
 
-export const metadata: Metadata = { title: '重置密码' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '重置密码' });
+}
 
 export default async function ResetPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token = '' } = await searchParams;

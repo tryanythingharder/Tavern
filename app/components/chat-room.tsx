@@ -648,13 +648,13 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                             <button type="button" aria-label="朗读" title="朗读" onClick={() => void speak(message)}><Ico name="play" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void toggleBookmark(message)}><Ico name="star" /></button>
+                            <button type="button" data-act="bookmark" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void toggleBookmark(message)}><Ico name="star" /></button>
                           )}
                           {!isUser && numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="regen" /></button>
+                            <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="regen" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="从这里创建分支" title="分支" onClick={() => void branch(message)}><Ico name="branch" /></button>
+                            <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" onClick={() => void branch(message)}><Ico name="branch" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
                             <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}><Ico name="x" /></button>

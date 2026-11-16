@@ -1048,13 +1048,13 @@ html body[data-theme="stage"]:not(.p-cinema) .modal :is(.p-tabs, .tabs) button:i
 html body[data-theme="stage"]:not(.p-cinema) .modal .p-eyebrow { color: var(--stg-copy); letter-spacing: .16em; font-size: 11px; }
 
 /* 签到：一张票 */
-html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] { --text: var(--stg-accent); --surface-2: var(--stg-sunken); --muted: var(--stg-muted); max-width: 420px; overflow: hidden; position: relative; }
-html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] .p-eyebrow { display: inline-block; padding: 5px 10px; border-radius: 999px; background: var(--stg-ink); color: #fff; letter-spacing: .2em; transform: rotate(-3deg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal:is([aria-label="每日签到"], [aria-label="Daily check-in"]) { --text: var(--stg-accent); --surface-2: var(--stg-sunken); --muted: var(--stg-muted); max-width: 420px; overflow: hidden; position: relative; }
+html body[data-theme="stage"]:not(.p-cinema) .modal:is([aria-label="每日签到"], [aria-label="Daily check-in"]) .p-eyebrow { display: inline-block; padding: 5px 10px; border-radius: 999px; background: var(--stg-ink); color: #fff; letter-spacing: .2em; transform: rotate(-3deg); }
 html body[data-theme="stage"]:not(.p-cinema) .modal :is(.btn, .p-btn):not(.btn--primary):not(.p-btn--primary) { color: var(--stg-ink); background: #fff; border-color: var(--stg-line-strong); }
-html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] p[style*="font-size"] { font-size: 64px !important; letter-spacing: -.08em !important; line-height: 1 !important; margin: 14px 0 8px !important; color: var(--stg-ink); }
-html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] span[aria-hidden="true"] { width: 32px !important; height: 32px !important; font-size: 12px !important; border-radius: 10px !important; transform: rotate(-4deg); }
-html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] span[aria-hidden="true"]:nth-child(even) { transform: rotate(4deg); }
-html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] .p-hint { font-size: 12px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .modal:is([aria-label="每日签到"], [aria-label="Daily check-in"]) p[style*="font-size"] { font-size: 64px !important; letter-spacing: -.08em !important; line-height: 1 !important; margin: 14px 0 8px !important; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .modal:is([aria-label="每日签到"], [aria-label="Daily check-in"]) span[aria-hidden="true"] { width: 32px !important; height: 32px !important; font-size: 12px !important; border-radius: 10px !important; transform: rotate(-4deg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal:is([aria-label="每日签到"], [aria-label="Daily check-in"]) span[aria-hidden="true"]:nth-child(even) { transform: rotate(4deg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal:is([aria-label="每日签到"], [aria-label="Daily check-in"]) .p-hint { font-size: 12px; color: var(--stg-copy); }
 
 /* ⌘K */
 html body[data-theme="stage"]:not(.p-cinema) .rd-palette { background: rgba(27, 27, 29, .3); }

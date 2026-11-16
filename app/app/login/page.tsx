@@ -1,4 +1,6 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
+import { LanguageSwitch } from '@/components/language-switch';
 import Link from 'next/link';
 import { AuthScene } from '@/components/auth-scene';
 import { redirect } from 'next/navigation';
@@ -9,7 +11,9 @@ import { inviteRequired } from '@/lib/invite';
 import { login, register } from './actions';
 import { PasswordInput } from '@/components/password-input';
 
-export const metadata: Metadata = { title: '登录' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '登录' });
+}
 
 const field = (id: string, label: string, type: string, extra: Record<string, string> = {}) => (
   <div className="p-auth-field">
@@ -114,6 +118,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <Link href="/support">帮助</Link>
         <Link href="/terms">服务条款</Link>
         <Link href="/privacy">隐私政策</Link>
+        <LanguageSwitch variant="link" />
       </footer>
     </div>
   );

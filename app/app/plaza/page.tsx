@@ -1,3 +1,4 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { getCurrentUser } from '@/lib/auth';
 import { listCharacterViews } from '@/lib/characters';
@@ -5,7 +6,9 @@ import { hideNsfw } from '@/lib/prefs';
 import { getBlockedAuthors } from '@/lib/blocked';
 import { PlazaBrowser } from '@/components/plaza-browser';
 
-export const metadata: Metadata = { title: '广场', description: '浏览社区里的公开角色。' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '广场', description: '浏览社区里的公开角色。' });
+}
 export const dynamic = 'force-dynamic';
 
 export default async function PlazaPage() {

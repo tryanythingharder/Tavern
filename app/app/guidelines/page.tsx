@@ -1,7 +1,10 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 
-export const metadata: Metadata = { title: '社区准则' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '社区准则' });
+}
 
 export default function GuidelinesPage() {
   return (

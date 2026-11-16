@@ -1,5 +1,7 @@
 'use client';
 
+import { syncPref } from '@/components/sync-prefs';
+
 import { useSyncExternalStore } from 'react';
 import {
   APPEARANCE_COOKIE,
@@ -49,6 +51,7 @@ export function setAppearance(patch: Partial<AppearancePrefs>) {
     ? `${APPEARANCE_COOKIE}=${value}; path=/; max-age=31536000; samesite=lax`
     : `${APPEARANCE_COOKIE}=; path=/; max-age=0; samesite=lax`;
   applyAppearanceToBody(next);
+  void syncPref('appearance', value);
   listeners.forEach((listener) => listener());
 }
 

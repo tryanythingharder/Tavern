@@ -1,5 +1,7 @@
 'use client';
 
+import { tr } from '@/lib/i18n/runtime';
+
 import { useEffect, useState } from 'react';
 
 // 「我的 · 点数」里的增长卡：今日免费额度、首充赠送、邀请好友链接。数值由服务端算好传入。
@@ -37,7 +39,7 @@ export function GrowthCard(props: {
   };
   const share = async () => {
     try {
-      await navigator.share({ title: '来酒馆和角色一起写故事', text: `用我的邀请码 ${props.code} 注册${props.inviteeBonus > 0 ? `，多得 ${props.inviteeBonus} 点` : ''}：`, url: link });
+      await navigator.share({ title: tr('来酒馆和角色一起写故事'), text: tr(`用我的邀请码 ${props.code} 注册${props.inviteeBonus > 0 ? tr(`，多得 ${props.inviteeBonus} 点`) : ''}：`), url: link });
     } catch { /* 用户取消 */ }
   };
   const showInvite = Boolean(props.code) && (props.inviteReward > 0 || props.inviteeBonus > 0);
