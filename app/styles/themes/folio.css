@@ -1419,7 +1419,7 @@ html body[data-theme="folio"]:not(#fo) .rd-palette-list { padding: 4px 20px 10px
 html body[data-theme="folio"]:not(#fo) .rd-palette-group { padding: 14px 0 6px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: .02em; color: var(--fo-muted); border-bottom: 1px solid var(--fo-line-strong); }
 html body[data-theme="folio"]:not(#fo) .rd-palette-list button { position: relative; padding: 11px 0 11px 18px; border-radius: 0; border-bottom: 1px solid var(--fo-line); font-family: var(--fo-display); font-size: 15px; color: var(--fo-ink); background: transparent; transition: padding .35s var(--fo-ease), background .2s; }
 html body[data-theme="folio"]:not(#fo) .rd-palette-list button::before { content: ""; position: absolute; left: 0; top: 50%; width: 0; height: 2px; margin-top: -1px; background: var(--fo-accent); transition: width .35s var(--fo-ease); }
-html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] { background: transparent; padding-left: 26px; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] { background: var(--fo-accent-soft); padding-left: 26px; font-weight: 700; color: var(--fo-ink); }
 html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"]::before { width: 14px; }
 html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] .p-icon { color: var(--fo-accent); }
 html body[data-theme="folio"]:not(#fo) .rd-palette-list button small { font-family: var(--fo-sans); font-weight: 400; letter-spacing: .06em; }
