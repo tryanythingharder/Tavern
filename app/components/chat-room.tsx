@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
+import { RpText, TypingDots } from '@/components/rp-text';
+import { ModelPicker, NewbieTip } from '@/components/model-picker';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -16,6 +18,7 @@ export type ChatMessageView = {
   selected: number;
   bookmark?: boolean;
   attachment?: ChatAttachmentView | null;
+  createdAt?: number;
 };
 
 type Props = {
@@ -27,11 +30,14 @@ type Props = {
   media?: { image: boolean; tts: boolean; imageCost: number };
   title?: string;
   personaName?: string;
+  characterCover?: string | null;
+  characterHue?: number;
 };
 
 type StreamEvent = {
   type: string;
   text?: string;
+  free?: number;
   message?: string;
   messageId?: number | null;
   content?: string;
@@ -40,6 +46,30 @@ type StreamEvent = {
   cost?: number;
   balance?: number;
 };
+
+
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5"} as const;
+function Ico({ name }: { name: keyof typeof ICONS }) {
+  return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
+}
+
+// 消息时间：只在客户端格式化（服务器时区不同会导致 hydration 不一致）
+function MsgTime({ at }: { at?: number }) {
+  const [label, setLabel] = useState('');
+  const [full, setFull] = useState('');
+  useEffect(() => {
+    if (!at) return;
+    const d = new Date(at);
+    const now = new Date();
+    const hm = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const sameDay = d.toDateString() === now.toDateString();
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    setLabel(sameDay ? hm : d.toDateString() === y.toDateString() ? `昨天 ${hm}` : `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`);
+    setFull(d.toLocaleString('zh-CN', { hour12: false }));
+  }, [at]);
+  if (!at) return null;
+  return <time className="p-msg-time" dateTime={new Date(at).toISOString()} title={full || undefined} suppressHydrationWarning>{label}</time>;
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -53,21 +83,25 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName }: Props) {
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName, characterCover = null, characterHue = 212 }: Props) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessageView[]>(initialMessages);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState('');
+  const [preview, setPreview] = useState(false);
+  useEffect(() => { try { setPreview(localStorage.getItem('tavern_compose_preview') === '1'); } catch {} }, []);
+  const togglePreview = () => setPreview((on) => { try { localStorage.setItem('tavern_compose_preview', on ? '0' : '1'); } catch {} return !on; });
   const [streaming, setStreaming] = useState(false);
   const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const [error, setError] = useState('');
   const [failed, setFailed] = useState<{ type: 'send' } | { type: 'regen'; message: ChatMessageView } | null>(null);
-  const [billing, setBilling] = useState<{ cost: number; balance: number } | null>(null);
+  const [billing, setBilling] = useState<{ cost: number; balance: number; free?: number } | null>(null);
   const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
   const [switching, setSwitching] = useState<number | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [openActions, setOpenActions] = useState<number | string | null>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
@@ -76,6 +110,52 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const prependingRef = useRef(false);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  // 只有读者本来就在底部时才跟随新内容；往上翻旧剧情时不打扰，改为显示「回到最新」
+  const stickRef = useRef(true);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
+  const [unseen, setUnseen] = useState(0);
+  const lastCountRef = useRef(initialMessages.length);
+
+  const scrollTarget = useCallback((): { top: number; height: number; client: number } => {
+    const el = scrollRef.current;
+    if (el && el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible') {
+      return { top: el.scrollTop, height: el.scrollHeight, client: el.clientHeight };
+    }
+    const doc = document.scrollingElement ?? document.documentElement;
+    return { top: doc.scrollTop, height: doc.scrollHeight, client: window.innerHeight };
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const { top, height, client } = scrollTarget();
+      const near = height - (top + client) < 140;
+      stickRef.current = near;
+      setAwayFromBottom(!near);
+      if (near) setUnseen(0);
+    };
+    const el = scrollRef.current;
+    el?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [scrollTarget]);
+
+  const jumpToLatest = useCallback(() => {
+    stickRef.current = true;
+    setUnseen(0);
+    bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }, []);
+
+  // 输入框随内容长高（最多约 8 行），发送后回落
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [draft]);
 
   useEffect(() => {
     // 加载更早消息时保持当前阅读位置，不要跳到底部
@@ -83,7 +163,14 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       prependingRef.current = false;
       return;
     }
-    bottomRef.current?.scrollIntoView({ block: 'end' });
+    const grew = messages.length > lastCountRef.current;
+    const lastIsUser = messages[messages.length - 1]?.role === 'user';
+    lastCountRef.current = messages.length;
+    if (stickRef.current || (grew && lastIsUser)) {
+      bottomRef.current?.scrollIntoView({ block: 'end' });
+    } else if (grew) {
+      setUnseen((count) => count + 1);
+    }
   }, [messages]);
 
   const resync = useCallback(async () => {
@@ -176,7 +263,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: text } : item)));
             } else if (event.type === 'done') {
               completed = true;
-              if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance });
+              if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free });
               setMessages((prev) =>
                 prev.map((item) =>
                   item.id === targetId
@@ -212,22 +299,68 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     [resync],
   );
 
-  const send = useCallback(async () => {
-    const text = draft.trim();
+  // override：快捷动作（如「继续」）直接发送一段固定文本，不动用户正在写的草稿
+  // ST 的「代写」：让 AI 以玩家身份写一句，流式写进输入框，玩家改完再发
+  const [impersonating, setImpersonating] = useState(false);
+  const impersonate = useCallback(async () => {
+    if (impersonating || streaming) return;
+    setImpersonating(true);
+    setError('');
+    const hint = draft.trim();
+    setDraft('');
+    try {
+      const response = await fetch(`/api/chats/${chatId}/impersonate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hint }) });
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.message ?? '代写失败');
+        setDraft(hint);
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let text = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data:')) continue;
+          try {
+            const event = JSON.parse(line.slice(5));
+            if (event.type === 'delta') { text += event.text; setDraft(text); }
+            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free }); }
+            else if (event.type === 'error') setError(event.message ?? '代写失败');
+          } catch { /* 忽略坏分片 */ }
+        }
+      }
+      inputRef.current?.focus();
+    } catch {
+      setError('代写失败，请稍后再试');
+    } finally {
+      setImpersonating(false);
+    }
+  }, [chatId, draft, impersonating, streaming]);
+
+  const send = useCallback(async (override?: string) => {
+    const text = (override ?? draft).trim();
     if (!text || streaming) return;
     const stamp = Date.now();
     const assistantKey = `local-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0 },
-      { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0 },
+      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0, createdAt: Date.now() },
+      { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
-    const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => setDraft(''));
+    const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => { if (override === undefined) setDraft(''); });
     if (!accepted) {
       // 请求未被接受：撤掉本地乐观消息，避免留下空气泡
       setMessages((prev) => prev.filter((item) => item.id !== assistantKey && item.id !== `local-user-${stamp}`));
-      setDraft((current) => (current ? current : text));
+      if (override === undefined) setDraft((current) => (current ? current : text));
       setFailed({ type: 'send' });
     } else {
       setFailed(null);
@@ -395,29 +528,49 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               </button>
             </div>
           )}
-          <section className="p-rp-prologue">
-            <div className="p-eyebrow">STORY</div>
-            <h1>{title ?? '故事'}</h1>
-            <p>当前身份 · {personaName ?? '你'}</p>
-            <small>开场</small>
+          <section className={`p-rp-prologue${characterCover ? ' has-cover' : ''}`} style={{ ['--h' as string]: characterHue }}>
+            {characterCover && <img className="rd-prologue-bg" src={characterCover} alt="" aria-hidden="true" />}
+            <div className="rd-prologue-in">
+              <div className="p-eyebrow">STORY · {characterName}</div>
+              <h1>{title ?? '故事'}</h1>
+              <p>你以「{personaName ?? '你'}」的身份进入这段故事</p>
+              <small>开场</small>
+            </div>
           </section>
-          {messages.map((message) => {
+          {messages.map((message, index) => {
             const isUser = message.role === 'user';
+            const isLatest = index === messages.length - 1;
             const numericId = typeof message.id === 'number' ? message.id : null;
             const isEditing = editing !== null && editing.id === message.id;
             const isStreamingThis = streamingId === message.id;
             return (
-              <article key={message.id} id={`msg-${message.id}`} className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}`}>
-                <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : 212 }}>
-                  {isUser ? '你' : Array.from(characterName)[0]}
+              <article
+                key={message.id}
+                id={`msg-${message.id}`}
+                className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLatest ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
+                onTouchStart={!isUser && isLatest ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
+                onTouchEnd={!isUser && isLatest ? (event) => {
+                  // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版
+                  const start = swipeStart.current; swipeStart.current = null;
+                  if (!start || streaming || editing || numericId === null || !message.content) return;
+                  const t = event.changedTouches[0];
+                  const dx = t.clientX - start.x; const dy = t.clientY - start.y;
+                  if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+                  if (dx > 0 && message.selected > 0) void switchCandidate(message, message.selected - 1);
+                  else if (dx < 0) void (message.selected < message.candidateCount - 1 ? switchCandidate(message, message.selected + 1) : regenerate(message));
+                } : undefined}
+              >
+                <span className={`p-avatar${!isUser && characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : characterHue }}>
+                  {isUser ? (personaName ? Array.from(personaName)[0] : '你') : characterCover ? <img src={characterCover} alt="" /> : Array.from(characterName)[0]}
                 </span>
                 <div>
-                  <div className="p-msg-name">{isUser ? '你' : characterName}</div>
+                  <div className="p-msg-name"><span className="p-msg-who">{isUser ? (personaName || '你') : characterName}</span><MsgTime at={message.createdAt} /></div>
                   {isEditing ? (
                     <div>
                       <textarea
                         className="p-textarea"
                         value={editing.draft}
+                        rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
                         autoFocus
                         onChange={(event) => setEditing({ id: editing.id, draft: event.target.value })}
                         onKeyDown={(event) => {
@@ -446,12 +599,27 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                           {message.attachment.prompt && <figcaption className="p-small" style={{ marginTop: 6 }}>{message.attachment.prompt}</figcaption>}
                         </figure>
                       ) : (
-                        <div className="p-msg-copy p-msg-text">{message.content || (isStreamingThis ? '…' : '')}</div>
+                        <div className="p-msg-copy p-msg-text">
+                          {message.content
+                            ? <RpText text={message.content} streaming={isStreamingThis} />
+                            : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
+                        </div>
                       )}
                       {message.attachment?.kind === 'audio' && (
                         <audio controls src={message.attachment.url} style={{ display: 'block', width: '100%', maxWidth: 360, marginTop: 8 }} />
                       )}
                     </>
+                  )}
+                  {!isEditing && !isUser && isLatest && numericId !== null && !isStreamingThis && message.content && (
+                    <div className="rp-swipe" role="group" aria-label="回复版本">
+                      <button type="button" aria-label="上一版回复" disabled={message.selected <= 0 || switching === numericId || streaming} onClick={() => void switchCandidate(message, message.selected - 1)}><Ico name="prev" /></button>
+                      <span className="rp-swipe-index" aria-live="polite">{Math.max(1, message.selected + 1)} / {Math.max(1, message.candidateCount)}</span>
+                      {message.selected < message.candidateCount - 1 ? (
+                        <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void switchCandidate(message, message.selected + 1)}><Ico name="next" /></button>
+                      ) : (
+                        <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="next" /></button>
+                      )}
+                    </div>
                   )}
                   {!isEditing && (
                     <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>
@@ -460,39 +628,39 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                     <div className="p-msg-tools">
                       {confirming !== null && confirming === numericId ? (
                         <>
-                          <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void remove(confirming)}>✓</button>
-                          <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}>✕</button>
+                          <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void remove(confirming)}><Ico name="check" /></button>
+                          <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
                         </>
                       ) : (
                         <>
                           {!isUser && message.candidateCount > 1 && (
                             <span className="p-rp-candidate">
-                              <button type="button" aria-label="上一个候选" disabled={message.selected <= 0 || switching === numericId} onClick={() => void switchCandidate(message, message.selected - 1)}>‹</button>
+                              <button type="button" aria-label="上一个候选" disabled={message.selected <= 0 || switching === numericId} onClick={() => void switchCandidate(message, message.selected - 1)}><Ico name="prev" /></button>
                               <span className="p-rp-candidate-index">{message.selected + 1}/{message.candidateCount}</span>
-                              <button type="button" aria-label="下一个候选" disabled={message.selected >= message.candidateCount - 1 || switching === numericId} onClick={() => void switchCandidate(message, message.selected + 1)}>›</button>
+                              <button type="button" aria-label="下一个候选" disabled={message.selected >= message.candidateCount - 1 || switching === numericId} onClick={() => void switchCandidate(message, message.selected + 1)}><Ico name="next" /></button>
                             </span>
                           )}
-                          <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? '✓' : '⧉'}</button>
+                          <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content })}>✎</button>
+                            <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content })}><Ico name="edit" /></button>
                           )}
                           {!isUser && numericId !== null && !isStreamingThis && media?.tts && (
-                            <button type="button" aria-label="朗读" title="朗读" onClick={() => void speak(message)}>▶</button>
+                            <button type="button" aria-label="朗读" title="朗读" onClick={() => void speak(message)}><Ico name="play" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void toggleBookmark(message)}>★</button>
+                            <button type="button" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void toggleBookmark(message)}><Ico name="star" /></button>
                           )}
                           {!isUser && numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void regenerate(message)}>↻</button>
+                            <button type="button" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="regen" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="从这里创建分支" title="分支" onClick={() => void branch(message)}>⑂</button>
+                            <button type="button" aria-label="从这里创建分支" title="分支" onClick={() => void branch(message)}><Ico name="branch" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}>✕</button>
+                            <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
                           )}
                           {!isUser && numericId !== null && !isStreamingThis && (
-                            <ReportButton targetType="message" targetId={numericId} className="p-msg-tool" />
+                            <ReportButton targetType="message" targetId={numericId} className="p-msg-tool" label="举报" icon={<Ico name="flag" />} />
                           )}
                         </>
                       )}
@@ -506,8 +674,19 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         </div>
       </div>
 
+
       <div className="p-chat-compose">
         <div className="p-chat-col">
+          <button
+            type="button"
+            className={`rd-jump${awayFromBottom ? ' is-visible' : ''}`}
+            onClick={jumpToLatest}
+            aria-label={unseen ? `回到最新，${unseen} 条新消息` : '回到最新'}
+            tabIndex={awayFromBottom ? 0 : -1}
+          >
+            <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+            <span>{unseen ? `${unseen} 条新消息` : '回到最新'}</span>
+          </button>
           {error && (
             <div role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>
               <div>{friendlyError(error)}</div>
@@ -544,8 +723,16 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               ))}
             </div>
           )}
+          <NewbieTip />
+          {preview && draft.trim() && !streaming && (
+            <div className="p-chat-preview" aria-live="polite">
+              <span className="p-chat-preview-k">预览</span>
+              <div className="p-msg-copy"><RpText text={draft} /></div>
+            </div>
+          )}
           <div className="p-chat-compose-row">
             <textarea
+              ref={inputRef}
               className="p-chat-input"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -560,14 +747,22 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               aria-label="消息"
             />
             {streaming ? (
-              <button className="p-chat-send" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成">■</button>
+              <button className="p-chat-send is-stop" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成"><span className="rd-stop" aria-hidden="true" /></button>
             ) : (
-              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim()} aria-label="发送">↑</button>
+              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim()} aria-label="发送">
+                <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+              </button>
             )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
-            <span className="p-small">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
-            {billing && <span className="p-small">本回合 -{billing.cost} 点 · 余额 {billing.balance}</span>}
+          <div className="p-chat-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
+            <span className="p-chat-acts">
+              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void send('*继续*')} title="不写台词，让角色把这一幕继续演下去">▸ 继续</button>
+              <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
+              <ModelPicker chatId={chatId} />
+            </span>
+            <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
+            {billing && <span className="p-small">本回合 -{billing.cost} 点{billing.free ? `（免费额度抵扣 ${billing.free}）` : ''} · 余额 {billing.balance}</span>}
           </div>
         </div>
       </div>

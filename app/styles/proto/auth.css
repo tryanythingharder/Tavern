@@ -529,6 +529,12 @@ html {
     text-align: left;
 }
 
+/* 表单卡压在场景图左侧：文案放到右下，避免被遮住 */
+@media (min-width: 960px) {
+    .p-auth-scene-copy { left: auto; right: 40px; max-width: 46%; text-align: right; }
+    .p-auth-scene-copy h2 { margin-left: auto; }
+}
+
 .p-auth-scene-label {
     color: rgba(255, 255, 255, 0.7);
     font-size: 12px;
@@ -593,7 +599,7 @@ html {
     .p-auth-stage { grid-template-columns: 400px minmax(0, 1fr); }
     .p-auth-scene { left: 300px; }
     .p-auth-panel { padding-top: 32px; }
-    .p-auth-scene-copy { left: 28px; right: 28px; }
+    .p-auth-scene-copy { left: auto; right: 28px; }
 }
 
 @media (max-width: 959px) {

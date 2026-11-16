@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { RpText } from '@/components/rp-text';
 import { notFound } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import {
@@ -65,7 +66,10 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
   ];
 
   return (
-    <main className="page">
+    <main className="page rd-character">
+      {view !== 'cinema' && !gated && coverSrc(character) && (
+        <div className="rd-ambient" aria-hidden="true"><img src={coverSrc(character) ?? ''} alt="" /></div>
+      )}
       <div className="p-character-top">
       <Link className="small" href="/plaza">← 返回</Link>
 
@@ -119,7 +123,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
       <div className="p-detail" style={{ marginTop: 18 }}>
         <div className="p-detail-sticky">
           <div className="p-detail-id">
-            <div className={`p-detail-cover p-cover${coverSrc(character) ? ' has-portrait' : ''}`} style={{ ['--h' as string]: character.hue }} data-initial={character.initial} role="img" aria-label={`${character.name}的立绘`}>
+            <div className={`p-detail-cover rd-glow p-cover${coverSrc(character) ? ' has-portrait' : ''}`} style={{ ['--h' as string]: character.hue }} data-initial={character.initial} role="img" aria-label={`${character.name}的立绘`}>
               {coverSrc(character) && <img src={coverSrc(character) ?? ''} alt="" />}
               {gated && (
                 <div className="p-cover-gate"><strong>18+</strong><span>开启「显示 18+」后查看</span></div>
@@ -160,7 +164,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
         <div className="p-detail-main">
           <section className="p-card p-card--pad">
             <div className="p-eyebrow">故事的开端</div>
-            <blockquote className="p-quote"><p>{character.greeting}</p></blockquote>
+            <blockquote className="p-quote rd-quote"><RpText text={character.greeting} /></blockquote>
           </section>
 
           <section className="p-card">

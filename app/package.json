@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3100",
     "probe": "node scripts/production-probe.mjs",
-    "backup": "bash scripts/backup.sh",
+    "backup": "node scripts/backup.mjs",
     "admin": "node scripts/promote-admin.mjs",
     "check": "bash scripts/check.sh"
   },

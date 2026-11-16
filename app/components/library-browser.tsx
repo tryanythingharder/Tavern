@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { CharacterView } from '@/lib/characters';
 import { ProtoCover } from '@/components/proto-cover';
 import { api } from '@/components/settings-ui';
@@ -16,12 +17,25 @@ export function LibraryBrowser({
   works,
   favorites,
   latestChats,
+  chatted = [],
 }: {
   added: CharacterView[];
   works: CharacterView[];
   favorites: CharacterView[];
   latestChats: Record<string, number>;
+  chatted?: { id: string; name: string }[];
 }) {
+  const router = useRouter();
+  const [adding, setAdding] = useState<string | null>(null);
+  const addChatted = async (id: string) => {
+    setAdding(id);
+    try {
+      await fetch(`/api/characters/${id}/added`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ added: true }) });
+      router.refresh();
+    } finally {
+      setAdding(null);
+    }
+  };
   const [tab, setTab] = useState<Tab>('added');
   const [addedList, setAddedList] = useState(added);
   const [favoriteList, setFavoriteList] = useState(favorites);
@@ -132,6 +146,18 @@ export function LibraryBrowser({
             <p className="p-empty-text">
               {q ? '试试角色名、作者或标签。' : tab === 'works' ? '写一个，发布后会出现在广场。' : '添加或收藏喜欢的角色，就能随时回来；已有故事仍在对话页。'}
             </p>
+            {!q && tab === 'added' && chatted.length > 0 && (
+              <div className="lib-chatted">
+                <span className="p-small">最近聊过，可以直接加入：</span>
+                <div className="lib-chatted-row">
+                  {chatted.map((item) => (
+                    <button key={item.id} type="button" className="p-btn p-btn--sm" disabled={adding === item.id} onClick={() => void addChatted(item.id)}>
+                      ＋ {item.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <Link className="p-btn p-btn--primary" href={tab === 'works' ? '/create' : '/plaza'}>{tab === 'works' ? '创建角色' : '去广场看看'}</Link>
           </div>
         )}

@@ -1,23 +1,34 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { AuthScene } from '@/components/auth-scene';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { referralInviter } from '@/lib/growth';
 import { getCurrentUser } from '@/lib/auth';
 import { inviteRequired } from '@/lib/invite';
 import { login, register } from './actions';
+import { PasswordInput } from '@/components/password-input';
 
 export const metadata: Metadata = { title: '登录' };
 
 const field = (id: string, label: string, type: string, extra: Record<string, string> = {}) => (
   <div className="p-auth-field">
     <label className="p-auth-label" htmlFor={id}>{label}</label>
-    <input className="p-auth-input" id={id} name={id.replace(/^(login|register)-/, '')} type={type} {...extra} />
+    {type === 'password'
+      ? <PasswordInput className="p-auth-input" id={id} name={id.replace(/^(login|register)-/, '')} {...extra} />
+      : <input className="p-auth-input" id={id} name={id.replace(/^(login|register)-/, '')} type={type} {...extra} />}
   </div>
 );
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; mode?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; mode?: string; ref?: string }> }) {
   const user = await getCurrentUser();
   if (user) redirect('/');
-  const { error, mode } = await searchParams;
+  const { error, mode, ref } = await searchParams;
+  // 链接上的 ?ref= 优先，其次是之前逛站时记下的 cookie（middleware 写入）
+  const cookieRef = (await cookies()).get('tavern_ref')?.value ?? '';
+  const rawRef = typeof ref === 'string' && ref ? ref : cookieRef;
+  const refCode = /^R-[A-Z0-9]{6}$/i.test(rawRef) ? rawRef.toUpperCase() : '';
+  const inviter = refCode ? referralInviter(refCode) : null;
   const isLogin = mode === 'login';
   const needInvite = inviteRequired();
 
@@ -61,12 +72,18 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 <h1 id="register-title">和喜欢的角色，<br />开始你的故事。</h1>
                 <p className="p-auth-lead">创建账号，随时回来继续未完的剧情。</p>
 
+                {inviter && (
+                  <div className="p-auth-invite" role="note">
+                    <span className="p-auth-invite-avatar" aria-hidden="true">{inviter.nickname.slice(0, 1)}</span>
+                    <span><b>{inviter.nickname}</b> 邀请你来酒馆{inviter.bonus > 0 ? <>，注册即多得 <b>{inviter.bonus}</b> 点</> : null}。邀请码已帮你填好。</span>
+                  </div>
+                )}
                 {error && <p className="p-form-error" role="alert">{error}</p>}
 
                 <form action={register} className="p-auth-form">
                   {field('register-nickname', '昵称（选填）', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
-                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX-XXXX', ...(needInvite ? { required: 'required' } : {}) })}
+                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX-XXXX 或好友邀请码 R-XXXXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
                   {field('register-password', '密码', 'password', { required: 'required', minLength: '8', autoComplete: 'new-password' })}
                   <span className="p-auth-hint">密码至少 8 位；用 scrypt 哈希保存，不会以明文存储。</span>
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>
@@ -89,15 +106,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             )}
           </div>
         </section>
-
-        <aside className="p-auth-scene" aria-label="雨夜霓虹房间，一段等待开启的故事">
-          <img className="p-auth-art" src="/auth-scene.jpg" alt="窗外霓虹映进雨夜房间，新的故事等待开启" />
-          <div className="p-auth-scene-copy">
-            <div className="p-auth-scene-label">雨夜 · 2077 · 新的身份</div>
-            <h2>有些故事，<br />等你推门才开始。</h2>
-            <p>城市还未入睡。今晚，你想成为谁？</p>
-          </div>
-        </aside>
+        <AuthScene />
       </main>
 
       <footer className="p-auth-footer">

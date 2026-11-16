@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AuthScene } from '@/components/auth-scene';
 import type { ReactNode } from 'react';
 
 // 登录 / 找回密码 / 验证邮箱共用同一套 p-auth 版式
@@ -22,15 +23,7 @@ export function AuthPage({ kicker, title, lead, children }: { kicker: string; ti
             {children}
           </div>
         </section>
-
-        <aside className="p-auth-scene" aria-label="雨夜霓虹房间，一段等待开启的故事">
-          <img className="p-auth-art" src="/auth-scene.jpg" alt="窗外霓虹映进雨夜房间，新的故事等待开启" />
-          <div className="p-auth-scene-copy">
-            <div className="p-auth-scene-label">雨夜 · 2077 · 新的身份</div>
-            <h2>有些故事，<br />等你推门才开始。</h2>
-            <p>城市还未入睡。今晚，你想成为谁？</p>
-          </div>
-        </aside>
+        <AuthScene />
       </main>
 
       <footer className="p-auth-footer">

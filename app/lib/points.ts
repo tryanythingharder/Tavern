@@ -1,6 +1,7 @@
 import db, { transaction } from '@/lib/db';
 import { notify } from '@/lib/notifications';
 import { getSetting } from '@/lib/settings';
+import { consumeDailyFree, rewardReferrerOnFirstUse } from '@/lib/growth';
 
 // M4 点数：账本式记账。每笔都写 balance_after，余额 = 最后一笔的 balance_after，
 // 这样对账时能逐笔回放（比只存一个余额字段更可靠）。
@@ -38,8 +39,46 @@ export function grantPoints(userId: number, amount: number, note: string, kind =
   });
 }
 
-export function pointsCost(totalTokens: number): number {
-  return Math.max(1, Math.ceil((Math.max(0, totalTokens) * pointsPerThousand()) / 1000));
+// 按模型计价：后台 points.models（JSON 对象 {"模型id": 每千 tokens 点数}）优先，
+// 环境变量 TAVERN_MODEL_PRICES（"a=6,b=3" 或 JSON）兜底；没单独定价的模型用统一价 points.text。
+export function parseModelPrices(raw: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  const text = String(raw ?? '').trim();
+  if (!text) return out;
+  const put = (key: unknown, value: unknown) => {
+    const id = String(key ?? '').trim();
+    const price = Number(value);
+    if (id && Number.isFinite(price) && price >= 0) out[id] = Math.round(price * 100) / 100;
+  };
+  if (text.startsWith('{')) {
+    try {
+      const obj = JSON.parse(text) as Record<string, unknown>;
+      for (const [key, value] of Object.entries(obj)) put(key, value);
+    } catch { /* 格式不对就当没配置 */ }
+    return out;
+  }
+  for (const part of text.split(/[,\n;]+/)) {
+    const [key, value] = part.split(/[=:]/);
+    put(key, value);
+  }
+  return out;
+}
+
+export function modelPrices(): Record<string, number> {
+  return parseModelPrices(getSetting('points.models', process.env.TAVERN_MODEL_PRICES ?? ''));
+}
+
+export function modelPricePer1k(model?: string | null): number {
+  const id = String(model ?? '').trim();
+  if (id) {
+    const prices = modelPrices();
+    if (id in prices) return prices[id];
+  }
+  return pointsPerThousand();
+}
+
+export function pointsCost(totalTokens: number, model?: string | null): number {
+  return Math.max(1, Math.ceil((Math.max(0, totalTokens) * modelPricePer1k(model)) / 1000));
 }
 
 export function spendPoints(userId: number, amount: number, note: string, refId?: string): { ok: boolean; balance: number; previous: number } {
@@ -63,15 +102,24 @@ export function reservePoints(userId: number, amount: number, note: string, refI
 }
 
 // 结算预扣：多退少补。补扣失败时记录告警，至少不会把已产生的成本退回去。
-export function settleGeneration(userId: number, reserved: number, actual: number, refId: string): { cost: number; balance: number } {
-  const cost = Math.max(0, Math.round(actual));
+export function settleGeneration(userId: number, reserved: number, actual: number, refId: string): { cost: number; free: number; balance: number } {
+  const total = Math.max(0, Math.round(actual));
+  // 每日免费额度先抵扣（后台 growth.dailyFree，0 = 关闭）
+  const free = consumeDailyFree(userId, total);
+  const cost = total - free;
+  if (free > 0) {
+    db.prepare('INSERT INTO points_ledger (user_id, kind, amount, balance_after, note, ref_id, created_at) VALUES (?,?,?,?,?,?,?)').run(userId, 'free', 0, balance(userId), `每日免费额度抵扣 ${free} 点 · ${refId}`, refId, Date.now());
+  }
   if (cost < reserved) {
     grantPoints(userId, reserved - cost, `结算退回 · ${refId}`, 'adjust');
   } else if (cost > reserved) {
     const extra = spendPoints(userId, cost - reserved, `补扣 · ${refId}`, refId);
     if (!extra.ok) console.warn('[points] 生成补扣失败', { userId, refId, extra: cost - reserved });
   }
-  return { cost, balance: balance(userId) };
+  if (total > 0) {
+    try { rewardReferrerOnFirstUse(userId); } catch (error) { console.warn('[growth] 邀请奖励失败', error); }
+  }
+  return { cost, free, balance: balance(userId) };
 }
 
 // 生成结束后扣费；余额刚跌破阈值时发一条站内通知（只发一次）。

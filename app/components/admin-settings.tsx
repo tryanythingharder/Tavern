@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 
+type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
 type Status = {
   image: { baseUrl: string; model: string; size: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   tts: { baseUrl: string; model: string; voice: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
-  payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean };
-  billing: { textPer1k: number; upstreamCostPer1kCents: number };
+  payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean; currency: string; providers: Plugin[]; storage: Plugin[] };
+  billing: { textPer1k: number; upstreamCostPer1kCents: number; modelPrices?: string; models?: string[]; dailyFree?: number; firstTopupPct?: number; inviteReward?: number; inviteeBonus?: number; inviteMax?: number };
   mail: { from: string; hasKey: boolean; mode: 'resend' | 'outbox' };
 };
 
@@ -15,7 +16,7 @@ type Form = {
   image: { baseUrl: string; apiKey: string; model: string; size: string; cost: string };
   tts: { baseUrl: string; apiKey: string; model: string; voice: string; cost: string };
   payment: { pricePerPointCents: string; provider: string; checkoutUrl: string; secret: string };
-  billing: { textPer1k: string; upstreamCostPer1kCents: string };
+  billing: { textPer1k: string; upstreamCostPer1kCents: string; modelPrices: string; dailyFree: string; firstTopupPct: string; inviteReward: string; inviteeBonus: string; inviteMax: string };
   mail: { from: string; resendKey: string };
 };
 
@@ -23,7 +24,7 @@ const EMPTY: Form = {
   image: { baseUrl: '', apiKey: '', model: '', size: '1024x1024', cost: '20' },
   tts: { baseUrl: '', apiKey: '', model: '', voice: 'alloy', cost: '5' },
   payment: { pricePerPointCents: '1', provider: '', checkoutUrl: '', secret: '' },
-  billing: { textPer1k: '2', upstreamCostPer1kCents: '0' },
+  billing: { textPer1k: '2', upstreamCostPer1kCents: '0', modelPrices: '', dailyFree: '0', firstTopupPct: '0', inviteReward: '0', inviteeBonus: '0', inviteMax: '50' },
   mail: { from: '', resendKey: '' },
 };
 
@@ -54,7 +55,7 @@ export function AdminSettings() {
         image: { baseUrl: data.image.baseUrl, apiKey: '', model: data.image.model, size: data.image.size, cost: String(data.image.cost) },
         tts: { baseUrl: data.tts.baseUrl, apiKey: '', model: data.tts.model, voice: data.tts.voice, cost: String(data.tts.cost) },
         payment: { pricePerPointCents: String(data.payment.pricePerPointCents), provider: data.payment.provider, checkoutUrl: data.payment.checkoutUrl, secret: '' },
-        billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents) },
+        billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents), modelPrices: data.billing.modelPrices ?? '', dailyFree: String(data.billing.dailyFree ?? 0), firstTopupPct: String(data.billing.firstTopupPct ?? 0), inviteReward: String(data.billing.inviteReward ?? 0), inviteeBonus: String(data.billing.inviteeBonus ?? 0), inviteMax: String(data.billing.inviteMax ?? 50) },
         mail: { from: data.mail.from, resendKey: '' },
       });
     } catch (caught) {
@@ -227,27 +228,61 @@ export function AdminSettings() {
             <span className="p-small">用于后台粗算毛利；0 表示不计算。</span>
           </div>
         </div>
-        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing')}>{busy === 'billing' ? '保存中…' : '保存计费配置'}</button>
+        <div className="p-field">
+          <label htmlFor="model-prices">按模型定价（每行 模型id=每千 tokens 点数；没写的模型用上面的统一价）</label>
+          <textarea id="model-prices" className="p-textarea" rows={5} value={form.billing.modelPrices} placeholder={'claude-sonnet-4.5=6\ndeepseek-r1=3\ngpt-4o-mini=1'} onChange={(event) => setForm({ ...form, billing: { ...form.billing, modelPrices: event.target.value } })} />
+          {status?.billing.models?.length ? <span className="p-small">当前可选模型：{status.billing.models.join('、')}</span> : null}
+        </div>
+        <h3 className="p-form-section-title" style={{ margin: '18px 0 4px', fontSize: 14 }}>福利与增长</h3>
+        <p className="small" style={{ marginTop: 0 }}>填 0 表示关闭，用户端不会显示。改动立即生效。</p>
+        <div className="p-field-row">
+          {([
+            ['dailyFree', '每日免费额度（点）', '每人每天生成时先抵扣这么多点，零点刷新'],
+            ['firstTopupPct', '首充赠送（%）', '第一笔充值到账时额外送的百分比'],
+            ['inviteeBonus', '被邀请人见面礼（点）', '用好友链接注册即到账'],
+            ['inviteReward', '邀请人奖励（点）', '好友第一次生成后到账'],
+            ['inviteMax', '邀请奖励上限（次）', '每位邀请人最多拿几次奖励'],
+          ] as const).map(([key, label, hint]) => (
+            <div className="p-field" key={key}>
+              <label htmlFor={`growth-${key}`}>{label}</label>
+              <input id={`growth-${key}`} className="p-input" type="number" min={0} step={1} value={form.billing[key]} onChange={(event) => setForm({ ...form, billing: { ...form.billing, [key]: event.target.value } })} />
+              <span className="p-small">{hint}</span>
+            </div>
+          ))}
+        </div>
+        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing', form.billing.modelPrices.trim() ? [] : ['modelPrices'])}>{busy === 'billing' ? '保存中…' : '保存计费配置'}</button>
       </section>
 
       <section className="p-card p-card--pad">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <h2 className="p-form-section-title" style={{ margin: 0 }}>支付网关</h2>
-          <Badge ok={Boolean(status?.payment.hasSecret)} text={status?.payment.hasSecret ? '回调密钥已设置' : '回调密钥未设置'} />
+          <h2 className="p-form-section-title" style={{ margin: 0 }}>支付渠道</h2>
+          <Badge ok text={`当前：${status?.payment.providers.find((item) => item.active)?.label ?? '手动确认'}`} />
         </div>
         <p className="small" style={{ marginTop: 0 }}>
-          回调地址：<code>/api/payments/webhook</code>，签名 = <code>HMAC-SHA256(密钥, orderId|amount|currency|status|timestamp)</code>，并校验金额、币种与 10 分钟时间窗。接真实网关时把验签逻辑换成对应网关的规则即可。
+          插件式：每个渠道在 <code>lib/payments/</code> 一个文件，回调地址 <code>/api/payments/&lt;渠道 id&gt;</code>。选中的渠道没配好时自动退到下一个已配置的，最后是手动确认。币种 {status?.payment.currency}。
         </p>
+        <PluginList items={status?.payment.providers ?? []} />
         <div className="p-field-row">
           <div className="p-field"><label>每点价格（分）</label><input aria-label="每点价格（分）" className="p-input" type="number" min={1} value={form.payment.pricePerPointCents} onChange={(event) => setForm({ ...form, payment: { ...form.payment, pricePerPointCents: event.target.value } })} /></div>
-          <div className="p-field"><label>网关名称（备注）</label><input aria-label="网关名称（备注）" className="p-input" value={form.payment.provider} placeholder="例如：易支付 / Stripe" onChange={(event) => setForm({ ...form, payment: { ...form.payment, provider: event.target.value } })} /></div>
-          <div className="p-field"><label>回调密钥（留空不改）</label><input aria-label="回调密钥（留空不改）" className="p-input" type="password" value={form.payment.secret} placeholder={status?.payment.hasSecret ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, payment: { ...form.payment, secret: event.target.value } })} /></div>
-          <div className="p-field"><label>结算页 URL（选填）</label><input aria-label="结算页 URL（选填）" className="p-input" value={form.payment.checkoutUrl} placeholder="https://pay.example.com/checkout" onChange={(event) => setForm({ ...form, payment: { ...form.payment, checkoutUrl: event.target.value } })} /></div>
+          <div className="p-field"><label>收款渠道</label><select aria-label="收款渠道" className="p-input" value={form.payment.provider} onChange={(event) => setForm({ ...form, payment: { ...form.payment, provider: event.target.value } })}><option value="">自动（第一个已配置的）</option>{(status?.payment.providers ?? []).map((item) => <option key={item.id} value={item.id}>{item.label}{item.configured ? '' : '（未配置）'}</option>)}</select></div>
+          <div className="p-field"><label>通用结算页回调密钥（留空不改）</label><input aria-label="回调密钥（留空不改）" className="p-input" type="password" value={form.payment.secret} placeholder={status?.payment.hasSecret ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, payment: { ...form.payment, secret: event.target.value } })} /></div>
+          <div className="p-field"><label>通用结算页 URL</label><input aria-label="结算页 URL（选填）" className="p-input" value={form.payment.checkoutUrl} placeholder="https://pay.example.com/checkout" onChange={(event) => setForm({ ...form, payment: { ...form.payment, checkoutUrl: event.target.value } })} /></div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'payment'} onClick={() => void save('payment')}>{busy === 'payment' ? '保存中…' : '保存支付配置'}</button>
           <button className="p-btn p-btn--sm" type="button" disabled={busy === 'payment' || !status?.payment.hasSecret} onClick={() => void save('payment', ['secret'])}>清除密钥</button>
         </div>
+      </section>
+
+      <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <h2 className="p-form-section-title" style={{ margin: 0 }}>媒体存储</h2>
+          <Badge ok text={`当前：${status?.payment.storage.find((item) => item.active)?.label ?? '本地磁盘'}`} />
+        </div>
+        <p className="small" style={{ marginTop: 0 }}>
+          插件式：每个驱动在 <code>lib/storage-drivers/</code> 一个文件。用环境变量 <code>TAVERN_STORAGE_DRIVER</code> 指定，留空自动选第一个已配置的；密钥只走环境变量。
+        </p>
+        <PluginList items={status?.payment.storage ?? []} />
       </section>
 
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
@@ -268,5 +303,19 @@ export function AdminSettings() {
         </div>
       </section>
     </>
+  );
+}
+
+function PluginList({ items }: { items: Plugin[] }) {
+  return (
+    <ul className="p-plugin-list">
+      {items.map((item) => (
+        <li key={item.id} className={item.active ? 'is-active' : undefined}>
+          <span className="p-plugin-name"><b>{item.label}</b> <code>{item.id}</code></span>
+          <span className="p-plugin-state">{item.active ? '使用中' : item.configured ? '已配置' : '未配置'}</span>
+          <span className="p-plugin-hint small">{item.hint}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

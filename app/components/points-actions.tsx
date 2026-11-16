@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney } from '@/lib/money';
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -7,9 +8,9 @@ import { ErrorLine, api } from '@/components/settings-ui';
 type Order = { id: number; points: number; priceCents: number; status: string; createdAt: number };
 
 const STATUS_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', cancelled: '已取消' };
-const yuan = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
 
-export function PointsActions({ orders, pricePerPointCents }: { orders: Order[]; pricePerPointCents: number }) {
+export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: { orders: Order[]; pricePerPointCents: number; currency?: string }) {
+  const yuan = (cents: number) => formatMoney(cents, currency);
   const router = useRouter();
   const [code, setCode] = useState('');
   const [points, setPoints] = useState('1000');

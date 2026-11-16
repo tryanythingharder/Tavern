@@ -9,6 +9,7 @@ export type ImportedCard = {
   category: string;
   nsfw: boolean;
   alternateGreetings: { title: string; text: string }[];
+  card: { personality: string; scenario: string; mesExample: string; systemPrompt: string; postHistory: string; creatorNotes: string };
 };
 
 type Record_ = Record<string, unknown>;
@@ -28,13 +29,9 @@ export function parseStCharacterCard(input: unknown): ImportedCard | null {
   const tags = Array.isArray(data.tags) ? data.tags.map(String).filter(Boolean).slice(0, 5) : [];
   const creatorNotes = text(data.creator_notes ?? raw.creator_notes);
   const hook = text(data.creatorcomment ?? raw.creatorcomment) || description.split('\n').map((line) => line.trim()).find(Boolean)?.slice(0, 60) || `${name} 的故事`;
-  const descriptionParts = [
-    description,
-    personality ? `性格：${personality}` : '',
-    scenario ? `场景：${scenario}` : '',
-    examples ? `对话示例：\n${examples}` : '',
-    creatorNotes ? `作者备注：${creatorNotes}` : '',
-  ].filter(Boolean);
+  // 高级字段原样落到 card_fields，不再拼进简介（拼接会把对话示例当成设定喂给模型）
+  const systemPrompt = text(data.system_prompt ?? raw.system_prompt);
+  const postHistory = text(data.post_history_instructions ?? raw.post_history_instructions);
   const alternates = Array.isArray(data.alternate_greetings)
     ? data.alternate_greetings.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 8).map((text, index) => ({ title: `备用开场 ${index + 1}`, text }))
     : [];
@@ -42,11 +39,12 @@ export function parseStCharacterCard(input: unknown): ImportedCard | null {
     name: name.slice(0, 32),
     hook: hook.slice(0, 90),
     greeting: (firstMes || `（${name} 看着你，等你先开口。）`).slice(0, 2000),
-    description: descriptionParts.join('\n\n').slice(0, 3000),
+    description: (description || personality || scenario).slice(0, 3000),
     pace: '慢热 · 细节叙事',
     tags,
     category: '现代',
     nsfw: false,
     alternateGreetings: alternates,
+    card: { personality, scenario, mesExample: examples, systemPrompt, postHistory, creatorNotes },
   };
 }

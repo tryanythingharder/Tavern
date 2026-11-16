@@ -387,6 +387,7 @@ ensureColumn('messages', 'selected', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('chats', 'branch_from_chat_id', 'INTEGER');
 ensureColumn('chats', 'branch_from_message_id', 'INTEGER');
 ensureColumn('chats', 'preset_id', 'INTEGER');
+ensureColumn('rooms', 'model', 'TEXT');
 ensureColumn('chats', 'persona_id', 'INTEGER');
 ensureColumn('chats', 'lorebook_ids', 'TEXT');
 ensureColumn('chats', 'summary', 'TEXT');
@@ -394,6 +395,7 @@ ensureColumn('chats', 'summary_prefs', 'TEXT');
 ensureColumn('characters', 'review_note', 'TEXT');
 ensureColumn('chats', 'rag_prefs', 'TEXT');
 ensureColumn('chats', 'memory', 'TEXT');
+ensureColumn('chats', 'model', 'TEXT');
 ensureColumn('messages', 'bookmark', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'attachment', 'TEXT');
 ensureColumn('room_messages', 'attachment', 'TEXT');
@@ -416,6 +418,8 @@ ensureColumn('characters', 'owner_id', 'INTEGER');
 ensureColumn('characters', 'status', "TEXT NOT NULL DEFAULT 'published'");
 ensureColumn('characters', 'created_at', 'INTEGER');
 ensureColumn('characters', 'alternate_greetings', 'TEXT');
+// ST V2 卡的高级字段（personality / scenario / mes_example / system_prompt / post_history / creator_notes），JSON
+ensureColumn('characters', 'card_fields', 'TEXT');
 ensureColumn('characters', 'cover_image', 'TEXT');
 ensureColumn('characters', 'avatar_image', 'TEXT');
 ensureColumn('rooms', 'auto_mode', 'INTEGER NOT NULL DEFAULT 0');
@@ -437,6 +441,7 @@ export type DbCharacter = {
   id: string; name: string; author: string; initial: string; hue: number; category: string;
   tags: string; nsfw: number; chats: string; greeting: string; hook: string; description: string; pace: string;
   owner_id: number | null; status: string; created_at: number | null; alternate_greetings: string | null; cover_image: string | null; avatar_image: string | null; review_note: string | null;
+  card_fields?: string | null;
 };
 
 export type DbChat = {
@@ -444,6 +449,7 @@ export type DbChat = {
   branch_from_chat_id: number | null; branch_from_message_id: number | null;
   preset_id: number | null; persona_id: number | null; lorebook_ids: string | null;
   summary: string | null; summary_prefs: string | null; rag_prefs: string | null; memory: string | null;
+  model?: string | null;
   created_at: number; updated_at: number;
 };
 export type DbMessage = {

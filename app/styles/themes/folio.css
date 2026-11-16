@@ -1,0 +1,1509 @@
+/* ==========================================================================
+   书页 FOLIO — 酒馆是一本可对话的文学季刊，角色即篇章，对话即手稿。
+   所有选择器都限定在 body[data-theme="folio"] 下；只用公共配色令牌。
+   前缀 html body[data-theme="folio"][data-page] 与 redesign.css 的
+   html body[data-page]:not(.p-cinema) 同权重，靠导入顺序后置取胜。
+   ========================================================================== */
+
+@font-face { font-family: "Instrument Serif"; src: url("/themes/folio/fonts/InstrumentSerif-Regular.ttf") format("truetype"); font-style: normal; font-weight: 400; font-display: swap; unicode-range: U+0000-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026, U+2116, U+2190-2193, U+21B5; }
+@font-face { font-family: "Instrument Serif"; src: url("/themes/folio/fonts/InstrumentSerif-Italic.ttf") format("truetype"); font-style: italic; font-weight: 400; font-display: swap; unicode-range: U+0000-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026, U+2116, U+2190-2193, U+21B5; }
+@font-face { font-family: "Newsreader"; src: url("/themes/folio/fonts/Newsreader-latin.ttf") format("truetype"); font-style: normal; font-weight: 200 800; font-display: swap; unicode-range: U+0000-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026, U+2116, U+2190-2193, U+21B5; }
+
+/* ---------- 令牌 ---------- */
+html body[data-theme="folio"] {
+    --fo-bg: #f7f7f8; --fo-rail: #fbfbfb; --fo-card: #ffffff; --fo-sunken: #ebebec; --fo-hover: #f0f0f1;
+    --fo-ink: #1b1b1d; --fo-copy: #4a4a50; --fo-muted: #6b6b73; --fo-line: #e6e6e8; --fo-line-strong: #d5d5d9;
+    --fo-accent: #4b5bf5; --fo-accent-soft: #eceefe; --fo-player: #f1f2fb;
+    --fo-display: "Noto Serif SC", "Songti SC", "STSong", serif;
+    --fo-serif: "Newsreader", "Noto Serif SC", "Songti SC", serif;
+    --fo-italic: "Instrument Serif", "Noto Serif SC", "Songti SC", serif;
+    --fo-sans: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", sans-serif;
+    --pp-font: var(--fo-sans); --font: var(--fo-sans); --ca-sans: var(--fo-sans);
+    --fo-ease: cubic-bezier(.2, .7, .1, 1);
+    --fo-rail-w: 76px;
+    --fo-pad: clamp(20px, 3.9vw, 56px);
+    /* 旧系统令牌对齐到书页 */
+    --pp-reading-font: var(--fo-display);
+    --ca-serif: var(--fo-display);
+    --pp-accent: #4b5bf5; --pp-accent-soft: #eceefe; --pp-focus: #4b5bf5;
+    --pp-radius: 2px; --pp-control-radius: 2px;
+    --r-xs: 2px; --r-sm: 2px; --r-md: 2px; --r-lg: 2px; --r-xl: 2px;
+    background: var(--fo-bg);
+}
+html body[data-theme="folio"][data-page] { --sidebar-w: 76px !important; }
+html body[data-theme="folio"] ::selection { background: var(--fo-accent-soft); color: var(--fo-ink); }
+
+html body[data-theme="folio"] .fo-it { font-family: var(--fo-italic); font-style: italic; font-weight: 400; letter-spacing: 0; }
+html body[data-theme="folio"] .fo-lat { font-family: var(--fo-serif); letter-spacing: .14em; text-transform: uppercase; font-size: 10.5px; color: var(--fo-muted); }
+
+/* ==========================================================================
+   应用壳：左侧栏 → 刊尺（76px 竖排导航）
+   ========================================================================== */
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-shell { grid-template-columns: var(--fo-rail-w) minmax(0, 1fr); background: var(--fo-bg); }
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side {
+    width: var(--fo-rail-w);
+    align-items: center;
+    gap: 0;
+    padding: 26px 0 22px;
+    background: var(--fo-rail);
+    border-right: 1px solid var(--fo-line);
+    overflow: hidden;
+}
+html body[data-theme="folio"][data-page] .p-brand { flex-direction: column; gap: 10px; padding: 0; }
+html body[data-theme="folio"][data-page] .p-brand .p-mark {
+    width: 40px; height: 40px; border-radius: 0; background: var(--fo-ink); color: #fff;
+    font-family: var(--fo-display); font-weight: 700; font-size: 21px; letter-spacing: 0;
+}
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-brand:hover .p-mark { transform: none; }
+html body[data-theme="folio"][data-page] .p-brand .p-brand-name { font-size: 0; line-height: 1; }
+html body[data-theme="folio"][data-page] .p-brand .p-brand-name::after {
+    content: "Folio"; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 13px; letter-spacing: 0; color: var(--fo-muted);
+}
+html body[data-theme="folio"][data-page] .p-side > .p-nav:not(.p-side-recents) { counter-reset: fo-nav; margin-top: 34px; gap: 4px; width: 100%; }
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-nav-item {
+    counter-increment: fo-nav;
+    position: relative;
+    flex-direction: column; justify-content: flex-start; align-items: center; gap: 5px;
+    height: auto; padding: 11px 0; width: 100%;
+    border-radius: 0; background: transparent; box-shadow: none;
+    color: var(--fo-muted);
+    transition: color .3s var(--fo-ease);
+}
+html body[data-theme="folio"][data-page] .p-side .p-nav-item .p-icon { display: none; }
+html body[data-theme="folio"][data-page] .p-side .p-nav-item span {
+    writing-mode: vertical-rl; font-size: 14px; letter-spacing: .2em; font-weight: 500; line-height: 1.15;
+}
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-nav-item::before {
+    content: counter(fo-nav, lower-roman);
+    position: static; width: auto; height: auto; border-radius: 0; background: none; transform: none; animation: none;
+    font-family: var(--fo-italic); font-style: italic; font-size: 13px; line-height: 1;
+}
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-nav-item:hover { background: transparent; color: var(--fo-ink); }
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-nav-item[aria-current="page"] { background: transparent; box-shadow: none; color: var(--fo-ink); }
+html body[data-theme="folio"][data-page] .p-side .p-nav-item[aria-current="page"] span { font-weight: 700; }
+html body[data-theme="folio"][data-page] .p-side .p-nav-item[aria-current="page"]::after {
+    content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 2px; background: var(--fo-accent);
+    transform-origin: top; animation: fo-grow-y .6s var(--fo-ease) both;
+}
+html body[data-theme="folio"][data-page] .p-side .p-nav-label { display: none; }
+/* 继续故事：缩成小书脊 */
+html body[data-theme="folio"][data-page] .p-side .p-side-recents { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--fo-line); width: 36px; gap: 8px; align-items: center; }
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-side-recent {
+    justify-content: center; width: 36px; height: 32px; min-height: 0; padding: 0; gap: 0; border-radius: 0; background: transparent; color: var(--fo-muted);
+}
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side .p-side-recent:hover { transform: none; color: var(--fo-ink); background: transparent; }
+html body[data-theme="folio"][data-page] .p-side .p-side-recent > span:last-child { display: none; }
+html body[data-theme="folio"][data-page] .p-side .p-side-recent :is(.p-cover, img) { border-radius: 0 !important; filter: grayscale(.35); transition: filter .4s ease; }
+html body[data-theme="folio"][data-page] .p-side .p-side-recent:hover :is(.p-cover, img) { filter: none; transform: none; }
+html body[data-theme="folio"][data-page] .p-side > .p-side-recent { margin-top: 2px; }
+html body[data-theme="folio"][data-page] .p-side .p-side-recents + .p-side-recent { margin-top: 10px; }
+html body[data-theme="folio"][data-page] .p-side-foot { margin-top: auto; padding: 14px 0 0; border: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+html body[data-theme="folio"][data-page] .p-side-foot::before {
+    content: "Tavern · Folio"; writing-mode: vertical-rl; font-family: var(--fo-serif); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--fo-muted);
+}
+html body[data-theme="folio"][data-page] .p-side-foot .p-user-row { padding: 0; width: auto; justify-content: center; background: transparent; }
+html body[data-theme="folio"][data-page] .p-side-foot .p-user-row > span:last-child { display: none; }
+html body[data-theme="folio"][data-page] :is(.p-side-foot, .p-topbar) .p-avatar {
+    background: var(--fo-sunken) !important; color: var(--fo-copy) !important; border: 1px solid var(--fo-line-strong);
+    font-family: var(--fo-display); font-weight: 700; box-shadow: none;
+}
+@media (max-height: 820px) {
+    html body[data-theme="folio"][data-page] .p-side .p-side-recents,
+    html body[data-theme="folio"][data-page] .p-side > .p-side-recent,
+    html body[data-theme="folio"][data-page] .p-side-foot::before { display: none; }
+}
+
+@media (max-width: 1023px) {
+    html body[data-theme="folio"][data-page]:not(.p-cinema) .p-shell { grid-template-columns: minmax(0, 1fr); }
+    html body[data-theme="folio"][data-page]:not(.p-cinema) .p-side { display: none; }
+}
+
+/* ---------- 顶栏：刊眉细线 ---------- */
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-topbar {
+    height: 52px; padding: 0 var(--fo-pad); gap: 22px;
+    background: rgba(247, 247, 248, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--fo-line); box-shadow: none;
+}
+html body[data-theme="folio"][data-page] .p-topbar .p-search {
+    width: min(320px, 40vw); height: 30px; margin-right: auto; padding: 0;
+    background: transparent; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; box-shadow: none;
+    transition: border-color .3s ease;
+}
+html body[data-theme="folio"][data-page] .p-topbar .p-search:hover,
+html body[data-theme="folio"][data-page] .p-topbar .p-search:focus-within { border-color: var(--fo-ink); }
+html body[data-theme="folio"][data-page] .p-topbar .p-search .p-input {
+    height: 30px; padding: 0 0 0 24px; background: transparent; border: 0; border-radius: 0; box-shadow: none;
+    font-size: 12.5px; color: var(--fo-ink); letter-spacing: .04em;
+}
+html body[data-theme="folio"][data-page] .p-topbar .p-search .p-input::placeholder { color: var(--fo-muted); }
+html body[data-theme="folio"][data-page] .p-topbar .p-search > .p-icon { left: 0; width: 15px; height: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"][data-page] .p-topbar .rd-kbd-hint { background: transparent; border: 0; }
+html body[data-theme="folio"][data-page] .p-topbar .rd-kbd-hint kbd {
+    border-radius: 0; border: 1px solid var(--fo-line-strong); background: transparent; box-shadow: none;
+    font-family: var(--fo-serif); font-size: 11px; color: var(--fo-muted);
+}
+/* 主题切换：刊眉文字页签 */
+html body[data-theme="folio"] .th-switch.p-view-switch { gap: 2px; padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+html body[data-theme="folio"] .th-switch.p-view-switch button {
+    position: relative; min-height: 30px !important; padding: 0 10px !important; border-radius: 0; background: transparent !important; box-shadow: none !important;
+    color: var(--fo-muted); font-size: 12.5px !important; font-weight: 400; letter-spacing: .14em;
+}
+html body[data-theme="folio"] .th-switch.p-view-switch button:hover { color: var(--fo-ink); }
+html body[data-theme="folio"] .th-switch.p-view-switch button[aria-checked="true"] { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"] .th-switch.p-view-switch button[aria-checked="true"]::after {
+    content: ""; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 1px; background: var(--fo-ink);
+}
+html body[data-theme="folio"][data-page] .p-topbar .p-topbar-icon { border-radius: 0; background: transparent; color: var(--fo-copy); }
+html body[data-theme="folio"][data-page] .p-topbar .p-topbar-icon:hover { background: var(--fo-hover); color: var(--fo-ink); }
+html body[data-theme="folio"] .p-unread-badge { background: var(--fo-accent); border-radius: 0; box-shadow: none; }
+html body[data-theme="folio"] .p-points-trigger {
+    border-radius: 0; background: transparent; border: 0; border-left: 1px solid var(--fo-line); box-shadow: none; padding: 0 0 0 16px;
+    font-family: var(--fo-serif); color: var(--fo-ink);
+}
+html body[data-theme="folio"] .p-points-trigger .p-icon { display: none; }
+html body[data-theme="folio"] .p-points-trigger small { color: var(--fo-muted); font-family: var(--fo-sans); }
+html body[data-theme="folio"] .p-points-panel { border-radius: 2px; border: 1px solid var(--fo-ink); box-shadow: 0 24px 48px -24px rgba(27, 27, 29, .35); }
+html body[data-theme="folio"] .p-points-head strong { font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 34px; }
+
+/* 公告：刊眉下的一行注 */
+html body[data-theme="folio"] .p-announcement {
+    max-width: none; margin: 0 var(--fo-pad); padding: 9px 0; border: 0; border-bottom: 1px solid var(--fo-line); border-radius: 0;
+    background: transparent; box-shadow: none; justify-content: flex-start; font-size: 12px; color: var(--fo-copy); letter-spacing: .04em;
+}
+html body[data-theme="folio"] .p-announcement > .p-icon { color: var(--fo-accent); }
+
+/* ---------- 移动端底栏 ---------- */
+html body[data-theme="folio"][data-page]:not(.p-cinema) .p-tabbar {
+    background: rgba(251, 251, 251, .9); border-top: 1px solid var(--fo-ink); counter-reset: fo-tab;
+}
+html body[data-theme="folio"] .p-tabbar a { counter-increment: fo-tab; gap: 2px; color: var(--fo-muted); }
+html body[data-theme="folio"] .p-tabbar a .p-icon { display: none; }
+html body[data-theme="folio"] .p-tabbar a::after {
+    content: counter(fo-tab, lower-roman); order: -1; font-family: var(--fo-italic); font-style: italic; font-size: 13px; line-height: 1;
+}
+html body[data-theme="folio"] .p-tabbar a span { font-size: 12px; letter-spacing: .14em; }
+html body[data-theme="folio"] .p-tabbar a[aria-current="page"] { color: var(--fo-ink); font-weight: 700; }
+html body[data-theme="folio"] .p-tabbar a[aria-current="page"]::before {
+    top: 0; width: 22px; height: 2px; border-radius: 0; background: var(--fo-accent); z-index: 0; animation: none; transform: translateX(-50%);
+}
+
+/* ==========================================================================
+   首页 · 刊头 / 封面故事 / 继续阅读 / 本期角色 / 版权页
+   ========================================================================== */
+html body[data-theme="folio"] .fo-home {
+    width: 100%; max-width: calc(1320px + var(--fo-pad) * 2); margin: 0 auto; padding: 0 var(--fo-pad);
+    color: var(--fo-ink); font-family: var(--fo-sans);
+}
+html body[data-theme="folio"] .fo-home a { color: inherit; text-decoration: none; }
+html body[data-theme="folio"] .fo-home img { display: block; }
+html body[data-theme="folio"] .fo-home :is(h1, h2, h3, h4, h5, p, dl, dd, blockquote, figure, ol, ul) { margin: 0; padding: 0; }
+
+/* 刊头 */
+html body[data-theme="folio"] .fo-issueline {
+    display: flex; gap: 28px; align-items: center; height: 40px; font-size: 12px; color: var(--fo-muted); letter-spacing: .04em;
+}
+html body[data-theme="folio"] .fo-issueline b { color: var(--fo-ink); font-weight: 700; letter-spacing: .08em; }
+html body[data-theme="folio"] .fo-masthead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 36px; padding: 8px 0 18px; }
+html body[data-theme="folio"] .fo-title { display: flex; font-family: var(--fo-display); font-weight: 700; font-size: 104px; line-height: .86; letter-spacing: -.04em; }
+html body[data-theme="folio"] .fo-title span { display: inline-block; }
+html body[data-theme="folio"] .fo-mh-mid { display: flex; flex-direction: column; gap: 10px; max-width: 540px; padding-bottom: 6px; }
+html body[data-theme="folio"] .fo-tagline { font-family: var(--fo-italic); font-style: italic; font-size: 30px; line-height: 1.05; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-mh-mid p { font-size: 12.5px; color: var(--fo-copy); line-height: 1.7; letter-spacing: .04em; }
+html body[data-theme="folio"] .fo-issue { display: flex; align-items: flex-end; gap: 14px; padding: 0 14px 2px 0; }
+html body[data-theme="folio"] .fo-issue-no { font-family: var(--fo-italic); font-style: italic; font-size: 112px; line-height: .78; letter-spacing: -.03em; white-space: nowrap; }
+html body[data-theme="folio"] .fo-issue-meta { display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; font-size: 11.5px; color: var(--fo-muted); text-align: right; letter-spacing: .06em; white-space: nowrap; }
+html body[data-theme="folio"] .fo-issue-meta b { color: var(--fo-ink); font-size: 12px; }
+html body[data-theme="folio"] .fo-rule2 { height: 5px; border-top: 2px solid var(--fo-ink); border-bottom: 1px solid var(--fo-ink); transform-origin: left; }
+
+/* 封面故事 */
+html body[data-theme="folio"] .fo-cover { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; padding: 30px 0 64px; align-items: stretch; }
+html body[data-theme="folio"] .fo-cv-text { grid-column: 1 / 5; display: flex; flex-direction: column; padding-top: 4px; min-width: 0; }
+html body[data-theme="folio"] .fo-kicker { display: flex; align-items: center; gap: 12px; font-size: 12px; letter-spacing: .16em; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-kicker .fo-it { font-size: 17px; }
+html body[data-theme="folio"] .fo-kicker::after { content: ""; flex: 1; height: 1px; background: var(--fo-line-strong); }
+html body[data-theme="folio"] .fo-cv-cat { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--fo-muted); letter-spacing: .14em; }
+html body[data-theme="folio"] .fo-cv-cat i { font-style: normal; color: var(--fo-line-strong); margin-right: 10px; }
+html body[data-theme="folio"] .fo-standfirst { margin-top: 26px !important; font-family: var(--fo-display); font-weight: 700; font-size: 31px; line-height: 1.42; letter-spacing: -.01em; color: var(--fo-ink); text-wrap: balance; }
+html body[data-theme="folio"] .fo-excerpt { margin-top: 26px !important; padding-left: 22px !important; border-left: 1px solid var(--fo-ink); font-family: var(--fo-display); font-size: 15.5px; line-height: 1.95; color: var(--fo-copy); }
+html body[data-theme="folio"] .fo-excerpt q { quotes: none; color: var(--fo-ink); font-weight: 700; }
+html body[data-theme="folio"] .fo-excerpt q::before, html body[data-theme="folio"] .fo-excerpt q::after { content: none; }
+html body[data-theme="folio"] .fo-byline { margin-top: 24px !important; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; font-size: 12px; color: var(--fo-muted); letter-spacing: .04em; }
+html body[data-theme="folio"] .fo-byline dt { letter-spacing: .16em; }
+html body[data-theme="folio"] .fo-byline dd { color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-byline dd.fo-dim { color: var(--fo-copy); }
+html body[data-theme="folio"] .fo-lines { margin-top: auto; padding-top: 28px; }
+html body[data-theme="folio"] .fo-lines-h { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--fo-ink); font-size: 11.5px; letter-spacing: .2em; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-lines-h .fo-it { font-size: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-lines a {
+    display: grid; grid-template-columns: 28px auto minmax(0, 1fr) auto; align-items: baseline; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--fo-line); font-size: 13px; color: var(--fo-copy); transition: color .3s, padding .4s var(--fo-ease);
+}
+html body[data-theme="folio"] .fo-lines a .fo-it { font-size: 16px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-lines a b { font-family: var(--fo-display); font-size: 15px; color: var(--fo-ink); white-space: nowrap; }
+html body[data-theme="folio"] .fo-lines a .fo-t { font-family: var(--fo-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .fo-lines a .fo-pg { font-size: 15px; transition: color .3s; }
+html body[data-theme="folio"] .fo-lines a:hover { color: var(--fo-ink); padding-left: 6px; }
+html body[data-theme="folio"] .fo-lines a:hover .fo-pg { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-cta-row { padding-top: 26px; display: flex; align-items: center; gap: 22px; }
+html body[data-theme="folio"] .fo-btn {
+    position: relative; display: inline-flex; align-items: center; gap: 14px; height: 50px; padding: 0 22px 0 24px; overflow: hidden;
+    background: var(--fo-accent); color: #fff !important; font-size: 14.5px; letter-spacing: .12em; font-weight: 700;
+}
+html body[data-theme="folio"] .fo-btn::after { content: ""; position: absolute; inset: 0; background: var(--fo-ink); transform: translateY(101%); transition: transform .5s var(--fo-ease); }
+html body[data-theme="folio"] .fo-btn > * { position: relative; z-index: 1; }
+html body[data-theme="folio"] .fo-btn .fo-arr { display: inline-block; transition: transform .45s var(--fo-ease); }
+html body[data-theme="folio"] .fo-btn:hover::after, html body[data-theme="folio"] .fo-btn:focus-visible::after { transform: none; }
+html body[data-theme="folio"] .fo-btn:hover .fo-arr { transform: translateX(6px); }
+html body[data-theme="folio"] .fo-link {
+    font-size: 13.5px; color: var(--fo-ink); letter-spacing: .08em; padding-bottom: 3px;
+    background: linear-gradient(var(--fo-ink), var(--fo-ink)) left bottom / 100% 1px no-repeat; transition: background-size .45s var(--fo-ease);
+}
+html body[data-theme="folio"] .fo-link:hover { background-size: 0 1px; background-position: right bottom; }
+
+html body[data-theme="folio"] .fo-cv-photo { grid-column: 5 / 10; position: relative; margin: 0; min-width: 0; }
+html body[data-theme="folio"] .fo-frame { position: relative; display: block; height: 640px; overflow: hidden; background: var(--fo-sunken); }
+html body[data-theme="folio"] .fo-frame img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; transform-origin: 50% 40%; }
+html body[data-theme="folio"] .fo-frame-initial { display: grid; place-items: center; height: 100%; background: var(--fo-ink); color: #fff; font-family: var(--fo-display); font-weight: 700; font-size: 220px; }
+html body[data-theme="folio"] .fo-folio { position: absolute; top: 16px; left: 16px; color: #fff; font-family: var(--fo-italic); font-style: italic; font-size: 18px; text-shadow: 0 1px 10px rgba(0, 0, 0, .35); }
+html body[data-theme="folio"] .fo-stamp {
+    position: absolute; right: 16px; bottom: 16px; padding: 7px 10px; color: #fff; font-size: 12px; font-weight: 600; letter-spacing: .18em; text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+    border: 1px solid rgba(255, 255, 255, .55); background: rgba(0, 0, 0, .42); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+html body[data-theme="folio"] .fo-cv-photo figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 11.5px; color: var(--fo-muted); letter-spacing: .04em; }
+html body[data-theme="folio"] .fo-cv-photo figcaption .fo-it { font-size: 14px; color: var(--fo-ink); }
+
+html body[data-theme="folio"] .fo-cv-name { grid-column: 10 / 13; display: flex; justify-content: space-between; align-items: stretch; padding-left: 8px; min-width: 0; }
+html body[data-theme="folio"] .fo-vname {
+    writing-mode: vertical-rl; display: flex; font-family: var(--fo-display); font-weight: 700; font-size: var(--vs, 186px);
+    line-height: .92; letter-spacing: -.06em; color: var(--fo-ink);
+}
+html body[data-theme="folio"] .fo-vname span { display: inline-block; }
+html body[data-theme="folio"] .fo-vside { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; padding-top: 2px; }
+html body[data-theme="folio"] .fo-roman { writing-mode: vertical-rl; font-family: var(--fo-italic); font-style: italic; font-size: 26px; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-stat { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+html body[data-theme="folio"] .fo-stat b { font-family: var(--fo-serif); font-weight: 500; font-size: 30px; line-height: 1; letter-spacing: -.02em; }
+html body[data-theme="folio"] .fo-stat span { font-size: 11px; color: var(--fo-muted); letter-spacing: .16em; white-space: nowrap; }
+
+/* 栏目标题 */
+html body[data-theme="folio"] .fo-sh {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; align-items: end;
+    border-top: 1px solid var(--fo-ink); padding-top: 14px; margin-bottom: 30px;
+}
+html body[data-theme="folio"] .fo-sh .fo-sec { grid-column: 1 / 4; display: flex; align-items: baseline; gap: 12px; }
+html body[data-theme="folio"] .fo-sh .fo-sec .fo-it { font-size: 22px; }
+html body[data-theme="folio"] .fo-sh h2 { grid-column: 4 / 10; font-family: var(--fo-display); font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: -.03em; }
+html body[data-theme="folio"] .fo-sh .fo-aside { grid-column: 10 / 13; text-align: right; font-size: 12px; color: var(--fo-muted); line-height: 1.7; }
+html body[data-theme="folio"] .fo-sh .fo-aside a { color: var(--fo-accent); }
+
+/* 继续阅读 */
+html body[data-theme="folio"] .fo-continue { padding: 8px 0 84px; }
+html body[data-theme="folio"] .fo-shelf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; }
+html body[data-theme="folio"] .fo-bm { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 18px; padding: 18px 0 20px; border-bottom: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"] .fo-bm img, html body[data-theme="folio"] .fo-bm-initial { width: 76px; height: 104px; object-fit: cover; filter: grayscale(.15); transition: filter .5s; }
+html body[data-theme="folio"] .fo-bm-initial { display: grid; place-items: center; background: var(--fo-ink); color: #fff; font-family: var(--fo-display); font-size: 30px; font-weight: 700; }
+html body[data-theme="folio"] .fo-bm:hover img { filter: none; }
+html body[data-theme="folio"] .fo-bm-main { min-width: 0; }
+html body[data-theme="folio"] .fo-ch { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--fo-muted); letter-spacing: .1em; }
+html body[data-theme="folio"] .fo-ch > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .fo-ch .fo-it { font-size: 15px; color: var(--fo-ink); white-space: nowrap; }
+html body[data-theme="folio"] .fo-bm h3 { margin-top: 6px; font-family: var(--fo-display); font-weight: 700; font-size: 21px; letter-spacing: -.01em; }
+html body[data-theme="folio"] .fo-bm h3 small { margin-left: 8px; font-weight: 400; font-size: 13px; color: var(--fo-muted); letter-spacing: .06em; }
+html body[data-theme="folio"] .fo-bm p { margin-top: 6px; font-family: var(--fo-display); font-size: 13.5px; line-height: 1.75; color: var(--fo-copy); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body[data-theme="folio"] .fo-bm .fo-prog { position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; }
+html body[data-theme="folio"] .fo-bm .fo-prog i { display: block; height: 2px; margin-top: -.5px; width: var(--p); background: var(--fo-accent); transform-origin: left; animation: fo-grow-x 1.4s var(--fo-ease) both .9s; }
+html body[data-theme="folio"] .fo-go { position: absolute; right: 0; bottom: 22px; font-size: 12px; color: var(--fo-accent); opacity: 0; transform: translateX(-6px); transition: .4s var(--fo-ease); }
+html body[data-theme="folio"] .fo-bm:hover .fo-go, html body[data-theme="folio"] .fo-bm:focus-visible .fo-go { opacity: 1; transform: none; }
+
+/* 本期角色 */
+html body[data-theme="folio"] .fo-issue-sec { padding: 0 0 96px; }
+html body[data-theme="folio"] .fo-index { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; }
+html body[data-theme="folio"] .fo-itoc { grid-column: 1 / 4; align-self: start; position: sticky; top: 76px; }
+html body[data-theme="folio"] .fo-itoc h4 { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--fo-line-strong); font-family: var(--fo-display); font-size: 15px; font-weight: 700; letter-spacing: .2em; }
+html body[data-theme="folio"] .fo-itoc h4 .fo-it { font-size: 16px; font-weight: 400; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-itoc ul { list-style: none; }
+html body[data-theme="folio"] .fo-itoc li button {
+    width: 100%; display: flex; align-items: baseline; gap: 8px; padding: 13px 0; border: 0; border-bottom: 1px solid var(--fo-line);
+    background: none; font: inherit; font-size: 15px; color: var(--fo-copy); text-align: left; cursor: pointer; transition: color .3s;
+}
+html body[data-theme="folio"] .fo-itoc .fo-zh { font-family: var(--fo-display); letter-spacing: .14em; }
+html body[data-theme="folio"] .fo-itoc .fo-dots { flex: 1; border-bottom: 1px dotted var(--fo-line-strong); transform: translateY(-4px); }
+html body[data-theme="folio"] .fo-itoc .fo-pg { font-family: var(--fo-italic); font-style: italic; font-size: 17px; }
+html body[data-theme="folio"] .fo-itoc .fo-mk { width: 0; overflow: hidden; color: var(--fo-accent); transition: width .35s var(--fo-ease); }
+html body[data-theme="folio"] .fo-itoc li button:hover, html body[data-theme="folio"] .fo-itoc li button.is-on { color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-itoc li button.is-on .fo-zh { font-weight: 700; }
+html body[data-theme="folio"] .fo-itoc li button.is-on .fo-mk { width: 14px; }
+html body[data-theme="folio"] .fo-itoc li button.is-on .fo-pg { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-itoc li button:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 2px; }
+html body[data-theme="folio"] .fo-itoc .fo-inote { margin-top: 22px; font-size: 12px; line-height: 1.85; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-itoc .fo-inote b { color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-itoc .fo-tags { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--fo-display); font-size: 13px; color: var(--fo-copy); }
+html body[data-theme="folio"] .fo-itoc .fo-tags a { border-bottom: 1px solid transparent; transition: border-color .3s; }
+html body[data-theme="folio"] .fo-itoc .fo-tags a:hover { border-color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-itoc .fo-tags a::before { content: "#"; margin-right: 2px; color: var(--fo-line-strong); }
+
+html body[data-theme="folio"] .fo-list { grid-column: 4 / 10; list-style: none; border-top: 1px solid var(--fo-ink); min-width: 0; }
+html body[data-theme="folio"] .fo-row { position: relative; border-bottom: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"] .fo-row--empty { padding: 28px 0; font-family: var(--fo-display); color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-row > a { display: grid; grid-template-columns: 62px minmax(0, 1fr) 92px; gap: 0 16px; padding: 22px 0; align-items: start; }
+html body[data-theme="folio"] .fo-row .fo-no { font-family: var(--fo-italic); font-style: italic; font-size: 38px; line-height: .9; color: var(--fo-muted); transition: color .35s; }
+html body[data-theme="folio"] .fo-row-main { min-width: 0; }
+html body[data-theme="folio"] .fo-nm { display: flex; align-items: baseline; gap: 12px; min-width: 0; transition: transform .5s var(--fo-ease); }
+html body[data-theme="folio"] .fo-nm h3 { font-family: var(--fo-display); font-weight: 700; font-size: 38px; line-height: 1.05; letter-spacing: -.035em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .fo-nm .fo-by { font-size: 12px; color: var(--fo-muted); letter-spacing: .06em; white-space: nowrap; }
+html body[data-theme="folio"] .fo-row .fo-hook { margin-top: 9px; max-width: 30em; font-family: var(--fo-display); font-size: 15px; line-height: 1.75; color: var(--fo-copy); transition: transform .5s var(--fo-ease) .03s; }
+html body[data-theme="folio"] .fo-meta { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; padding-top: 4px; text-align: right; }
+html body[data-theme="folio"] .fo-meta .fo-cat { font-size: 12px; letter-spacing: .2em; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-meta .fo-cnt { font-family: var(--fo-serif); font-size: 12.5px; color: var(--fo-muted); white-space: nowrap; }
+html body[data-theme="folio"] .fo-meta .fo-r18 { padding: 1px 5px; border: 1px solid var(--fo-line-strong); font-family: var(--fo-serif); font-size: 10px; letter-spacing: .12em; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-row .fo-arr { position: absolute; right: 112px; bottom: 25px; font-size: 14px; color: var(--fo-accent); opacity: 0; transform: translateX(-10px); transition: .45s var(--fo-ease); pointer-events: none; }
+html body[data-theme="folio"] .fo-row::before { content: ""; position: absolute; left: 0; top: -1px; width: 100%; height: 1px; background: var(--fo-ink); transform: scaleX(0); transform-origin: left; transition: transform .6s var(--fo-ease); }
+html body[data-theme="folio"] .fo-row[data-on] .fo-no { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-row[data-on] :is(.fo-nm, .fo-hook) { transform: translateX(12px); }
+html body[data-theme="folio"] .fo-row[data-on] .fo-arr { opacity: 1; transform: none; }
+html body[data-theme="folio"] .fo-row[data-on]::before { transform: scaleX(1); }
+html body[data-theme="folio"] .fo-row > a:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 4px; }
+
+html body[data-theme="folio"] .fo-jacket-col { grid-column: 10 / 13; position: relative; }
+html body[data-theme="folio"] .fo-jacket-stage { position: sticky; top: 76px; height: 470px; perspective: 1600px; }
+html body[data-theme="folio"] .fo-jacket {
+    position: absolute; inset: 0 0 auto 0; height: 440px; display: grid; grid-template-columns: 30px minmax(0, 1fr);
+    box-shadow: 0 30px 60px -28px rgba(27, 27, 29, .45), 0 2px 6px rgba(27, 27, 29, .08);
+    opacity: 0; transform: translateX(60px) rotateY(-14deg); transform-origin: left center; pointer-events: none;
+    transition: opacity .45s var(--fo-ease), transform .7s var(--fo-ease);
+}
+html body[data-theme="folio"] .fo-jacket.is-show { opacity: 1; transform: none; }
+html body[data-theme="folio"] .fo-spine { display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 14px 0; background: var(--fo-ink); color: #fff; }
+html body[data-theme="folio"] .fo-spine b { writing-mode: vertical-rl; font-family: var(--fo-display); font-size: 15px; letter-spacing: .3em; }
+html body[data-theme="folio"] .fo-spine i { font-family: var(--fo-italic); font-size: 13px; }
+html body[data-theme="folio"] .fo-face { position: relative; overflow: hidden; background: #000; }
+html body[data-theme="folio"] .fo-face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; }
+html body[data-theme="folio"] .fo-face-initial { display: grid; place-items: center; height: 100%; color: rgba(255, 255, 255, .9); font-family: var(--fo-display); font-size: 120px; font-weight: 700; background: #2a2a2e; }
+html body[data-theme="folio"] .fo-face::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, .72)); }
+html body[data-theme="folio"] .fo-face .fo-top { position: absolute; z-index: 1; top: 14px; left: 18px; right: 18px; display: flex; justify-content: space-between; color: #fff; font-family: var(--fo-italic); font-style: italic; font-size: 16px; }
+html body[data-theme="folio"] .fo-face .fo-cap { position: absolute; z-index: 1; left: 18px; right: 18px; bottom: 16px; color: #fff; }
+html body[data-theme="folio"] .fo-cap .fo-k { font-size: 10.5px; letter-spacing: .24em; opacity: .8; }
+html body[data-theme="folio"] .fo-cap h5 { margin-top: 6px; font-family: var(--fo-display); font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+html body[data-theme="folio"] .fo-cap p { margin-top: 8px; font-family: var(--fo-display); font-size: 12.5px; line-height: 1.7; opacity: .9; }
+html body[data-theme="folio"] .fo-jacket-hint { position: absolute; left: 30px; bottom: 0; font-size: 11.5px; color: var(--fo-muted); letter-spacing: .06em; }
+
+/* 版权页 */
+html body[data-theme="folio"] .fo-colophon {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px;
+    border-top: 2px solid var(--fo-ink); padding: 22px 0 48px; font-size: 12px; line-height: 1.8; color: var(--fo-muted);
+}
+html body[data-theme="folio"] .fo-c1 { grid-column: 1 / 4; color: var(--fo-ink); font-family: var(--fo-display); font-weight: 700; font-size: 28px; letter-spacing: -.02em; line-height: 1.1; }
+html body[data-theme="folio"] .fo-c1 .fo-it { display: block; margin-top: 6px; font-size: 16px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-c2 { grid-column: 4 / 7; }
+html body[data-theme="folio"] .fo-c3 { grid-column: 7 / 10; }
+html body[data-theme="folio"] .fo-c4 { grid-column: 10 / 13; text-align: right; }
+html body[data-theme="folio"] .fo-c4 a:hover { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-colophon b { display: block; margin-bottom: 4px; color: var(--fo-ink); font-weight: 700; letter-spacing: .14em; font-size: 11px; }
+
+/* 首页动效 */
+html body[data-theme="folio"] .fo-rv { animation: fo-rise .9s var(--fo-ease) both; animation-delay: calc(var(--d, 0) * 1ms); }
+html body[data-theme="folio"] .fo-rule2 { animation: fo-grow-x 1.2s var(--fo-ease) both .1s; }
+html body[data-theme="folio"] :is(.fo-title, .fo-vname) span { animation: fo-ink 1s var(--fo-ease) both; animation-delay: calc(var(--d, 0) * 1ms); }
+html body[data-theme="folio"] .fo-frame { animation: fo-unveil 1.3s var(--fo-ease) both .25s; }
+html body[data-theme="folio"] .fo-frame img { animation: fo-settle 2.2s var(--fo-ease) both .25s; }
+html body[data-theme="folio"] .fo-js .fo-reveal { opacity: 0; transform: translateY(22px); transition: opacity .9s var(--fo-ease), transform .9s var(--fo-ease); transition-delay: calc(var(--d, 0) * 1ms); }
+html body[data-theme="folio"] .fo-js .fo-reveal.is-in { opacity: 1; transform: none; }
+
+/* 首页：中屏 */
+@media (max-width: 1280px) {
+    html body[data-theme="folio"] .fo-title { font-size: 88px; }
+    html body[data-theme="folio"] .fo-issue-no { font-size: 92px; }
+    html body[data-theme="folio"] .fo-tagline { font-size: 26px; }
+    html body[data-theme="folio"] .fo-frame { height: 580px; }
+}
+@media (max-width: 1180px) {
+    html body[data-theme="folio"] .fo-masthead { grid-template-columns: auto minmax(0, 1fr); }
+    html body[data-theme="folio"] .fo-issue { display: none; }
+    html body[data-theme="folio"] .fo-cv-text { grid-column: 1 / 6; }
+    html body[data-theme="folio"] .fo-cv-photo { grid-column: 6 / 13; }
+    html body[data-theme="folio"] .fo-cv-name { display: none; }
+    html body[data-theme="folio"] .fo-list { grid-column: 4 / 13; }
+    html body[data-theme="folio"] .fo-jacket-col { display: none; }
+    html body[data-theme="folio"] .fo-shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    html body[data-theme="folio"] .fo-shelf > :nth-child(3) { display: none; }
+}
+
+/* 首页：手机 */
+@media (max-width: 760px) {
+    html body[data-theme="folio"] { --fo-pad: 20px; }
+    html body[data-theme="folio"] .fo-home { padding-bottom: 24px; }
+    html body[data-theme="folio"] .fo-hide-m { display: none; }
+    html body[data-theme="folio"] .fo-issueline { gap: 16px; height: 36px; }
+    html body[data-theme="folio"] .fo-masthead { grid-template-columns: 1fr; gap: 12px; padding: 4px 0 14px; }
+    html body[data-theme="folio"] .fo-title { font-size: 72px; }
+    html body[data-theme="folio"] .fo-tagline { font-size: 21px; }
+    html body[data-theme="folio"] .fo-mh-mid { padding-bottom: 0; }
+    html body[data-theme="folio"] .fo-cover { display: flex; flex-direction: column; padding: 22px 0 48px; }
+    html body[data-theme="folio"] .fo-cv-text { display: contents; }
+    html body[data-theme="folio"] .fo-kicker { order: 1; }
+    html body[data-theme="folio"] .fo-cv-cat { order: 2; }
+    html body[data-theme="folio"] .fo-cv-photo { order: 3; margin-top: 18px; }
+    html body[data-theme="folio"] .fo-standfirst { order: 4; margin-top: 22px !important; font-size: 24px; }
+    html body[data-theme="folio"] .fo-excerpt { order: 5; margin-top: 18px !important; font-size: 15px; }
+    html body[data-theme="folio"] .fo-byline { order: 6; }
+    html body[data-theme="folio"] .fo-cta-row { order: 7; }
+    html body[data-theme="folio"] .fo-lines { order: 8; margin-top: 0; padding-top: 34px; }
+    html body[data-theme="folio"] .fo-frame { height: auto; aspect-ratio: 4 / 5; }
+    html body[data-theme="folio"] .fo-cv-photo figcaption > span:last-child { display: none; }
+    html body[data-theme="folio"] .fo-btn { flex: 1; justify-content: center; }
+    html body[data-theme="folio"] .fo-sh { grid-template-columns: 1fr auto; row-gap: 8px; margin-bottom: 16px; }
+    html body[data-theme="folio"] .fo-sh .fo-sec { grid-column: 1 / -1; }
+    html body[data-theme="folio"] .fo-sh h2 { grid-column: 1; font-size: 32px; }
+    html body[data-theme="folio"] .fo-sh .fo-aside { grid-column: 2; font-size: 11px; }
+    html body[data-theme="folio"] .fo-continue { padding-bottom: 56px; }
+    html body[data-theme="folio"] .fo-shelf { grid-template-columns: 1fr; }
+    html body[data-theme="folio"] .fo-shelf > :nth-child(3) { display: grid; }
+    html body[data-theme="folio"] .fo-bm { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; }
+    html body[data-theme="folio"] .fo-bm img, html body[data-theme="folio"] .fo-bm-initial { width: 64px; height: 88px; }
+    html body[data-theme="folio"] .fo-go { display: none; }
+    html body[data-theme="folio"] .fo-issue-sec { padding-bottom: 56px; }
+    html body[data-theme="folio"] .fo-index { display: block; }
+    html body[data-theme="folio"] .fo-itoc { position: static; margin-bottom: 8px; }
+    html body[data-theme="folio"] .fo-itoc h4, html body[data-theme="folio"] .fo-itoc .fo-inote, html body[data-theme="folio"] .fo-itoc .fo-tags { display: none; }
+    html body[data-theme="folio"] .fo-itoc ul { display: flex; gap: 20px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--fo-line-strong); margin: 0 calc(var(--fo-pad) * -1); padding: 0 var(--fo-pad); }
+    html body[data-theme="folio"] .fo-itoc ul::-webkit-scrollbar { display: none; }
+    html body[data-theme="folio"] .fo-itoc li button { width: auto; padding: 10px 0; border: 0; gap: 5px; white-space: nowrap; font-size: 14px; }
+    html body[data-theme="folio"] .fo-itoc .fo-dots { display: none; }
+    html body[data-theme="folio"] .fo-itoc .fo-pg { font-size: 14px; color: var(--fo-muted); }
+    html body[data-theme="folio"] .fo-itoc .fo-mk { display: none; }
+    html body[data-theme="folio"] .fo-itoc li button.is-on { box-shadow: inset 0 -2px 0 var(--fo-accent); }
+    html body[data-theme="folio"] .fo-list { border-top: 0; }
+    html body[data-theme="folio"] .fo-row > a { grid-template-columns: 40px minmax(0, 1fr); padding: 18px 0; }
+    html body[data-theme="folio"] .fo-row .fo-no { font-size: 28px; }
+    html body[data-theme="folio"] .fo-nm { flex-wrap: wrap; gap: 4px 10px; }
+    html body[data-theme="folio"] .fo-nm h3 { font-size: 28px; }
+    html body[data-theme="folio"] .fo-row .fo-hook { font-size: 14px; margin-top: 6px; }
+    html body[data-theme="folio"] .fo-meta { grid-column: 2; flex-direction: row; align-items: center; gap: 10px; padding-top: 8px; }
+    html body[data-theme="folio"] .fo-row .fo-arr { display: none; }
+    html body[data-theme="folio"] .fo-row[data-on] :is(.fo-nm, .fo-hook) { transform: none; }
+    html body[data-theme="folio"] .fo-row[data-on] .fo-no { color: var(--fo-muted); }
+    html body[data-theme="folio"] .fo-row[data-on]::before { transform: scaleX(0); }
+    html body[data-theme="folio"] .fo-colophon { grid-template-columns: 1fr 1fr; row-gap: 18px; padding-bottom: 28px; }
+    html body[data-theme="folio"] .fo-c1 { grid-column: 1 / -1; }
+    html body[data-theme="folio"] .fo-c2 { grid-column: 1; }
+    html body[data-theme="folio"] .fo-c3 { grid-column: 2; }
+    html body[data-theme="folio"] .fo-c4 { grid-column: 1 / -1; text-align: left; }
+}
+
+/* ==========================================================================
+   对话页 · 手稿
+   三栏：书版 272 / 手稿 / 旁注 300；消息流与输入框来自 ChatRoom，仅用 CSS 重排。
+   ========================================================================== */
+html body[data-theme="folio"][data-page="chat"] { --pp-chat-size: 17px; --fo-measure: 34em; --fo-fs: calc(17px * var(--rp-font-scale, 1)); }
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench {
+    display: grid;
+    grid-template-columns: 272px minmax(0, 1fr) 300px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    background: var(--fo-bg);
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-plate { grid-column: 1; grid-row: 1 / -1; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .p-chat { grid-column: 2; grid-row: 1 / -1; background: transparent; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-margin { grid-column: 3; grid-row: 1 / -1; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-ctool { grid-column: 2; grid-row: 2; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .p-rp-context { display: none; }
+
+/* 刊眉（三栏共用 52px 一线） */
+html body[data-theme="folio"] .fo-runhead {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 32px;
+    border-bottom: 1px solid var(--fo-line); font-size: 12px; color: var(--fo-muted); letter-spacing: .06em; white-space: nowrap;
+}
+html body[data-theme="folio"] .fo-runhead a { color: inherit; text-decoration: none; transition: color .3s; }
+html body[data-theme="folio"] .fo-runhead a:hover { color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-runhead--r { justify-content: flex-end; gap: 22px; }
+html body[data-theme="folio"] .fo-folio-no { font-size: 16px; color: var(--fo-ink); }
+
+/* 左：书版 */
+html body[data-theme="folio"] .fo-plate {
+    display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+    border-right: 1px solid var(--fo-line); background: var(--fo-bg); color: var(--fo-ink);
+    animation: fo-fade 1s var(--fo-ease) both .2s;
+}
+html body[data-theme="folio"] .fo-plate-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 28px 32px 24px; overflow-y: auto; scrollbar-width: none; }
+html body[data-theme="folio"] .fo-plate-body::-webkit-scrollbar { display: none; }
+html body[data-theme="folio"] .fo-ph { position: relative; display: block; flex: 0 0 auto; height: clamp(150px, 27vh, 250px); overflow: hidden; background: var(--fo-sunken); }
+html body[data-theme="folio"] .fo-ph img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; transition: transform 1.2s var(--fo-ease); }
+html body[data-theme="folio"] .fo-ph:hover img { transform: scale(1.04); }
+html body[data-theme="folio"] .fo-ph-initial { display: grid; place-items: center; height: 100%; background: var(--fo-ink); color: #fff; font-family: var(--fo-display); font-size: 88px; font-weight: 700; }
+html body[data-theme="folio"] .fo-ph .fo-no { position: absolute; left: 12px; top: 10px; color: #fff; font-family: var(--fo-italic); font-style: italic; font-size: 16px; text-shadow: 0 1px 8px rgba(0, 0, 0, .4); }
+html body[data-theme="folio"] .fo-plate-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 18px 0 0; font-family: var(--fo-display); font-weight: 700; font-size: 34px; line-height: 1; letter-spacing: -.04em; }
+html body[data-theme="folio"] .fo-plate-name .fo-it { font-size: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-plate .fo-by { margin-top: 8px; font-size: 12px; color: var(--fo-muted); letter-spacing: .06em; }
+html body[data-theme="folio"] .fo-plate .fo-hook { margin: 12px 0 0; font-family: var(--fo-display); font-size: 13.5px; line-height: 1.8; color: var(--fo-copy); }
+html body[data-theme="folio"] .fo-plate .fo-toc { margin-top: 22px; }
+html body[data-theme="folio"] .fo-plate .fo-toc h4 { display: flex; justify-content: space-between; align-items: baseline; margin: 0; padding-bottom: 8px; border-bottom: 1px solid var(--fo-ink); font-size: 11.5px; letter-spacing: .2em; color: var(--fo-ink); font-weight: 700; }
+html body[data-theme="folio"] .fo-plate .fo-toc h4 .fo-it { font-size: 14px; color: var(--fo-muted); font-weight: 400; }
+html body[data-theme="folio"] .fo-plate .fo-toc :is(button, .fo-toc-todo) {
+    display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--fo-line);
+    background: none; font-family: var(--fo-display); font-size: 13.5px; color: var(--fo-copy); text-align: left; cursor: pointer; transition: color .3s;
+}
+html body[data-theme="folio"] .fo-plate .fo-toc .fo-toc-todo { cursor: default; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-plate .fo-toc .fo-r { width: 18px; flex: 0 0 auto; font-family: var(--fo-italic); font-style: italic; font-size: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-plate .fo-toc .fo-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+html body[data-theme="folio"] .fo-plate .fo-toc .fo-d { flex: 1; min-width: 8px; border-bottom: 1px dotted var(--fo-line-strong); transform: translateY(-4px); }
+html body[data-theme="folio"] .fo-plate .fo-toc .fo-p { font-family: var(--fo-italic); font-style: italic; font-size: 14px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-plate .fo-toc button:hover { color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-plate .fo-toc button.is-on { color: var(--fo-ink); font-weight: 700; }
+html body[data-theme="folio"] .fo-plate .fo-toc button.is-on :is(.fo-r, .fo-p) { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-plate .fo-toc button:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 2px; }
+html body[data-theme="folio"] .fo-epi { margin: 24px 0 0; padding: 0 0 0 14px; border-left: 1px solid var(--fo-line-strong); font-family: var(--fo-display); font-size: 13px; line-height: 1.85; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-epi .fo-it { display: block; margin-bottom: 2px; font-size: 14px; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-style { margin: auto 0 0; padding-top: 18px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 11.5px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-style dd { margin: 0; color: var(--fo-ink); }
+
+/* 右：旁注 */
+html body[data-theme="folio"] .fo-margin {
+    display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+    border-left: 1px solid var(--fo-line); background: var(--fo-bg); color: var(--fo-ink);
+    animation: fo-fade 1s var(--fo-ease) both .2s;
+}
+html body[data-theme="folio"] .fo-margin-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 30px 32px 12px; display: flex; flex-direction: column; gap: 28px; }
+html body[data-theme="folio"] .fo-margin-body::-webkit-scrollbar { display: none; }
+html body[data-theme="folio"] .fo-mh { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--fo-ink); font-size: 11.5px; letter-spacing: .2em; font-weight: 700; }
+html body[data-theme="folio"] .fo-mh .fo-it { font-size: 14px; color: var(--fo-muted); font-weight: 400; }
+html body[data-theme="folio"] .fo-note {
+    display: grid; grid-template-columns: 20px 1fr; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--fo-line);
+    font-family: var(--fo-display); font-size: 13.5px; line-height: 1.75; color: var(--fo-copy); text-decoration: none;
+    transition: background .3s; animation: fo-rise .8s var(--fo-ease) both; animation-delay: calc(600ms + var(--i, 0) * 90ms);
+}
+html body[data-theme="folio"] a.fo-note:hover { background: linear-gradient(90deg, var(--fo-accent-soft), transparent); color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-note .fo-n { font-family: var(--fo-italic); font-style: italic; font-size: 16px; color: var(--fo-accent); line-height: 1.4; }
+html body[data-theme="folio"] .fo-note .fo-k { display: block; margin-bottom: 2px; font-family: var(--fo-sans); font-size: 10.5px; letter-spacing: .2em; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-note q { quotes: none; color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-note q::before, html body[data-theme="folio"] .fo-note q::after { content: none; }
+html body[data-theme="folio"] .fo-empty { margin: 0; padding: 12px 0; border-bottom: 1px solid var(--fo-line); font-family: var(--fo-display); font-size: 13px; line-height: 1.75; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-bmk {
+    display: flex; gap: 12px; align-items: baseline; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--fo-line); background: none;
+    font-family: var(--fo-display); font-size: 13.5px; color: var(--fo-ink); text-align: left; cursor: pointer;
+    animation: fo-rise .8s var(--fo-ease) both; animation-delay: calc(600ms + var(--i, 0) * 90ms);
+}
+html body[data-theme="folio"] .fo-bmk .fo-p { flex: 0 0 36px; font-size: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-bmk-t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .fo-bmk:hover .fo-p { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-progress-sec { display: flex; flex-direction: column; gap: 10px; }
+html body[data-theme="folio"] .fo-margin .fo-mprog { display: flex; flex-direction: column; gap: 10px; font-size: 12px; color: var(--fo-muted); }
+html body[data-theme="folio"] .fo-prog-row { display: flex; justify-content: space-between; gap: 10px; }
+html body[data-theme="folio"] .fo-prog-row > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .fo-prog-row b { color: var(--fo-ink); font-weight: 700; white-space: nowrap; }
+html body[data-theme="folio"] .fo-bar { position: relative; height: 1px; background: var(--fo-line-strong); }
+html body[data-theme="folio"] .fo-bar i { position: absolute; left: 0; top: -.5px; height: 2px; background: var(--fo-ink); transform-origin: left; animation: fo-grow-x 1.6s var(--fo-ease) both 1s; transition: width .6s var(--fo-ease); }
+html body[data-theme="folio"] .fo-add {
+    align-self: flex-start; padding-bottom: 2px; font-size: 12px; color: var(--fo-accent); letter-spacing: .08em; text-decoration: none;
+    background: linear-gradient(var(--fo-accent), var(--fo-accent)) left bottom / 0 1px no-repeat; transition: background-size .4s var(--fo-ease);
+}
+html body[data-theme="folio"] .fo-add:hover { background-size: 100% 1px; }
+html body[data-theme="folio"] .fo-foot { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 14px; margin: 0 32px; padding: 14px 0 20px; border-top: 1px solid var(--fo-line); font-size: 11.5px; line-height: 1.6; color: var(--fo-muted); letter-spacing: .08em; }
+html body[data-theme="folio"] .fo-foot > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"] .fo-big { font-size: 56px; line-height: .8; color: var(--fo-ink); letter-spacing: -.02em; }
+
+/* 中：手稿头 */
+html body[data-theme="folio"][data-page="chat"] .p-chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-head {
+    height: 52px; min-height: 52px; padding: 0; background: transparent; border-bottom: 1px solid var(--fo-line); box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none; animation: fo-fade .8s var(--fo-ease) both;
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-head-in { max-width: none; height: 100%; padding: 0 20px; gap: 10px; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-icon { border-radius: 0; color: var(--fo-muted); background: transparent; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-icon:hover { color: var(--fo-ink); background: transparent; transform: none; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-title { flex: 1; min-width: 0; justify-content: center; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-title > .p-avatar { display: none; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-title-text { display: flex; align-items: baseline; gap: 0; min-width: 0; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-name { font-family: var(--fo-display); font-size: 13px; font-weight: 700; letter-spacing: .18em; color: var(--fo-ink); white-space: nowrap; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-sub { font-family: var(--fo-display); font-size: 13px; letter-spacing: .14em; color: var(--fo-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-sub::before { content: "—"; margin: 0 12px; font-family: var(--fo-italic); font-style: italic; letter-spacing: 0; color: var(--fo-muted); font-size: 15px; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-head :is(.btn, .p-btn) {
+    height: 30px; min-height: 30px; padding: 0 6px; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+    color: var(--fo-muted); font-size: 12px; font-weight: 400; letter-spacing: .08em;
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-head :is(.btn, .p-btn):hover { color: var(--fo-ink); background: transparent; }
+
+/* 中：手稿正文 */
+html body[data-theme="folio"][data-page="chat"] .p-chat-scroll {
+    container: fo-ms / inline-size;
+    background: transparent;
+    scrollbar-width: thin; scrollbar-color: var(--fo-line-strong) transparent;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 36px, #000 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 36px, #000 100%);
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-scroll > .p-chat-col {
+    width: min(var(--fo-measure), calc(100% - 48px)); max-width: none; margin: 0 auto; padding: 34px 0 28px;
+    font-size: var(--fo-fs); counter-reset: fo-page;
+}
+
+/* 章节页：开场 → 第一章 */
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue,
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue.has-cover {
+    position: relative; margin: 0 0 30px; padding: 0 0 4px; min-height: 0; overflow: visible;
+    border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--fo-ink); text-align: center;
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue::before,
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue::after { content: none; display: none; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue .rd-prologue-bg { display: none; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue .rd-prologue-in { position: static; padding: 0; display: flex; flex-direction: column; align-items: center; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue .p-eyebrow { font-size: 0; line-height: 1; margin: 0; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue .p-eyebrow::before {
+    content: "I"; display: block; font-family: var(--fo-italic); font-style: italic; font-size: 46px; line-height: 1; color: var(--fo-ink); letter-spacing: 0;
+    animation: fo-ink 1.2s var(--fo-ease) both .2s;
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1,
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue.has-cover h1 {
+    display: flex; align-items: center; justify-content: center; gap: 18px; max-width: 100%; margin: 12px 0 0;
+    font-family: var(--fo-display); font-weight: 700; font-size: 21px; line-height: 1.4; letter-spacing: .32em; color: var(--fo-ink);
+    animation: fo-rise .9s var(--fo-ease) both .35s;
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1::before,
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1::after {
+    content: ""; flex: 0 0 64px; height: 1px; background: var(--fo-ink); animation: fo-grow-x 1.1s var(--fo-ease) both .45s;
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue p,
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue.has-cover p {
+    margin: 8px 0 0; font-family: var(--fo-display); font-size: 13px; letter-spacing: .08em; color: var(--fo-muted);
+    animation: fo-rise .9s var(--fo-ease) both .4s;
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-prologue small { display: none; }
+
+/* 一段：角色的散文 */
+html body[data-theme="folio"][data-page="chat"] .p-msg {
+    counter-increment: fo-page;
+    position: relative; display: block; max-width: none; margin: 0 0 26px; padding: 0;
+    border: 0; border-radius: 0; background: transparent; box-shadow: none;
+    animation: fo-rise .8s var(--fo-ease) both;
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg:hover { border-color: transparent; }
+html body[data-theme="folio"][data-page="chat"] .p-msg > .p-avatar { display: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg > div { min-width: 0; }
+html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-name {
+    position: absolute; right: calc(100% + 20px); top: 6px; width: 76px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin: 0;
+    font-family: var(--fo-display); font-size: 13px; font-weight: 700; line-height: 1.4; letter-spacing: .1em; color: var(--fo-ink); text-align: right;
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-name::after {
+    content: "p. " counter(fo-page, decimal-leading-zero);
+    font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 14px; letter-spacing: 0; color: var(--fo-muted);
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg.is-streaming:not(.p-msg-user) .p-msg-name::before {
+    content: "落笔中"; order: 2; display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--fo-sans); font-size: 11px; font-weight: 400; letter-spacing: .1em; color: var(--fo-accent);
+    padding-left: 11px;
+    background: radial-gradient(circle, var(--fo-accent) 2.5px, transparent 3px) left center / 6px 6px no-repeat;
+    animation: fo-blink 1.2s steps(1) infinite;
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg.is-streaming:not(.p-msg-user) .p-msg-name::after { order: 3; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy {
+    font-family: var(--fo-display); font-size: var(--fo-fs); line-height: 1.92; letter-spacing: .01em; color: var(--fo-copy);
+    white-space: pre-wrap; overflow-wrap: anywhere;
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-p { margin: 0; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-p + .rp-p { margin-top: 8px; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy :is(.rp-say, strong) { color: var(--fo-ink); font-weight: 400; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy strong { font-weight: 700; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-act { color: var(--fo-muted); font-family: var(--fo-display); font-style: normal; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-p:has(> .rp-act:only-child)::before {
+    content: "——"; margin-right: .5em; letter-spacing: -.1em; color: var(--fo-line-strong);
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg-copy .rp-ooc { font-family: var(--fo-sans); font-size: .76em; color: var(--fo-muted); letter-spacing: .04em; }
+/* 首段下沉：章节后的第一段 */
+html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-copy > .rp-p.fo-dc::first-letter {
+    float: left; margin: .08em .12em 0 0; font-size: 4.1em; line-height: .9; font-weight: 700; color: var(--fo-ink);
+}
+/* 打字机光标 */
+html body[data-theme="folio"][data-page="chat"] .rp-caret {
+    display: inline-block; width: 2px; height: 1.05em; margin-left: 3px; vertical-align: -.15em; border-radius: 0;
+    background: var(--fo-accent); transform: skewX(-14deg); animation: fo-blink 1s steps(1) infinite;
+}
+html body[data-theme="folio"][data-page="chat"] .rp-typing { display: inline-flex; align-items: center; gap: 5px; color: var(--fo-muted); font-family: var(--fo-display); font-size: 15px; }
+html body[data-theme="folio"][data-page="chat"] .rp-typing i { width: 4px; height: 4px; border-radius: 50%; background: var(--fo-muted); }
+html body[data-theme="folio"][data-page="chat"] .p-msg.is-streaming { border: 0; background: transparent; box-shadow: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg figure img { border-radius: 0 !important; border-color: var(--fo-line) !important; }
+html body[data-theme="folio"][data-page="chat"] .p-msg .p-textarea {
+    border-radius: 0; border: 0; border-bottom: 1px solid var(--fo-ink); background: var(--fo-card); font-family: var(--fo-display); font-size: var(--fo-fs); line-height: 1.85;
+}
+
+/* 一段：你写下的（缩进便签） */
+html body[data-theme="folio"][data-page="chat"] .p-msg-user {
+    margin: 0 0 28px 2.4em; padding: 14px 20px 15px; max-width: none;
+    background: var(--fo-player); border: 0; border-left: 1px solid var(--fo-ink); border-radius: 0; box-shadow: none;
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-name {
+    position: static; display: flex; align-items: baseline; gap: 0; margin: 0 0 4px;
+    font-family: var(--fo-sans); font-size: 11px; font-weight: 400; letter-spacing: .2em; color: var(--fo-muted);
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-name::after { content: "·　写道"; margin-left: .8em; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy {
+    font-family: var(--fo-sans); font-size: calc(15px * var(--rp-font-scale, 1)); line-height: 1.85; color: var(--fo-ink);
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy .rp-act { color: var(--fo-muted); font-family: var(--fo-sans); }
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy .rp-act::before { content: "（"; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy .rp-act::after { content: "）"; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy .rp-p:has(> .rp-act:only-child)::before { content: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy .rp-say { color: var(--fo-ink); }
+
+/* 段后工具：悬停浮现，最新一段常驻 */
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 10px 0 0; padding: 0; border: 0;
+    font-family: var(--fo-sans); font-size: 11.5px; letter-spacing: .08em; color: var(--fo-muted);
+    opacity: 0; transform: translateY(-4px); transition: opacity .4s var(--fo-ease), transform .4s var(--fo-ease);
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg:is(:hover, :focus-within, .is-latest, .is-tools-open) .p-msg-tools { opacity: 1; transform: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools :is(button, .p-msg-tool, a) {
+    display: inline-flex; align-items: center; gap: 4px; width: auto; min-width: 0; height: 24px; min-height: 0; padding: 0;
+    border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--fo-muted); font: inherit; letter-spacing: .08em; cursor: pointer;
+    transition: color .25s ease;
+}
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools :is(button, .p-msg-tool, a):hover:not(:disabled) { color: var(--fo-accent); background: transparent; transform: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools button:disabled { opacity: .4; cursor: default; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools button[title]::after { content: attr(title); }
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools :is(svg, .rd-ico, .p-icon) { width: 13px; height: 13px; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-tools button[aria-pressed="true"] { color: var(--fo-accent); }
+html body[data-theme="folio"][data-page="chat"] .p-rp-candidate { order: 99; margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-candidate button::after { content: none !important; }
+html body[data-theme="folio"][data-page="chat"] .p-rp-candidate-index { padding: 0 2px; font-family: var(--fo-italic); font-style: italic; font-size: 14px; letter-spacing: 0; color: var(--fo-ink); }
+html body[data-theme="folio"][data-page="chat"] .p-msg-more { border-radius: 0; }
+
+/* 中：书写线 */
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose {
+    padding: 4px 0 46px; background: transparent; border: 0; box-shadow: none;
+    animation: fo-rise .9s var(--fo-ease) both .4s;
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col { width: min(var(--fo-measure), calc(100% - 48px)); max-width: none; margin: 0 auto; padding: 0; font-size: 17px; position: relative; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col > * { font-size: 1rem; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row,
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row:focus-within {
+    position: relative; display: flex; align-items: flex-end; gap: 14px; min-height: 0; padding: 0 0 10px;
+    border: 0; border-bottom: 1px solid var(--fo-ink); border-radius: 0; background: transparent; box-shadow: none;
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row::before {
+    content: "¶"; flex: 0 0 auto; padding-bottom: 4px; font-family: var(--fo-italic); font-style: italic; font-size: 22px; line-height: 1.2; color: var(--fo-ink);
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--fo-accent);
+    transform: scaleX(0); transform-origin: left; transition: transform .6s var(--fo-ease);
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row:focus-within::after { transform: scaleX(1); }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row .p-chat-input {
+    flex: 1; min-height: 34px; max-height: 180px; padding: 3px 0 2px; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
+    font-family: var(--fo-display); font-size: 17.5px; line-height: 1.7; color: var(--fo-ink); caret-color: var(--fo-accent); resize: none;
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row .p-chat-input::placeholder { color: var(--fo-muted); opacity: 1; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send {
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: auto; height: 38px; padding: 0 16px;
+    border: 0; border-radius: 0; background: var(--fo-ink); color: #fff; box-shadow: none; font-family: var(--fo-sans); font-size: 13px; letter-spacing: .16em;
+    transition: background .35s var(--fo-ease);
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-send .p-icon { display: none; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send::after { content: "落笔  ↵"; white-space: pre; }
+@media (hover: hover) { html body[data-theme="folio"][data-page="chat"] .p-chat-send:not(:disabled):hover { background: var(--fo-accent); } }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send:disabled { background: var(--fo-sunken); color: var(--fo-muted); }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop { background: var(--fo-ink); color: #fff; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop::before { content: none; display: none; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop::after { content: "停笔"; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop .rd-stop { width: 8px; height: 8px; border-radius: 0; background: #fff; animation: none; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-chat-col > div:last-child { margin-top: 6px !important; justify-content: flex-end !important; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-chat-col > div:last-child > .p-small:first-child:not(:only-child) { margin-right: auto; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-chat-col > div:last-child > .p-small:first-child { visibility: hidden; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-chat-col > div:last-child > .p-small { font-family: var(--fo-serif); font-size: 11px; color: var(--fo-muted); }
+html body[data-theme="folio"][data-page="chat"] .p-chat-quick { gap: 4px; margin-bottom: 8px; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-quick .p-chip {
+    height: 26px; padding: 0 9px; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+    font-family: var(--fo-display); font-size: 12.5px; color: var(--fo-copy);
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-quick .p-chip:hover { background: var(--fo-hover); color: var(--fo-ink); transform: none; }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-text-btn { font-size: 12px; color: var(--fo-accent); }
+html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-form-error { border-radius: 0; border: 0; border-left: 2px solid var(--ca-danger, #d9483f); background: var(--fo-card); font-size: 13px; }
+html body[data-theme="folio"][data-page="chat"] .rd-jump { border-radius: 0; background: var(--fo-ink); color: #fff; box-shadow: 0 12px 24px -12px rgba(27, 27, 29, .5); font-size: 12px; letter-spacing: .1em; }
+html body[data-theme="folio"][data-page="chat"] .p-branch-note { border-radius: 0; background: var(--fo-accent-soft); border: 0; border-bottom: 1px solid var(--fo-line); font-size: 12px; }
+
+/* 书写工具条（主题组件，压在中栏底部） */
+html body[data-theme="folio"] .fo-ctool {
+    position: relative; z-index: 4; align-self: end;
+    display: flex; align-items: center; gap: 4px;
+    width: min(34em, calc(100% - 48px)); margin: 0 auto; padding: 0 0 14px;
+    font-size: 12px; color: var(--fo-muted); letter-spacing: .06em;
+    animation: fo-rise .9s var(--fo-ease) both .5s;
+}
+html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-ctool { width: min(calc(34em * 17 / 12), calc(100% - 48px)); max-width: 578px; }
+html body[data-theme="folio"] .fo-ctool button {
+    padding: 5px 9px; border: 0; border-radius: 2px; background: none; font: inherit; color: var(--fo-copy); white-space: nowrap; cursor: pointer;
+    transition: background .25s, color .25s;
+}
+html body[data-theme="folio"] .fo-ctool button:first-child { margin-left: -9px; }
+html body[data-theme="folio"] .fo-ctool button:hover:not(:disabled) { background: var(--fo-hover); color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-ctool button:disabled { color: var(--fo-line-strong); cursor: default; }
+html body[data-theme="folio"] .fo-ctool button[aria-pressed="true"] { color: var(--fo-accent); }
+html body[data-theme="folio"] .fo-ctool button:focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 1px; }
+html body[data-theme="folio"] .fo-ctool .fo-k { font-family: var(--fo-display); color: var(--fo-ink); }
+html body[data-theme="folio"] .fo-ctool .fo-sep { width: 1px; height: 12px; margin: 0 6px; background: var(--fo-line-strong); }
+html body[data-theme="folio"] .fo-ctool .fo-rt { margin-left: auto; font-family: var(--fo-serif); font-size: 11.5px; color: var(--fo-muted); white-space: nowrap; }
+
+/* 手稿栏较窄时：署名回到段首一行 */
+@container fo-ms (max-width: 760px) {
+    html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-name {
+        position: static; width: auto; flex-direction: row; align-items: baseline; gap: 10px; margin: 0 0 4px; text-align: left; font-size: 12.5px;
+    }
+    html body[data-theme="folio"][data-page="chat"] .p-msg.is-streaming:not(.p-msg-user) .p-msg-name::before { order: 3; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg.is-streaming:not(.p-msg-user) .p-msg-name::after { order: 2; }
+}
+
+/* 中屏：先收起旁注，再收起书版 */
+@media (max-width: 1280px) {
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench { grid-template-columns: 248px minmax(0, 1fr) 264px; }
+    html body[data-theme="folio"] .fo-plate-body, html body[data-theme="folio"] .fo-margin-body { padding-left: 24px; padding-right: 24px; }
+    html body[data-theme="folio"] .fo-runhead { padding: 0 24px; }
+    html body[data-theme="folio"] .fo-foot { margin: 0 24px; }
+}
+@media (max-width: 1180px) {
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench { grid-template-columns: 248px minmax(0, 1fr); }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-margin { display: none; }
+}
+@media (max-width: 1023px) {
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench { grid-template-columns: minmax(0, 1fr); }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-plate { display: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > :is(.p-chat, .fo-ctool) { grid-column: 1; }
+}
+
+/* 手机：手稿全幅，书写线贴底 */
+@media (max-width: 760px) {
+    html body[data-theme="folio"][data-page="chat"] .p-chat-head {
+        height: calc(56px + env(safe-area-inset-top)); min-height: 0; padding-top: env(safe-area-inset-top);
+        background: rgba(247, 247, 248, .9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-head-in { padding: 0 8px 0 6px; gap: 4px; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-icon { color: var(--fo-ink); }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-title-text { flex-direction: column; align-items: center; gap: 1px; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-name { font-size: 15px; letter-spacing: .06em; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-sub { font-family: var(--fo-sans); font-size: 10.5px; letter-spacing: .14em; color: var(--fo-muted); max-width: 52vw; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-sub::before { content: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-head :is(.btn, .p-btn) { padding: 0 4px; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-scroll { -webkit-mask-image: none; mask-image: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-scroll > .p-chat-col { width: auto; margin: 0 24px; padding: 22px 0 12px; font-size: calc(16px * var(--rp-font-scale, 1)); }
+    html body[data-theme="folio"][data-page="chat"] .p-msg-copy { font-size: calc(16px * var(--rp-font-scale, 1)); line-height: 1.85; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue .p-eyebrow::before { display: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue { margin-bottom: 22px; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1 { margin-top: 4px; font-size: 18px; gap: 12px; letter-spacing: .26em; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1::before,
+    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue h1::after { flex-basis: 36px; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-prologue p { font-size: 12px; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg:not(.p-msg-user) .p-msg-copy > .rp-p.fo-dc::first-letter { font-size: 3.3em; margin-top: .1em; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg-user { margin: 0 0 24px 1.4em; padding: 12px 14px; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-copy { font-size: calc(14.5px * var(--rp-font-scale, 1)); }
+    html body[data-theme="folio"][data-page="chat"] .p-msg-more { top: -4px; right: -8px; width: 30px; height: 30px; color: var(--fo-muted); }
+    html body[data-theme="folio"][data-page="chat"] .p-msg-user .p-msg-more { top: 6px; right: 4px; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg-tools { opacity: 0; display: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-msg.is-tools-open .p-msg-tools {
+        position: static; display: flex !important; flex-wrap: wrap; grid-template-columns: none; width: auto; opacity: 1; transform: none; gap: 2px 16px;
+        margin-top: 12px; padding: 8px 0 0; border-top: 1px dotted var(--fo-line-strong); background: transparent; box-shadow: none;
+    }
+    html body[data-theme="folio"][data-page="chat"] .p-msg.is-tools-open .p-msg-tools :is(button, .p-msg-tool, a) { flex: 0 0 auto; width: auto; height: 32px; white-space: nowrap; writing-mode: horizontal-tb; font-size: 12.5px; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-compose { padding: 8px 18px 46px; background: var(--fo-bg); border-top: 1px solid var(--fo-line); animation: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col { width: auto; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row { gap: 10px; margin-top: 4px; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row .p-chat-input { font-size: 16px; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-send { height: 34px; padding: 0 12px; letter-spacing: .1em; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-send::after { content: "落笔"; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop::after { content: "停笔"; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-chat-col > div:last-child > .p-small:first-child { display: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-ctool {
+        width: auto; max-width: none; margin: 0 18px; padding: 0 0 calc(10px + env(safe-area-inset-bottom));
+        overflow-x: auto; scrollbar-width: none; animation: none;
+    }
+    html body[data-theme="folio"] .fo-ctool::-webkit-scrollbar { display: none; }
+    html body[data-theme="folio"] .fo-ctool .fo-rt, html body[data-theme="folio"] .fo-ctool .fo-sep { display: none; }
+    html body[data-theme="folio"] .fo-ctool button { padding: 5px 7px; }
+    html body[data-theme="folio"] .fo-ctool button:first-child { margin-left: -7px; }
+}
+
+/* ==========================================================================
+   其余页面：同一套排印（标题宋体、细线、方角、靛蓝只给可交互处）
+   ========================================================================== */
+html body[data-theme="folio"][data-page]:not([data-page="chat"]):not([data-page="admin"]) :is(.p-page-title h1, .ca-block-head h2, .p-section-title, .p-detail-name, .p-chat-row-name, .p-library-name) {
+    font-family: var(--fo-display); letter-spacing: -.02em;
+}
+html body[data-theme="folio"][data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-page-title {
+    border-bottom: 1px solid var(--fo-ink);
+}
+html body[data-theme="folio"][data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary) {
+    border-radius: 0; background: var(--fo-ink); border-color: var(--fo-ink); color: #fff; letter-spacing: .08em;
+}
+html body[data-theme="folio"][data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary):hover:not(:disabled) { background: var(--fo-accent); border-color: var(--fo-accent); }
+html body[data-theme="folio"][data-page]:not([data-page="admin"]) :is(.p-btn, .btn):not(.p-btn--primary):not(.btn--primary) { border-radius: 0; }
+html body[data-theme="folio"][data-page]:not([data-page="admin"]) :is(.p-chip, .p-pill) { border-radius: 0; }
+html body[data-theme="folio"][data-page]:not([data-page="admin"]) :is(.p-input, .p-textarea, .p-select, .input, .textarea, select) { border-radius: 0; }
+html body[data-theme="folio"][data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-card, .p-work, .ca-rec, .p-continue-card, .p-chat-row, .p-library-row, .p-section) { border-radius: 0; box-shadow: none; }
+html body[data-theme="folio"][data-page]:not([data-page="admin"]) :is(.p-cover, .ca-rec-cover, .ca-scene-cover, .p-work-cover) { border-radius: 0 !important; }
+
+/* 设置页的主题卡 */
+html body[data-theme="folio"] .th-picker-item { border-radius: 0; }
+html body[data-theme="folio"] .th-picker-swatch { border-radius: 0; }
+
+/* ---------- 动效 ---------- */
+@keyframes fo-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes fo-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fo-grow-x { from { transform: scaleX(0); } }
+@keyframes fo-grow-y { from { transform: scaleY(0); } }
+@keyframes fo-unveil { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes fo-settle { from { transform: scale(1.14); } to { transform: scale(1); } }
+@keyframes fo-ink { from { opacity: 0; transform: translateY(.25em); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes fo-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    html body[data-theme="folio"] *,
+    html body[data-theme="folio"] *::before,
+    html body[data-theme="folio"] *::after { animation: none !important; transition: none !important; }
+    html body[data-theme="folio"] .fo-js .fo-reveal { opacity: 1; transform: none; }
+    html body[data-theme="folio"] .fo-jacket { transform: none; }
+}
+
+/* ==========================================================================
+   内页 · 刊内栏目（广场 / 对话 / 我的 / 创作 / 通知 / 房间 / 角色页）
+   前缀带 :not(#fo) 以压过原型样式表里的高权重选择器。
+   ========================================================================== */
+html body[data-theme="folio"]:not(#fo) .p-inner { color: var(--fo-ink); }
+
+/* 栏目刊头：§ 号 + 巨号宋体 + 双线 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner > .p-page-title {
+    position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    margin: 18px 0 28px; padding: 0 0 18px; border: 0; background: none;
+    box-shadow: 0 2px 0 var(--fo-ink), 0 5px 0 var(--fo-bg), 0 6px 0 var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title > div:first-child { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title > div:first-child::before {
+    content: "§"; font-family: var(--fo-italic); font-style: italic; font-size: 17px; line-height: 1; color: var(--fo-muted); letter-spacing: 0;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-inner > .p-page-title > div:first-child::before { content: "§ ii — The Plaza · 本期全部篇目"; }
+html body[data-theme="folio"]:not(#fo)[data-page="chats"] .p-inner > .p-page-title > div:first-child::before { content: "§ iii — Manuscripts · 未完的手稿"; }
+html body[data-theme="folio"]:not(#fo)[data-page="create"] .p-inner > .p-page-title > div:first-child::before { content: "§ iv — Submissions · 投稿"; }
+html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-inner > .p-page-title > div:first-child::before { content: "§ v — Colophon · 读者设定"; }
+html body[data-theme="folio"]:not(#fo)[data-page="notifications"] .p-inner > .p-page-title > div:first-child::before { content: "Errata & Letters · 来函"; }
+html body[data-theme="folio"]:not(#fo)[data-page="rooms"] .p-inner > .p-page-title > div:first-child::before { content: "Ensemble · 群像篇"; }
+html body[data-theme="folio"]:not(#fo)[data-page="library"] .p-inner > .p-page-title > div:first-child::before { content: "Bookshelf · 藏书"; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title h1 {
+    margin: 0; font-family: var(--fo-display); font-weight: 700; font-size: clamp(40px, 5vw, 64px) !important; line-height: .95; letter-spacing: -.04em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title p {
+    display: block; margin: 4px 0 0; font-family: var(--fo-display); font-size: 14px; line-height: 1.7; color: var(--fo-copy); letter-spacing: .04em;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-page-title-actions { display: flex; gap: 10px; align-items: center; margin: 0; }
+
+/* 按钮：方角，主按钮墨色 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn, .btn) {
+    border-radius: 0; box-shadow: none; font-family: var(--fo-sans); letter-spacing: .08em; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-btn, .btn):not(.p-btn--primary):not(.btn--primary):not(.btn--ghost):not(.p-btn--ghost):not(.p-btn--icon) {
+    background: transparent; border: 1px solid var(--fo-ink); color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-btn, .btn):not(.p-btn--primary):not(.btn--primary):hover:not(:disabled) { background: var(--fo-hover); color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary) { background: var(--fo-ink); border: 1px solid var(--fo-ink); color: #fff; }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary):hover:not(:disabled) { background: var(--fo-accent); border-color: var(--fo-accent); color: #fff; }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn--primary, .btn--primary):disabled { background: var(--fo-sunken); border-color: var(--fo-sunken); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]) :is(.p-btn, .btn):focus-visible { outline: 2px solid var(--fo-accent); outline-offset: 2px; }
+
+/* 输入：书写线 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-inner, .page) :is(.p-input, .input, .p-select, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    border-radius: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); background: transparent; box-shadow: none;
+    font-family: var(--fo-display); color: var(--fo-ink); transition: border-color .3s ease;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-inner, .page) :is(.p-textarea, .textarea, textarea) {
+    border-radius: 0; border: 1px solid var(--fo-line-strong); background: var(--fo-card); box-shadow: none; font-family: var(--fo-display); color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="admin"]):not([data-page="chat"]) :is(.p-inner, .page) :is(.p-input, .input, .p-select, select, .p-textarea, textarea):focus {
+    outline: none; border-color: var(--fo-ink); box-shadow: 0 1px 0 var(--fo-accent);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-input, .input, textarea)::placeholder { color: var(--fo-muted); opacity: 1; }
+
+/* 筛选条：去底板，留一根线 */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar {
+    display: flex; flex-direction: column; gap: 14px; margin: 0 0 30px; padding: 0;
+    border: 0; border-radius: 0; background: var(--fo-bg); box-shadow: none; z-index: 15; top: 52px; padding-top: 14px;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main { display: flex; align-items: center; gap: 22px; padding: 0; background: none; border: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search {
+    position: relative; flex: 0 1 380px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search:focus-within { border-color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search .p-input { height: 36px; width: 100%; padding: 0 0 0 26px; border: 0 !important; background: transparent; font-size: 14px; box-shadow: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search > :is(svg, .p-icon) { left: 0; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-select { height: 36px; min-width: 96px; padding: 0 22px 0 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); background-color: transparent; font-family: var(--fo-display); font-size: 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-count { margin-left: auto; font-family: var(--fo-italic); font-style: italic; font-size: 15px; color: var(--fo-muted); letter-spacing: .02em; white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-inner .p-filterbar { padding-bottom: 12px; border-bottom: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-chips { display: flex; flex-wrap: wrap; gap: 4px 26px; padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip,
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main > .p-chip {
+    position: relative; height: 30px; padding: 0; border: 0; border-radius: 0; background: transparent !important; box-shadow: none;
+    font-family: var(--fo-display); font-size: 14.5px; font-weight: 400; color: var(--fo-muted); letter-spacing: .12em; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip:hover { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip:is(.is-active, [aria-pressed="true"], [aria-selected="true"], [aria-current="true"]) { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-filterbar, .p-tabs, .p-segment) .p-chip:is(.is-active, [aria-pressed="true"], [aria-selected="true"], [aria-current="true"])::after {
+    content: ""; position: absolute; left: 0; right: .12em; bottom: 0; height: 2px; background: var(--fo-accent);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar .p-filterbar-main > .p-chip { font-family: var(--fo-sans); font-size: 12px; letter-spacing: .1em; padding: 0 0 0 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main > .p-chip::before { content: ""; position: absolute; left: 0; top: 50%; width: 7px; height: 7px; margin-top: -4px; border: 1px solid var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main > .p-chip[aria-pressed="true"]::before { background: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-filterbar .p-filterbar-main > .p-chip[aria-pressed]::after { content: none; }
+
+/* 标签：#井号文字 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]) :is(.p-inner, .page) .p-pill {
+    height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+    font-family: var(--fo-display); font-size: 12.5px; font-weight: 400; color: var(--fo-copy); letter-spacing: .1em;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]) :is(.p-inner, .page) .p-pill::before { content: "#"; margin-right: 1px; color: var(--fo-line-strong); }
+
+/* 卡片：去阴影、去圆角，以细线分隔 */
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner :is(.p-card, .p-section, .p-notice, .p-empty) {
+    border-radius: 0; box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner .p-card:not(.p-work) { background: var(--fo-card); border: 1px solid var(--fo-line); }
+html body[data-theme="folio"]:not(#fo)[data-page]:not([data-page="chat"]):not([data-page="admin"]) .p-inner :is(.p-card, .p-section, .p-work, .p-chat-row)::after { content: none !important; display: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-eyebrow { font-family: var(--fo-sans); font-size: 11px; font-weight: 700; letter-spacing: .24em; color: var(--fo-muted); text-transform: none; }
+
+/* ---------- 广场：篇目画廊 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid { counter-reset: fo-work; gap: 44px 28px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work {
+    counter-increment: fo-work; position: relative; display: flex; flex-direction: column; overflow: visible;
+    padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover { transform: none; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-media { position: relative; overflow: hidden; border-radius: 0; background: var(--fo-sunken); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-media::before {
+    content: "No. " counter(fo-work, decimal-leading-zero); position: absolute; z-index: 2; left: 14px; top: 12px; pointer-events: none;
+    font-family: var(--fo-italic); font-style: italic; font-size: 17px; color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, .45);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-cover { display: block; border-radius: 0 !important; aspect-ratio: 3 / 4; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-cover img { border-radius: 0; filter: grayscale(.2); transition: transform 1.1s var(--fo-ease), filter .6s ease; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover .p-work-cover img { transform: scale(1.04); filter: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav {
+    top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 0; background: rgba(255, 255, 255, .9); border: 0; color: var(--fo-ink); box-shadow: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav:hover { transform: none; background: #fff; color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav[aria-pressed="true"] { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-body { display: flex; flex-direction: column; flex: 1; gap: 0; padding: 16px 0 0; border-top: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-card-link { display: block; color: inherit; text-decoration: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-name {
+    display: flex; align-items: baseline; gap: 10px; margin: 0; font-family: var(--fo-display); font-weight: 700; font-size: 26px; line-height: 1.1; letter-spacing: -.03em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-author { margin: 6px 0 0; font-size: 12px; color: var(--fo-muted); letter-spacing: .06em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-desc {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(2 * 1.75em);
+    margin: 10px 0 0; font-family: var(--fo-display); font-size: 14px; line-height: 1.75; color: var(--fo-copy);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-meta {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: auto; padding: 10px 0 0; border-top: 1px solid var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-body > .p-card-link + .p-work-meta { margin-top: 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-stat { font-family: var(--fo-serif); font-size: 12.5px; color: var(--fo-muted); white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover .p-work-name { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-meta::after { content: "→"; order: 3; color: var(--fo-accent); opacity: 0; transform: translateX(-6px); transition: .4s var(--fo-ease); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work:hover .p-work-meta::after { opacity: 1; transform: none; }
+
+/* ---------- 对话列表：手稿目录 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list { counter-reset: fo-ms; display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row {
+    counter-increment: fo-ms; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start; gap: 0 18px;
+    margin: 0; padding: 22px 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none; transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover { background: transparent; transform: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row::before {
+    content: ""; position: absolute; left: 0; top: -1px; width: 100%; height: 1px; background: var(--fo-ink); transform: scaleX(0); transform-origin: left; transition: transform .6s var(--fo-ease);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover::before { transform: scaleX(1); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open { display: grid; grid-template-columns: 56px 72px minmax(0, 1fr); gap: 0 20px; align-items: start; padding: 0; color: inherit; text-decoration: none; min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open::before {
+    content: counter(fo-ms, decimal-leading-zero); font-family: var(--fo-italic); font-style: italic; font-size: 40px; line-height: .9; color: var(--fo-muted); transition: color .35s;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover .p-chat-open::before { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-row-cover { width: 72px; height: 96px; border-radius: 0 !important; overflow: hidden; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-row-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; filter: grayscale(.2); transition: filter .5s; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row:hover .p-row-cover img { filter: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-main { min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-title { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-name { font-family: var(--fo-display); font-weight: 700; font-size: 28px; line-height: 1.1; letter-spacing: -.03em; color: var(--fo-ink); white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-session { font-family: var(--fo-display); font-size: 13px; color: var(--fo-muted); letter-spacing: .14em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-session::before { content: "— "; font-family: var(--fo-italic); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-preview {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal;
+    max-width: 40em; margin: 8px 0 0; font-family: var(--fo-display); font-size: 14.5px; line-height: 1.8; color: var(--fo-copy);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-library-sub { margin-top: 8px; font-size: 11.5px; color: var(--fo-muted); letter-spacing: .08em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 6px; text-align: right; font-size: 12px; color: var(--fo-muted); white-space: nowrap; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-meta span:last-child { font-family: var(--fo-italic); font-style: italic; font-size: 20px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-action { padding-top: 2px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-action .p-btn { width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0 !important; background: transparent !important; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-action .p-btn:hover { color: var(--fo-ink); background: var(--fo-hover) !important; }
+
+/* ---------- 我的：目录 + 章节 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings { gap: 56px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc { counter-reset: fo-toc; padding: 0; background: transparent; border: 0; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc-group { counter-increment: fo-toc; display: flex; flex-direction: column; gap: 0; margin: 0 0 22px; padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc-label {
+    display: flex; align-items: baseline; gap: 10px; margin: 0; padding: 0 0 8px; border-bottom: 1px solid var(--fo-ink);
+    font-family: var(--fo-sans); font-size: 11px; font-weight: 700; letter-spacing: .24em; color: var(--fo-ink); text-transform: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc-label::before { content: counter(fo-toc, upper-roman); font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: 0; color: var(--fo-muted); min-width: 18px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a {
+    position: relative; display: flex; align-items: baseline; gap: 8px; height: auto; min-height: 0; padding: 9px 0 9px 28px; border: 0; border-bottom: 1px solid var(--fo-line); border-radius: 0;
+    background: transparent !important; font-family: var(--fo-display); font-size: 14px; font-weight: 400; color: var(--fo-copy); letter-spacing: .08em; transition: color .3s, padding .4s var(--fo-ease);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a::after { content: ""; flex: 1; order: 2; border-bottom: 1px dotted var(--fo-line-strong); transform: translateY(-4px); opacity: 0; transition: opacity .3s; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:hover { color: var(--fo-ink); padding-left: 32px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:hover::after { opacity: 1; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"]) { color: var(--fo-ink) !important; font-weight: 700; background: transparent !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"])::before {
+    content: ""; position: absolute; left: 0; top: 50%; width: 16px; height: 2px; margin-top: -1px; background: var(--fo-accent);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main { counter-reset: fo-sec; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section {
+    counter-increment: fo-sec; margin: 0 0 44px; padding: 14px 0 0; border: 0; border-top: 1px solid var(--fo-ink); background: transparent;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section > h2 {
+    display: flex; align-items: baseline; gap: 14px; margin: 0; padding: 0; border: 0;
+    font-family: var(--fo-display); font-weight: 700; font-size: 28px; line-height: 1.2; letter-spacing: -.02em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section > h2::before { content: "§" counter(fo-sec); font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 20px; color: var(--fo-muted); letter-spacing: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main > .p-section > h2 + p { margin: 8px 0 22px; padding: 0; border: 0; font-family: var(--fo-display); font-size: 14px; line-height: 1.75; color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main .p-card { border: 0 !important; border-top: 1px solid var(--fo-line-strong) !important; background: transparent !important; padding-left: 0; padding-right: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main .p-label { font-family: var(--fo-sans); font-size: 11.5px; font-weight: 700; letter-spacing: .2em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main :is(.p-range-val, .p-hint) { font-family: var(--fo-serif); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-settings-main .p-range-val { font-family: var(--fo-italic); font-style: italic; font-size: 20px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-range { accent-color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-swatch-wrap { border-radius: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-swatch { border-radius: 0 !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-swatch-wrap.is-active .p-swatch { box-shadow: 0 0 0 1px var(--fo-bg), 0 0 0 2px var(--fo-ink) !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker { gap: 20px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item { padding: 0 0 12px; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none; text-align: left; transition: border-color .3s; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item:hover { border-color: var(--fo-ink); background: transparent; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item.is-active { border-bottom: 2px solid var(--fo-accent); box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-swatch { border-radius: 0; border: 1px solid var(--fo-line); }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-name { margin-top: 10px; padding: 0; font-family: var(--fo-display); font-size: 17px; font-weight: 700; letter-spacing: .1em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .th-picker-item.is-active .th-picker-name::after { content: " · 当前"; font-family: var(--fo-sans); font-weight: 400; font-size: 11px; letter-spacing: .14em; color: var(--fo-accent); }
+
+/* ---------- 角色页：卷首插图 + 篇章 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .rd-ambient { display: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-character-top { margin: 18px 0 18px; padding: 0; border: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-character-top a { font-size: 12.5px; color: var(--fo-muted); letter-spacing: .12em; text-decoration: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-character-top a:hover { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail { gap: 56px; align-items: start; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover {
+    position: relative; border-radius: 0 !important; box-shadow: none !important; transform: none !important; overflow: hidden; background: var(--fo-sunken);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover img { border-radius: 0 !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover::before {
+    content: "Frontispiece"; position: absolute; z-index: 2; left: 14px; top: 12px; font-family: var(--fo-italic); font-style: italic; font-size: 16px; color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, .45);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-cover::after { content: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-title { padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-title h1 {
+    margin: 22px 0 0; font-family: var(--fo-display); font-weight: 700; font-size: 60px; line-height: .95; letter-spacing: -.05em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-by { margin: 12px 0 0; font-size: 12.5px; color: var(--fo-muted); letter-spacing: .08em; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-by .p-link { color: var(--fo-ink); font-weight: 700; text-decoration: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-by .p-link:hover { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-tags { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 22px 0 22px; padding: 14px 0 !important;
+    border: 0 !important; border-top: 2px solid var(--fo-ink) !important; border-bottom: 1px solid var(--fo-ink) !important; background: transparent !important;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat { padding: 0 14px; border: 0; border-left: 1px solid var(--fo-line-strong); background: transparent; text-align: left; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat:first-child { padding-left: 0; border-left: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat-n { font-family: var(--fo-serif); font-weight: 500; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-stats .p-stat-l { margin-top: 4px; font-size: 11px; color: var(--fo-muted); letter-spacing: .18em; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky form { display: flex; flex-direction: column; gap: 10px; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky .p-btn--block { width: 100%; height: 50px; min-height: 50px; font-size: 14px; letter-spacing: .14em; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky .p-btn--primary.p-btn--block::after { content: "→"; margin-left: 12px; transition: transform .45s var(--fo-ease); display: inline-block; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky .p-btn--primary.p-btn--block:hover::after { transform: translateX(5px); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin-top: 14px; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor :is(.p-btn, .btn) {
+    height: 28px; min-height: 28px; padding: 0 !important; border: 0 !important; background: transparent !important; color: var(--fo-copy) !important; font-size: 12.5px; letter-spacing: .08em;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor :is(.p-btn, .btn):hover { color: var(--fo-accent) !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor .btn--ghost { color: var(--fo-muted) !important; }
+
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main { counter-reset: fo-chap; display: flex; flex-direction: column; gap: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card {
+    counter-increment: fo-chap; margin: 0 0 40px; padding: 16px 0 0 !important; overflow: visible;
+    border: 0 !important; border-top: 1px solid var(--fo-ink) !important; border-radius: 0; background: transparent !important; box-shadow: none !important;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card:first-child { border-top: 2px solid var(--fo-ink) !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card > .p-eyebrow,
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head {
+    display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; padding: 0; border: 0; background: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card > .p-eyebrow::before,
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head h2::before {
+    content: "§" counter(fo-chap, lower-roman); margin-right: 12px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 18px; letter-spacing: 0; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head h2 { margin: 0; font-family: var(--fo-display); font-weight: 700; font-size: 28px; line-height: 1.2; letter-spacing: -.02em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head h2 .p-small { margin-left: 8px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 20px; color: var(--fo-muted); letter-spacing: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card-head > .p-small { margin-left: auto; font-family: var(--fo-italic); font-style: italic; font-size: 15px; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main > .p-card > .p-eyebrow { font-family: var(--fo-display); font-size: 28px; font-weight: 700; letter-spacing: -.02em; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote {
+    position: relative; margin: 0; padding: 4px 0 0 1.4em; border: 0; background: none; box-shadow: none;
+    font-family: var(--fo-display); font-size: 21px; line-height: 1.9; color: var(--fo-copy); text-wrap: pretty;
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote .rp-p { font: inherit; color: inherit; margin: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote::before {
+    content: "“"; position: absolute; left: -.06em; top: -.12em; font-family: var(--fo-italic); font-size: 60px; line-height: 1; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote :is(.rp-say, strong) { color: var(--fo-ink); font-weight: 700; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote .rp-act { color: var(--fo-muted); font-style: normal; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 0 24px; margin: 0; padding: 16px 0; border: 0; border-bottom: 1px solid var(--fo-line); background: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub .p-eyebrow { padding-top: 5px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub p { margin: 0; font-family: var(--fo-display); font-size: 15.5px; line-height: 1.9; color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-card .small { font-family: var(--fo-display); font-size: 13.5px; color: var(--fo-muted); }
+
+/* ---------- 通知 / 创作 / 房间 小件 ---------- */
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs { display: flex; gap: 26px; padding: 0; margin: 0 0 22px; border: 0; border-bottom: 1px solid var(--fo-line-strong); background: transparent; border-radius: 0; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button {
+    position: relative; height: 36px; padding: 0; border: 0; border-radius: 0; background: transparent !important; box-shadow: none !important;
+    font-family: var(--fo-display); font-size: 14.5px; font-weight: 400; letter-spacing: .12em; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button:hover { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"]) { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-tabs > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"])::after { content: ""; position: absolute; left: 0; right: .12em; bottom: -1px; height: 2px; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-list { display: flex; flex-direction: column; gap: 0; border: 0; background: transparent; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-row {
+    position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 0 16px; margin: 0; padding: 18px 0;
+    border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent !important; box-shadow: none; color: inherit; text-decoration: none;
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-row.is-unread { border-left: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-row.is-unread::before { content: ""; position: absolute; left: -18px; top: 22px; bottom: 22px; width: 2px; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-icon { width: 28px; height: 28px; border-radius: 0; background: transparent; color: var(--fo-muted); border: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-title { font-family: var(--fo-display); font-size: 17px; font-weight: 700; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-text { font-family: var(--fo-display); font-size: 14px; line-height: 1.8; color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-notification-time { font-family: var(--fo-serif); font-size: 12px; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-unread-dot { border-radius: 0; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner :is(.p-form-section-title, .p-card-head h2, .p-card > h2, .p-card > h3, .p-empty-title) {
+    font-family: var(--fo-display); font-weight: 700; letter-spacing: -.01em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-form-section-title { padding-bottom: 10px; border-bottom: 1px solid var(--fo-ink); font-size: 18px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-empty-title { font-size: 24px; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-inner .p-empty-text { font-family: var(--fo-display); color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide { counter-reset: fo-rg; list-style: none; padding: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide li { counter-increment: fo-rg; position: relative; padding: 10px 0 10px 32px; border-bottom: 1px solid var(--fo-line); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide li::marker { content: none; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide li::before { content: counter(fo-rg, decimal-leading-zero); position: absolute; left: 0; top: 8px; font-family: var(--fo-italic); font-style: italic; font-size: 19px; color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-room-guide strong { font-family: var(--fo-display); color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview, html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview-body { border-radius: 0 !important; box-shadow: none !important; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview-name { font-family: var(--fo-display); font-size: 26px; letter-spacing: -.03em; }
+html body[data-theme="folio"]:not(#fo)[data-page] .p-create-preview :is(.p-create-preview-hook, .p-create-preview-greeting) { font-family: var(--fo-display); }
+
+/* ---------- 窄屏旁注抽屉 ---------- */
+html body[data-theme="folio"] .fo-notes-cb { position: fixed; top: 0; left: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+html body[data-theme="folio"] :is(.fo-notes-scrim, .fo-notes-btn, .fo-notes-close) { display: none; }
+@media (max-width: 1180px) {
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn {
+        display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; padding: 5px 9px; color: var(--fo-copy); white-space: nowrap; cursor: pointer;
+        border-left: 1px solid var(--fo-line-strong); transition: color .25s;
+    }
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn:hover { color: var(--fo-accent); }
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn .fo-k { font-family: var(--fo-italic); font-style: italic; color: var(--fo-accent); }
+    html body[data-theme="folio"] .fo-notes-cb:focus-visible ~ .fo-ctool .fo-notes-btn { outline: 2px solid var(--fo-accent); outline-offset: 1px; }
+    html body[data-theme="folio"][data-page="chat"] .p-rp-workbench > .fo-notes-cb:checked ~ .fo-margin {
+        display: flex; position: fixed; z-index: 90; top: 0; right: 0; bottom: 0; width: min(340px, 88vw);
+        background: var(--fo-bg); border-left: 1px solid var(--fo-ink); box-shadow: -30px 0 60px -30px rgba(27, 27, 29, .4);
+        animation: fo-drawer .5s var(--fo-ease) both;
+    }
+    html body[data-theme="folio"][data-page="chat"] .fo-notes-cb:checked ~ .fo-margin .fo-runhead { padding-top: env(safe-area-inset-top); height: calc(52px + env(safe-area-inset-top)); }
+    html body[data-theme="folio"][data-page="chat"] .fo-notes-cb:checked ~ .fo-margin :is(.fo-note, .fo-bmk) { animation-delay: calc(120ms + var(--i, 0) * 60ms); }
+    html body[data-theme="folio"] .fo-notes-cb:checked ~ .fo-notes-scrim {
+        display: block; position: fixed; inset: 0; z-index: 89; background: rgba(27, 27, 29, .28); cursor: pointer; animation: fo-fade .4s ease both;
+    }
+    html body[data-theme="folio"] .fo-notes-close { display: inline; margin-left: 4px; color: var(--fo-ink); cursor: pointer; letter-spacing: .1em; }
+    html body[data-theme="folio"] .fo-margin .fo-runhead--r { justify-content: space-between; gap: 14px; }
+}
+@media (max-width: 760px) {
+    html body[data-theme="folio"] .fo-ctool .fo-notes-btn { margin-left: auto; position: sticky; right: 0; background: var(--fo-bg); }
+}
+@keyframes fo-drawer { from { transform: translateX(100%); } to { transform: none; } }
+
+/* ---------- 手机：刊眉、角色页 ---------- */
+@media (max-width: 760px) {
+    html body[data-theme="folio"][data-page]:not(.p-cinema) .p-topbar { padding: 0 12px 0 8px; gap: 8px; }
+    html body[data-theme="folio"] .th-switch.p-view-switch button { padding: 0 6px !important; letter-spacing: .06em; }
+    html body[data-theme="folio"] .th-switch.p-view-switch button[aria-checked="true"]::after { left: 6px; right: 6px; }
+    html body[data-theme="folio"] .p-points-trigger { padding-left: 10px; }
+    html body[data-theme="folio"][data-page] .p-topbar > .p-avatar { width: 30px; height: 30px; flex: 0 0 30px; font-size: 13px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title { margin-top: 8px; padding-bottom: 16px; gap: 16px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-inner > .p-page-title > div:first-child::before { font-size: 14px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-page-title-actions { width: 100%; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-page-title-actions > * { flex: 1; justify-content: center; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar-main { flex-wrap: wrap; gap: 10px 18px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-search { flex: 1 1 100%; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-filterbar .p-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 22px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 14px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-name { font-size: 20px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-desc { font-size: 13px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-media::before { font-size: 14px; left: 10px; top: 8px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-fav { top: 6px; right: 6px; width: 28px; height: 28px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-work-grid .p-work-meta { flex-wrap: wrap; gap: 4px 8px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row { grid-template-columns: minmax(0, 1fr) auto; padding: 18px 0; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open { grid-template-columns: 56px minmax(0, 1fr); gap: 0 14px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-open::before { display: none; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-row-cover { width: 56px; height: 76px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-name { font-size: 22px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-chat-list .p-chat-row-meta { display: none; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail { gap: 36px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-title h1 { font-size: 52px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-sticky :is(form, .p-btn--block) { width: 100%; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-quote { font-size: 18px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-main .p-sub { grid-template-columns: 1fr; gap: 6px; }
+    html body[data-theme="folio"]:not(#fo)[data-page] .p-settings { gap: 24px; }
+}
+html body[data-theme="folio"]:not(#fo)[data-page="character"] .p-detail-minor .p-notice-actions { display: inline-flex; align-items: center; margin: 0; padding: 0; }
+@media (max-width: 1180px) { html body[data-theme="folio"] .fo-ctool .fo-rt { display: none; } html body[data-theme="folio"] .fo-ctool .fo-notes-btn { margin-left: auto; } }
+
+/* ==========================================================================
+   浮层：对话框、签到、命令面板、点数下拉
+   ========================================================================== */
+html body[data-theme="folio"]:not(#fo) :is(.modal-backdrop, .p-modal-backdrop, .p-overlay, .rd-palette) {
+    background: rgba(27, 27, 29, .34); -webkit-backdrop-filter: blur(3px) grayscale(.4); backdrop-filter: blur(3px) grayscale(.4);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) {
+    border-radius: 0; border: 1px solid var(--fo-ink); background: var(--fo-bg); box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55), 0 0 0 6px rgba(255, 255, 255, .5);
+    color: var(--fo-ink); font-family: var(--fo-sans);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) {
+    position: relative; padding-bottom: 14px; border-bottom: 0;
+    box-shadow: inset 0 -2px 0 var(--fo-bg), inset 0 -3px 0 var(--fo-ink), inset 0 -5px 0 var(--fo-bg), inset 0 -6px 0 var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) :is(h2, h3, strong, .modal-title) {
+    font-family: var(--fo-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head)::before {
+    content: "†"; margin-right: 10px; font-family: var(--fo-italic); font-style: italic; font-size: 20px; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .icon-btn { border-radius: 0; border: 0; background: transparent; color: var(--fo-muted); box-shadow: none; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .icon-btn:hover { color: var(--fo-ink); background: var(--fo-hover); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .icon-btn:focus-visible { outline: 1px solid var(--fo-ink); outline-offset: 0; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-foot, .p-modal-foot) { border-top: 1px solid var(--fo-line-strong); background: transparent; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn, .p-btn) { border-radius: 0; box-shadow: none; letter-spacing: .08em; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn, .p-btn):not(.btn--primary):not(.p-btn--primary):not(.btn--ghost) { background: transparent; border: 1px solid var(--fo-ink); color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn--primary, .p-btn--primary) { background: var(--fo-ink); border: 1px solid var(--fo-ink); color: #fff; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.btn--primary, .p-btn--primary):hover:not(:disabled) { background: var(--fo-accent); border-color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, .input, .p-input, .p-select) {
+    border-radius: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); background-color: transparent; box-shadow: none; font-family: var(--fo-display); color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(textarea, .textarea, .p-textarea) { border-radius: 0; border: 1px solid var(--fo-line-strong); background: var(--fo-card); box-shadow: none; font-family: var(--fo-display); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(input, select, textarea):focus { outline: none; border-color: var(--fo-ink); box-shadow: 0 1px 0 var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) input[type="checkbox"] { accent-color: var(--fo-ink); border-radius: 0; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) { gap: 22px; padding: 0; border: 0; border-bottom: 1px solid var(--fo-line-strong); border-radius: 0; background: transparent; box-shadow: none; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) > button {
+    position: relative; padding: 0 0 8px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none !important;
+    font-family: var(--fo-display); font-size: 14px; letter-spacing: .12em; color: var(--fo-muted);
+}
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"]) { color: var(--fo-ink) !important; font-weight: 700; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-tabs, [role="tablist"]) > button:is(.is-active, [aria-selected="true"], [aria-pressed="true"])::after { content: ""; position: absolute; left: 0; right: .12em; bottom: -1px; height: 2px; background: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.p-label, label > span:first-child) { letter-spacing: .14em; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) .p-eyebrow { font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 16px; letter-spacing: .02em; text-transform: none; color: var(--fo-muted); }
+/* 签到：期号式数字 + 方格连签 */
+html body[data-theme="folio"]:not(#fo) .modal p[style*="font-size: 34px"], html body[data-theme="folio"]:not(#fo) .modal p[style*="font-size:34px"] {
+    font-family: var(--fo-display) !important; font-size: 52px !important; line-height: 1 !important; letter-spacing: -.04em !important; color: var(--fo-ink);
+}
+html body[data-theme="folio"]:not(#fo) .modal span[aria-hidden="true"][style*="border-radius"] {
+    border-radius: 0 !important; width: 30px !important; height: 30px !important; font-family: var(--fo-italic); font-style: italic; font-weight: 400 !important; font-size: 15px !important;
+    border: 1px solid var(--fo-line-strong);
+}
+html body[data-theme="folio"]:not(#fo) .modal span[aria-hidden="true"][style*="border-radius"][style*="color: rgb(255"],
+html body[data-theme="folio"]:not(#fo) .modal span[aria-hidden="true"][style*="border-radius"][style*="#fff"] { background: var(--fo-ink) !important; border-color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .modal .p-hint { font-family: var(--fo-display); color: var(--fo-muted); }
+
+/* 命令面板：索引卡 */
+html body[data-theme="folio"]:not(#fo) .rd-palette-panel { border-radius: 0; border: 1px solid var(--fo-ink); background: var(--fo-bg); box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search { padding: 16px 20px; border-bottom: 1px solid var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search input { padding: 0; border: 0 !important; border-radius: 0; background: transparent; box-shadow: none !important; outline: none; font-family: var(--fo-display); font-size: 18px; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search .p-icon { color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-search kbd, html body[data-theme="folio"]:not(#fo) .rd-palette-foot kbd { border-radius: 0; border: 1px solid var(--fo-line-strong); background: transparent; box-shadow: none; font-family: var(--fo-serif); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list { padding: 4px 20px 10px; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-group { padding: 14px 0 6px; font-family: var(--fo-italic); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: .02em; color: var(--fo-muted); border-bottom: 1px solid var(--fo-line-strong); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button { position: relative; padding: 11px 0 11px 18px; border-radius: 0; border-bottom: 1px solid var(--fo-line); font-family: var(--fo-display); font-size: 15px; color: var(--fo-ink); background: transparent; transition: padding .35s var(--fo-ease), background .2s; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button::before { content: ""; position: absolute; left: 0; top: 50%; width: 0; height: 2px; margin-top: -1px; background: var(--fo-accent); transition: width .35s var(--fo-ease); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] { background: var(--fo-accent-soft); padding-left: 26px; font-weight: 700; color: var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"]::before { width: 14px; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button[aria-selected="true"] .p-icon { color: var(--fo-accent); }
+html body[data-theme="folio"]:not(#fo) .rd-palette-list button small { font-family: var(--fo-sans); font-weight: 400; letter-spacing: .06em; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-empty { font-family: var(--fo-display); font-size: 14px; }
+html body[data-theme="folio"]:not(#fo) .rd-palette-foot { padding: 10px 20px; border-top: 1px solid var(--fo-line-strong); font-size: 11.5px; letter-spacing: .06em; }
+
+/* 点数下拉与其他浮动菜单 */
+html body[data-theme="folio"]:not(#fo) .p-points-panel { background: var(--fo-bg); padding: 18px 20px; }
+html body[data-theme="folio"]:not(#fo) .p-points-panel :is(.btn, .p-btn) { border-radius: 0; }
+html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown, .p-popover) {
+    border-radius: 0; border: 1px solid var(--fo-ink); background: var(--fo-bg); box-shadow: 0 24px 48px -24px rgba(27, 27, 29, .4);
+}
+html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown) :is([role="menuitem"], button, a) { border-radius: 0; font-family: var(--fo-display); }
+html body[data-theme="folio"]:not(#fo) :is([role="menu"], .p-menu, .p-dropdown) :is([role="menuitem"], button, a):hover { background: var(--fo-hover); color: var(--fo-ink); }
+/* 消息操作（手机抽屉 / 展开菜单） */
+html body[data-theme="folio"][data-page="chat"] .p-msg-more { border-radius: 0; background: transparent; color: var(--fo-muted); box-shadow: none; }
+html body[data-theme="folio"][data-page="chat"] .p-msg-more[aria-expanded="true"] { color: var(--fo-accent); background: var(--fo-accent-soft); }
+
+/* 登录页：书页化 */
+body[data-theme="folio"] .p-auth-scene { border-radius: 0; }
+body[data-theme="folio"] .p-auth-card { border-radius: 0; box-shadow: none; border: 1px solid #1b1b1d; }
+body[data-theme="folio"] .p-auth-card h1,
+body[data-theme="folio"] .p-auth-scene-copy h2 { font-family: "Noto Serif SC", "Songti SC", "STSong", serif; font-weight: 600; letter-spacing: 0; }
+body[data-theme="folio"] .p-auth-card :is(.p-input, .input) { border-radius: 0; }
+
+/* 验收修复：手机端触控尺寸 + 设置菜单对齐 */
+@media (max-width: 720px) {
+    html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-msg-tools :is(button, .p-msg-tool) { min-height: 40px; padding-inline: 8px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-head-in .btn { min-height: 40px; }
+    html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-toc { align-items: flex-start; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+}
+
+/* 验收修复：法务 / 帮助页走书页版式 */
+html body[data-theme="folio"]:not(#fo) .legal { max-width: 680px; padding-top: 64px; font-family: var(--fo-serif); color: var(--fo-ink); background: transparent; }
+html body[data-theme="folio"]:not(#fo) .legal h1 { font-family: var(--fo-display); font-weight: 700; font-size: 40px; letter-spacing: .02em; padding-bottom: 14px; border-bottom: 3px double var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .legal h2 { font-family: var(--fo-display); font-size: 19px; letter-spacing: .04em; }
+html body[data-theme="folio"]:not(#fo) .legal :is(p, li) { font-family: var(--fo-display); color: var(--fo-copy); font-size: 15px; line-height: 1.95; }
+html body[data-theme="folio"]:not(#fo) .legal .legal-meta { font-family: var(--fo-display); color: var(--fo-muted); letter-spacing: .04em; }
+html body[data-theme="folio"]:not(#fo) .legal .legal-demo { border-radius: 0; border: 0; border-left: 2px solid var(--fo-ink); background: var(--fo-card); color: var(--fo-copy); }
+html body[data-theme="folio"]:not(#fo) .legal .legal-footer { border-top-color: var(--fo-line-strong); color: var(--fo-muted); }
+html body[data-theme="folio"]:not(#fo) .legal .legal-back { color: var(--fo-muted); font-family: var(--fo-display); font-size: 14px; }
+html body[data-theme="folio"]:has(.legal) { background: var(--fo-bg); }
+
+/* 验收修复：404 · 勘误页 */
+html body[data-theme="folio"]:not(#fo) .nf { padding-top: 120px !important; font-family: var(--fo-display); }
+html body[data-theme="folio"]:not(#fo) .nf-kicker { font-family: var(--fo-italic); font-style: italic; font-size: 15px; letter-spacing: .04em; color: var(--fo-muted); text-transform: none; }
+html body[data-theme="folio"]:not(#fo) .nf-kicker::after { content: " · Errata"; }
+html body[data-theme="folio"]:not(#fo) .nf-title { font-family: var(--fo-display) !important; font-size: 44px !important; font-weight: 700; letter-spacing: .02em !important; padding-bottom: 16px; border-bottom: 3px double var(--fo-ink); }
+html body[data-theme="folio"]:not(#fo) .nf-copy { font-size: 15px; color: var(--fo-copy); line-height: 1.9; }
+html body[data-theme="folio"]:not(#fo) .nf-actions .btn { border-radius: 0; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta { justify-content: space-between !important; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose .p-chat-meta > .p-chat-hint { display: none; }
+html body[data-theme="folio"]:not(#fo)[data-page="chat"] .p-chat-compose :is(.p-chat-act, .mp-trigger) { height: 28px; min-height: 0; padding: 0 12px; }
+
+/* 验收修复：弹窗标题栏与外框对齐（去掉白色光圈造成的第二道框线，† 与标题同一行） */
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) { box-shadow: 0 40px 80px -40px rgba(27, 27, 29, .55); }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) { display: flex; align-items: center; gap: 10px; margin: 0; background: transparent; border-radius: 0; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head)::before { margin-right: 0; line-height: 1; align-self: center; }
+html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p-modal-head) :is(h2, h3, strong, .modal-title) { margin: 0; flex: 1 1 auto; min-width: 0; }
+
+/* 书页主题：邀请码框与注册页邀请横幅用直角，和其他卡片一致 */
+body[data-theme="folio"] .gr-code,
+body[data-theme="folio"] .p-auth-invite { border-radius: 0; }
+body[data-theme="folio"] .p-auth-invite-avatar { border-radius: 0; }
+
+/* 继续阅读：书签不足 3 个时，单个书签横跨两栏，末尾补一张「空白书签」引导去广场，避免右侧大片留白 */
+html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child { grid-column: span 2; grid-template-columns: 96px minmax(0, 1fr); }
+html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child :is(img, .fo-bm-initial) { width: 96px; height: 128px; }
+html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child p { -webkit-line-clamp: 3; }
+html body[data-theme="folio"] .fo-bm-blank { border-bottom-style: dashed; }
+html body[data-theme="folio"] .fo-bm-blank .fo-bm-initial { background: transparent; color: var(--fo-muted); border: 1px dashed var(--fo-line-strong); font-weight: 400; }
+html body[data-theme="folio"] .fo-bm-blank h3 { color: var(--fo-copy); }
+html body[data-theme="folio"] .fo-bm-blank:hover h3 { color: var(--fo-ink); }
+@media (max-width: 1180px) {
+  html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child { grid-column: auto; grid-template-columns: 76px minmax(0, 1fr); }
+  html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child :is(img, .fo-bm-initial) { width: 76px; height: 104px; }
+}
+@media (max-width: 760px) {
+  html body[data-theme="folio"] .fo-shelf > .fo-bm-blank { display: none !important; }
+}
+
+/* 桌面设置页：正文栏铺满到标题粗线的右端（原来 780px 封顶，右侧留空）；目录项不折行 */
+@media (min-width: 1024px) {
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings { grid-template-columns: 200px minmax(0, 1fr); gap: 56px; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings-main { max-width: none; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-toc a { white-space: nowrap; }
+}

@@ -1,5 +1,6 @@
 'use client';
 
+import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -232,7 +233,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
               </div>
               <div className="p-chat-row-main">
                 <div className="p-chat-row-title"><span className="p-chat-row-name">{room.name}</span><span className="p-chat-row-session">多角色房间</span></div>
-                <p className="p-chat-row-preview">{room.lastMessage ?? '还没有消息'}</p>
+                <p className="p-chat-row-preview">{room.lastMessage ? cleanPreview(room.lastMessage) : '还没有消息'}</p>
                 <div className="p-library-sub">房间 · {room.count} 条消息</div>
               </div>
             </Link>
@@ -250,7 +251,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
                 </div>
                 <div className="p-chat-row-main">
                   <div className="p-chat-row-title"><span className="p-chat-row-name">{chat.name}</span><span className="p-chat-row-session">{chat.title}</span></div>
-                  <p className="p-chat-row-preview">{chat.lastMessage ?? '还没有消息'}</p>
+                  <p className="p-chat-row-preview">{chat.lastMessage ? cleanPreview(chat.lastMessage) : '还没有消息'}</p>
                   <div className="p-library-sub">本地保存 · {chat.count} 条消息</div>
                 </div>
               </Link>
@@ -350,7 +351,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
           </div>
           <div className="field">
             <label htmlFor="chat-import-file">选择文件</label>
-            <input id="chat-import-file" className="input" type="file" accept=".jsonl,.json,application/json" onChange={(event) => void readImportFile(event.target.files?.[0])} />
+            <FileDrop id="chat-import-file" accept=".jsonl,.json,application/json" title="选择 .jsonl / .json 聊天记录" hint="点击选择，或把 SillyTavern 导出的聊天记录拖到这里" onFile={(file) => void readImportFile(file)} />
           </div>
           <div className="field">
             <label htmlFor="chat-import-text">或粘贴内容</label>
@@ -360,4 +361,8 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
       )}
     </>
   );
+}
+
+function cleanPreview(text: string) {
+  return text.replace(/\*([^*]+)\*/g, '$1').replace(/\(\(([^)]*)\)\)/g, '').replace(/\s+/g, ' ').trim();
 }

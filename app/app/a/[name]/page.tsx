@@ -6,6 +6,8 @@ import { getBlockedAuthors } from '@/lib/blocked';
 import { authorBio } from '@/lib/authors';
 import { AuthorActions } from '@/components/author-actions';
 import { ProtoWorkCard } from '@/components/proto-work-card';
+import { getCurrentUser } from '@/lib/auth';
+import { followerCount, isFollowing } from '@/lib/follows';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +31,9 @@ export default async function AuthorPage({ params }: { params: Promise<{ name: s
   const joined = works.reduce((min, character) => (character.createdAt && (!min || character.createdAt < min) ? character.createdAt : min), 0);
   const joinedText = joined ? ` · 加入于 ${new Date(joined).getFullYear()} 年 ${new Date(joined).getMonth() + 1} 月` : '';
   const bio = authorBio(author);
+  const viewer = await getCurrentUser();
+  const followers = followerCount(author);
+  const following = viewer ? isFollowing(viewer.id, author) : false;
 
   return (
     <div className="p-inner">
@@ -44,11 +49,12 @@ export default async function AuthorPage({ params }: { params: Promise<{ name: s
           <p>@{author} · 创作者{joinedText}</p>
           <div className="p-author-stats">
             <span><strong>{works.length}</strong> 个公开作品</span>
+            <span><strong>{followers}</strong> 人关注</span>
             <span><strong>{totalChats >= 10000 ? `${(totalChats / 10000).toFixed(1)} 万` : totalChats}</strong> 人聊过</span>
           </div>
         </div>
         <div className="p-author-actions">
-          <AuthorActions author={author} initialBlocked={blocked} />
+          <AuthorActions author={author} initialBlocked={blocked} initialFollowing={following} initialFollowers={followers} signedIn={Boolean(viewer)} />
         </div>
       </section>
 

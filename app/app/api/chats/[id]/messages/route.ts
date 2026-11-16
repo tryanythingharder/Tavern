@@ -1,3 +1,4 @@
+import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import {
   addMessage,
@@ -17,6 +18,7 @@ import { loadGenerationConfig } from '@/lib/resources-db';
 import { memorySettings, ragChunks, refreshSummary, snapshotChat } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
+import { dailyFreeRemaining } from '@/lib/growth';
 import { toMessageView } from '@/lib/chat-view';
 
 export const dynamic = 'force-dynamic';
@@ -59,6 +61,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const body = (await request.json().catch(() => ({}))) as { text?: string };
   const text = String(body.text ?? '').trim();
   if (!text) return fail('消息不能为空', 400);
+  if (text) {
+    const verdict = await moderateText(text);
+    if (!verdict.ok) return fail(verdict.message, 422);
+  }
 
   // 先校验再落库：被限流时不该留下一条没有回复的玩家消息
   const quota = checkQuota(user.id);
@@ -90,13 +96,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     card: getOverride(user.id, chat.character_id),
   });
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
-  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens);
-  const reservation = reservePoints(user.id, maxCost, '对话生成', `chat:${chatId}`);
+  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens, modelName(chat.model));
+  const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) {
     deleteMessage(userMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
   }
-  const generationId = startGeneration(user.id, chatId, 'send', modelName());
+  const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -112,7 +118,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
           if (event.type === 'content') {
             full += event.text;
             send({ type: 'delta', text: event.text });
@@ -124,17 +130,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
         finishGeneration(generationId, { status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens), `chat:${chatId}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, modelName(chat.model)), `chat:${chatId}`);
         settled = true;
         // 展示正则只作用于角色输出；落库的是处理后的文本
         const finalText = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
           snapshotChat(chatId, user.id);
-          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, balance: settlement.balance });
+          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         } else {
           touchChat(chatId);
-          send({ type: 'done', messageId: null, cost: settlement.cost, balance: settlement.balance });
+          send({ type: 'done', messageId: null, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         }
       } catch (error) {
         // 中断或失败时，把已经生成的部分保存下来，并按实际 token 结算预扣
@@ -149,7 +155,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full)), `chat:${chatId}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), modelName(chat.model)), `chat:${chatId}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

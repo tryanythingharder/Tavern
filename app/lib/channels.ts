@@ -180,6 +180,30 @@ export function channelRoutes(): ModelRoute[] {
     .map((channel) => ({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, model: channel.defaultModel }));
 }
 
+// 玩家可选的模型：所有启用渠道的模型列表去重，记录来自哪些渠道（不暴露地址和密钥）。
+export type SelectableModel = { id: string; channels: string[]; isDefault: boolean };
+export function channelModels(): SelectableModel[] {
+  const map = new Map<string, SelectableModel>();
+  const usable = listChannels().filter((channel) => channel.enabled && channel.baseUrl && channel.apiKey);
+  usable.forEach((channel, index) => {
+    for (const model of channel.models.length ? channel.models : [channel.defaultModel]) {
+      if (!model) continue;
+      const item = map.get(model) ?? { id: model, channels: [], isDefault: false };
+      if (!item.channels.includes(channel.name)) item.channels.push(channel.name);
+      if (index === 0 && model === channel.defaultModel) item.isDefault = true;
+      map.set(model, item);
+    }
+  });
+  return [...map.values()];
+}
+
+// 指定模型的线路：只走「模型列表里有它」的启用渠道，按优先级排；没有则返回空数组（调用方回落默认）。
+export function channelRoutesFor(model: string): ModelRoute[] {
+  return listChannels()
+    .filter((channel) => channel.enabled && channel.baseUrl && channel.apiKey && (channel.models.includes(model) || channel.defaultModel === model))
+    .map((channel) => ({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, model }));
+}
+
 // GET {baseUrl}/models：兼容 data[] / models[] / 顶层数组三种返回。
 export async function fetchUpstreamModels(baseUrl: string, apiKey: string): Promise<string[]> {
   const base = baseUrl.trim().replace(/\/+$/, '');

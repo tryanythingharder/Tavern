@@ -1,0 +1,1159 @@
+/* 自动生成：源文件 work/stage/stage.src.css（$S = html body[data-theme="stage"]:not(.p-cinema)） */
+/* =========================================================================
+   戏台 STAGE — 角色是卡，聊天是一场戏。
+   所有选择器都挂在 body[data-theme="stage"] 下（前缀带 html 与 :not(.p-cinema) 以压过原型层的特异度）。
+   只用灰阶 + 靛蓝；动效在 prefers-reduced-motion 下全部降级。
+   ========================================================================= */
+
+html body[data-theme="stage"]:not(.p-cinema) {
+  --stg-bg: #f7f7f8; --stg-rail: #fbfbfb; --stg-card: #ffffff; --stg-sunken: #ebebec; --stg-hover: #f0f0f1;
+  --stg-ink: #1b1b1d; --stg-copy: #4a4a50; --stg-muted: #77777e; --stg-line: #e6e6e8; --stg-line-strong: #d5d5d9;
+  --stg-accent: #4b5bf5; --stg-accent-soft: #eceefe; --stg-player: #f1f2fb;
+  --stg-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --stg-serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --stg-ital: "C059", Georgia, "DejaVu Serif", "Times New Roman", serif;
+  --stg-r: 28px;
+  --stg-sheen: linear-gradient(135deg, #ffffff 0%, #f4f4f5 38%, #ffffff 52%, #ebebec 100%);
+  --stg-shadow: 0 1px 0 rgba(27, 27, 29, .04), 0 12px 32px -12px rgba(27, 27, 29, .18);
+  --stg-shadow-lg: 0 2px 0 rgba(27, 27, 29, .04), 0 40px 80px -30px rgba(27, 27, 29, .45);
+  --stg-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --stg-out: cubic-bezier(.2, .8, .2, 1);
+  --pp-font: var(--stg-sans); --font: var(--stg-sans); --ca-sans: var(--stg-sans);
+  font-family: var(--stg-sans);
+  background: var(--stg-bg);
+  color: var(--stg-ink);
+  -webkit-font-smoothing: antialiased;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-ital { font-family: var(--stg-ital); font-style: italic; font-weight: 400; letter-spacing: 0; }
+
+/* ---------- 通用按钮 ---------- */
+html body[data-theme="stage"]:not(.p-cinema) .stg-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px;
+  border-radius: 999px; border: 0; font: 700 14px/1 var(--stg-sans); text-decoration: none; cursor: pointer;
+  transition: transform .25s var(--stg-spring), box-shadow .25s ease, background-color .2s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-btn:hover { transform: translateY(-2px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-btn--ink { background: var(--stg-ink); color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-btn--indigo { background: var(--stg-accent); color: #fff; box-shadow: 0 10px 24px -10px rgba(75, 91, 245, .8); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-btn--ghost { background: #fff; color: var(--stg-ink); border: 1px solid var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) :is(.stg-btn, .stg-st, .stg-q, .stg-step, .stg-shuffle, .stg-seg button, .stg-arrows button):focus-visible,
+html body[data-theme="stage"]:not(.p-cinema) :is(.stg-cc-in, .stg-ticket, .stg-pcard, .stg-go, .stg-dc--top):focus-visible {
+  outline: 2px solid var(--stg-accent); outline-offset: 3px;
+}
+
+/* =========================================================================
+   全局外壳：桌面端把侧栏改成顶部导航（品牌 + 横向标签），右侧沿用原顶栏
+   ========================================================================= */
+html body[data-theme="stage"]:not(.p-cinema) .p-shell, html body[data-theme="stage"]:not(.p-cinema) .p-main { background: var(--stg-bg); }
+
+@media (min-width: 1024px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-shell { display: block; grid-template-columns: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side {
+    position: fixed; top: 0; left: 0; z-index: 60;
+    height: 64px; width: auto; max-width: 60vw;
+    flex-direction: row; align-items: center; gap: 0;
+    padding: 0 0 0 32px; background: transparent; border: 0; box-shadow: none; overflow: visible;
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-brand { padding: 0; gap: 10px; flex: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-brand .p-mark {
+    width: 34px; height: 34px; border-radius: 11px; background: var(--stg-ink); color: #fff;
+    font-family: var(--stg-serif); font-weight: 700; font-size: 18px;
+    transform: rotate(-6deg); box-shadow: 0 6px 14px -6px rgba(27, 27, 29, .6);
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-brand:hover .p-mark { transform: rotate(-14deg) scale(1.06); }
+  html body[data-theme="stage"]:not(.p-cinema) .p-brand-name { font-size: 20px; font-weight: 700; letter-spacing: -.04em; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-brand::after { content: "the stage"; font: italic 400 13px/1 var(--stg-ital); color: var(--stg-muted); margin-left: 2px; white-space: nowrap; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side > .p-nav:not(.p-side-recents) { flex-direction: row; gap: 4px; margin: 0 0 0 36px; padding: 0; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side .p-nav-item {
+    position: relative; height: auto; padding: 8px 14px; gap: 0; border-radius: 999px;
+    font-size: 14px; font-weight: 400; color: var(--stg-copy); background: transparent; box-shadow: none; white-space: nowrap;
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side .p-nav-item .p-icon { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side .p-nav-item:hover { background: var(--stg-hover); color: var(--stg-ink); }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side .p-nav-item[aria-current="page"] { color: var(--stg-ink); font-weight: 700; background: transparent; box-shadow: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side .p-nav-item[aria-current="page"]::before {
+    content: ""; position: absolute; left: auto; right: 6px; top: 7px; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--stg-accent); transform: none; animation: none;
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side .p-nav-item[aria-current="page"]::after {
+    content: ""; position: absolute; left: 50%; bottom: -10px; width: 18px; height: 3px; border-radius: 3px;
+    background: var(--stg-accent); transform: translateX(-50%);
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-side :is(.p-nav-label, .p-side-recents, .p-side-recent, .p-side-foot) { display: none; }
+
+  html body[data-theme="stage"]:not(.p-cinema) .p-topbar {
+    position: sticky; top: 0; z-index: 50; height: 64px; justify-content: flex-end; gap: 12px;
+    padding: 0 32px 0 560px; background: rgba(247, 247, 248, .82); border: 0; box-shadow: none;
+    -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2);
+  }
+  html body[data-theme="stage"]:not(.p-cinema).is-scrolled .p-topbar { background: rgba(247, 247, 248, .86); box-shadow: 0 10px 30px -24px rgba(27, 27, 29, .4); }
+  html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search { width: 300px; flex: none; margin-right: auto; margin-left: auto; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-topbar-search { display: grid; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-brand::after { display: none; }
+}
+
+html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search {
+  height: 40px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); box-shadow: none;
+}
+html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; font-size: 13px; padding-left: 40px; }
+html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search kbd { font: 11px var(--stg-sans); border-radius: 7px; background: var(--stg-sunken); color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .p-topbar > .p-avatar {
+  width: 38px; height: 38px; border-radius: 50%; background: var(--stg-accent-soft); color: var(--stg-accent);
+  font-weight: 700; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--stg-line);
+}
+html body[data-theme="stage"]:not(.p-cinema) .p-topbar :is(.p-topbar-icon, .p-points-trigger) { border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); }
+html body[data-theme="stage"]:not(.p-cinema) .th-switch { background: var(--stg-sunken); border-radius: 999px; padding: 3px; border: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .th-switch button[aria-pressed="true"], html body[data-theme="stage"]:not(.p-cinema) .th-switch button.is-active { background: var(--stg-ink); color: #fff; }
+
+/* 公告条：一枚贴纸 */
+html body[data-theme="stage"]:not(.p-cinema) .p-announcement { border-radius: 999px; box-shadow: 0 0 0 3px #fff, 0 6px 14px -8px rgba(27, 27, 29, .35); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="home"] .p-announcement { margin-bottom: 26px; }
+
+/* 移动端底部标签栏 */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-tabbar {
+    left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); height: 62px; padding: 0 6px;
+    border-radius: 24px; border: 1px solid var(--stg-line); background: rgba(255, 255, 255, .9);
+    box-shadow: var(--stg-shadow-lg);
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-tabbar a { position: relative; color: var(--stg-muted); }
+  html body[data-theme="stage"]:not(.p-cinema) .p-tabbar a[aria-current="page"] { color: var(--stg-ink); font-weight: 700; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-tabbar a[aria-current="page"]::after {
+    content: ""; position: absolute; bottom: 6px; left: 50%; width: 16px; height: 3px; border-radius: 3px;
+    background: var(--stg-accent); transform: translateX(-50%);
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .p-topbar { background: rgba(247, 247, 248, .86); border: 0; }
+}
+
+/* =========================================================================
+   首页
+   ========================================================================= */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="home"] .p-inner.stg-home {
+  max-width: 1480px; margin: 0 auto; padding: 20px 32px 0; overflow-x: clip;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-home { position: relative; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-home a { text-decoration: none; color: inherit; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-rise { animation: stg-rise .9s var(--stg-spring) both; }
+@keyframes stg-rise { from { opacity: 0; transform: translateY(40px) scale(.97); } }
+
+html body[data-theme="stage"]:not(.p-cinema) .stg-bento { display: grid; grid-template-columns: 7fr 5fr; gap: 16px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-tile { position: relative; background: var(--stg-card); border-radius: var(--stg-r); box-shadow: var(--stg-shadow); border: 1px solid rgba(27, 27, 29, .04); }
+
+/* 主推卡 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-feat { height: 624px; overflow: visible; isolation: isolate; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-sheen { position: absolute; inset: 0; border-radius: var(--stg-r); background: var(--stg-sheen); overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-sheen::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 79px, rgba(27, 27, 29, .035) 79px 80px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-feat-meta { position: absolute; left: 40px; top: 36px; width: min(350px, calc(100% - 420px)); z-index: 3; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-serial { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--stg-copy); letter-spacing: .12em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-serial b { color: var(--stg-ink); font-size: 12px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--stg-accent); box-shadow: 0 0 0 4px var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-feat h2 { margin: 26px 0 0; font-family: var(--stg-serif); font-weight: 700; font-size: 27px; line-height: 1.35; letter-spacing: -.02em; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-feat h2 .stg-ital { display: block; font-size: 17px; color: var(--stg-muted); margin-bottom: 8px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-quote {
+  margin: 18px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--stg-ink); font-size: 14px; line-height: 1.85; color: var(--stg-copy);
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-quote .rp-p { margin: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-quote .rp-say { color: var(--stg-ink); font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-quote .rp-act { font-style: normal; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-facts { display: flex; gap: 22px; margin-top: 26px; font-size: 12px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-facts b { display: block; color: var(--stg-ink); font-size: 20px; letter-spacing: -.03em; margin-bottom: 2px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+
+/* 立绘卡：倾斜的收藏卡 + 灰度背卡 + 旋转印章 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-tilt { --rx: 0deg; --ry: 0deg; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-portrait { position: absolute; right: 40px; top: -30px; width: 316px; height: 440px; z-index: 2; perspective: 1200px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard {
+  position: absolute; inset: 0; display: block; border-radius: 24px; background: #fff; padding: 10px;
+  box-shadow: var(--stg-shadow-lg); transform-style: preserve-3d; transition: transform .5s var(--stg-spring);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard-img { position: relative; width: 100%; height: 100%; border-radius: 16px; overflow: hidden; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard-img .stg-art { width: 100%; height: 100%; object-fit: cover; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard--main { transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateZ(0) rotate(5deg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-portrait.is-tilting .stg-pcard--main { transition: transform .12s ease-out; transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateZ(10px) rotate(5deg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard--back { transform: rotate(-8deg) translate(-40px, 40px) scale(.9); filter: grayscale(1) contrast(.9); opacity: .95; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard--back .stg-pcard-img::after { content: ""; position: absolute; inset: 0; background: rgba(247, 247, 248, .25); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 60%, rgba(11, 11, 14, .55)); pointer-events: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard-cap { position: absolute; left: 22px; right: 22px; bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; color: #fff; font-size: 11px; letter-spacing: .14em; z-index: 2; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pcard-cap .stg-ital { font-size: 15px; letter-spacing: 0; white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-glare {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  background: radial-gradient(circle at var(--mx, 30%) var(--my, 20%), rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 45%);
+  mix-blend-mode: soft-light;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-stamp {
+  position: absolute; right: -18px; top: 66px; z-index: 4; width: 92px; height: 92px; border-radius: 50%;
+  background: var(--stg-accent); color: #fff; display: grid; place-items: center; text-align: center;
+  font-size: 12px; font-weight: 700; line-height: 1.2; transform: rotate(14deg);
+  box-shadow: 0 14px 30px -10px rgba(75, 91, 245, .9); animation: stg-spin 18s linear infinite;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-stamp svg { position: absolute; inset: 0; width: 100%; height: 100%; font-family: var(--stg-sans); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stamp span { font-size: 22px; letter-spacing: -.04em; }
+@keyframes stg-spin { to { transform: rotate(374deg); } }
+html body[data-theme="stage"]:not(.p-cinema) .stg-giant {
+  position: absolute; left: -12px; bottom: -66px; z-index: 5; font-family: var(--stg-sans);
+  font-weight: 700; font-size: var(--giant, 236px); line-height: .8; letter-spacing: -.075em; color: var(--stg-ink);
+  white-space: nowrap; pointer-events: none;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-giant .stg-ital { position: absolute; left: 26px; top: -34px; font-size: 22px; color: var(--stg-muted); }
+
+/* 右列 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-rcol { display: grid; grid-template-rows: 308px 300px; gap: 16px; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-script { overflow: hidden; color: #fff; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-script > .stg-script-bg {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 64%; height: 100%; object-fit: cover;
+  transform: scale(1.05); transition: transform 1.2s var(--stg-out);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-script:hover > .stg-script-bg { transform: scale(1.1); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-script::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, #141418 0%, #141418 36%, rgba(20, 20, 24, .35) 62%, rgba(11, 11, 14, 0)); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-script-top { position: absolute; z-index: 2; left: 24px; right: 24px; top: 22px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .14em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-script-top b { display: flex; align-items: center; gap: 8px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-script-top b i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: stg-blink 1.6s infinite; }
+@keyframes stg-blink { 50% { opacity: .25; } }
+html body[data-theme="stage"]:not(.p-cinema) .stg-glass {
+  position: absolute; z-index: 2; left: 16px; bottom: 16px; width: min(330px, calc(100% - 32px)); padding: 20px 22px; border-radius: 22px;
+  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3); backdrop-filter: blur(20px) saturate(1.3);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-glass > .stg-ital { font-size: 14px; opacity: .75; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-glass h3 { font-size: 30px; font-weight: 700; letter-spacing: -.05em; line-height: 1.1; margin: 4px 0 10px; color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-glass p { margin: 0; font-size: 13px; line-height: 1.7; color: rgba(255, 255, 255, .82); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cast { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cast > .stg-art { width: 30px; height: 30px; flex: none; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, .9); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cast .stg-me { width: 30px; height: 30px; flex: none; margin-left: -18px; border-radius: 50%; background: var(--stg-accent); color: #fff; font-style: normal; font-size: 12px; font-weight: 700; display: grid; place-items: center; border: 2px solid rgba(255, 255, 255, .9); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cast span { font-size: 12px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-go { margin-left: auto; flex: none; height: 34px; padding: 0 14px; border-radius: 999px; background: #fff; color: var(--stg-ink) !important; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: transform .3s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-go:hover { transform: translateX(3px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-chip-w { position: absolute; z-index: 2; right: 22px; bottom: 22px; padding: 7px 12px; border-radius: 999px; background: #fff; color: var(--stg-ink); font-size: 12px; font-weight: 700; transform: rotate(-4deg); box-shadow: 0 8px 20px -8px rgba(0, 0, 0, .6); }
+
+html body[data-theme="stage"]:not(.p-cinema) .stg-duo { display: grid; grid-template-columns: minmax(200px, 236px) minmax(0, 1fr); gap: 16px; min-height: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stats { padding: 22px 22px 18px; display: flex; flex-direction: column; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-lab { font-size: 12px; color: var(--stg-copy); letter-spacing: .12em; display: flex; justify-content: space-between; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-num { font-size: 64px; font-weight: 700; letter-spacing: -.07em; line-height: 1; margin-top: 14px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-num small { font-size: 26px; letter-spacing: -.02em; margin-left: 4px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-delta { align-self: flex-start; margin-top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--stg-accent-soft); color: var(--stg-accent); font-size: 12px; font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-bars { margin-top: auto; display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-bars i { flex: 1; border-radius: 3px; background: var(--stg-line-strong); transform-origin: bottom; animation: stg-grow .9s var(--stg-spring) both; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-bars i.is-hi { background: var(--stg-accent); }
+@keyframes stg-grow { from { transform: scaleY(.1); } }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stats > .stg-ital { font-size: 13px; color: var(--stg-copy); margin-top: 10px; }
+
+/* 抽一张 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-deck { background: var(--stg-ink); color: #fff; overflow: hidden; padding: 22px 24px; display: flex; flex-direction: column; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-deck::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 80% 70%, rgba(255, 255, 255, .09), transparent 55%); pointer-events: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-deck .stg-lab { color: #8b8b96; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-deck h3 { font-size: 52px; font-weight: 700; letter-spacing: -.07em; line-height: 1; margin: 12px 0 0; color: #fff; position: relative; z-index: 1; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-deck p { font-size: 13px; color: #c9c9d1; line-height: 1.6; margin: 8px 0 0; position: relative; z-index: 1; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shuffle {
+  position: relative; z-index: 3; margin-top: auto; align-self: flex-start; height: 38px; padding: 0 16px; border: 0; border-radius: 999px;
+  background: #fff; color: var(--stg-ink); font: 700 13px/1 var(--stg-sans); display: flex; align-items: center; gap: 8px; cursor: pointer;
+  transition: transform .3s var(--stg-spring);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-shuffle:hover:not(:disabled) { transform: rotate(-3deg) scale(1.04); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack { position: absolute; right: 22px; bottom: -56px; width: 136px; height: 192px; perspective: 900px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc { position: absolute; inset: 0; display: block; border-radius: 16px; transform-style: preserve-3d; transition: transform .6s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-f, html body[data-theme="stage"]:not(.p-cinema) .stg-dc-b { position: absolute; inset: 0; border-radius: 16px; -webkit-backface-visibility: hidden; backface-visibility: hidden; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-f { background: var(--stg-sheen); border: 1px solid #fff; display: grid; place-items: center; box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .6); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-f::before { content: ""; position: absolute; inset: 8px; border-radius: 10px; border: 1px solid var(--stg-line-strong); background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(27, 27, 29, .04) 6px 7px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-f em { position: relative; font-style: normal; font-family: var(--stg-serif); font-weight: 700; font-size: 44px; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-f small { position: absolute; bottom: 16px; font-size: 9px; letter-spacing: .3em; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-b { transform: rotateY(180deg); background: #000; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-b .stg-art { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc-b > span { position: absolute; left: 10px; bottom: 10px; right: 10px; color: #fff; font-weight: 700; font-size: 22px; letter-spacing: -.05em; text-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc:nth-child(1) { transform: rotate(-16deg) translate(-34px, 14px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc:nth-child(2) { transform: rotate(-7deg) translate(-14px, 4px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc:nth-child(3) { transform: rotate(3deg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dc--top { transform: rotate(11deg) translate(16px, -4px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-show .stg-dc--top { transform: rotate(5deg) translate(-4px, -58px) rotateY(180deg) scale(1.04); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-show .stg-dc--top:hover { transform: rotate(2deg) translate(-4px, -70px) rotateY(180deg) scale(1.08); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-shuffle .stg-dc:nth-child(1) { animation: stg-sh1 .9s cubic-bezier(.5, 0, .2, 1); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-shuffle .stg-dc:nth-child(2) { animation: stg-sh2 .9s cubic-bezier(.5, 0, .2, 1); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-shuffle .stg-dc:nth-child(3) { animation: stg-sh1 .9s .08s cubic-bezier(.5, 0, .2, 1); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-shuffle .stg-dc--top { animation: stg-sh2 .9s .08s cubic-bezier(.5, 0, .2, 1); }
+@keyframes stg-sh1 { 40% { transform: translate(-90px, -10px) rotate(-24deg); } 70% { transform: translate(0, -20px) rotate(4deg); } }
+@keyframes stg-sh2 { 40% { transform: translate(60px, 10px) rotate(20deg); } 70% { transform: translate(0, 10px) rotate(-4deg); } }
+
+/* 立绘兜底：没有图的角色 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-art--none { display: grid; place-items: center; width: 100%; height: 100%; background: var(--stg-ink); color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-art--none b { font-family: var(--stg-serif); font-size: 64px; font-weight: 700; opacity: .9; }
+
+/* 心情贴纸 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-moods { position: relative; z-index: 6; margin: 30px 0 0 690px; display: flex; flex-direction: column; gap: 16px; padding: 0 4px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-moods-head { display: flex; align-items: baseline; gap: 12px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-moods-head b { font-size: 30px; letter-spacing: -.05em; line-height: 1; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-moods-head .stg-ital { font-size: 14px; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-stickers { display: flex; flex-wrap: wrap; gap: 10px 8px; align-items: center; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st {
+  display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  background: #fff; font: 700 14px/1 var(--stg-sans); color: var(--stg-ink); border: 1px solid var(--stg-line);
+  box-shadow: 0 0 0 3px #fff, 0 6px 14px -8px rgba(27, 27, 29, .45);
+  transform: rotate(var(--rot, 0deg)); transition: transform .3s var(--stg-spring), background-color .2s ease, color .2s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-st:hover { animation: stg-wobble .6s var(--stg-spring); }
+@keyframes stg-wobble {
+  0% { transform: rotate(var(--rot, 0deg)) scale(1); }
+  30% { transform: rotate(calc(var(--rot, 0deg) - 8deg)) scale(1.12); }
+  60% { transform: rotate(calc(var(--rot, 0deg) + 6deg)) scale(1.06); }
+  100% { transform: rotate(var(--rot, 0deg)) scale(1); }
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on { background: var(--stg-accent); color: #fff; border-color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st--dark { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st--soft { background: var(--stg-accent-soft); color: var(--stg-accent); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st small { font-weight: 400; color: var(--stg-copy); font-size: 12px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on small { color: rgba(255, 255, 255, .75); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-hash { color: var(--stg-muted); font-weight: 400; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on .stg-hash, html body[data-theme="stage"]:not(.p-cinema) .stg-st--dark .stg-hash { color: rgba(255, 255, 255, .55); }
+
+/* 卡册 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-sec { scroll-margin-top: 80px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-top: 88px; padding: 0 4px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h h2 { margin: 0; font-size: 120px; font-weight: 700; line-height: .78; letter-spacing: -.08em; display: flex; align-items: flex-start; gap: 18px; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h h2 .stg-cnt { font-size: 20px; letter-spacing: 0; margin-top: 4px; padding: 4px 10px; border-radius: 999px; background: var(--stg-ink); color: #fff; line-height: 1.2; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h h2 .stg-ital { font-size: 20px; color: var(--stg-muted); align-self: flex-end; margin-bottom: 6px; white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-ctl { display: flex; align-items: center; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-seg { display: flex; padding: 4px; border-radius: 999px; background: var(--stg-sunken); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-seg :is(button, a) { display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 13px/1 var(--stg-sans); color: var(--stg-copy); cursor: pointer; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-seg .is-on { background: #fff; color: var(--stg-ink); font-weight: 700; box-shadow: 0 2px 6px rgba(27, 27, 29, .08); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-arrows { display: flex; gap: 8px; margin-left: 14px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-arrows button { width: 42px; height: 42px; border-radius: 50%; background: #fff; border: 1px solid var(--stg-line-strong); display: grid; place-items: center; font-size: 16px; color: var(--stg-ink); cursor: pointer; transition: transform .3s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-arrows button:last-child { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-arrows button:hover { transform: scale(1.08); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf {
+  display: flex; gap: 22px; overflow-x: auto; scroll-padding-left: 32px; padding: 40px 32px 64px; margin: 0 -32px;
+  scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-shelf::-webkit-scrollbar { display: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc { flex: none; width: 300px; scroll-snap-align: start; perspective: 1000px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-tilt { height: 100%; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-in {
+  position: relative; display: block; height: 100%; background: #fff; border-radius: var(--stg-r); padding: 10px 10px 16px; color: var(--stg-ink);
+  box-shadow: var(--stg-shadow); transform-style: preserve-3d;
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px)) rotate(var(--rot, 0deg));
+  transition: transform .5s var(--stg-spring), box-shadow .4s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-tilt.is-tilting .stg-cc-in { transition: transform .12s ease-out, box-shadow .4s ease; transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(calc(var(--lift, 0px) - 6px)) translateZ(10px) rotate(var(--rot, 0deg)); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-in:hover { box-shadow: var(--stg-shadow-lg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ph { position: relative; height: 300px; border-radius: 20px; overflow: hidden; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ph .stg-art { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; transition: transform .8s var(--stg-out); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-in:hover .stg-cc-ph .stg-art { transform: scale(1.06); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 11, 14, .35), transparent 30%, transparent 70%, rgba(11, 11, 14, .35)); pointer-events: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-no { position: absolute; z-index: 2; left: 14px; top: 12px; color: #fff; font-size: 11px; letter-spacing: .16em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-no b { display: block; font-size: 22px; letter-spacing: -.04em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-cnt { position: absolute; z-index: 2; right: 12px; top: 12px; height: 28px; padding: 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .3); color: #fff; font-size: 11px; display: flex; align-items: center; gap: 5px; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-r18 { position: absolute; z-index: 2; left: 14px; bottom: 12px; padding: 3px 8px; border-radius: 6px; background: var(--stg-ink); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-body { padding: 16px 8px 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-nm { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-nm b { font-size: 34px; letter-spacing: -.07em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-nm .stg-ital { font-size: 13px; color: var(--stg-copy); white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-hook { margin: 10px 0 0; font-size: 13px; line-height: 1.7; color: var(--stg-copy); height: 44px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-tg { display: flex; gap: 6px; margin-top: 12px; min-height: 24px; flex-wrap: wrap; height: 24px; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-tg span { height: 24px; padding: 0 9px; border-radius: 999px; background: var(--stg-hover); font-size: 11px; color: var(--stg-copy); display: flex; align-items: center; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ft { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ft small { font-size: 11px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ft small b { display: block; color: var(--stg-ink); font-size: 13px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-open { height: 38px; padding: 0 16px; border-radius: 999px; background: var(--stg-ink); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: background-color .2s ease, transform .3s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc-in:hover .stg-open { background: var(--stg-accent); transform: translateX(2px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc--new .stg-cc-in, html body[data-theme="stage"]:not(.p-cinema) .stg-cc--empty .stg-cc-in {
+  min-height: 520px; background: transparent; border: 2px dashed var(--stg-line-strong); box-shadow: none; transform: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc--new .stg-cc-in:hover { border-color: var(--stg-ink); background: rgba(255, 255, 255, .6); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-plus { width: 72px; height: 72px; border-radius: 24px; background: #fff; display: grid; place-items: center; font-size: 34px; box-shadow: var(--stg-shadow); transform: rotate(-8deg); transition: transform .4s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc--new .stg-cc-in:hover .stg-plus { transform: rotate(8deg) scale(1.08); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc--new b, html body[data-theme="stage"]:not(.p-cinema) .stg-cc--empty b { font-size: 26px; letter-spacing: -.05em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cc--new p { margin: 0; font-size: 13px; color: var(--stg-copy); line-height: 1.6; }
+
+/* 接着演 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-continue { margin-top: 8px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-sec-h { display: flex; align-items: baseline; gap: 12px; padding: 0 4px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-sec-h h2 { margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.07em; line-height: 1; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-sec-h .stg-ital { font-size: 16px; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-more { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--stg-copy) !important; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-more:hover { color: var(--stg-accent) !important; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 22px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket {
+  position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr) 84px; align-items: stretch; min-height: 104px;
+  background: #fff; border-radius: 22px; box-shadow: var(--stg-shadow); overflow: hidden; color: var(--stg-ink);
+  transform: rotate(var(--rot, 0deg)); transition: transform .4s var(--stg-spring), box-shadow .3s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket:hover { transform: rotate(0deg) translateY(-4px); box-shadow: var(--stg-shadow-lg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-ph { position: relative; margin: 10px 0 10px 10px; border-radius: 14px; overflow: hidden; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-ph .stg-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-ph .stg-art--none b { font-size: 30px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-main { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 14px 16px; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-top b { font-size: 20px; letter-spacing: -.05em; white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-top small { font-size: 12px; color: var(--stg-copy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-last { font-size: 13px; line-height: 1.6; color: var(--stg-copy); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-stub { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-left: 2px dashed var(--stg-line-strong); background: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-stub b { font-size: 26px; letter-spacing: -.06em; line-height: 1; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-stub small { font-size: 11px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket-stub em { margin-top: 6px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket::before, html body[data-theme="stage"]:not(.p-cinema) .stg-ticket::after { content: ""; position: absolute; right: 76px; width: 16px; height: 16px; border-radius: 50%; background: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket::before { top: -8px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-ticket::after { bottom: -8px; }
+
+html body[data-theme="stage"]:not(.p-cinema) .stg-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 72px -32px 0; padding: 28px 32px 36px; border-top: 1px solid var(--stg-line); font-size: 12px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-foot b { color: var(--stg-ink); font-size: 16px; letter-spacing: -.04em; }
+
+/* 首页：中等宽度 */
+@media (max-width: 1279px) {
+  html body[data-theme="stage"]:not(.p-cinema) .stg-feat-meta { width: min(330px, calc(100% - 380px)); left: 32px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-portrait { width: 280px; height: 400px; right: 28px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-feat h2 { font-size: 23px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-moods { margin-left: min(690px, 52%); }
+}
+@media (max-width: 1199px) {
+  html body[data-theme="stage"]:not(.p-cinema) .stg-bento { grid-template-columns: minmax(0, 1fr); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-rcol { grid-template-rows: none; grid-template-columns: 1.2fr 1fr; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-script { min-height: 308px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-duo { grid-template-columns: minmax(0, 1fr); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stats { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-rcol { margin-top: 40px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-moods { margin: 40px 0 0; }
+}
+
+/* 首页：手机 */
+@media (max-width: 720px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="home"] .p-inner.stg-home { padding: 12px 16px 110px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-feat { height: auto; padding: 28px 22px 150px; border-radius: 26px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-feat-meta { position: relative; left: auto; top: auto; width: auto; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-feat h2 { margin-top: 18px; font-size: 21px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-quote { font-size: 13px; -webkit-line-clamp: 3; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-facts { gap: 18px; margin-top: 18px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-facts b { font-size: 17px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-portrait { position: relative; right: auto; top: auto; width: 220px; height: 300px; margin: 30px auto 0; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-pcard--back { transform: rotate(-8deg) translate(-30px, 26px) scale(.9); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stamp { width: 76px; height: 76px; right: -22px; top: 30px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stamp span { font-size: 18px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-giant { font-size: min(var(--giant, 236px), 26vw); left: -6px; bottom: -40px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-giant .stg-ital { font-size: 16px; top: -26px; left: 14px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-rcol { grid-template-columns: minmax(0, 1fr); margin-top: 56px; gap: 14px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-script { min-height: 340px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-script > .stg-script-bg { width: 100%; opacity: .7; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-script::before { background: linear-gradient(180deg, rgba(20, 20, 24, .55) 0%, rgba(20, 20, 24, .2) 40%, rgba(20, 20, 24, .85) 100%); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-glass { left: 12px; right: 12px; bottom: 12px; width: auto; padding: 16px 18px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-glass h3 { font-size: 24px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-chip-w { top: 56px; bottom: auto; right: 16px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-duo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stats { display: flex; padding: 18px 16px 14px; min-height: 250px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-num { font-size: 44px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-num small { font-size: 18px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stats > .stg-ital { font-size: 11px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-deck { padding: 18px 16px; min-height: 250px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-deck h3 { font-size: 38px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-deck p { font-size: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stack { width: 96px; height: 136px; right: 10px; bottom: -40px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stack.is-show .stg-dc--top { transform: rotate(5deg) translate(-4px, -44px) rotateY(180deg) scale(1.04); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-dc-f em { font-size: 30px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-dc-b > span { font-size: 16px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-shuffle { height: 34px; padding: 0 12px; font-size: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-moods { margin-top: 36px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-moods-head b { font-size: 26px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-st { height: 34px; padding: 0 12px; font-size: 13px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h { margin-top: 56px; flex-direction: column; align-items: flex-start; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h h2 { font-size: 76px; gap: 10px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h h2 .stg-ital { font-size: 15px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-shelf-h h2 .stg-cnt { font-size: 15px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-arrows { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-shelf { padding: 28px 16px 40px; margin: 0 -16px; scroll-padding-left: 16px; gap: 14px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-cc { width: 76vw; max-width: 300px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-cc-ph { height: 260px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-cc-nm b { font-size: 28px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-sec-h h2 { font-size: 34px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-tickets { grid-template-columns: minmax(0, 1fr); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-ticket { grid-template-columns: 64px minmax(0, 1fr) 72px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-ticket::before, html body[data-theme="stage"]:not(.p-cinema) .stg-ticket::after { right: 64px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-foot { margin: 48px -16px 0; padding: 22px 16px; flex-wrap: wrap; }
+}
+
+/* =========================================================================
+   对话页：三区戏台（左角色卡 · 中央消息卡 · 右章节导轨）
+   ========================================================================= */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-shell { display: block; grid-template-columns: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-side { display: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-main { background: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-inner { padding: 0; }
+
+html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] {
+  display: grid; grid-template-columns: 340px minmax(0, 1fr) 72px; grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "card chat rail"; gap: 16px; padding: 16px; box-sizing: border-box;
+  width: 100%; height: 100%; min-height: 0; overflow: hidden; background: var(--stg-bg);
+}
+html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] > .p-rp-context { display: none; }
+html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] > .stg-char { grid-area: card; }
+html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] > .stg-rail { grid-area: rail; }
+html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] > .p-chat { grid-area: chat; }
+
+/* 左：角色卡 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-char {
+  --rx: 0deg; --ry: 0deg;
+  position: relative; min-height: 0; background: #fff; border-radius: var(--stg-r); box-shadow: var(--stg-shadow); overflow: hidden;
+  display: flex; flex-direction: column; color: var(--stg-ink);
+  transform: perspective(1200px) rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .6s var(--stg-spring);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-char.is-tilting { transition: transform .12s ease-out; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char a { color: inherit; text-decoration: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-ph { position: relative; height: clamp(300px, 48vh, 430px); flex: none; overflow: hidden; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-ph > img { width: 100%; height: 100%; object-fit: cover; object-position: 40% 22%; transform: scale(1.04); transition: transform 1s var(--stg-out); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char:hover .stg-char-ph > img { transform: scale(1.08); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-ph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 11, 14, .45) 0%, rgba(11, 11, 14, 0) 26%, rgba(11, 11, 14, 0) 46%, rgba(11, 11, 14, .88) 100%); pointer-events: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-top { position: absolute; z-index: 2; left: 18px; right: 18px; top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; color: #fff; font-size: 11px; letter-spacing: .16em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-top > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-back { flex: none; height: 32px; padding: 0 12px; border-radius: 999px; background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .3); display: flex; align-items: center; gap: 6px; letter-spacing: 0; font-size: 12px; color: #fff !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); transition: background-color .2s ease; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-back:hover { background: rgba(255, 255, 255, .3); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm { position: absolute; z-index: 2; left: 20px; right: 20px; bottom: 18px; color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm .stg-ital { font-size: 14px; opacity: .85; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm h1 { margin: 4px 0 8px -4px; font: 700 var(--name, 76px)/.9 var(--stg-sans); letter-spacing: -.08em; color: #fff; white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm p { margin: 0; font-size: 12px; line-height: 1.6; opacity: .82; letter-spacing: .02em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-m-rel, html body[data-theme="stage"]:not(.p-cinema) .stg-m-mini { display: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-body { flex: 1; padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char-body::-webkit-scrollbar { display: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char .stg-sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0; font-size: 12px; color: var(--stg-copy); letter-spacing: .08em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char .stg-sec-h b { color: var(--stg-ink); font-size: 13px; letter-spacing: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-char .stg-sec-h .stg-ital { font-size: 13px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-v { font-weight: 700; color: var(--stg-ink); letter-spacing: -.02em; font-size: 20px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-v small { font-size: 12px; color: var(--stg-copy); font-weight: 400; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter { display: flex; gap: 4px; margin-top: 10px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter i { flex: 1; height: 14px; border-radius: 4px; background: var(--stg-sunken); transform-origin: bottom; animation: stg-seg .6s var(--stg-spring) both; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter i.is-f { background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter i.is-a { background: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter i.is-n { background: var(--stg-accent); animation: stg-seg .6s var(--stg-spring) both, stg-pulse 1.6s 1s ease-in-out infinite; }
+@keyframes stg-seg { from { transform: scaleY(.2); opacity: 0; } }
+@keyframes stg-pulse { 0%, 100% { opacity: .15; } 50% { opacity: .55; } }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter-cap { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter-cap > span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-meter-cap em { font-style: normal; color: var(--stg-accent); font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-moods3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mood { padding: 10px 10px 9px; border-radius: 14px; background: var(--stg-bg); border: 1px solid var(--stg-line); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mood span { display: block; font-size: 11px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mood b { font-size: 16px; letter-spacing: -.03em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dots { display: flex; gap: 3px; margin-top: 6px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dots i { width: 100%; height: 4px; border-radius: 2px; background: var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-dots i.is-on { background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mood.is-hot { background: var(--stg-accent-soft); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mood.is-hot b { color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mood.is-hot .stg-dots i.is-on { background: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line-strong); font-size: 12px; color: var(--stg-copy); transform: rotate(var(--rot, 0deg)); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span:hover { animation: stg-wobble .6s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-new { background: var(--stg-accent-soft); border-color: var(--stg-accent-soft); color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-new::before { background: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-more { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-more::before { display: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cfoot { margin-top: auto; display: flex; align-items: center; gap: 6px; padding-top: 12px; border-top: 1px dashed var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cfoot a { height: 30px; padding: 0 12px; border-radius: 999px; background: var(--stg-bg); border: 1px solid var(--stg-line); font-size: 12px; color: var(--stg-copy) !important; display: inline-flex; align-items: center; transition: background-color .2s ease, transform .3s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cfoot a:hover { background: #fff; transform: translateY(-2px); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-cfoot .stg-ital { margin-left: auto; font-size: 12px; color: var(--stg-copy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 右：章节导轨 */
+html body[data-theme="stage"]:not(.p-cinema) .stg-rail { position: relative; z-index: 4; min-height: 0; background: #fff; border-radius: 36px; box-shadow: var(--stg-shadow); display: flex; flex-direction: column; align-items: center; padding: 20px 0 16px; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-rail-t { font-size: 11px; color: var(--stg-copy); letter-spacing: .2em; writing-mode: vertical-rl; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-rail-t b { color: var(--stg-ink); letter-spacing: .1em; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-steps { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; margin: 20px 0; min-height: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-steps::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 50%; width: 2px; margin-left: -1px; background: var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-step {
+  position: relative; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #fff; border: 2px solid var(--stg-ink); color: var(--stg-ink);
+  display: grid; place-items: center; font: 700 12px/1 var(--stg-serif); cursor: pointer; transition: transform .3s var(--stg-spring);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-step:hover:not(:disabled) { transform: scale(1.15); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-step:disabled { cursor: default; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-step.is-done { background: var(--stg-ink); color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-step.is-now { width: 42px; height: 42px; border: 0; background: var(--stg-accent); color: #fff; font-size: 15px; box-shadow: 0 0 0 5px var(--stg-accent-soft), 0 10px 20px -6px rgba(75, 91, 245, .8); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-step.is-now[data-label]::after {
+  content: attr(data-label); position: absolute; right: 54px; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+  font: 700 12px/1.2 var(--stg-sans); color: var(--stg-ink); background: #fff; padding: 6px 10px; border-radius: 999px; box-shadow: var(--stg-shadow);
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-step.is-next { border: 2px dashed var(--stg-line-strong); color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-step.is-lock { border: 2px solid var(--stg-line); color: var(--stg-line-strong); background: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pct { font-size: 20px; font-weight: 700; letter-spacing: -.06em; text-align: center; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-pct small { display: block; text-align: center; font-size: 10px; color: var(--stg-copy); letter-spacing: .1em; font-weight: 400; }
+
+/* 中：舞台 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-theme-chat="stage"] > .p-chat {
+  position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%;
+  background: transparent; border: 0; box-shadow: none; overflow: hidden;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head { position: relative; z-index: 7; flex: none; height: 48px; background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head-in { display: flex; align-items: center; gap: 14px; height: 100%; max-width: none; padding: 0 6px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head .p-chat-icon, html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head .p-chat-title > .p-avatar { display: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-title { min-width: 0; flex: 1; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-title-text { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .stg-head-act { display: contents; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .stg-head-act b { order: 0; font-size: 20px; font-weight: 700; letter-spacing: -.04em; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-title-text .p-chat-sub { order: 1; font: 700 20px/1.2 var(--stg-sans); letter-spacing: -.04em; color: var(--stg-ink); overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-title-text .p-chat-sub::before { content: "· "; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .stg-head-act .stg-ital { order: 2; font-size: 14px; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-title-text .p-chat-name { order: 3; font: 400 12px/1 var(--stg-sans); color: var(--stg-muted); height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head :is(.btn, .p-btn) {
+  height: 36px; min-height: 36px; padding: 0 14px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line);
+  color: var(--stg-copy); font-size: 13px; font-weight: 400; box-shadow: none;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head :is(.btn, .p-btn):hover { color: var(--stg-ink); border-color: var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-branch-note { margin: 4px auto 0; max-width: 720px; border-radius: 999px; background: var(--stg-accent-soft); color: var(--stg-accent); border: 0; padding: 8px 16px; font-size: 12px; }
+
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 0 0 220px; scrollbar-width: none; background: transparent;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 210px), transparent calc(100% - 40px));
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 210px), transparent calc(100% - 40px));
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll::-webkit-scrollbar { display: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll > .p-chat-col { max-width: 720px; margin: 0 auto; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 18px; }
+
+/* 场景卡（开场） */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue {
+  position: relative; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 18px; align-items: center;
+  margin: 0 0 10px; padding: 12px 18px 12px 12px; border: 1px solid rgba(255, 255, 255, .9); border-radius: 24px;
+  background: rgba(255, 255, 255, .86); color: var(--stg-ink); box-shadow: var(--stg-shadow-lg); overflow: hidden;
+  -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
+  transform: rotate(-.6deg); animation: stg-pop .7s var(--stg-spring) both;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue:not(.has-cover) { grid-template-columns: minmax(0, 1fr); padding-left: 20px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue.has-cover::before { display: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue .rd-prologue-bg {
+  position: relative; inset: auto; z-index: 0; width: 96px; height: 96px; border-radius: 16px; object-fit: cover; object-position: 40% 22%;
+  opacity: 1; animation: none; box-shadow: 0 8px 18px -10px rgba(27, 27, 29, .6);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue .rd-prologue-in > * { animation: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue .p-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--stg-copy) !important; letter-spacing: .16em; margin: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue .p-eyebrow::before { content: "● 场景"; color: var(--stg-accent); font-weight: 700; letter-spacing: .1em; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue h1 { margin: 3px 0 4px; font: 700 22px/1.25 var(--stg-sans); letter-spacing: -.05em; color: var(--stg-ink) !important; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--stg-copy) !important; }
+
+/* 消息：漂浮的卡 */
+@keyframes stg-pop { from { opacity: 0; transform: translateY(24px) scale(.94) rotate(var(--tilt, 0deg)); } }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg {
+  --tilt: -.5deg;
+  position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 8px; row-gap: 8px; align-items: center;
+  align-self: flex-start; width: auto; max-width: min(600px, 92%); margin: 0; padding: 0;
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+}
+/* 只给最新/流式消息做弹出入场；历史消息立即可见 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.is-latest { animation: stg-pop .7s var(--stg-spring) both; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg:nth-of-type(even) { --tilt: .4deg; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg:hover { border: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg > div { display: contents; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg > div > * { grid-column: 1 / -1; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg > .p-avatar {
+  grid-column: 1; grid-row: 1; position: static; width: 28px; height: 28px; --size: 28px; margin-left: 6px;
+  border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--stg-line); font-size: 12px;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg > .p-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 40% 18%; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-name { grid-column: 2; grid-row: 1; margin: 0 0 0 6px; font-size: 13px; font-weight: 700; color: var(--stg-ink); display: flex; align-items: center; gap: 8px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-copy {
+  position: relative; padding: 16px 20px; border-radius: 24px 24px 24px 8px; background: #fff; border: 1px solid rgba(27, 27, 29, .05);
+  box-shadow: var(--stg-shadow); transform: rotate(var(--tilt));
+  font-family: var(--stg-sans); font-size: calc(15px * var(--rp-font-scale, 1)); line-height: 2; letter-spacing: 0; color: var(--stg-copy);
+  transition: box-shadow .3s ease, transform .5s var(--stg-spring);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg:hover .p-msg-copy { transform: rotate(0deg) translateY(-1px); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-p { margin: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-p + .rp-p { margin-top: .5em; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-act {
+  display: inline; padding: 2px 9px; margin: 0 3px; border-radius: 7px; background: var(--stg-hover); border: 1px solid var(--stg-line);
+  color: var(--stg-muted); font: normal 400 .84em/1.6 var(--stg-serif); opacity: 1;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-act::before { content: "✦ "; font-size: .62em; color: var(--stg-line-strong); vertical-align: 2px; }
+/* 长动作：不再在行中折成两块，改成独立的舞台提示块 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-act.stg-act-long {
+  display: block; width: fit-content; max-width: 100%; margin: .45em 0; padding: 4px 12px 4px 14px; border-radius: 12px; border: 0;
+  border-left: 2px solid var(--stg-line-strong); background: var(--stg-hover); line-height: 1.75; font-size: .86em; color: var(--stg-copy);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-act.stg-act-long::before { content: "✦ "; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act.stg-act-long { background: #fff; border-left-color: var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-say { color: var(--stg-ink); font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy strong { color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-copy .rp-ooc { display: inline-block; padding: 0 8px; border: 1px dashed var(--stg-line-strong); border-radius: 999px; color: var(--stg-muted); font-size: .8em; line-height: 1.8; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg figure, html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg audio { margin-left: 6px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-textarea { border-radius: 18px; background: #fff; border: 1px solid var(--stg-line-strong); font-size: 15px; }
+
+/* 玩家：靛蓝便签 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user {
+  --tilt: .6deg; align-self: flex-end; max-width: min(520px, 88%); margin: 0; width: auto;
+  grid-template-columns: minmax(0, 1fr) 24px; justify-items: end; background: none;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user > .p-avatar {
+  grid-column: 2; width: 24px; height: 24px; --size: 24px; margin: 0 6px 0 0; background: var(--stg-accent); color: #fff; box-shadow: none; font-size: 11px; font-weight: 700;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-name { grid-column: 1; font-weight: 400; font-size: 12px; color: var(--stg-copy); margin: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-copy {
+  background: var(--stg-player); border: 1px solid var(--stg-accent-soft); color: var(--stg-ink); box-shadow: none;
+  padding: 11px 18px; border-radius: 26px 26px 8px 26px; line-height: 1.85; font-family: var(--stg-sans); font-size: calc(15px * var(--rp-font-scale, 1));
+}
+/* 动作统一一种样式：AI 与玩家都是同一款灰色舞台提示片，玩家气泡上只把底色换成白色以免糊在浅靛底上 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act { background: #fff; border-color: var(--stg-line); color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-user .p-msg-copy .rp-act::before { color: var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-tools { justify-content: flex-end; margin: 0 6px 0 0; }
+
+/* 生成中 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.is-streaming { background: none; border: 0; animation: stg-pop .7s var(--stg-spring) both; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.is-streaming .p-msg-copy { box-shadow: 0 0 0 1.5px var(--stg-accent-soft), var(--stg-shadow); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.is-streaming .p-msg-name::after { content: "正在落笔"; font-size: 12px; font-weight: 700; color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .rp-caret { background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .rp-typing i { background: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .rp-typing-label { color: var(--stg-muted); }
+
+/* 工具条：卡下方的轻按钮 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 0 6px; padding: 0; border: 0;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools button {
+  width: 30px; height: 28px; border-radius: 999px; color: var(--stg-muted); border: 1px solid transparent; background: transparent;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools button:hover:not(:disabled) { background: #fff; border-color: var(--stg-line); color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools .p-msg-tool:not([aria-label]) { width: auto; padding: 0 10px; font-size: 11px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-candidate { background: #fff; border: 1px solid var(--stg-line); border-radius: 999px; font-size: 11px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-more { top: 30px; right: 6px; }
+
+/* 输入坞 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-theme-chat="stage"] .p-chat-compose {
+  position: absolute; left: 50%; bottom: 0; z-index: 6; width: min(760px, calc(100% - 16px)); transform: translateX(-50%);
+  padding: 12px; background: #fff; border: 1px solid var(--stg-line); border-radius: var(--stg-r); box-shadow: var(--stg-shadow-lg);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col { display: flex; flex-direction: column; max-width: none; padding: 0; margin: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > * { order: 1; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > .stg-qa { order: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .rd-jump { top: -64px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-form-error { border-radius: 16px; margin-top: 10px !important; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-qa { display: flex; gap: 6px; align-items: center; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-grab { display: none; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-q {
+  flex: none; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--stg-bg); border: 1px solid var(--stg-line);
+  font: 13px/1 var(--stg-sans); color: var(--stg-ink); display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: transform .3s var(--stg-spring), background-color .2s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema) .stg-q:hover { transform: translateY(-2px) rotate(-2deg); background: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-q--prim { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-q--prim:hover { background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-q--ooc { border-style: dashed; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-q-act { font-size: 10px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-qa-sp { flex: 1; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-persona { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--stg-copy); white-space: nowrap; min-width: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-persona b { color: var(--stg-ink); overflow: hidden; text-overflow: ellipsis; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-persona i { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--stg-accent); color: #fff; font-style: normal; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-compose-row {
+  margin-top: 10px; padding: 10px 8px 8px 14px; gap: 10px; align-items: flex-end;
+  border: 0; border-radius: 20px; background: var(--stg-bg); box-shadow: none; transform: none;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-compose-row:focus-within { box-shadow: 0 0 0 2px var(--stg-accent-soft); transform: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-input { min-height: 46px; padding: 10px 0 8px; font: calc(15px * var(--rp-font-scale, 1))/1.7 var(--stg-sans); color: var(--stg-ink); background: transparent; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-input::placeholder { color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-send {
+  flex: 0 0 46px; width: 46px; height: 46px; margin: 0; border-radius: 16px; background: var(--stg-accent); color: #fff;
+  box-shadow: 0 10px 22px -8px rgba(75, 91, 245, .85); transition: transform .3s var(--stg-spring), background-color .2s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-send:hover:not(:disabled) { transform: rotate(-8deg) scale(1.06); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-send:disabled { background: var(--stg-sunken); color: var(--stg-muted); box-shadow: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-send.is-stop { background: var(--stg-ink); box-shadow: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-small { font-size: 11px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > div[style] { padding: 0 6px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-quick { margin: 10px 0 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-quick .p-chip { border-radius: 999px; }
+
+/* 对话页：中等宽度 */
+@media (max-width: 1279px) and (min-width: 1024px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] { grid-template-columns: 280px minmax(0, 1fr) 64px; gap: 12px; padding: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-rail { border-radius: 32px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-step.is-now[data-label]::after { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-persona { display: none; }
+}
+
+/* 对话页：手机 / 平板 —— 角色卡变成可收缩的头卡 */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"] { display: block; position: relative; padding: 0; gap: 0; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-rp-workbench[data-theme-chat="stage"]::before { content: ""; position: absolute; z-index: 19; left: 0; right: 0; top: 0; height: 10px; background: var(--stg-bg); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-rail { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char {
+    position: absolute; z-index: 20; left: 10px; right: 10px; top: 10px;
+    height: calc(300px - 226px * var(--p, 0)); border-radius: calc(28px - 6px * var(--p, 0)); box-shadow: var(--stg-shadow-lg); transform: none;
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-ph { height: 100%; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-ph > img { object-position: 40% calc(18% + 22% * var(--p, 0)); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-body { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-top { opacity: calc(1 - var(--p, 0) * 2); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-top > span { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .is-mini .stg-char-top { pointer-events: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm { left: 18px; right: 18px; bottom: calc(40px - 26px * var(--p, 0)); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm h1 { font-size: calc(min(var(--name, 58px), 58px) - 30px * var(--p, 0)); margin: 2px 0 6px -3px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm .stg-ital, html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm p { display: block; opacity: calc(1 - var(--p, 0) * 3); max-height: calc(40px - 40px * var(--p, 0)); overflow: hidden; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-char-nm p { font-size: 11px; -webkit-line-clamp: 1; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-m-rel { position: absolute; z-index: 3; left: 18px; right: 18px; bottom: 14px; display: flex; align-items: center; gap: 10px; color: #fff; font-size: 11px; opacity: calc(1 - var(--p, 0) * 2.4); white-space: nowrap; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-m-bar { flex: 1; display: flex; gap: 3px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-m-bar i { flex: 1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .28); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-m-bar i.is-f { background: #fff; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-m-bar i.is-f:not(:has(+ i.is-f)) { background: var(--stg-accent); }
+
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-theme-chat="stage"] > .p-chat { height: 100%; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head { position: absolute; z-index: 21; top: calc(26px + 4px * var(--p, 0)); right: 22px; left: auto; height: auto; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head-in { padding: 0; gap: 6px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-title { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head :is(.btn, .p-btn) {
+    height: 32px; min-height: 32px; padding: 0 12px; background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .3); color: #fff;
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head > .p-chat-head-in > div:last-child { margin-left: 0 !important; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll { padding: 322px 0 230px; -webkit-mask-image: none; mask-image: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll > .p-chat-col { padding: 0 14px; gap: 14px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-branch-note { position: absolute; z-index: 18; top: 318px; left: 14px; right: 14px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 10px 12px 10px 10px; border-radius: 20px; transform: rotate(-.8deg); }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue .rd-prologue-bg { width: 64px; height: 64px; border-radius: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue h1 { font-size: 17px; margin: 1px 0 2px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-prologue p { font-size: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg { max-width: 94%; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-copy { font-size: calc(14.5px * var(--rp-font-scale, 1)); line-height: 1.95; padding: 13px 15px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user { max-width: 88%; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-copy { padding: 10px 15px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools button { width: 36px; height: 34px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-more { top: 26px; right: 2px; }
+
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-theme-chat="stage"] .p-chat-compose {
+    left: 0; right: 0; bottom: 0; width: auto; transform: none; border: 0; border-top: 1px solid var(--stg-line);
+    border-radius: 28px 28px 0 0; padding: 8px 12px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -20px 50px -20px rgba(27, 27, 29, .35);
+  }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 18px 12px 2px; position: relative; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa::-webkit-scrollbar { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-grab { display: block; position: absolute; top: 2px; left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--stg-line-strong); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa-sp, html body[data-theme="stage"]:not(.p-cinema) .stg-persona { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-compose-row { border-radius: 22px; padding: 8px 6px 6px 14px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-send { width: 42px; height: 42px; flex-basis: 42px; border-radius: 50%; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > div[style]:not(.stg-qa) { display: none !important; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg:not(.p-msg-user) > .p-avatar { display: block; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-more { top: -2px; right: 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-more { right: 56px; left: auto; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-candidate { height: 32px; padding: 0 4px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-tools .p-rp-candidate button { width: 28px; height: 28px; }
+}
+
+/* =========================================================================
+   其他页面：同一套卡片语言（CSS only）
+   ========================================================================= */
+html body[data-theme="stage"]:not(.p-cinema):not([data-page="home"]):not([data-page="chat"]) .p-inner { padding-top: 32px; }
+html body[data-theme="stage"]:not(.p-cinema) .p-page-title h1 { font-family: var(--stg-sans); font-weight: 700; letter-spacing: -.07em; font-size: clamp(44px, 5vw, 72px) !important; line-height: .9; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-page-title h1::after,
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chats"] .p-page-title h1::after,
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-page-title h1::after,
+html body[data-theme="stage"]:not(.p-cinema)[data-page="library"] .p-page-title h1::after,
+html body[data-theme="stage"]:not(.p-cinema)[data-page="create"] .p-page-title h1::after,
+html body[data-theme="stage"]:not(.p-cinema)[data-page="notifications"] .p-page-title h1::after { font: italic 400 18px/1 var(--stg-ital); letter-spacing: 0; color: var(--stg-muted); margin-left: 14px; vertical-align: 6px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-page-title h1::after { content: "the plaza"; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chats"] .p-page-title h1::after { content: "the show goes on"; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-page-title h1::after { content: "backstage"; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="library"] .p-page-title h1::after { content: "my collection"; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="create"] .p-page-title h1::after { content: "write a new card"; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="notifications"] .p-page-title h1::after { content: "notes from the house"; }
+
+html body[data-theme="stage"]:not(.p-cinema) :is(.p-card, .card):not(.p-work) { border-radius: var(--stg-r); border: 1px solid rgba(27, 27, 29, .05); box-shadow: var(--stg-shadow); background: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .p-btn, html body[data-theme="stage"]:not(.p-cinema) .btn { border-radius: 999px; }
+html body[data-theme="stage"]:not(.p-cinema) :is(.p-btn--primary, .btn--primary) { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); transition: transform .25s var(--stg-spring), background-color .2s ease; }
+html body[data-theme="stage"]:not(.p-cinema) :is(.p-btn--primary, .btn--primary):hover:not(:disabled) { background: var(--stg-accent); border-color: var(--stg-accent); transform: translateY(-2px); }
+html body[data-theme="stage"]:not(.p-cinema) :is(.p-input, .input, .p-select, .select, .textarea, .p-textarea):focus { border-color: var(--stg-accent); box-shadow: 0 0 0 3px var(--stg-accent-soft); outline: none; }
+
+/* 贴纸式筛选 */
+html body[data-theme="stage"]:not(.p-cinema) .p-chips { gap: 10px 8px; padding: 4px 3px 8px; }
+html body[data-theme="stage"]:not(.p-cinema) .p-chip {
+  height: 36px; padding: 0 14px; border-radius: 999px; background: #fff; color: var(--stg-ink); font-weight: 700; font-size: 13px;
+  border: 1px solid var(--stg-line); box-shadow: 0 0 0 3px #fff, 0 6px 14px -8px rgba(27, 27, 29, .45);
+  transition: transform .3s var(--stg-spring), background-color .2s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chips .p-chip:nth-child(odd) { transform: rotate(-2deg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chips .p-chip:nth-child(even) { transform: rotate(2deg); }
+html body[data-theme="stage"]:not(.p-cinema) .p-chips .p-chip:hover { animation: stg-wobble .6s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .p-chip:is([aria-pressed="true"], [aria-selected="true"], .is-active, .is-on) { background: var(--stg-accent); color: #fff; border-color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .p-filterbar { border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); box-shadow: var(--stg-shadow); }
+html body[data-theme="stage"]:not(.p-cinema) .p-filterbar .p-search { border-radius: 999px; }
+
+/* 广场：倾斜的收藏卡 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page]:is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="plaza"]) .p-filterbar {
+  position: relative; top: auto; z-index: 3; background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin: 28px 0 18px;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main { gap: 10px; align-items: center; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search {
+  min-height: 44px; padding-inline: 16px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); box-shadow: 0 6px 16px -12px rgba(27, 27, 29, .4);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search:focus-within { border-color: var(--stg-accent); box-shadow: 0 0 0 3px var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; padding-left: 40px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar :is(.p-select, .p-btn) {
+  min-height: 44px; border-radius: 999px; border: 1px solid var(--stg-line); background-color: #fff; font-weight: 700; font-size: 13px; color: var(--stg-ink);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar .p-filterbar-main > .p-chip { height: 44px; transform: rotate(-2deg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar-count { font: italic 400 14px/1 var(--stg-ital); color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-filterbar .p-chips { margin-top: 14px; }
+
+html body[data-theme="stage"]:not(.p-cinema) .p-work-grid { gap: 34px 26px; padding: 18px 6px 40px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work {
+  position: relative; padding: 10px 10px 14px; border-radius: var(--stg-r); background: #fff; border: 0; box-shadow: var(--stg-shadow);
+  transform: rotate(var(--stg-rot, -1.6deg)); transition: transform .5s var(--stg-spring), box-shadow .4s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(4n+2) { --stg-rot: 1.4deg; margin-top: 16px; }
+html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(4n+3) { --stg-rot: -.6deg; }
+html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(4n) { --stg-rot: 2deg; margin-top: 10px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work:hover { transform: rotate(0deg) translateY(-8px) scale(1.015); box-shadow: var(--stg-shadow-lg); z-index: 2; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-media { position: relative; border-radius: 20px; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover { border-radius: 20px; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema) .p-work-cover img { transition: transform .8s var(--stg-out); }
+html body[data-theme="stage"]:not(.p-cinema) .p-work:hover .p-work-cover img { transform: scale(1.06); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-fav { background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .35); color: #fff; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-fav[aria-pressed="true"] { background: var(--stg-accent); border-color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-body { padding: 14px 8px 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-name { margin: 0; font-family: var(--stg-sans); font-size: 30px; font-weight: 700; letter-spacing: -.07em; line-height: 1.05; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-author { margin: 4px 0 0; font-family: var(--stg-ital); font-style: italic; font-size: 13px; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-desc { margin: 8px 0 0; font-size: 13px; line-height: 1.7; color: var(--stg-copy); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-meta { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work .p-pill { height: 26px; padding: 0 10px; border-radius: 999px; background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); font-weight: 700; font-size: 11px; transform: rotate(-3deg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-stat { font-size: 12px; color: var(--stg-copy); }
+
+/* 角色页：拍立得式卡面 + 溢出的超大名字 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .rd-ambient { opacity: .3; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-sticky { container-type: inline-size; position: static; max-height: none; overflow: visible; padding: 8px 6px 0; }
+@media (min-width: 1100px) { html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail { grid-template-columns: 360px minmax(0, 1fr); gap: 48px; } }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-sticky > div:last-child > form { flex: 1 0 100%; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-sticky form .p-btn { width: 100%; min-height: 46px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor { flex-wrap: wrap; align-items: center; gap: 8px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor :is(.btn, .p-btn) { min-height: 40px; height: 40px; padding: 0 16px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); font-size: 13px; font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .p-notice-actions { display: contents; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .btn--ghost { background: transparent; border-color: transparent; color: var(--stg-muted); font-weight: 400; margin-left: auto; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .btn[aria-pressed="true"] { background: var(--stg-accent-soft); color: var(--stg-accent); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover {
+  position: relative; border-radius: 24px; padding: 0; background: #fff; box-shadow: var(--stg-shadow-lg); overflow: hidden;
+  transform: rotate(-3deg); transition: transform .6s var(--stg-spring), box-shadow .4s ease; isolation: isolate;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover:hover { transform: rotate(-1deg) translateY(-4px); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover > img { inset: 10px 10px 58px; width: calc(100% - 20px); height: calc(100% - 68px); border-radius: 16px; object-position: 45% 22%; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover.has-portrait::before { inset: 10px 10px 58px; border-radius: 16px; background: linear-gradient(180deg, rgba(11, 11, 14, .35), transparent 26%, transparent 70%, rgba(11, 11, 14, .35)); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover::after {
+  content: "ON STAGE · 角色卡"; display: block; position: absolute; left: 22px; top: 22px; z-index: 2; inset: 22px auto auto 22px; width: auto; height: auto;
+  background: none; color: #fff; font: 700 11px/1 var(--stg-sans); letter-spacing: .16em; opacity: .9; mix-blend-mode: normal; text-shadow: 0 1px 8px rgba(0, 0, 0, .5);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover:hover::after { opacity: 1; background: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-title { position: relative; z-index: 3; margin-top: -50px; padding-left: 4px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-title h1 {
+  margin: 0; font-family: var(--stg-sans); font-size: min(104px, 31cqi); font-weight: 700; letter-spacing: -.08em; line-height: .86;
+  color: var(--stg-ink); white-space: nowrap; text-shadow: 0 0 0 transparent;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-by { margin: 12px 0 12px; font-family: var(--stg-ital); font-style: italic; font-size: 14px; color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-by .p-link { color: var(--stg-ink); font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags { gap: 8px; padding-left: 3px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill { height: 30px; padding: 0 12px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); color: var(--stg-ink); font-weight: 700; box-shadow: 0 0 0 3px #fff, 0 6px 14px -8px rgba(27, 27, 29, .45); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill:nth-child(odd) { transform: rotate(-2deg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill:nth-child(even) { transform: rotate(2deg); background: var(--stg-accent-soft); color: var(--stg-accent); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-stats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 20px 0 16px; padding: 14px 6px; border-radius: 22px; background: #fff; border: 1px solid rgba(27, 27, 29, .05); box-shadow: var(--stg-shadow);
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-stat { padding: 0 12px; border: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-stat + .p-stat { border-left: 1px dashed var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-stat-n { font-size: 24px; font-weight: 700; letter-spacing: -.05em; line-height: 1.1; color: var(--stg-ink); white-space: nowrap; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-stat-l { font-size: 11px; color: var(--stg-copy); margin-top: 2px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-sticky .p-btn--primary { background: var(--stg-accent); border-color: var(--stg-accent); box-shadow: 0 10px 24px -10px rgba(75, 91, 245, .8); min-height: 46px; font-size: 15px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-sticky .p-btn--primary:hover { background: var(--stg-ink); border-color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-main .p-card { border-radius: var(--stg-r); background: rgba(255, 255, 255, .92); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-main .p-card-head h2 { font-size: 26px; font-weight: 700; letter-spacing: -.06em; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-main .p-eyebrow { color: var(--stg-copy); letter-spacing: .14em; font-size: 11px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] :is(.rd-quote, .p-quote) { border-left: 2px solid var(--stg-ink); padding-left: 14px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] :is(.rd-quote, .p-quote)::before { display: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-quote .rp-say { color: var(--stg-ink); font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-quote .rp-act { font-style: normal; color: var(--stg-muted); }
+
+/* 对话列表：票根 */
+html body[data-theme="stage"]:not(.p-cinema) .p-chat-list { display: grid; gap: 16px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row {
+  position: relative; display: flex; align-items: stretch; gap: 0; margin: 0; padding: 0; overflow: visible;
+  border-radius: 22px; background: #fff; border: 1px solid rgba(27, 27, 29, .05); box-shadow: var(--stg-shadow);
+  transform: rotate(var(--stg-rot, -.4deg)); transition: transform .4s var(--stg-spring), box-shadow .3s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row:nth-child(even) { --stg-rot: .4deg; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row:hover { background: #fff; transform: rotate(0deg) translateY(-3px); box-shadow: var(--stg-shadow-lg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row .p-chat-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; padding: 10px 18px 10px 10px; color: inherit; text-decoration: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row .p-row-cover { width: 76px; height: 92px; border-radius: 14px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-name { font-size: 22px; font-weight: 700; letter-spacing: -.06em; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-session { font: italic 400 13px/1 var(--stg-ital); color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-preview { margin: 6px 0 6px; font-size: 13px; line-height: 1.7; color: var(--stg-copy); white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row .p-library-sub { font-size: 11px; color: var(--stg-copy); letter-spacing: .04em; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-meta {
+  position: relative; flex: none; width: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-left: 2px dashed var(--stg-line-strong); background: var(--stg-bg); font-size: 11px; color: var(--stg-copy); text-align: center;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-meta span:last-child { order: -1; font-size: 26px; font-weight: 700; letter-spacing: -.06em; color: var(--stg-ink); line-height: 1; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-meta::before, html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-meta::after { content: ""; position: absolute; left: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-meta::before { top: -9px; box-shadow: inset 0 -1px 0 rgba(27, 27, 29, .05); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-meta::after { bottom: -9px; box-shadow: inset 0 1px 0 rgba(27, 27, 29, .05); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row > .p-chat-row-action { align-self: stretch; display: flex; align-items: center; padding: 0 14px 0 4px; background: var(--stg-bg); border-radius: 0 22px 22px 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chat-row-action .p-btn { background: #fff; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-library-row { border-radius: 22px; border: 1px solid rgba(27, 27, 29, .05); box-shadow: var(--stg-shadow); }
+
+/* 设置：贴纸目录 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc { display: flex; flex-direction: column; gap: 14px; border: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-group { display: flex; flex-wrap: wrap; gap: 8px 6px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-label { flex: 0 0 100%; padding: 0 2px; font: italic 400 13px/1.4 var(--stg-ital); color: var(--stg-muted); letter-spacing: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a {
+  display: inline-flex; flex: none; width: auto; min-height: 0; align-items: center; height: 34px; padding: 0 13px; margin: 0; border-radius: 999px; background: #fff; color: var(--stg-ink);
+  font-size: 13px; font-weight: 700; border: 1px solid var(--stg-line); box-shadow: 0 0 0 3px #fff, 0 6px 14px -8px rgba(27, 27, 29, .45);
+  transform: rotate(-1.5deg); transition: transform .3s var(--stg-spring), background-color .2s ease;
+}
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a:nth-of-type(even) { transform: rotate(1.5deg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a:hover { animation: stg-wobble .6s var(--stg-spring); background: #fff; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a:is([aria-current="page"], [aria-current="true"], .is-active) { background: var(--stg-accent); border-color: var(--stg-accent); color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-section h2 { font-size: 30px; font-weight: 700; letter-spacing: -.06em; color: var(--stg-ink); border: 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-section > p { color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .th-picker-item { border-radius: 22px; background: #fff; border: 1px solid var(--stg-line); box-shadow: var(--stg-shadow); transition: transform .4s var(--stg-spring), box-shadow .3s ease; }
+html body[data-theme="stage"]:not(.p-cinema) .th-picker-item:hover { transform: rotate(-1deg) translateY(-3px); }
+html body[data-theme="stage"]:not(.p-cinema) .th-picker-item.is-active { border-color: var(--stg-accent); box-shadow: 0 0 0 3px var(--stg-accent-soft), var(--stg-shadow); transform: rotate(-1.5deg); }
+html body[data-theme="stage"]:not(.p-cinema) .th-picker-name { font-size: 18px; font-weight: 700; letter-spacing: -.04em; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-swatch-wrap.is-active .p-swatch { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-range { accent-color: var(--stg-accent); }
+
+/* 通知、房间、创作：同一套卡片 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-tabs { border: 0; gap: 8px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="notifications"] .p-card { overflow: hidden; }
+
+/* 登录页 */
+html body[data-theme="stage"]:not(.p-cinema) :is(.auth-card, .p-auth-card) { border-radius: var(--stg-r); box-shadow: var(--stg-shadow-lg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-scene { border-radius: var(--stg-r); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-card { border: 1px solid rgba(255, 255, 255, .9); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-card h1 { font-family: var(--stg-sans); font-weight: 700; letter-spacing: -.06em; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-card :is(.p-input, .input) { border-radius: 14px; background: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-card :is(.p-btn--primary, .btn--primary, button[type="submit"]) { border-radius: 999px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-scene-copy h2 { font-family: var(--stg-sans); font-weight: 700; letter-spacing: -.07em; line-height: 1.05; font-size: clamp(36px, 4.4vw, 64px); max-width: none; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-scene-label { display: inline-block; padding: 5px 11px; border-radius: 999px; background: #fff; color: var(--stg-ink); font-weight: 700; transform: rotate(-3deg); }
+@media (min-width: 1024px) {
+  /* 表单卡压在场景图左侧：文案移到右下，避免被遮住 */
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="login"] .p-auth-scene-copy { left: auto; right: 48px; bottom: 40px; text-align: right; }
+}
+
+/* =========================================================================
+   弹层：对话框、签到、⌘K、点数面板、下拉
+   ========================================================================= */
+html body[data-theme="stage"]:not(.p-cinema) :is(.modal-backdrop, .p-modal-backdrop) { background: rgba(27, 27, 29, .32); }
+html body[data-theme="stage"]:not(.p-cinema) .modal-backdrop > .modal {
+  border-radius: var(--stg-r); border: 1px solid rgba(255, 255, 255, .9); background: #fff; box-shadow: var(--stg-shadow-lg), 0 0 0 6px rgba(255, 255, 255, .5);
+  padding: 22px 24px 20px; animation: stg-modal .55s var(--stg-spring) both;
+}
+@keyframes stg-modal { from { opacity: 0; transform: translateY(26px) scale(.94) rotate(-1.5deg); } }
+html body[data-theme="stage"]:not(.p-cinema) .modal .modal-head { padding: 0 0 14px; margin: 0 0 14px; border-bottom: 1px dashed var(--stg-line-strong); align-items: center; }
+html body[data-theme="stage"]:not(.p-cinema) .modal .modal-head h2 { margin: 0; font: 700 24px/1.1 var(--stg-sans); letter-spacing: -.06em; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .modal .modal-head .icon-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--stg-bg); border: 1px solid var(--stg-line); color: var(--stg-copy); transition: transform .3s var(--stg-spring); }
+html body[data-theme="stage"]:not(.p-cinema) .modal .modal-head .icon-btn:hover { transform: rotate(90deg); background: #fff; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .modal .modal-foot { border-top: 0; padding-top: 16px; gap: 8px; }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.btn, .p-btn) { border-radius: 999px; min-height: 38px; padding: 0 16px; font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.btn--primary, .p-btn--primary) { background: var(--stg-accent); border-color: var(--stg-accent); color: #fff; box-shadow: 0 10px 22px -10px rgba(75, 91, 245, .8); }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.btn--primary, .p-btn--primary):hover:not(:disabled) { background: var(--stg-ink); border-color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.input, .p-input, .select, .p-select, .textarea, .p-textarea) { border-radius: 14px; border-color: var(--stg-line-strong); background-color: var(--stg-bg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.p-tabs, .tabs) button { border-radius: 999px; }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.p-tabs, .tabs) button:is([aria-selected="true"], .is-active) { background: var(--stg-ink); color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .modal .p-eyebrow { color: var(--stg-copy); letter-spacing: .16em; font-size: 11px; }
+
+/* 签到：一张票 */
+html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] { --text: var(--stg-accent); --surface-2: var(--stg-sunken); --muted: var(--stg-muted); max-width: 420px; overflow: hidden; position: relative; }
+html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] .p-eyebrow { display: inline-block; padding: 5px 10px; border-radius: 999px; background: var(--stg-ink); color: #fff; letter-spacing: .2em; transform: rotate(-3deg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal :is(.btn, .p-btn):not(.btn--primary):not(.p-btn--primary) { color: var(--stg-ink); background: #fff; border-color: var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] p[style*="font-size"] { font-size: 64px !important; letter-spacing: -.08em !important; line-height: 1 !important; margin: 14px 0 8px !important; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] span[aria-hidden="true"] { width: 32px !important; height: 32px !important; font-size: 12px !important; border-radius: 10px !important; transform: rotate(-4deg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] span[aria-hidden="true"]:nth-child(even) { transform: rotate(4deg); }
+html body[data-theme="stage"]:not(.p-cinema) .modal[aria-label="每日签到"] .p-hint { font-size: 12px; color: var(--stg-copy); }
+
+/* ⌘K */
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette { background: rgba(27, 27, 29, .3); }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-panel { border-radius: var(--stg-r); border: 1px solid rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .96); box-shadow: var(--stg-shadow-lg), 0 0 0 6px rgba(255, 255, 255, .45); overflow: hidden; animation: stg-modal .5s var(--stg-spring) both; }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-search { padding: 14px 18px; border-bottom: 1px dashed var(--stg-line-strong); }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-search input { border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; font: 700 17px/1.4 var(--stg-sans); letter-spacing: -.02em; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-search kbd { border-radius: 8px; background: var(--stg-sunken); color: var(--stg-copy); border: 0; }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-group { padding: 12px 18px 4px; font: italic 400 13px/1 var(--stg-ital); color: var(--stg-muted); letter-spacing: 0; text-transform: none; }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-list [role="option"] { margin: 2px 8px; border-radius: 14px; }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-list [role="option"]:hover { background: var(--stg-hover); }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-list [role="option"][aria-selected="true"] { background: var(--stg-ink); color: #fff; }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-list [role="option"][aria-selected="true"] * { color: inherit; }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-foot { border-top: 1px solid var(--stg-line); background: var(--stg-bg); color: var(--stg-muted); }
+html body[data-theme="stage"]:not(.p-cinema) .rd-palette-foot kbd { border-radius: 6px; background: #fff; border: 1px solid var(--stg-line); }
+
+/* 点数面板与各类下拉 */
+html body[data-theme="stage"]:not(.p-cinema) .p-points-panel { border-radius: 22px; border: 1px solid var(--stg-line); background: #fff; box-shadow: var(--stg-shadow-lg); padding: 16px; transform-origin: top right; animation: stg-drop .45s var(--stg-spring) both; }
+@keyframes stg-drop { from { opacity: 0; transform: translateY(-8px) scale(.94) rotate(2deg); } }
+html body[data-theme="stage"]:not(.p-cinema) .p-points-head strong { font-size: 34px; font-weight: 700; letter-spacing: -.07em; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .p-points-panel :is(.btn, .p-btn) { border-radius: 999px; }
+html body[data-theme="stage"]:not(.p-cinema) .p-points-panel :is(.btn--primary, .p-btn--primary) { background: var(--stg-accent); border-color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) :is(.p-menu, .p-dropdown, .p-popover, [role="menu"]) { border-radius: 18px; border: 1px solid var(--stg-line); background: #fff; box-shadow: var(--stg-shadow-lg); }
+html body[data-theme="stage"]:not(.p-cinema) [role="menu"] [role="menuitem"] { border-radius: 12px; }
+html body[data-theme="stage"]:not(.p-cinema) [role="menu"] [role="menuitem"]:hover { background: var(--stg-hover); }
+html body[data-theme="stage"]:not(.p-cinema) .p-toast, html body[data-theme="stage"]:not(.p-cinema) .toast { border-radius: 999px; background: var(--stg-ink); color: #fff; box-shadow: var(--stg-shadow-lg); }
+
+/* =========================================================================
+   减少动态效果：动画与过渡全部关掉，倾斜归零
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  html body[data-theme="stage"]:not(.p-cinema) :is([class*="stg-"], .p-msg, .p-msg-copy, .p-rp-prologue, .p-work, .p-chip, .p-chat-row, .p-detail-cover, .modal, .rd-palette-panel, .p-points-panel, .p-toc a),
+  html body[data-theme="stage"]:not(.p-cinema) :is([class*="stg-"], .p-msg, .p-msg-copy)::before,
+  html body[data-theme="stage"]:not(.p-cinema) :is([class*="stg-"], .p-msg, .p-msg-copy)::after { animation: none !important; transition: none !important; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-stamp { transform: rotate(14deg); }
+}
+
+/* 验收修复：手机端吸顶头卡不再盖住滚动定位的消息 */
+@media (max-width: 720px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll { scroll-padding-top: 120px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg { scroll-margin-top: 120px; }
+}
+
+/* 验收修复：法务 / 帮助页走戏台卡片版式 */
+html body[data-theme="stage"]:not(.p-cinema) .legal { max-width: 760px; padding-top: 56px; background: transparent; color: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .legal h1 { font-family: var(--stg-serif); font-size: 42px; font-weight: 800; letter-spacing: -.01em; }
+html body[data-theme="stage"]:not(.p-cinema) .legal h2 { display: flex; align-items: center; gap: 10px; font-family: var(--stg-serif); font-size: 18px; }
+html body[data-theme="stage"]:not(.p-cinema) .legal h2::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--stg-ink); }
+html body[data-theme="stage"]:not(.p-cinema) .legal :is(p, li) { color: var(--stg-copy); font-size: 15px; }
+html body[data-theme="stage"]:not(.p-cinema) .legal .legal-demo { border-radius: 18px; border-color: var(--stg-line); background: var(--stg-card); color: var(--stg-copy); box-shadow: 0 1px 0 var(--stg-line), 0 12px 30px -18px rgba(27, 27, 29, .25); }
+html body[data-theme="stage"]:not(.p-cinema) .legal .legal-back { display: inline-flex; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--stg-line-strong); background: var(--stg-card); color: var(--stg-ink); text-decoration: none; }
+
+/* 验收修复：404 · 此幕不存在 */
+html body[data-theme="stage"]:not(.p-cinema) .nf { max-width: 620px !important; margin-top: 56px; padding: 44px 40px 40px !important; border-radius: 28px; background: var(--stg-card); border: 1px solid var(--stg-line); box-shadow: 0 1px 0 var(--stg-line), 0 30px 60px -36px rgba(27, 27, 29, .35); }
+html body[data-theme="stage"]:not(.p-cinema) .nf-kicker { display: inline-flex; padding: 4px 12px; border-radius: 999px; background: var(--stg-ink); color: #fff; font-size: 11px; letter-spacing: .14em; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-kicker::after { content: " · 此幕不存在"; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-title { font-family: var(--stg-serif) !important; font-size: 44px !important; font-weight: 800; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-copy { color: var(--stg-copy); font-size: 15px; }
+html body[data-theme="stage"]:not(.p-cinema) .nf-actions .btn { border-radius: 999px; }
+
+/* 手机：设置目录收成一行横向滚动的胶囊，组之间细线分隔（原来逐组换行居中，看起来散） */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc { flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: none; justify-content: flex-start; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc::-webkit-scrollbar { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-group { flex: none; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 6px; margin: 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-group + .p-toc-group { padding-left: 8px; border-left: 1px solid var(--stg-line, #e6e6e8); }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-label { display: none; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a { flex: none; white-space: nowrap; transform: none; }
+}
+
+/* 手机：广场 / 角色库作品卡改两列紧凑卡（原来一屏一张，太稀） */
+@media (max-width: 720px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; padding: 12px 2px 32px; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(n) { margin-top: 0; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(2n) { margin-top: 18px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work { padding: 6px; border-radius: 20px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-media, html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover { border-radius: 15px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover { aspect-ratio: 3 / 4; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover img { width: 100%; height: 100%; object-fit: cover; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-fav { width: 30px; height: 30px; top: 8px; right: 8px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-body { padding: 10px 6px 4px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-name { font-size: 19px; letter-spacing: -.05em; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-author { font-size: 11px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 1.55; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-meta { margin-top: 8px; padding-top: 8px; gap: 6px; flex-wrap: wrap; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work .p-pill { height: 22px; padding: 0 8px; font-size: 10px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-stat { font-size: 11px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main { flex-wrap: wrap; }
+}
+
+/* 字体统一：整套戏台 chrome 用 Noto Sans SC（原来是系统字体，只有对话区是 Noto）；表单控件跟随；中文署名不用拉丁斜体 */
+html body[data-theme="stage"]:not(.p-cinema) :is(input, textarea, select, button) { font-family: inherit; }
+html body[data-theme="stage"]:not(.p-cinema) .p-create-preview-greeting { font-family: var(--stg-sans); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-author, html body[data-theme="stage"]:not(.p-cinema) .stg-author-cjk { font-family: var(--stg-sans); font-style: normal; }
+
+/* 手机输入区：快捷条右侧渐隐提示还能横滑；条和代写/预览行压矮，整块从 ~200px 降到 ~150px */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa { padding-top: 14px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa::after { content: ""; flex: 0 0 28px; }
+  html body[data-theme="stage"]:not(.p-cinema) .stg-qa .stg-q { height: 34px; min-height: 34px; padding: 0 11px; font-size: 12.5px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-compose-row { margin-top: 6px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > .p-chat-meta :is(button, .btn, .p-btn, .mp-trigger) { height: 30px; min-height: 30px; padding-block: 0; font-size: 12px; }
+}

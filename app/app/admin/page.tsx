@@ -1,3 +1,5 @@
+import { formatMoney } from '@/lib/money';
+import { paymentCurrency } from '@/lib/billing';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
@@ -9,7 +11,7 @@ import { listRecentOrders } from '@/lib/billing';
 export const dynamic = 'force-dynamic';
 
 const STATUS_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', cancelled: '已取消', refunded: '已退款' };
-const yuan = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
+const yuan = (cents: number) => formatMoney(cents, paymentCurrency());
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -57,7 +59,7 @@ export default async function AdminPage() {
             <div className="p-kpi-delta">生成 {totals.runs} 次 · 消耗 {totals.spentToday.toLocaleString('zh-CN')} 点</div>
             <div className="p-kpi-delta">
               {totals.upstreamCostToday > 0
-                ? `上游成本 ¥${(totals.upstreamCostToday / 100).toFixed(2)} · 毛利 ¥${(totals.marginToday / 100).toFixed(2)}`
+                ? `上游成本 ${yuan(totals.upstreamCostToday)} · 毛利 ${yuan(totals.marginToday)}`
                 : '上游成本未配置'}
             </div>
           </div>

@@ -2,7 +2,8 @@
 // 端点与密钥优先读后台配置（app_settings），其次环境变量（.env.local，已 gitignore）——绝不写进代码或提交。
 import type { PresetParams } from '@/lib/resources';
 import { getSetting } from '@/lib/settings';
-import { channelCount, channelRoutes } from '@/lib/channels';
+import { channelCount, channelModels, channelRoutes, channelRoutesFor } from '@/lib/channels';
+import { modelPricePer1k } from '@/lib/points';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -53,7 +54,14 @@ function routeList(): { primary: ModelRoute; fallbacks: ModelRoute[] } {
   return { primary, fallbacks };
 }
 
-export function modelRoutes(): ModelRoute[] {
+export function modelRoutes(preferred?: string | null): ModelRoute[] {
+  const wanted = String(preferred ?? '').trim();
+  if (wanted) {
+    const picked = channelCount() > 0
+      ? channelRoutesFor(wanted)
+      : (() => { const { primary, fallbacks } = routeList(); return [primary, ...fallbacks].filter((route) => route.baseUrl && route.apiKey && route.model === wanted); })();
+    if (picked.length) return picked;
+  }
   // 只要后台建过渠道，文本生成就只走启用的渠道（全部停用即视为未配置）；
   // 没有渠道时沿用单线路 + 备用线路的旧配置，兼容已有部署。
   const channels = channelRoutes();
@@ -72,8 +80,23 @@ export function modelConfigured(): boolean {
   return modelRoutes().length > 0;
 }
 
-export function modelName(): string {
-  return modelRoutes()[0]?.model ?? modelId();
+export function modelName(preferred?: string | null): string {
+  return modelRoutes(preferred)[0]?.model ?? modelId();
+}
+
+// 玩家在对话里能选的模型（后台渠道启用的全部模型；没建渠道时用主线路 + 备用线路）。
+export type ModelOption = { id: string; source: string; isDefault: boolean; price: number };
+export function availableModels(): ModelOption[] {
+  if (channelCount() > 0) {
+    const list = channelModels();
+    const fallback = modelRoutes()[0]?.model;
+    return list.map((item) => ({ id: item.id, source: item.channels.join(' / '), isDefault: item.id === fallback, price: modelPricePer1k(item.id) }));
+  }
+  const { primary, fallbacks } = routeList();
+  const seen = new Set<string>();
+  return [primary, ...fallbacks]
+    .filter((route) => route.baseUrl && route.apiKey && route.model && !seen.has(route.model) && Boolean(seen.add(route.model)))
+    .map((route, index) => ({ id: route.model, source: index === 0 ? '主线路' : '备用线路', isDefault: index === 0, price: modelPricePer1k(route.model) }));
 }
 
 export function modelBaseUrl(): string {
@@ -121,6 +144,7 @@ export type StreamOptions = {
   signal?: AbortSignal;
   params?: PresetParams;
   stop?: string[];
+  model?: string | null;
 };
 
 // 逐块产出：reasoning_content（模型的思考）与 content（正文）分开，UI 只展示正文。
@@ -150,7 +174,7 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
 
   // 上游必须有超时；否则一个挂起的网关会一直占着连接和内存。
   const timeoutMs = Math.max(1000, Number(process.env.TAVERN_UPSTREAM_TIMEOUT_MS ?? 120_000));
-  const routes = modelRoutes();
+  const routes = modelRoutes(options.model);
   if (!routes.length) throw new Error('模型未配置：请在后台「模型与网关」或 .env.local 配置');
 
   const request = (route: ModelRoute) => {

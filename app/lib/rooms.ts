@@ -16,6 +16,7 @@ export type Room = {
   strategy: RoomStrategy;
   autoMode: boolean;
   speakerId: string | null;
+  model: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -24,7 +25,7 @@ export type RoomMessage = { id: number; roomId: number; role: 'user' | 'assistan
 
 type RoomRow = {
   id: number; name: string; character_ids: string; muted: string; strategy: string;
-  auto_mode: number | null; speaker_id: string | null; created_at: number; updated_at: number;
+  auto_mode: number | null; speaker_id: string | null; model?: string | null; created_at: number; updated_at: number;
 };
 type RoomMessageRow = { id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number };
 
@@ -48,6 +49,7 @@ function fromRow(row: RoomRow): Room {
     strategy: STRATEGIES.includes(row.strategy as RoomStrategy) ? (row.strategy as RoomStrategy) : 'natural',
     autoMode: row.auto_mode === 1,
     speakerId: row.speaker_id && parseJson<string[]>(row.character_ids, []).includes(row.speaker_id) ? row.speaker_id : null,
+    model: row.model || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

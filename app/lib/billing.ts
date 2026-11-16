@@ -1,12 +1,14 @@
-import { createHmac, randomInt } from 'node:crypto';
+import { randomInt } from 'node:crypto';
+import { grantFirstTopupBonus } from '@/lib/growth';
 import db, { transaction } from '@/lib/db';
 import { balance, grantPoints, spendPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
 import { getSetting } from '@/lib/settings';
+import { activeProvider } from '@/lib/payments';
 
 // M4 充值：兑换码 + 订单。
-// 支付网关还没接（需要商户资质）：订单先落 pending，由管理员手动确认，
-// 或者由 /api/payments/webhook（HMAC 校验）回调确认。两条路都写账本并通知用户。
+// 订单先落 pending；在线渠道见 lib/payments（插件式，回调 /api/payments/<渠道>），
+// 或由管理员手动确认。两条路都写账本并通知用户。
 export function pricePerPointCents(): number {
   return Math.max(1, Number(getSetting('billing.pricePerPointCents', process.env.TAVERN_PRICE_PER_POINT_CENTS ?? '1')));
 }
@@ -66,7 +68,7 @@ export function redeemCode(userId: number, input: string): { ok: boolean; messag
     const changed = db.prepare('UPDATE redeem_codes SET used_by = ?, used_at = ? WHERE id = ? AND used_by IS NULL').run(userId, Date.now(), row.id);
     if (Number(changed.changes) === 0) return { ok: false, message: '这个兑换码已经被使用过了' };
     const next = grantPoints(userId, row.amount, `兑换码 ${row.code}`, 'recharge');
-    notify(userId, { type: 'points', title: `兑换成功 +${row.amount} 点`, body: `兑换码 ${row.code}`, link: '/me/points' });
+    notify(userId, { type: 'points', title: `兑换成功 +${row.amount} 点`, body: `兑换码 ${row.code}`, link: '/me/points', push: false });
     return { ok: true, message: '兑换成功', amount: row.amount, balance: next };
   });
 }
@@ -82,51 +84,13 @@ function orderFromRow(row: OrderRow): Order {
 export function createOrder(userId: number, points: number, priceCents: number): Order {
   const value = Math.max(1, Math.round(points));
   const price = Math.max(1, Math.round(priceCents));
-  const provider = getSetting('payment.provider', 'manual') || 'manual';
+  const provider = activeProvider().id;
   const result = db.prepare('INSERT INTO orders (user_id, points, price_cents, status, provider, created_at) VALUES (?,?,?,?,?,?)').run(userId, value, price, 'pending', provider, Date.now());
   return orderFromRow(db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(result.lastInsertRowid)) as OrderRow);
 }
 
-function paymentSecret(): string {
-  return getSetting('payment.secret', process.env.TAVERN_PAYMENT_SECRET ?? '');
-}
-
 export function paymentCurrency(): string {
-  return getSetting('payment.currency', process.env.TAVERN_PAYMENT_CURRENCY ?? 'CNY');
-}
-
-// 结算页令牌使用独立派生密钥，绝不把 webhook 密钥的签名交给浏览器。
-function checkoutSecret(): string {
-  const explicit = getSetting('payment.checkoutSecret', process.env.TAVERN_PAYMENT_CHECKOUT_SECRET ?? '');
-  if (explicit) return explicit;
-  const webhook = paymentSecret();
-  return webhook ? createHmac('sha256', webhook).update('checkout').digest('hex') : '';
-}
-
-// 通用托管结算页：配置了 payment.checkoutUrl 时，创建订单后跳转过去。
-// 参数：orderId / points / amount（分）/ expires（Unix 秒）/ token。
-// token = HMAC-SHA256(checkoutSecret, `${orderId}|${points}|${amount}|${expires}`)
-// 它与 webhook 的签名密钥不同，即使浏览器拿到 token 也不能伪造支付回调。
-export function checkoutLink(order: Order): string | null {
-  const base = getSetting('payment.checkoutUrl', process.env.TAVERN_PAYMENT_CHECKOUT_URL ?? '');
-  if (!base) return null;
-  try {
-    const url = new URL(base);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    const expires = Math.floor(Date.now() / 1000) + 30 * 60;
-    url.searchParams.set('orderId', String(order.id));
-    url.searchParams.set('points', String(order.points));
-    url.searchParams.set('amount', String(order.priceCents));
-    url.searchParams.set('expires', String(expires));
-    const secret = checkoutSecret();
-    if (secret) {
-      const token = createHmac('sha256', secret).update(`${order.id}|${order.points}|${order.priceCents}|${expires}`).digest('hex');
-      url.searchParams.set('token', token);
-    }
-    return url.toString();
-  } catch {
-    return null;
-  }
+  return getSetting('payment.currency', process.env.TAVERN_PAYMENT_CURRENCY ?? 'USD');
 }
 
 export function listOrders(userId: number, limit = 20): Order[] {
@@ -173,7 +137,8 @@ export function markOrderPaid(orderId: number, providerOrderId?: string): { ok: 
     const changed = db.prepare("UPDATE orders SET status = 'paid', paid_at = ?, provider_order_id = ? WHERE id = ? AND status = 'pending'").run(Date.now(), providerOrderId ?? null, orderId);
     if (Number(changed.changes) === 0) return { ok: true, message: '订单已支付', points: row.points };
     grantPoints(row.user_id, row.points, `订单 #${orderId} 充值`, 'recharge');
-    notify(row.user_id, { type: 'points', title: `充值到账 +${row.points} 点`, body: `订单 #${orderId} 已确认`, link: '/me/points' });
+    const bonus = grantFirstTopupBonus(row.user_id, orderId, row.points);
+    notify(row.user_id, { type: 'points', title: `充值到账 +${row.points + bonus} 点`, body: bonus ? `订单 #${orderId} 已确认，含首充赠送 ${bonus} 点` : `订单 #${orderId} 已确认`, link: '/me/points' });
     return { ok: true, message: '已确认', points: row.points };
   });
 }

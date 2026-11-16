@@ -300,6 +300,11 @@ body[data-page="admin"] .p-aside .p-nav-item[aria-current="page"] .p-icon { colo
     cursor: pointer;
 }
 
+/* 对话头：原型第三列固定 44px，但右侧有 搜索/设定/外观 三个按钮；所有宽度都改 auto，避免平板/小笔记本被挤出屏幕 */
+.p-chat-head-in { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.p-chat-head-in > div:last-child { flex-wrap: nowrap; white-space: nowrap; }
+.p-chat-head-in .p-chat-title { min-width: 0; }
+
 /* 手机对话头：标题可收缩，右侧搜索/设定不再被挤出屏幕 */
 @media (max-width: 720px) {
     /* 原型三列固定 44px，但实际右侧有两个按钮，第三列改 auto 让标题让位 */

@@ -1,3 +1,4 @@
+import { flattenText, moderateText } from '@/lib/auto-moderation';
 import { fail, json, requireUser } from '@/lib/api';
 import { saveMedia } from '@/lib/storage';
 import { createCharacter, setCharacterCover } from '@/lib/characters';
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
     if (!rawCard) return fail('这张 PNG 里没有找到角色卡数据（chara / ccv3）', 400);
     const card = parseStCharacterCard(rawCard);
     if (!card) return fail('角色卡缺少名称等必要字段', 400);
+    const verdict = await moderateText(flattenText(card));
+    if (!verdict.ok) return fail(verdict.message, 422);
     const character = createCharacter(user.id, user.nickname, card);
     if (!character) return fail('角色卡缺少必要字段', 400);
     const cover = saveMedia(buffer, 'png', { ownerId: user.id, visibility: 'public' });
@@ -38,6 +41,8 @@ export async function POST(request: Request) {
   }
   const card = parseStCharacterCard(raw);
   if (!card) return fail('这不是可识别的角色卡 JSON', 400);
+  const verdict = await moderateText(flattenText(card));
+  if (!verdict.ok) return fail(verdict.message, 422);
   const character = createCharacter(user.id, user.nickname, card);
   return character ? json({ character }, 201) : fail('角色卡缺少必要字段', 400);
 }

@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney } from '@/lib/money';
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -9,7 +10,6 @@ type Order = {
   userId: number; nickname: string; email: string;
 };
 
-const yuan = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
 const STATUS_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', cancelled: '已取消', refunded: '已退款' };
 const STATUS_PILL: Record<string, string> = { pending: 'p-pill--warn', paid: 'p-pill--ok', cancelled: 'p-pill--outline', refunded: 'p-pill--danger' };
 
@@ -26,7 +26,8 @@ function startOfMonth(): number {
   return date.getTime();
 }
 
-export function AdminBilling({ orders }: { orders: Order[] }) {
+export function AdminBilling({ orders, currency = 'USD' }: { orders: Order[]; currency?: string }) {
+  const yuan = (cents: number) => formatMoney(cents, currency);
   const router = useRouter();
   const [error, setError] = useState('');
   const [payingId, setPayingId] = useState<number | null>(null);

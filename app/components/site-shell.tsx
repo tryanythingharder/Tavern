@@ -4,9 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { CharacterCover } from '@/components/character-cover';
-import { ViewSwitch } from '@/components/view-switch';
+import { AppearanceButton, AppearanceDrawer } from '@/components/appearance-drawer';
+import type { AppearancePrefs } from '@/lib/appearance';
+import type { Theme } from '@/lib/theme';
 import { AnnouncementBar } from '@/components/announcement-bar';
 import { CheckinPopup } from '@/components/checkin-popup';
+import { MotionLayer } from '@/components/motion-layer';
+import { CommandPalette } from '@/components/command-palette';
+import { OfflineBanner } from '@/components/offline-banner';
+import { SwRegister } from '@/components/sw-register';
+import { ErrorReporter } from '@/components/error-reporter';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -76,8 +83,10 @@ export function SiteShell({
   recents = [],
   costs = { text: 2, image: 20, tts: 5 },
   view = 'classic',
+  theme = 'folio',
   announcement = '',
   checkin = null,
+  appearance,
 }: {
   children: ReactNode;
   userName?: string;
@@ -87,6 +96,8 @@ export function SiteShell({
   recents?: Recent[];
   costs?: { text: number; image: number; tts: number };
   view?: 'classic' | 'cinema';
+  theme?: Theme;
+  appearance?: AppearancePrefs;
   announcement?: string;
   checkin?: { todayDone: boolean; streak: number; amount: number; day: string } | null;
 }) {
@@ -200,7 +211,18 @@ export function SiteShell({
     </div>
   ) : null;
 
-  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}</>;
+  const overlays = (
+    <>
+      <MotionLayer />
+      <OfflineBanner />
+      <SwRegister />
+      <ErrorReporter />
+      <AppearanceDrawer theme={theme} initial={appearance} />
+      {userName && <CommandPalette recents={recents.map((recent) => ({ id: recent.id, name: recent.name, title: recent.title }))} />}
+    </>
+  );
+
+  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}<MotionLayer /><ErrorReporter /></>;
 
   // 后台：原型 admin.html 的独立骨架（240px 侧栏 + 主区工具栏）
   if (adminPage) {
@@ -251,6 +273,7 @@ export function SiteShell({
           </nav>
           {children}
         </div>
+        {overlays}
       </div>
     );
   }
@@ -267,7 +290,7 @@ export function SiteShell({
           </nav>
           <Link className="cinema-logo" href="/">酒馆</Link>
           <div className="cinema-nav-right">
-            <ViewSwitch initial={view} />
+            <AppearanceButton />
             {userName && (
               <Link className="pill" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
                 {icon('M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4')}
@@ -281,7 +304,7 @@ export function SiteShell({
             </Link>
           </div>
         </header>
-        <main className="cinema-main">{children}</main>
+        <main className="cinema-main" id="main-content" tabIndex={-1}>{children}</main>
         <nav className="p-tabbar" aria-label="主导航">
           {NAV.map((item) => (
             <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
@@ -291,6 +314,7 @@ export function SiteShell({
           ))}
         </nav>
         {showCheckin && checkin && <CheckinPopup initial={checkin} />}
+        {overlays}
       </div>
     );
   }
@@ -347,14 +371,23 @@ export function SiteShell({
 
       <div className="p-main">
         <header className="p-topbar">
+          <Link className="p-topbar-brand" href="/" aria-label="酒馆首页">
+            <span className="p-topbar-mark" aria-hidden="true">酒</span>
+            <span className="p-topbar-word">酒馆</span>
+          </Link>
           <form className="p-search" action="/search" role="search">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
             <input className="p-input" type="search" name="q" placeholder="搜索角色、作者或剧情" aria-label="搜索角色、作者或剧情" />
+            {userName && (
+              <button className="rd-kbd-hint" type="button" aria-label="打开快速跳转（Ctrl/⌘ + K）" onClick={() => window.dispatchEvent(new Event('tavern:palette'))}>
+                <kbd>⌘</kbd><kbd>K</kbd>
+              </button>
+            )}
           </form>
           <Link className="p-topbar-icon p-topbar-search" href="/search" aria-label="搜索">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
           </Link>
-          <ViewSwitch initial={view} />
+          <AppearanceButton />
           {userName && (
             <Link className="p-topbar-icon" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
               {icon('M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4')}
@@ -367,6 +400,7 @@ export function SiteShell({
           </Link>
         </header>
         {!adminPage && !pathname.startsWith('/chats/') && !pathname.startsWith('/rooms/') && <AnnouncementBar text={announcement} />}
+        <span id="main-content" tabIndex={-1} className="main-anchor" />
         {children}
       </div>
 
@@ -379,6 +413,7 @@ export function SiteShell({
         ))}
       </nav>
       {showCheckin && checkin && <CheckinPopup initial={checkin} />}
+      {overlays}
     </div>
   );
 }

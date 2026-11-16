@@ -42,7 +42,7 @@ export function claimCheckin(userId: number): { ok: boolean; message: string; am
       return { ok: false, message: '今天已经签到过了' };
     }
     const balance = grantPoints(userId, status.amount, `签到 · 连续 ${status.streak} 天`, 'checkin');
-    notify(userId, { type: 'points', title: `签到 +${status.amount} 点`, body: `连续签到 ${status.streak} 天`, link: '/me/points' });
+    notify(userId, { type: 'points', title: `签到 +${status.amount} 点`, body: `连续签到 ${status.streak} 天`, link: '/me/points', push: false });
     return { ok: true, message: '签到成功', amount: status.amount, streak: status.streak, balance };
   });
 }

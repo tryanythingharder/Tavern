@@ -7,9 +7,13 @@ import { toMessageView } from '@/lib/chat-view';
 import { ChatRoom } from '@/components/chat-room';
 import { ChatSettings } from '@/components/chat-settings';
 import { ChatSearch } from '@/components/chat-search';
+import { AppearanceButton } from '@/components/appearance-drawer';
 import { chatSettings, listLorebooks, listQuickReplies, loadGenerationConfig } from '@/lib/resources-db';
 import { summaryStatus } from '@/lib/memory';
 import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
+import { getTheme } from '@/lib/theme';
+import { ThemeChatChrome } from '@/components/themes/chat-chrome';
+import { ChatNavSheet } from '@/components/chat-nav-sheet';
 
 export const metadata: Metadata = { title: '对话' };
 export const dynamic = 'force-dynamic';
@@ -43,11 +47,14 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
     { label: '记忆', value: memory.covered ? `摘要覆盖 ${memory.covered} 条` : '还没记下什么', note: '自动抽取式摘要 + 手动记忆', href: null },
     { label: '世界', value: lorebookCount ? `${lorebookCount} 本世界书` : '没有绑定世界书', note: '提到关键词时自动带上', href: '/me/lorebooks' },
   ];
+  const theme = await getTheme();
   const cover = character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null);
 
   return (
     <main className="p-inner">
-      <div className="p-rp-workbench">
+      {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
+      <div className="p-rp-workbench" data-theme-chat={theme}>
+        <ChatNavSheet />
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">
@@ -66,6 +73,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                 <ChatSearch chatId={chat.id} characterName={character.name} />
                 <ChatSettings chatId={chat.id} />
+                <AppearanceButton className="btn btn--sm ua-trigger--chat" />
               </div>
             </div>
           </header>
@@ -84,9 +92,35 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             media={{ image: imageConfigured(), tts: ttsConfigured(), imageCost: imageCost() }}
             title={chat.title}
             personaName={config.persona?.name}
+            characterCover={cover}
+            characterHue={character.hue}
           />
         </div>
 
+        {/* 主题侧栏放在对话之后：键盘 Tab 先到顶栏、消息和输入框，再到角色书版 / 进度栏（视觉位置由 grid 决定） */}
+        <ThemeChatChrome
+          theme={theme}
+          chrome={{
+            chatId: chat.id,
+            chatTitle: chat.title,
+            character: {
+              id: character.id,
+              name: character.name,
+              author: character.author,
+              hue: character.hue,
+              cover,
+              tags: safeTags(character.tags),
+              hook: character.hook,
+              description: character.description,
+              pace: character.pace,
+            },
+            messageCount: messages.length,
+            bookmarks,
+            memoryCovered: memory.covered,
+            personaName: config.persona?.name ?? null,
+            lorebookCount,
+          }}
+        />
         <aside className="p-rp-context" aria-label="故事设定">
           <div className="p-rp-context-head"><span>STORY</span><h2>故事设定</h2></div>
           <div className="p-rp-context-group">
@@ -119,4 +153,17 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
       </div>
     </main>
   );
+}
+
+function safeTags(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return raw.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
+    }
+  }
+  return [];
 }

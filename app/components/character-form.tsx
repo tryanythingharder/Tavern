@@ -20,6 +20,16 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
   const [coverData, setCoverData] = useState<string>(initial?.coverImage ?? '');
   const [avatarData, setAvatarData] = useState<string>(initial?.avatarImage ?? '');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [card, setCard] = useState({
+    personality: initial?.card?.personality ?? '',
+    scenario: initial?.card?.scenario ?? '',
+    mesExample: initial?.card?.mesExample ?? '',
+    systemPrompt: initial?.card?.systemPrompt ?? '',
+    postHistory: initial?.card?.postHistory ?? '',
+    creatorNotes: initial?.card?.creatorNotes ?? '',
+  });
+  const setCardField = (key: keyof typeof card, value: string) => setCard((prev) => ({ ...prev, [key]: value }));
+  const advancedFilled = Object.values(card).filter((value) => value.trim()).length;
   const avatarInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
   const [alternate, setAlternate] = useState((initial?.alternateGreetings ?? []).map((opening) => `${opening.title}\n${opening.text}`).join('\n---\n'));
@@ -54,7 +64,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
     const timer = setTimeout(() => {
       // 全空时不存，避免「丢弃」后立刻又写回一份空草稿
       if (!name.trim() && !hook.trim() && !greeting.trim() && !description.trim() && !alternate.trim()) return;
-      const data = { name, hook, greeting, description, pace, tags, category, nsfw, alternate, savedAt: Date.now() };
+      const data = { name, hook, greeting, description, pace, tags, category, nsfw, alternate, card, savedAt: Date.now() };
       try {
         localStorage.setItem(draftKey, JSON.stringify(data));
         setAutoSavedAt(data.savedAt);
@@ -63,7 +73,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
       }
     }, 700);
     return () => clearTimeout(timer);
-  }, [name, hook, greeting, description, pace, tags, category, nsfw, alternate, draftKey, restore]);
+  }, [name, hook, greeting, description, pace, tags, category, nsfw, alternate, card, draftKey, restore]);
 
   const applyRestore = () => {
     if (!restore) return;
@@ -77,6 +87,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
     setCategory(String(data.category ?? '现代'));
     setNsfw(Boolean(data.nsfw));
     setAlternate(String(data.alternate ?? ''));
+    if (data.card && typeof data.card === 'object') setCard((prev) => ({ ...prev, ...(data.card as Record<string, string>) }));
     setRestore(null);
     setAutoSavedAt(restore.savedAt);
   };
@@ -97,7 +108,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
     setSaved(false);
     try {
       const payload = {
-        name, hook, greeting, description, pace, tags: tagList, category, nsfw, status, alternateGreetings: alternate,
+        name, hook, greeting, description, pace, tags: tagList, category, nsfw, status, alternateGreetings: alternate, card,
         coverData: coverData.startsWith('data:image/') ? coverData : undefined,
         avatarData: avatarData.startsWith('data:image/') ? avatarData : undefined,
       };
@@ -171,6 +182,8 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
     </div>
   );
 
+  const missing = [!name.trim() && '名称', !hook.trim() && '剧情钩子', !greeting.trim() && '开场白'].filter(Boolean) as string[];
+  const publishHint = missing.length ? `发布前还需要填写：${missing.join('、')}` : '可以发布了';
   return (
     <>
       <header className="p-page-title">
@@ -205,8 +218,8 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             <button className="p-btn" type="button" disabled={busy !== null || !name.trim()} onClick={() => void submit('draft')}>
               {busy === 'draft' ? '保存中…' : '保存草稿'}
             </button>
-            <a className="p-btn" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
-            <span className="p-small">发布需要名称、钩子和开场白。</span>
+            <a className="p-btn p-btn--ghost p-create-cancel" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
+            <span className="p-small p-create-need">{publishHint}</span>
           </div>
           <section className="p-card p-card--pad">
             <h2 className="p-form-section-title">公开展示</h2>
@@ -334,6 +347,39 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             </label>
           </section>
 
+          <details className="p-card p-card--pad cf-adv" open={advancedFilled > 0}>
+            <summary className="cf-adv-sum">
+              <span className="p-form-section-title">高级 · SillyTavern 卡字段</span>
+              <span className="p-small">{advancedFilled ? `已填 ${advancedFilled} 项` : '可选，导入 ST 卡时会自动填好'}</span>
+            </summary>
+            <p className="p-small creator-section-hint">这些字段和 ST V2 卡一一对应，导出时原样写回。支持 {'{{char}}'}、{'{{user}}'}；系统提示与后置指令可用 {'{{original}}'} 引用预设原文。玩家在「我的 → 角色卡覆盖」里写的同名字段会优先生效。</p>
+            <div className="p-field">
+              <label className="p-label" htmlFor="cf-personality">性格（personality）</label>
+              <textarea id="cf-personality" className="p-textarea" rows={3} maxLength={2000} value={card.personality} placeholder="嘴硬心软；生气时反而更客气。" onChange={(event) => setCardField('personality', event.target.value)} />
+            </div>
+            <div className="p-field">
+              <label className="p-label" htmlFor="cf-scenario">场景（scenario）</label>
+              <textarea id="cf-scenario" className="p-textarea" rows={3} maxLength={2000} value={card.scenario} placeholder="1936 年冬，上海法租界的一间旧书店。" onChange={(event) => setCardField('scenario', event.target.value)} />
+            </div>
+            <div className="p-field">
+              <label className="p-label" htmlFor="cf-mes">对话示例（mes_example）</label>
+              <textarea id="cf-mes" className="p-textarea cf-mono" rows={6} maxLength={6000} value={card.mesExample} placeholder={'<START>\n{{user}}：你好。\n{{char}}：*抬眼看了你一下* 「打烊了。」'} onChange={(event) => setCardField('mesExample', event.target.value)} />
+              <span className="p-hint">每段以 &lt;START&gt; 开头，只用来教模型说话的口吻，不会当作真实发生过的剧情。</span>
+            </div>
+            <div className="p-field">
+              <label className="p-label" htmlFor="cf-system">系统提示（system_prompt）</label>
+              <textarea id="cf-system" className="p-textarea cf-mono" rows={3} maxLength={4000} value={card.systemPrompt} placeholder="留空则使用玩家预设的主提示词。" onChange={(event) => setCardField('systemPrompt', event.target.value)} />
+            </div>
+            <div className="p-field">
+              <label className="p-label" htmlFor="cf-post">后置指令（post_history_instructions）</label>
+              <textarea id="cf-post" className="p-textarea cf-mono" rows={2} maxLength={2000} value={card.postHistory} placeholder="放在对话历史之后，常用于强调文风或禁止事项。" onChange={(event) => setCardField('postHistory', event.target.value)} />
+            </div>
+            <div className="p-field">
+              <label className="p-label" htmlFor="cf-notes">作者备注（creator_notes）</label>
+              <textarea id="cf-notes" className="p-textarea" rows={2} maxLength={2000} value={card.creatorNotes} placeholder="给玩家看的玩法说明，不会发给模型。" onChange={(event) => setCardField('creatorNotes', event.target.value)} />
+            </div>
+          </details>
+
           <div className="p-form-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="p-btn p-btn--primary" type="button" disabled={busy !== null || !name.trim() || !hook.trim() || !greeting.trim()} onClick={() => void submit('published')}>
               {busy === 'published' ? '提交中…' : initial ? '保存并发布' : '提交审核并发布'}
@@ -341,8 +387,8 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             <button className="p-btn" type="button" disabled={busy !== null || !name.trim()} onClick={() => void submit('draft')}>
               {busy === 'draft' ? '保存中…' : '保存草稿'}
             </button>
-            <a className="p-btn" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
-            <span className="p-small">发布需要角色名称、剧情钩子和开场白。</span>
+            <a className="p-btn p-btn--ghost p-create-cancel" href={initial ? `/c/${initial.id}` : '/library'}>取消</a>
+            <span className="p-small p-create-need">{publishHint}</span>
             {saved && <span className="p-small">草稿已保存</span>}
             {autoSavedAt && !saved && <span className="p-small">本地自动保存 · {new Date(autoSavedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
             {initial && <span className="p-small">当前状态：{initial.status === 'draft' ? '草稿' : initial.status === 'archived' ? '已下架' : '已发布'}</span>}

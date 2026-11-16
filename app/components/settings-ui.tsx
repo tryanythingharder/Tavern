@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.body), []);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -38,9 +41,10 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, [onClose, host]);
 
-  return (
+  if (!host) return null;
+  return createPortal(
     <div
       className="modal-backdrop"
       role="presentation"
@@ -58,7 +62,8 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
         {children}
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    host,
   );
 }
 

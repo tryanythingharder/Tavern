@@ -4,6 +4,44 @@ import { saveMedia } from '@/lib/storage';
 
 export { CATEGORIES } from '@/lib/catalog';
 
+// ST V2 角色卡高级字段：作者在编辑器「高级」里填写，导入/导出时一一对应
+export type CardFields = {
+  personality: string;
+  scenario: string;
+  mesExample: string;
+  systemPrompt: string;
+  postHistory: string;
+  creatorNotes: string;
+};
+export const CARD_FIELD_LIMITS: Record<keyof CardFields, number> = {
+  personality: 2000, scenario: 2000, mesExample: 6000, systemPrompt: 4000, postHistory: 2000, creatorNotes: 2000,
+};
+export function emptyCardFields(): CardFields {
+  return { personality: '', scenario: '', mesExample: '', systemPrompt: '', postHistory: '', creatorNotes: '' };
+}
+export function parseCardFields(raw: string | null | undefined): CardFields {
+  const out = emptyCardFields();
+  if (!raw) return out;
+  try {
+    const data = JSON.parse(raw) as Record<string, unknown>;
+    for (const key of Object.keys(out) as (keyof CardFields)[]) {
+      if (typeof data[key] === 'string') out[key] = (data[key] as string).slice(0, CARD_FIELD_LIMITS[key]);
+    }
+  } catch {
+    // 坏数据按空处理
+  }
+  return out;
+}
+export function normalizeCardFields(value: unknown): CardFields {
+  const out = emptyCardFields();
+  if (!value || typeof value !== 'object') return out;
+  const data = value as Record<string, unknown>;
+  for (const key of Object.keys(out) as (keyof CardFields)[]) {
+    out[key] = String(data[key] ?? '').trim().slice(0, CARD_FIELD_LIMITS[key]);
+  }
+  return out;
+}
+
 export function parseOpenings(raw: string | null): { title: string; text: string }[] {
   if (!raw) return [];
   try {
@@ -43,6 +81,7 @@ export type CharacterView = {
   coverImage: string | null;
   avatarImage: string | null;
   reviewNote: string | null;
+  card: CardFields;
 };
 
 export function characterView(row: DbCharacter): CharacterView {
@@ -74,6 +113,7 @@ export function characterView(row: DbCharacter): CharacterView {
     coverImage: row.cover_image ?? null,
     avatarImage: row.avatar_image ?? null,
     reviewNote: row.review_note ?? null,
+    card: parseCardFields(row.card_fields),
   };
 }
 
@@ -132,6 +172,7 @@ export type CharacterInput = {
   alternateGreetings?: unknown;
   coverData?: unknown;
   avatarData?: unknown;
+  card?: unknown;
 };
 
 function normalizeInput(input: CharacterInput, fallbackName = '新角色') {
@@ -209,6 +250,7 @@ export function createCharacter(ownerId: number, author: string, input: Characte
   if (values.alternateGreetings.length) {
     db.prepare('UPDATE characters SET alternate_greetings = ? WHERE id = ?').run(JSON.stringify(values.alternateGreetings), id);
   }
+  if (input.card !== undefined) db.prepare('UPDATE characters SET card_fields = ? WHERE id = ?').run(JSON.stringify(normalizeCardFields(input.card)), id);
   applyCover(input.coverData, id, ownerId);
   applyAvatar(input.avatarData, id, ownerId);
   return getCharacterView(id) ?? null;
@@ -226,8 +268,9 @@ export function updateCharacter(ownerId: number, id: string, input: CharacterInp
       : row.status;
 
   // 内容有变化才留版本，最多 5 版
-  const before = JSON.stringify([row.name, row.hook, row.greeting, row.description, row.pace, row.tags, row.category, row.nsfw]);
-  const after = JSON.stringify([values.name, values.hook, values.greeting, values.description, values.pace, JSON.stringify(values.tags), values.category, values.nsfw ? 1 : 0]);
+  const nextCard = input.card !== undefined ? JSON.stringify(normalizeCardFields(input.card)) : (row.card_fields ?? null);
+  const before = JSON.stringify([row.name, row.hook, row.greeting, row.description, row.pace, row.tags, row.category, row.nsfw, row.card_fields ?? null]);
+  const after = JSON.stringify([values.name, values.hook, values.greeting, values.description, values.pace, JSON.stringify(values.tags), values.category, values.nsfw ? 1 : 0, nextCard]);
   if (before !== after) snapshotVersion(id);
 
   db.prepare(`
@@ -248,6 +291,7 @@ export function updateCharacter(ownerId: number, id: string, input: CharacterInp
     id,
     ownerId,
   );
+  if (input.card !== undefined) db.prepare('UPDATE characters SET card_fields = ? WHERE id = ?').run(nextCard, id);
   applyCover(input.coverData, id, ownerId);
   applyAvatar(input.avatarData, id, ownerId);
   return getCharacterView(id) ?? null;

@@ -3,6 +3,7 @@ import { isAdmin } from '@/lib/auth';
 import db from '@/lib/db';
 import { logAdmin } from '@/lib/audit';
 import { notify } from '@/lib/notifications';
+import { notifyFollowers } from '@/lib/follows';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export async function POST(request: Request, context: Params) {
   const body = (await request.json().catch(() => ({}))) as { status?: string; reason?: string };
   const status = body.status === 'archived' ? 'archived' : 'published';
   const reason = status === 'archived' ? String(body.reason ?? '').trim().slice(0, 200) : '';
-  const row = db.prepare('SELECT name, owner_id FROM characters WHERE id = ? AND owner_id IS NOT NULL').get(id) as { name: string; owner_id: number } | undefined;
+  const row = db.prepare('SELECT name, owner_id, author, hook, status FROM characters WHERE id = ? AND owner_id IS NOT NULL').get(id) as { name: string; owner_id: number; author: string; hook: string; status: string } | undefined;
   if (!row) return fail('角色不存在或不是用户作品', 404);
   db.prepare('UPDATE characters SET status = ?, review_note = ? WHERE id = ?').run(status, status === 'archived' ? reason || null : null, id);
   notify(row.owner_id, {
@@ -29,6 +30,8 @@ export async function POST(request: Request, context: Params) {
       : '现在会出现在广场与搜索里。',
     link: `/c/${id}`,
   });
+  // 首次上架（待审 → 公开）才通知关注者，下架后恢复不重复打扰
+  if (status === 'published' && row.status === 'pending') notifyFollowers(row.author, { id, name: row.name, hook: row.hook }, row.owner_id);
   logAdmin(user.id, status === 'archived' ? '下架角色' : '恢复角色', `${row.name} (#${id})${reason ? ` · ${reason}` : ''}`);
   return json({ ok: true, status });
 }

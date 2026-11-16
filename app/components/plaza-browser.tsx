@@ -1,5 +1,6 @@
 'use client';
 
+import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -216,7 +217,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
           <ErrorLine message={importError} />
           <div className="field">
             <label>角色卡 PNG</label>
-            <input className="input" type="file" accept="image/png" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void importPng(file); event.target.value = ''; }} />
+            <FileDrop accept="image/png" disabled={busy} title="选择 PNG 角色卡" hint="点击选择，或把 SillyTavern / Chub 导出的 PNG 拖到这里" onFile={(file) => void importPng(file)} />
             <span className="hint">{busy ? '正在读取 PNG 里的角色卡…' : '读取 PNG 中 chara / ccv3 数据，卡面会同时存成角色封面。'}</span>
           </div>
           <div className="field">
