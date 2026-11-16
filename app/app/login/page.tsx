@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { AuthScene } from '@/components/auth-scene';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { referralInviter } from '@/lib/growth';
@@ -105,15 +106,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             )}
           </div>
         </section>
-
-        <aside className="p-auth-scene" aria-label="雨夜霓虹房间，一段等待开启的故事">
-          <img className="p-auth-art" src="/auth-scene.jpg" alt="窗外霓虹映进雨夜房间，新的故事等待开启" />
-          <div className="p-auth-scene-copy">
-            <div className="p-auth-scene-label">雨夜 · 2077 · 新的身份</div>
-            <h2>有些故事，<br />等你推门才开始。</h2>
-            <p>城市还未入睡。今晚，你想成为谁？</p>
-          </div>
-        </aside>
+        <AuthScene />
       </main>
 
       <footer className="p-auth-footer">

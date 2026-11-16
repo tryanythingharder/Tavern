@@ -430,7 +430,9 @@ html body[data-theme="stage"] .ua-toggle { background: var(--stg-bg); border-col
   .ua-panel .th-picker-hint { display: none; }
   .ua-toggles { grid-template-columns: 1fr; }
   .ua-panel .ua-color { width: 32px !important; height: 32px !important; }
-  .ua-panel .ua-color--theme { width: auto !important; }
+  .ua-panel .ua-color--theme { width: auto !important; min-width: 40px !important; padding: 0 6px; }
+  /* 默认 + 6 色 + 自定义「+」在 320px 宽的面板里保持一行 */
+  .ua-panel .ua-colors { gap: 6px; }
   .ua-seg { gap: 6px; }
   .ua-seg button { flex: 1 0 auto; min-width: 0 !important; min-height: 36px; padding: 0 10px !important; font-size: 13px; white-space: nowrap; }
 }

@@ -1500,3 +1500,10 @@ html body[data-theme="folio"] .fo-bm-blank:hover h3 { color: var(--fo-ink); }
 @media (max-width: 760px) {
   html body[data-theme="folio"] .fo-shelf > .fo-bm-blank { display: none !important; }
 }
+
+/* 桌面设置页：正文栏铺满到标题粗线的右端（原来 780px 封顶，右侧留空）；目录项不折行 */
+@media (min-width: 1024px) {
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings { grid-template-columns: 200px minmax(0, 1fr); gap: 56px; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings-main { max-width: none; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-toc a { white-space: nowrap; }
+}

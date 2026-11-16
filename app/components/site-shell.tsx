@@ -371,6 +371,10 @@ export function SiteShell({
 
       <div className="p-main">
         <header className="p-topbar">
+          <Link className="p-topbar-brand" href="/" aria-label="酒馆首页">
+            <span className="p-topbar-mark" aria-hidden="true">酒</span>
+            <span className="p-topbar-word">酒馆</span>
+          </Link>
           <form className="p-search" action="/search" role="search">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
             <input className="p-input" type="search" name="q" placeholder="搜索角色、作者或剧情" aria-label="搜索角色、作者或剧情" />

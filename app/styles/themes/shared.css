@@ -487,3 +487,23 @@ body[data-theme="folio"] .p-plugin-list li { border-radius: 0; }
 .cs-skel-input { height: 40px; }
 .cs-skel-area { height: 96px; }
 @media (max-width: 720px) { .cs-skel-row { grid-template-columns: 1fr; } }
+
+/* 手机顶栏品牌：桌面有侧栏品牌，这里只在 ≤1023px 显示 */
+.p-topbar-brand { display: none; }
+@media (max-width: 1023px) {
+  .p-topbar-brand { display: inline-flex; align-items: center; gap: 7px; margin-right: auto; flex: none; color: inherit; text-decoration: none; min-height: 40px; }
+  .p-topbar-mark { display: grid; place-items: center; width: 30px; height: 30px; background: #1b1b1d; color: #fff; font-family: "Noto Serif SC", "Songti SC", serif; font-weight: 700; font-size: 16px; line-height: 1; }
+  .p-topbar-word { font-family: "Noto Serif SC", "Songti SC", serif; font-weight: 700; font-size: 16px; letter-spacing: .08em; color: #1b1b1d; }
+  html body[data-theme="stage"] .p-topbar-mark { border-radius: 10px; }
+  html body[data-theme="stage"] .p-topbar-word { font-family: var(--stg-sans, inherit); letter-spacing: -.02em; }
+}
+@media (max-width: 380px) { .p-topbar-word { display: none; } }
+
+/* 登录页：书页主题的场景图是人物立绘，取上半身；轻微去色贴合纸面 */
+html body[data-theme="folio"] .p-auth-scene[data-scene="folio"] .p-auth-art { object-position: 50% 22%; filter: grayscale(.25) contrast(1.02); }
+/* 登录页手机底栏：三个链接同一行居中，触控高度 44px */
+@media (max-width: 760px) {
+  html body .p-auth-footer { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 4px; min-height: 0; padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); }
+  html body .p-auth-footer > span { flex-basis: 100%; text-align: center; }
+  html body .p-auth-footer a { min-height: 44px; padding: 0 12px; }
+}
