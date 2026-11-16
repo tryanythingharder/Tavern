@@ -18,6 +18,7 @@ html body[data-theme="stage"]:not(.p-cinema) {
   --stg-shadow-lg: 0 2px 0 rgba(27, 27, 29, .04), 0 40px 80px -30px rgba(27, 27, 29, .45);
   --stg-spring: cubic-bezier(.34, 1.56, .64, 1);
   --stg-out: cubic-bezier(.2, .8, .2, 1);
+  --pp-font: var(--stg-sans); --font: var(--stg-sans); --ca-sans: var(--stg-sans);
   font-family: var(--stg-sans);
   background: var(--stg-bg);
   color: var(--stg-ink);
@@ -1141,3 +1142,8 @@ html body[data-theme="stage"]:not(.p-cinema) .nf-actions .btn { border-radius: 9
   html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-stat { font-size: 11px; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main { flex-wrap: wrap; }
 }
+
+/* 字体统一：整套戏台 chrome 用 Noto Sans SC（原来是系统字体，只有对话区是 Noto）；表单控件跟随；中文署名不用拉丁斜体 */
+html body[data-theme="stage"]:not(.p-cinema) :is(input, textarea, select, button) { font-family: inherit; }
+html body[data-theme="stage"]:not(.p-cinema) .p-create-preview-greeting { font-family: var(--stg-sans); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-author, html body[data-theme="stage"]:not(.p-cinema) .stg-author-cjk { font-family: var(--stg-sans); font-style: normal; }

@@ -245,7 +245,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
 
           {tab === 'gen' && (
             !data ? (
-              <p className="small">加载中…</p>
+              <SettingsSkeleton />
             ) : (
               <>
                 {mode === 'newbie' && <p className="p-hint" style={{ margin: '0 0 12px' }}>选一个「身份」，角色就知道你是谁。预设、世界书这些进阶设置在老玩家模式里（外观 → 玩法模式）。</p>}
@@ -339,7 +339,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
 
           {tab === 'memory' && (
             !memory ? (
-              <p className="small">加载中…</p>
+              <SettingsSkeleton />
             ) : (
               <>
                 <MemoryMap data={memory} ragOn={ragEnabled} manual={manualMemory.trim().length > 0} />
@@ -389,7 +389,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
             <>
               <p className="small" style={{ marginTop: 0 }}>每次对话结束会自动留一份快照，最近保留 5 份；恢复前会先给当前状态留一份，恢复本身也能撤销。</p>
               {!backups ? (
-                <p className="small">加载中…</p>
+                <SettingsSkeleton />
               ) : (
                 <div className="res-list">
                   {backups.map((backup) => (
@@ -426,6 +426,22 @@ export function ChatSettings({ chatId }: { chatId: number }) {
 }
 
 // 记忆示意：一条横轴 = 整段对话。左边已被摘要「压缩」，中间只能靠检索捞回，右边最近 N 条原文直送模型。
+/** 设置面板加载占位：和最终表单同形（标签 + 输入框两列，再一块文本区），避免只显示「加载中…」。 */
+function SettingsSkeleton({ rows = 2 }: { rows?: number }) {
+  return (
+    <div className="cs-skel" role="status" aria-label="加载中">
+      {Array.from({ length: rows }, (_, i) => (
+        <div className="cs-skel-row" key={i}>
+          <div><span className="p-skeleton cs-skel-label" /><span className="p-skeleton cs-skel-input" /></div>
+          <div><span className="p-skeleton cs-skel-label" /><span className="p-skeleton cs-skel-input" /></div>
+        </div>
+      ))}
+      <span className="p-skeleton cs-skel-label" />
+      <span className="p-skeleton cs-skel-area" />
+    </div>
+  );
+}
+
 function MemoryMap({ data, ragOn, manual }: { data: MemoryData; ragOn: boolean; manual: boolean }) {
   const total = Math.max(1, data.messageCount);
   const recent = Math.min(data.recentWindow, data.messageCount);

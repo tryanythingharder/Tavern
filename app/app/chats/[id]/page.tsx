@@ -55,29 +55,6 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
       <div className="p-rp-workbench" data-theme-chat={theme}>
         <ChatNavSheet />
-        <ThemeChatChrome
-          theme={theme}
-          chrome={{
-            chatId: chat.id,
-            chatTitle: chat.title,
-            character: {
-              id: character.id,
-              name: character.name,
-              author: character.author,
-              hue: character.hue,
-              cover,
-              tags: safeTags(character.tags),
-              hook: character.hook,
-              description: character.description,
-              pace: character.pace,
-            },
-            messageCount: messages.length,
-            bookmarks,
-            memoryCovered: memory.covered,
-            personaName: config.persona?.name ?? null,
-            lorebookCount,
-          }}
-        />
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">
@@ -120,6 +97,30 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
           />
         </div>
 
+        {/* 主题侧栏放在对话之后：键盘 Tab 先到顶栏、消息和输入框，再到角色书版 / 进度栏（视觉位置由 grid 决定） */}
+        <ThemeChatChrome
+          theme={theme}
+          chrome={{
+            chatId: chat.id,
+            chatTitle: chat.title,
+            character: {
+              id: character.id,
+              name: character.name,
+              author: character.author,
+              hue: character.hue,
+              cover,
+              tags: safeTags(character.tags),
+              hook: character.hook,
+              description: character.description,
+              pace: character.pace,
+            },
+            messageCount: messages.length,
+            bookmarks,
+            memoryCovered: memory.covered,
+            personaName: config.persona?.name ?? null,
+            lorebookCount,
+          }}
+        />
         <aside className="p-rp-context" aria-label="故事设定">
           <div className="p-rp-context-head"><span>STORY</span><h2>故事设定</h2></div>
           <div className="p-rp-context-group">

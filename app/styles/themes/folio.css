@@ -18,6 +18,7 @@ html body[data-theme="folio"] {
     --fo-serif: "Newsreader", "Noto Serif SC", "Songti SC", serif;
     --fo-italic: "Instrument Serif", "Noto Serif SC", "Songti SC", serif;
     --fo-sans: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", sans-serif;
+    --pp-font: var(--fo-sans); --font: var(--fo-sans); --ca-sans: var(--fo-sans);
     --fo-ease: cubic-bezier(.2, .7, .1, 1);
     --fo-rail-w: 76px;
     --fo-pad: clamp(20px, 3.9vw, 56px);
