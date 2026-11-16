@@ -1483,3 +1483,19 @@ html body[data-theme="folio"]:not(#fo) :is(.modal, .p-modal) :is(.modal-head, .p
 body[data-theme="folio"] .gr-code,
 body[data-theme="folio"] .p-auth-invite { border-radius: 0; }
 body[data-theme="folio"] .p-auth-invite-avatar { border-radius: 0; }
+
+/* 继续阅读：书签不足 3 个时，单个书签横跨两栏，末尾补一张「空白书签」引导去广场，避免右侧大片留白 */
+html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child { grid-column: span 2; grid-template-columns: 96px minmax(0, 1fr); }
+html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child :is(img, .fo-bm-initial) { width: 96px; height: 128px; }
+html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child p { -webkit-line-clamp: 3; }
+html body[data-theme="folio"] .fo-bm-blank { border-bottom-style: dashed; }
+html body[data-theme="folio"] .fo-bm-blank .fo-bm-initial { background: transparent; color: var(--fo-muted); border: 1px dashed var(--fo-line-strong); font-weight: 400; }
+html body[data-theme="folio"] .fo-bm-blank h3 { color: var(--fo-copy); }
+html body[data-theme="folio"] .fo-bm-blank:hover h3 { color: var(--fo-ink); }
+@media (max-width: 1180px) {
+  html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child { grid-column: auto; grid-template-columns: 76px minmax(0, 1fr); }
+  html body[data-theme="folio"] .fo-shelf[data-count="1"] > .fo-bm:first-child :is(img, .fo-bm-initial) { width: 76px; height: 104px; }
+}
+@media (max-width: 760px) {
+  html body[data-theme="folio"] .fo-shelf > .fo-bm-blank { display: none !important; }
+}

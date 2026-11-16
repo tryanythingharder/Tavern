@@ -1121,3 +1121,23 @@ html body[data-theme="stage"]:not(.p-cinema) .nf-actions .btn { border-radius: 9
   html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc-label { display: none; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="settings"] .p-toc a { flex: none; white-space: nowrap; transform: none; }
 }
+
+/* 手机：广场 / 角色库作品卡改两列紧凑卡（原来一屏一张，太稀） */
+@media (max-width: 720px) {
+  html body[data-theme="stage"]:not(.p-cinema) .p-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; padding: 12px 2px 32px; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(n) { margin-top: 0; }
+  html body[data-theme="stage"]:not(.p-cinema) .p-work-grid > .p-work:nth-child(2n) { margin-top: 18px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work { padding: 6px; border-radius: 20px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-media, html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover { border-radius: 15px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover { aspect-ratio: 3 / 4; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-cover img { width: 100%; height: 100%; object-fit: cover; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-fav { width: 30px; height: 30px; top: 8px; right: 8px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-body { padding: 10px 6px 4px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-name { font-size: 19px; letter-spacing: -.05em; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-author { font-size: 11px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 1.55; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-meta { margin-top: 8px; padding-top: 8px; gap: 6px; flex-wrap: wrap; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work .p-pill { height: 22px; padding: 0 8px; font-size: 10px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-work-stat { font-size: 11px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-filterbar-main { flex-wrap: wrap; }
+}

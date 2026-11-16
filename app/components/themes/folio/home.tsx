@@ -161,7 +161,7 @@ export function FolioHome({ data }: { data: HomeData }) {
             <h2 id="fo-continue-h">继续阅读</h2>
             <div className="fo-aside">夹着书签的 {pad(shelf.length)} 个故事<br /><Link href="/chats">全部对话 →</Link></div>
           </div>
-          <div className="fo-shelf">
+          <div className="fo-shelf" data-count={shelf.length}>
             {shelf.map((chat, i) => {
               const character = byId.get(chat.characterId) as CharacterView | undefined;
               const src = coverUrl({ id: chat.characterId, coverImage: character?.coverImage ?? null, ownerId: chat.characterOwner });
@@ -180,6 +180,17 @@ export function FolioHome({ data }: { data: HomeData }) {
                 </Link>
               );
             })}
+            {shelf.length < 3 && (
+              <Link className="fo-bm fo-bm-blank fo-reveal" href="/plaza" style={{ ['--d' as string]: shelf.length * 120 }}>
+                <span className="fo-bm-initial" aria-hidden="true">＋</span>
+                <div className="fo-bm-main">
+                  <div className="fo-ch"><span>空白书签</span><span className="fo-it">p. 00</span></div>
+                  <h3>翻开新的一册</h3>
+                  <p>去广场挑一位角色，从第一章写起。</p>
+                </div>
+                <span className="fo-go">去广场 →</span>
+              </Link>
+            )}
           </div>
         </section>
       )}
