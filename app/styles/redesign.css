@@ -18,13 +18,13 @@
     --rd-shadow-1: 0 1px 2px rgba(16, 16, 20, .04), 0 1px 1px rgba(16, 16, 20, .02);
     --rd-shadow-2: 0 1px 2px rgba(16, 16, 20, .04), 0 10px 30px -12px rgba(16, 16, 20, .14);
     --rd-shadow-3: 0 2px 4px rgba(16, 16, 20, .05), 0 24px 60px -20px rgba(16, 16, 20, .28);
-    --rd-ring: 0 0 0 3px rgba(75, 91, 245, .16);
+    --rd-ring: 0 0 0 3px rgba(201, 64, 31, .16);
     --rd-glass: rgba(247, 247, 248, .72);
 }
 
 /* ---------- 全局质感 ---------- */
 html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
-::selection { background: var(--ca-accent-soft, #eceefe); color: var(--ca-ink, #1b1b1d); }
+::selection { background: var(--ca-accent-soft, #f9e8e4); color: var(--ca-ink, #1b1b1d); }
 
 * { scrollbar-width: thin; scrollbar-color: rgba(16, 16, 20, .16) transparent; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -32,7 +32,7 @@ html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
 *::-webkit-scrollbar-thumb:hover { background-color: rgba(16, 16, 20, .26); }
 
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
-    outline: 2px solid var(--ca-accent, #4b5bf5);
+    outline: 2px solid var(--ca-accent, #c9401f);
     outline-offset: 2px;
 }
 
@@ -58,7 +58,7 @@ html body :is(.p-btn--primary, .btn--primary):not(:disabled):hover { box-shadow:
     z-index: 200;
     height: 2px;
     pointer-events: none;
-    background: linear-gradient(90deg, transparent, var(--ca-ink, #1b1b1d) 30%, var(--ca-accent, #4b5bf5));
+    background: linear-gradient(90deg, transparent, var(--ca-ink, #1b1b1d) 30%, var(--ca-accent, #c9401f));
     transform-origin: 0 50%;
     transform: scaleX(0);
     opacity: 0;
@@ -629,7 +629,7 @@ html body[data-page="chat"] .p-msg > .p-avatar { display: inline-grid; grid-colu
 html body[data-page="chat"] .p-msg > .p-avatar img { width: 100%; height: 100%; object-fit: cover; }
 html body[data-page="chat"] .p-msg > .p-avatar { position: sticky; top: 80px; box-shadow: 0 0 0 2px var(--ca-card, #fff), 0 0 0 3px var(--ca-line, #e6e6e8); }
 html body[data-page="chat"] .p-msg-user {
-    background: #f1f2fb;
+    background: #f5efe9;
     border-color: transparent;
     box-shadow: none;
     padding: 14px 18px 12px;
@@ -669,7 +669,7 @@ html body[data-page="chat"] .p-msg.is-streaming {
     border-color: transparent;
     background:
         linear-gradient(var(--ca-card, #fff), var(--ca-card, #fff)) padding-box,
-        linear-gradient(var(--rd-angle, 0deg), var(--ca-line, #e6e6e8), var(--ca-accent, #4b5bf5), var(--ca-line, #e6e6e8)) border-box;
+        linear-gradient(var(--rd-angle, 0deg), var(--ca-line, #e6e6e8), var(--ca-accent, #c9401f), var(--ca-line, #e6e6e8)) border-box;
     animation: rd-msg-in 520ms var(--rd-ease-out) both, rd-spin 2.4s linear infinite;
 }
 @property --rd-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
@@ -692,7 +692,7 @@ html body[data-page="chat"] .p-msg-tools button {
     transition: background-color var(--rd-fast) ease, color var(--rd-fast) ease, transform var(--rd-base) var(--rd-spring);
 }
 html body[data-page="chat"] .p-msg-tools button:hover:not(:disabled) { transform: translateY(-1px); }
-html body[data-page="chat"] .p-msg-tools button[aria-pressed="true"] { color: var(--ca-accent, #4b5bf5); }
+html body[data-page="chat"] .p-msg-tools button[aria-pressed="true"] { color: var(--ca-accent, #c9401f); }
 html body[data-page="chat"] .p-msg-tools button[aria-pressed="true"] .rd-ico { fill: currentColor; }
 .rd-ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 html body[data-page="chat"] .p-rp-candidate {
@@ -793,7 +793,7 @@ html body[data-page="chat"] .p-chat-send.is-stop::before {
     inset: -3px;
     border-radius: 50%;
     border: 2px solid transparent;
-    border-top-color: var(--ca-accent, #4b5bf5);
+    border-top-color: var(--ca-accent, #c9401f);
     animation: rd-rotate 1s linear infinite;
 }
 .rd-stop { width: 12px; height: 12px; border-radius: 3px; background: currentColor; }

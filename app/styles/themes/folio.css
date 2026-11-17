@@ -13,7 +13,7 @@
 html body[data-theme="folio"] {
     --fo-bg: #f7f7f8; --fo-rail: #fbfbfb; --fo-card: #ffffff; --fo-sunken: #ebebec; --fo-hover: #f0f0f1;
     --fo-ink: #1b1b1d; --fo-copy: #4a4a50; --fo-muted: #6b6b73; --fo-line: #e6e6e8; --fo-line-strong: #d5d5d9;
-    --fo-accent: #4b5bf5; --fo-accent-soft: #eceefe; --fo-player: #f1f2fb;
+    --fo-accent: #c9401f; --fo-accent-soft: #f9e8e4; --fo-player: #f5efe9;
     --fo-display: "Noto Serif SC", "Songti SC", "STSong", serif;
     --fo-serif: "Newsreader", "Noto Serif SC", "Songti SC", serif;
     --fo-italic: "Instrument Serif", "Noto Serif SC", "Songti SC", serif;
@@ -25,7 +25,7 @@ html body[data-theme="folio"] {
     /* 旧系统令牌对齐到书页 */
     --pp-reading-font: var(--fo-display);
     --ca-serif: var(--fo-display);
-    --pp-accent: #4b5bf5; --pp-accent-soft: #eceefe; --pp-focus: #4b5bf5;
+    --pp-accent: #c9401f; --pp-accent-soft: #f9e8e4; --pp-focus: #c9401f;
     --pp-radius: 2px; --pp-control-radius: 2px;
     --r-xs: 2px; --r-sm: 2px; --r-md: 2px; --r-lg: 2px; --r-xl: 2px;
     background: var(--fo-bg);
@@ -765,14 +765,14 @@ html body[data-theme="folio"][data-page="chat"] .p-msg-more { border-radius: 0; 
 
 /* 中：书写线 */
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose {
-    padding: 4px 0 46px; background: transparent; border: 0; box-shadow: none;
+    padding: 4px 0 64px; background: transparent; border: 0; box-shadow: none;
     animation: fo-rise .9s var(--fo-ease) both .4s;
 }
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col { width: min(var(--fo-measure), calc(100% - 48px)); max-width: none; margin: 0 auto; padding: 0; font-size: 17px; position: relative; }
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col > * { font-size: 1rem; }
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row,
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row:focus-within {
-    position: relative; display: flex; align-items: flex-end; gap: 14px; min-height: 0; padding: 0 0 10px;
+    position: relative; display: flex; align-items: center; gap: 14px; min-height: 0; padding: 6px 0 8px;
     border: 0; border-bottom: 1px solid var(--fo-ink); border-radius: 0; background: transparent; box-shadow: none;
 }
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row::before {
@@ -789,7 +789,7 @@ html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row .p-chat-inpu
 }
 html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row .p-chat-input::placeholder { color: var(--fo-muted); opacity: 1; }
 html body[data-theme="folio"][data-page="chat"] .p-chat-send {
-    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: auto; height: 38px; padding: 0 16px;
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: auto; height: 38px; min-height: 38px; padding: 0 16px;
     border: 0; border-radius: 0; background: var(--fo-ink); color: #fff; box-shadow: none; font-family: var(--fo-sans); font-size: 13px; letter-spacing: .16em;
     transition: background .35s var(--fo-ease);
 }
@@ -897,11 +897,11 @@ html body[data-theme="folio"] .fo-ctool .fo-rt { margin-left: auto; font-family:
         margin-top: 12px; padding: 8px 0 0; border-top: 1px dotted var(--fo-line-strong); background: transparent; box-shadow: none;
     }
     html body[data-theme="folio"][data-page="chat"] .p-msg.is-tools-open .p-msg-tools :is(button, .p-msg-tool, a) { flex: 0 0 auto; width: auto; height: 32px; white-space: nowrap; writing-mode: horizontal-tb; font-size: 12.5px; }
-    html body[data-theme="folio"][data-page="chat"] .p-chat-compose { padding: 8px 18px 46px; background: var(--fo-bg); border-top: 1px solid var(--fo-line); animation: none; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-compose { padding: 8px 18px calc(62px + env(safe-area-inset-bottom)); background: var(--fo-bg); border-top: 1px solid var(--fo-line); animation: none; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose > .p-chat-col { width: auto; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row { gap: 10px; margin-top: 4px; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose-row .p-chat-input { font-size: 16px; }
-    html body[data-theme="folio"][data-page="chat"] .p-chat-send { height: 34px; padding: 0 12px; letter-spacing: .1em; }
+    html body[data-theme="folio"][data-page="chat"] .p-chat-send { height: 38px; min-height: 38px; padding: 0 14px; letter-spacing: .1em; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-send::after { content: "落笔"; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-send.is-stop::after { content: "停笔"; }
     html body[data-theme="folio"][data-page="chat"] .p-chat-compose .p-chat-col > div:last-child > .p-small:first-child { display: none; }
@@ -911,7 +911,7 @@ html body[data-theme="folio"] .fo-ctool .fo-rt { margin-left: auto; font-family:
     }
     html body[data-theme="folio"] .fo-ctool::-webkit-scrollbar { display: none; }
     html body[data-theme="folio"] .fo-ctool .fo-rt, html body[data-theme="folio"] .fo-ctool .fo-sep { display: none; }
-    html body[data-theme="folio"] .fo-ctool button { padding: 5px 7px; flex-shrink: 0; }
+    html body[data-theme="folio"] .fo-ctool button { padding: 5px 7px; flex-shrink: 0; min-height: 40px; }
     html body[data-theme="folio"] .fo-ctool button:first-child { margin-left: -7px; }
 }
 
@@ -1443,7 +1443,7 @@ body[data-theme="folio"] .p-auth-scene { border-radius: 0; }
 body[data-theme="folio"] .p-auth-card { border-radius: 0; box-shadow: none; border: 1px solid #1b1b1d; }
 body[data-theme="folio"] .p-auth-card h1,
 body[data-theme="folio"] .p-auth-scene-copy h2 { font-family: "Noto Serif SC", "Songti SC", "STSong", serif; font-weight: 600; letter-spacing: 0; }
-body[data-theme="folio"] .p-auth-card :is(.p-input, .input) { border-radius: 0; }
+body[data-theme="folio"] .p-auth-card :is(.p-input, .input, .p-auth-input, .p-auth-button, .p-auth-eye) { border-radius: 0; }
 
 /* 验收修复：手机端触控尺寸 + 设置菜单对齐 */
 @media (max-width: 720px) {
@@ -1506,4 +1506,33 @@ html body[data-theme="folio"] .fo-bm-blank:hover h3 { color: var(--fo-ink); }
   html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings { grid-template-columns: 200px minmax(0, 1fr); gap: 56px; }
   html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings-main { max-width: none; }
   html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-toc a { white-space: nowrap; }
+}
+
+/* 2026-11-16 排版修正：工具条与上方元信息行留出间距，桌面端不强制 44px */
+@media (min-width: 761px) and (hover: hover) {
+  html body[data-theme="folio"] .fo-ctool { padding-bottom: 12px; }
+  html body[data-theme="folio"] .fo-ctool button { min-height: 32px; padding: 5px 9px; }
+}
+html body[data-theme="folio"][data-page="chat"] .p-chat-meta { gap: 8px; align-items: center; }
+
+/* 2026-11-16 手机设置目录：分组竖排，每组一行「标签 + 可横滑的条目」，左对齐不再错位 */
+@media (max-width: 1023px) {
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc {
+    display: flex !important; flex-direction: column; align-items: stretch; gap: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; padding: 0; margin-bottom: 8px;
+  }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc-group {
+    display: flex; flex-direction: row; align-items: center; gap: 4px; margin: 0 !important; padding: 6px 0 !important; min-width: 0; border-left: 0 !important;
+    border-bottom: 1px solid var(--fo-line); overflow-x: auto; scrollbar-width: none;
+  }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc-group::-webkit-scrollbar { display: none; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc-group::before { content: none !important; display: none !important; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc-label { flex: 0 0 76px; width: 76px; align-items: center; padding: 0 !important; margin: 0 !important; text-align: left; border: 0 !important; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc-label::before { min-width: 30px; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a {
+    flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 40px; padding: 0 10px !important; margin: 0; white-space: nowrap; transform: none; border: 0 !important; border-left: 0 !important;
+  }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a::after { display: none; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"])::before { display: none; }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"]) { box-shadow: inset 0 -2px 0 var(--fo-ink); }
+  html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a .pm-st { display: none; }
 }

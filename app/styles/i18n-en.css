@@ -22,7 +22,7 @@ html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .nf-kicker::after {
 
 /* 登录页脚的语言切换 */
 .lang-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; }
-.lang-link:hover { color: var(--accent, #4b5bf5); }
+.lang-link:hover { color: var(--accent, #c9401f); }
 
 /* 英文词更长：书页对话的书写工具栏在窄一些的桌面上收起快捷键提示，避免与按钮重叠 */
 @media (max-width: 1560px) {

@@ -73,7 +73,7 @@ function Colors({ label, value, presets, onChange, sample }: { label: string; va
         ))}
         <label className={`ua-color ua-color--custom${value && !presets.some((preset) => preset.hex === value) ? ' is-on' : ''}`} htmlFor={id} title="自定义颜色" style={value ? { ['--sw' as string]: value } : undefined}>
           <span aria-hidden="true">＋</span>
-          <input id={id} type="color" value={value ?? '#4b5bf5'} aria-label={`${label}：自定义颜色`} onChange={(event) => onChange(event.target.value)} />
+          <input id={id} type="color" value={value ?? '#c9401f'} aria-label={`${label}：自定义颜色`} onChange={(event) => onChange(event.target.value)} />
         </label>
       </div>
     </div>

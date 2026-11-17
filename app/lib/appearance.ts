@@ -91,22 +91,22 @@ export const CHAT_WIDTHS: Record<Exclude<ChatWidth, 'theme'>, number> = { narrow
 export const PARA_SPACING: Record<Exclude<ParaSpacing, 'theme'>, string> = { tight: '.35em', normal: '.8em', loose: '1.4em' };
 
 export const ACCENT_PRESETS: { hex: string; label: string }[] = [
-  { hex: '#4b5bf5', label: '靛蓝（默认）' },
-  { hex: '#7c4dff', label: '紫罗兰' },
+  // 2026-11-16：去掉蓝紫，取自 Awwwards / CSSDA 获奖站的暖色系；色值已压深到白底文字 ≥4.5:1
+  { hex: '#c9401f', label: '朱砂（默认）' },
+  { hex: '#8c5e4a', label: '摩卡' },
+  { hex: '#8c6a1f', label: '鎏金' },
+  { hex: '#2f7a74', label: '青瓷' },
   { hex: '#d0457a', label: '胭脂' },
-  { hex: '#d9622b', label: '琥珀' },
   { hex: '#1f9d6b', label: '青竹' },
-  { hex: '#0f8fb3', label: '湖蓝' },
-  { hex: '#8a6a3d', label: '茶褐' },
 ];
 
 // 文字颜色预设：亮暗主题上都可读的中明度色
 export const TEXT_COLOR_PRESETS: { hex: string; label: string }[] = [
-  { hex: '#4b5bf5', label: '靛蓝' },
+  { hex: '#c9401f', label: '朱砂' },
   { hex: '#c0507a', label: '胭脂' },
   { hex: '#c46a2a', label: '琥珀' },
   { hex: '#2e9a6f', label: '青竹' },
-  { hex: '#2f8fb0', label: '湖蓝' },
+  { hex: '#2f7a74', label: '青瓷' },
   { hex: '#8b8b96', label: '烟灰' },
 ];
 

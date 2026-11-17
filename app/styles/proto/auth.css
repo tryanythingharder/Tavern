@@ -256,13 +256,17 @@ html {
 }
 
 .p-auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     margin-top: 26px;
     text-align: left;
 }
 
-.p-auth-field + .p-auth-field {
-    margin-top: 12px;
-}
+.p-auth-form > .p-auth-hint { margin-top: -6px; }
+.p-auth-form > .p-auth-button { margin-top: 6px; }
+.p-auth-form > .p-check { margin: 0; }
+.p-auth-form + .p-auth-hint { margin-top: 18px; text-align: center; }
 
 .p-auth-field {
     display: flex;
@@ -700,3 +704,4 @@ html {
     font-size: 12px;
     line-height: 1.65;
 }
+.p-auth-nav { display: flex; align-items: center; gap: 8px; }

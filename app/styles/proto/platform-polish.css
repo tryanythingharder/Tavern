@@ -113,7 +113,7 @@ body:is([data-page="plaza"], [data-page="character"], [data-page="author"], [dat
 }
 
 /* 02 / Controls. Variants are explicit; a dark primary never inherits dark text. */
-body:is([data-page="plaza"], [data-page="character"], [data-page="author"], [data-page="chat"], [data-page="chats"], [data-page="create"], [data-page="library"], [data-page="rooms"], [data-page="settings"], [data-page="notifications"]) :is(button, .p-btn, .p-back, .p-section-more, .p-toc a, .p-chat-title, .p-proto-back) {
+body:is([data-page="plaza"], [data-page="character"], [data-page="author"], [data-page="chat"], [data-page="chats"], [data-page="create"], [data-page="library"], [data-page="rooms"], [data-page="settings"], [data-page="notifications"]) :is(button, .p-btn, a.btn, .p-back, .p-section-more, .p-toc a, .p-chat-title, .p-proto-back) {
     min-width: 44px;
     min-height: 44px;
     touch-action: manipulation;

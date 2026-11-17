@@ -468,7 +468,7 @@ body[data-page] .p-empty { border-style: solid; background: var(--surface); }
 .p-btn--primary:disabled { background: #e9e9eb; border-color: #e9e9eb; color: #6b6b73; }
 
 /* 对话里玩家气泡用轻底色区分，不改变左右布局 */
-body[data-page="chat"] .p-msg-user { background: #f1f2fb; border-color: transparent; }
+body[data-page="chat"] .p-msg-user { background: #f5efe9; border-color: transparent; }
 body[data-page="chat"] .p-msg-user .p-msg-name { color: var(--ca-muted, var(--muted)); font-size: 12px; }
 
 /* 320 级窄屏：顶栏只保留通知/点数/头像，避免控件互相挤压 */
