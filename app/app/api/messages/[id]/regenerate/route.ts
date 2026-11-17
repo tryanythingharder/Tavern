@@ -65,7 +65,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
   });
-  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens, modelName(chat.model));
+  const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, maxCost, `重新生成 · ${modelName(chat.model)}`, `chat:${chat.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
   const generationId = startGeneration(user.id, chat.id, 'regenerate', modelName(chat.model));
@@ -100,7 +100,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `chat:${chat.id}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chat.id}`);
         settled = true;
         const finalText = full;
         if (finalText.trim()) {
@@ -132,7 +132,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), billedModel), `chat:${chat.id}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens, estimateTokens(full), billedModel), `chat:${chat.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

@@ -2562,5 +2562,21 @@
  "每套主题都有浅色（白天）和深色（夜间）；选「跟随系统」会随手机或电脑的深色模式自动切换。": "Every theme has a light (day) and dark (night) version. “System” follows your device’s dark mode.",
  "夜幕": "Nocturne",
  "电影感排版，沉浸最强": "Cinematic layout, most immersive",
- "电影感": "Cinematic"
+ "电影感": "Cinematic",
+ "{0} 点/次": "{0} pts/call",
+ "{0} 点/千": "{0} pts/1k",
+ "{0} 点/千起": "from {0} pts/1k",
+ "{0} 点/次起": "from {0} pts/call",
+ "{0} 点/次 · 超 {1} {2} 点": "{0} pts/call · over {1}: {2} pts",
+ "{0} 点/千 tokens · 超 {1} {2} 点": "{0} pts/1k tokens · over {1}: {2} pts",
+ "超 {0} {1} 点": "over {0}: {1} pts",
+ "不同模型计费不同：有的按 token 计（不足 1 点按 1 点算），有的每次固定扣点，长上下文可能另有价格": "Pricing differs by model: some charge per token (minimum 1 pt), some charge a flat amount per call, and long contexts may cost more",
+ "按量": "Per token",
+ "按次": "Per call",
+ "计费": "Billing",
+ "上下文分档": "Context tiers",
+ "格式不对": "Invalid format",
+ "有的按用掉的 tokens 扣点，有的每次固定扣点，上下文特别长时可能另有价格。": "Some charge by tokens used, some charge a flat amount per call, and very long contexts may cost more.",
+ "按量计费的模型，一次回复大约 1–3 千 tokens（设定越长、聊得越久，每条越多）。": "For per-token models, one reply is roughly 1–3k tokens (longer cards and longer chats cost more per reply).",
+ "每个模型的文风和价格都不一样。设为默认后，新开的对话会用它；对话里也能随时切换。有的按用掉的 tokens 扣点，有的每次固定扣点，上下文特别长时可能另有价格。": "Every model writes differently and costs differently. Set one as default and new chats will use it; you can switch anytime in a chat. Some charge by tokens used, some charge a flat amount per call, and very long contexts may cost more."
 }

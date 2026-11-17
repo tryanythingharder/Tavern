@@ -76,7 +76,7 @@ export async function POST(request: Request, context: Params) {
     regexRules: config.regexRules,
   });
   const promptTokens = estimatePromptTokens(prompt);
-  const maxCost = pointsCost(promptTokens + config.preset.params.maxTokens, modelName(room.model));
+  const maxCost = pointsCost(promptTokens, config.preset.params.maxTokens, modelName(room.model));
   const reservation = reservePoints(user.id, maxCost, `房间生成 · ${modelName(room.model)}`, `room:${room.id}`);
   if (!reservation.ok) {
     if (userRoomMessage) deleteRoomMessage(userRoomMessage.id);
@@ -116,7 +116,7 @@ export async function POST(request: Request, context: Params) {
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? usedPromptTokens + completionTokens;
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: usedPromptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `room:${room.id}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(usedPromptTokens, completionTokens, billedModel), `room:${room.id}`);
         settled = true;
 
         // 模型偶尔会在开头自己加「白露：」，去掉以免和气泡上的名字重复
@@ -141,7 +141,7 @@ export async function POST(request: Request, context: Params) {
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens + estimateTokens(full), billedModel), `room:${room.id}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, estimateTokens(full), billedModel), `room:${room.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

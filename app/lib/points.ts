@@ -68,17 +68,94 @@ export function modelPrices(): Record<string, number> {
   return parseModelPrices(getSetting('points.models', process.env.TAVERN_MODEL_PRICES ?? ''));
 }
 
-export function modelPricePer1k(model?: string | null): number {
-  const id = String(model ?? '').trim();
-  if (id) {
-    const prices = modelPrices();
-    if (id in prices) return prices[id];
-  }
-  return pointsPerThousand();
+
+// ── 计费规则（参考 new-api：按量 / 按次 / 按上下文分档）──────────────────────
+// 后台「模型广场」写 points.rules：{"模型id": {mode, price, tiers}}。
+//  mode=token：price = 点 / 千 tokens（输入+输出合计）
+//  mode=call ：price = 点 / 次（每次生成固定扣，和 token 数无关）
+//  tiers：按本次输入（上下文）tokens 分档，输入 > above 时改用该档 price，取命中的最高一档。
+// 没配规则的模型兼容旧的 points.models（按量），再没有就用全局单价 points.text。
+export type PriceTier = { above: number; price: number };
+export type PriceRule = { mode: 'token' | 'call'; price: number; tiers: PriceTier[] };
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+export function normalizeRule(value: unknown): PriceRule | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const mode = raw.mode === 'call' ? 'call' : 'token';
+  const price = Number(raw.price);
+  if (!Number.isFinite(price) || price < 0 || price > 100000) return null;
+  const tiers = (Array.isArray(raw.tiers) ? raw.tiers : [])
+    .map((tier) => ({ above: Math.round(Number((tier as PriceTier)?.above)), price: Number((tier as PriceTier)?.price) }))
+    .filter((tier) => Number.isFinite(tier.above) && tier.above > 0 && tier.above <= 10_000_000 && Number.isFinite(tier.price) && tier.price >= 0 && tier.price <= 100000)
+    .map((tier) => ({ above: tier.above, price: round2(tier.price) }))
+    .sort((a, b) => a.above - b.above)
+    .filter((tier, index, list) => index === 0 || tier.above !== list[index - 1].above)
+    .slice(0, 6);
+  return { mode, price: round2(price), tiers };
 }
 
-export function pointsCost(totalTokens: number, model?: string | null): number {
-  return Math.max(1, Math.ceil((Math.max(0, totalTokens) * modelPricePer1k(model)) / 1000));
+export function priceRules(): Record<string, PriceRule> {
+  try {
+    const data = JSON.parse(getSetting('points.rules', '{}')) as Record<string, unknown>;
+    const out: Record<string, PriceRule> = {};
+    for (const [id, rule] of Object.entries(data)) {
+      const clean = normalizeRule(rule);
+      if (id.trim() && clean) out[id.trim()] = clean;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+// 模型自己的规则（null = 跟随全局单价）
+export function ownPriceRule(model?: string | null): PriceRule | null {
+  const id = String(model ?? '').trim();
+  if (!id) return null;
+  const rules = priceRules();
+  if (rules[id]) return rules[id];
+  const legacy = modelPrices();
+  if (id in legacy) return { mode: 'token', price: legacy[id], tiers: [] };
+  return null;
+}
+
+export function priceRule(model?: string | null): PriceRule {
+  return ownPriceRule(model) ?? { mode: 'token', price: pointsPerThousand(), tiers: [] };
+}
+
+export function tierPrice(rule: PriceRule, promptTokens: number): number {
+  let price = rule.price;
+  for (const tier of rule.tiers) if (promptTokens > tier.above) price = tier.price;
+  return price;
+}
+
+export function modelPricePer1k(model?: string | null): number {
+  return priceRule(model).price;
+}
+
+// 一次生成扣多少点：按次 = 档位价；按量 = (输入+输出)×档位价/1000，不足 1 点按 1 点
+export function pointsCost(promptTokens: number, completionTokens: number, model?: string | null): number {
+  const rule = priceRule(model);
+  const prompt = Math.max(0, promptTokens);
+  const price = tierPrice(rule, prompt);
+  if (rule.mode === 'call') return Math.max(0, Math.ceil(price));
+  return Math.max(1, Math.ceil(((prompt + Math.max(0, completionTokens)) * price) / 1000));
+}
+
+const kTokens = (n: number) => (n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : n >= 1000 ? `${round2(n / 1000)}K` : String(n));
+const unit = (rule: PriceRule) => (rule.mode === 'call' ? '点/次' : '点/千 tokens');
+
+// 展示用：「3 点/次 · 上下文超 272K 6 点」
+export function priceLabel(rule: PriceRule): string {
+  const base = `${rule.price} ${unit(rule)}`;
+  if (!rule.tiers.length) return base;
+  return `${base} · ${rule.tiers.map((tier) => `超 ${kTokens(tier.above)} ${tier.price} 点`).join(' · ')}`;
+}
+
+export function priceShort(rule: PriceRule): string {
+  return `${rule.price} ${rule.mode === 'call' ? '点/次' : '点/千'}${rule.tiers.length ? '起' : ''}`;
 }
 
 export function spendPoints(userId: number, amount: number, note: string, refId?: string): { ok: boolean; balance: number; previous: number } {
@@ -124,7 +201,7 @@ export function settleGeneration(userId: number, reserved: number, actual: numbe
 
 // 生成结束后扣费；余额刚跌破阈值时发一条站内通知（只发一次）。
 export function chargeGeneration(userId: number, refId: string, totalTokens: number): number {
-  const cost = pointsCost(totalTokens);
+  const cost = pointsCost(totalTokens, 0);
   const result = spendPoints(userId, cost, `${totalTokens} tokens`, refId);
   if (result.ok && result.previous >= LOW_BALANCE && result.balance < LOW_BALANCE) {
     notify(userId, { type: 'points', title: '点数不多了', body: `剩余 ${result.balance} 点。可以在「我的 · 点数」查看明细。`, link: '/me/points' });

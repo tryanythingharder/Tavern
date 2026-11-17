@@ -96,7 +96,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     card: getOverride(user.id, chat.character_id),
   });
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
-  const maxCost = pointsCost(prompt.tokens + prompt.params.maxTokens, modelName(chat.model));
+  const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) {
     deleteMessage(userMessage.id);
@@ -134,7 +134,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `chat:${chatId}`);
+        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chatId}`);
         settled = true;
         // 落库原文；「仅显示」正则在渲染时套用（和 ST 一样，状态栏 HTML 不会被当成历史喂回模型）
         const finalText = full;
@@ -160,7 +160,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens + estimateTokens(full), billedModel), `chat:${chatId}`);
+          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens, estimateTokens(full), billedModel), `chat:${chatId}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

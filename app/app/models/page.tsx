@@ -16,14 +16,16 @@ export default async function ModelsPage() {
   const user = await getCurrentUser();
   const models = modelCatalog();
   const mine = user ? ((db.prepare('SELECT default_model FROM users WHERE id = ?').get(user.id) as { default_model: string | null } | undefined)?.default_model ?? '') : '';
-  const cheapest = models.length ? Math.min(...models.map((item) => item.price)) : 0;
+  // 「最省」只在同一种计费方式里比（按次和按量没法直接比）
+  const cheapestMode = models.some((item) => item.mode === 'call') && !models.some((item) => item.mode === 'token') ? 'call' : 'token';
+  const cheapest = models.filter((item) => item.mode === cheapestMode).reduce((min, item) => Math.min(min, item.price), Infinity);
 
   return (
     <div className="p-inner">
       <header className="p-page-title">
         <div>
           <h1>模型广场</h1>
-          <p>每个模型的文风和价格都不一样。设为默认后，新开的对话会用它；对话里也能随时切换。按实际用掉的 tokens 扣点。</p>
+          <p>每个模型的文风和价格都不一样。设为默认后，新开的对话会用它；对话里也能随时切换。有的按用掉的 tokens 扣点，有的每次固定扣点，上下文特别长时可能另有价格。</p>
         </div>
       </header>
       {!models.length ? (
@@ -51,7 +53,7 @@ export default async function ModelsPage() {
                   </div>
                 )}
                 <div className="mg-foot">
-                  <span className="mg-price"><b>{item.price}</b> 点 / 千 tokens{item.price === cheapest && models.length > 1 ? <span className="p-small"> · 最省</span> : null}</span>
+                  <span className="mg-price"><b>{item.priceLabel}</b>{item.price === cheapest && item.mode === cheapestMode && models.length > 1 ? <span className="p-small"> · 最省</span> : null}</span>
                   {user ? <ModelDefaultButton model={item.id} active={isMine} /> : <Link className="p-btn p-btn--sm" href="/login">登录后选择</Link>}
                 </div>
               </article>
@@ -59,7 +61,7 @@ export default async function ModelsPage() {
           })}
         </div>
       )}
-      <p className="p-small mg-note">一次回复大约 1–3 千 tokens（设定越长、聊得越久，每条越多）。点数余额和明细在「我的 → 点数」。</p>
+      <p className="p-small mg-note">按量计费的模型，一次回复大约 1–3 千 tokens（设定越长、聊得越久，每条越多）。点数余额和明细在「我的 → 点数」。</p>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import type { PresetParams } from '@/lib/resources';
 import { getSetting } from '@/lib/settings';
 import { channelCount, channelModels, channelRoutes, channelRoutesFor } from '@/lib/channels';
-import { modelPricePer1k } from '@/lib/points';
+import { priceLabel, priceRule, priceShort, type PriceRule } from '@/lib/points';
 import { isModelHidden, modelCatalogMeta, type ModelMeta } from '@/lib/model-catalog';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
@@ -87,7 +87,8 @@ export function modelName(preferred?: string | null): string {
 }
 
 // 玩家在对话里能选的模型（后台渠道启用的全部模型；没建渠道时用主线路 + 备用线路）。
-export type ModelOption = { id: string; source: string; isDefault: boolean; price: number; name?: string; summary?: string };
+export type ModelOption = { id: string; source: string; isDefault: boolean; price: number; mode: PriceRule['mode']; priceLabel: string; priceShort: string; name?: string; summary?: string };
+const pricing = (id: string) => { const rule = priceRule(id); return { price: rule.price, mode: rule.mode, priceLabel: priceLabel(rule), priceShort: priceShort(rule) }; };
 // 玩家可选的模型：去掉后台下架的
 export function availableModels(): ModelOption[] {
   const meta = modelCatalogMeta();
@@ -101,20 +102,20 @@ export function modelCatalog(options: { includeHidden?: boolean } = {}): Catalog
   return allModels()
     .map((item) => ({ ...item, meta: meta[item.id] ?? { name: '', summary: '', tags: [], context: '', featured: false, hidden: false, sort: 0 } }))
     .filter((item) => options.includeHidden || !item.meta.hidden)
-    .sort((a, b) => Number(b.meta.featured) - Number(a.meta.featured) || a.meta.sort - b.meta.sort || a.price - b.price || a.id.localeCompare(b.id));
+    .sort((a, b) => Number(b.meta.featured) - Number(a.meta.featured) || a.meta.sort - b.meta.sort || a.mode.localeCompare(b.mode) || a.price - b.price || a.id.localeCompare(b.id));
 }
 
 function allModels(): ModelOption[] {
   if (channelCount() > 0) {
     const list = channelModels();
     const fallback = modelRoutes()[0]?.model;
-    return list.map((item) => ({ id: item.id, source: item.channels.join(' / '), isDefault: item.id === fallback, price: modelPricePer1k(item.id) }));
+    return list.map((item) => ({ id: item.id, source: item.channels.join(' / '), isDefault: item.id === fallback, ...pricing(item.id) }));
   }
   const { primary, fallbacks } = routeList();
   const seen = new Set<string>();
   return [primary, ...fallbacks]
     .filter((route) => route.baseUrl && route.apiKey && route.model && !seen.has(route.model) && Boolean(seen.add(route.model)))
-    .map((route, index) => ({ id: route.model, source: index === 0 ? '主线路' : '备用线路', isDefault: index === 0, price: modelPricePer1k(route.model) }));
+    .map((route, index) => ({ id: route.model, source: index === 0 ? '主线路' : '备用线路', isDefault: index === 0, ...pricing(route.model) }));
 }
 
 export function modelBaseUrl(): string {

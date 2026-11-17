@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePlayMode } from '@/components/play-mode';
 
-type ModelOption = { id: string; source: string; isDefault: boolean; price?: number; name?: string; summary?: string };
+type ModelOption = { id: string; source: string; isDefault: boolean; price?: number; priceLabel?: string; priceShort?: string; name?: string; summary?: string };
 
-const priceLabel = (price?: number) => (typeof price === 'number' ? `${price} 点/千 tokens` : '');
 
 // 模型名 → 给新手看的友好说明（只是猜测性标签，模型 id 原样保留）
 function friendly(id: string): string {
@@ -74,7 +73,7 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
       <button type="button" className="mp-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((value) => !value)} title="切换这段对话使用的模型">
         <span className="mp-dot" aria-hidden="true" />
         <span className="mp-name">{shown}</span>
-        {priceLabel(models.find((item) => item.id === shown)?.price) ? <span className="mp-trigger-price">{models.find((item) => item.id === shown)?.price} 点/千</span> : null}
+        {models.find((item) => item.id === shown)?.priceShort ? <span className="mp-trigger-price">{models.find((item) => item.id === shown)?.priceShort}</span> : null}
         <span aria-hidden="true">▾</span>
       </button>
       {open && (
@@ -95,7 +94,7 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
               const note = item.summary || (mode !== 'newbie' ? item.source : friendly(item.id));
               return (
                 <button key={item.id} type="button" role="option" aria-selected={active === item.id} className={`mp-opt${active === item.id ? ' is-on' : ''}`} disabled={saving} onClick={() => void pick(item.id)}>
-                  <span className="mp-opt-name">{item.name || item.id}{item.isDefault ? <em className="mp-tag">推荐</em> : null}{priceLabel(item.price) ? <em className="mp-price">{priceLabel(item.price)}</em> : null}</span>
+                  <span className="mp-opt-name">{item.name || item.id}{item.isDefault ? <em className="mp-tag">推荐</em> : null}{item.priceLabel ? <em className="mp-price">{item.priceLabel}</em> : null}</span>
                   {note ? <span className="mp-opt-note">{note}</span> : null}
                 </button>
               );

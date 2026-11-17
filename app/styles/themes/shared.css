@@ -639,4 +639,8 @@ html body[data-theme="folio"] .version-row { border-radius: 0 !important; }
 .am-table td .p-input { min-width: 0; width: 100%; }
 .am-table .am-id { font-family: ui-monospace, monospace; word-break: break-all; max-width: 200px; }
 .am-table .am-num { width: 92px; }
+.am-table td .am-mode { width: 108px; min-width: 108px; }
+.am-table .am-tiers { min-width: 170px; }
+.am-table .am-tiers .p-small { margin-top: 4px; line-height: 1.4; }
+.am-table .am-bad { color: #c9401f; }
 .am-scroll { overflow-x: auto; }

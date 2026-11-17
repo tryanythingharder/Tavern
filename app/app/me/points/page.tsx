@@ -66,10 +66,10 @@ export default async function PointsPage() {
   return (
     <section className="p-section" id="points">
       <h2>点数与充值</h2>
-      <p>生成按 token 计费，不同模型价格不同（不足 1 点按 1 点算），在对话里点模型名就能换。</p>
+      <p>不同模型计费不同：有的按 token 计（不足 1 点按 1 点算），有的每次固定扣点，长上下文可能另有价格，在对话里点模型名就能换。</p>
       <ul className="pt-prices" aria-label="各模型价格">
         {availableModels().map((item) => (
-          <li key={item.id}><span>{item.id}</span><b>{item.price} 点 / 千 tokens</b></li>
+          <li key={item.id}><span>{item.id}</span><b>{item.priceLabel}</b></li>
         ))}
         {!availableModels().length && <li><span>默认模型</span><b>{summary.perThousand} 点 / 千 tokens</b></li>}
       </ul>
