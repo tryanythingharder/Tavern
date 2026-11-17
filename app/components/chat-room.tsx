@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
 import { RpText, TypingDots } from '@/components/rp-text';
+import { RichText } from '@/components/rich-text';
+import type { RegexRule } from '@/lib/resources';
+import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
@@ -32,6 +35,9 @@ type Props = {
   personaName?: string;
   characterCover?: string | null;
   characterHue?: number;
+  // 「仅显示」正则（玩家规则 + 角色卡自带脚本）与 {{char}}/{{user}}
+  displayRules?: RegexRule[];
+  macros?: RegexMacros;
 };
 
 type StreamEvent = {
@@ -83,7 +89,7 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName, characterCover = null, characterHue = 212 }: Props) {
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessageView[]>(initialMessages);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -601,7 +607,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       ) : (
                         <div className="p-msg-copy p-msg-text">
                           {message.content
-                            ? <RpText text={message.content} streaming={isStreamingThis} />
+                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={macros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} />
                             : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
                         </div>
                       )}

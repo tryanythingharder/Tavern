@@ -11,7 +11,7 @@ import {
   startGeneration,
   touchChat,
 } from '@/lib/db';
-import { assemblePrompt, applyRegex } from '@/lib/prompt';
+import { assemblePrompt } from '@/lib/prompt';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
@@ -136,8 +136,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `chat:${chatId}`);
         settled = true;
-        // 展示正则只作用于角色输出；落库的是处理后的文本
-        const finalText = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
+        // 落库原文；「仅显示」正则在渲染时套用（和 ST 一样，状态栏 HTML 不会被当成历史喂回模型）
+        const finalText = full;
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
           snapshotChat(chatId, user.id);
@@ -148,7 +148,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         }
       } catch (error) {
         // 中断或失败时，把已经生成的部分保存下来，并按实际 token 结算预扣
-        const partial = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
+        const partial = full;
         if (partial.trim()) addMessage(chatId, 'assistant', partial, [partial]);
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {

@@ -76,7 +76,7 @@ export function CreatorStatsView({ stats }: { stats: CreatorStats }) {
           <div className="p-empty">
             <div className="p-empty-title">还没有作品</div>
             <p className="p-empty-text">发布第一个角色后，这里会显示有多少人在玩。</p>
-            <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+            <Link className="p-btn p-btn--primary" href="/create">发布角色</Link>
           </div>
         )}
       </section>

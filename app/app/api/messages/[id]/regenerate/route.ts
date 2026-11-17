@@ -8,7 +8,7 @@ import {
   listMessagesBefore,
   startGeneration,
 } from '@/lib/db';
-import { assemblePrompt, applyRegex } from '@/lib/prompt';
+import { assemblePrompt } from '@/lib/prompt';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
@@ -102,7 +102,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(totalTokens, billedModel), `chat:${chat.id}`);
         settled = true;
-        const finalText = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
+        const finalText = full;
         if (finalText.trim()) {
           const candidate = appendCandidate(message.id, finalText);
           snapshotChat(chat.id, user.id);
@@ -120,7 +120,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         }
       } catch (error) {
         // 中断时保留已生成的部分，作为候选存下来
-        const partial = applyRegex(config.regexRules, full, { target: 'assistant', purpose: 'display', depth: 0 });
+        const partial = full;
         if (partial.trim()) appendCandidate(message.id, partial);
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {

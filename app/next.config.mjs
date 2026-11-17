@@ -27,12 +27,34 @@ const securityHeaders = [
   ...(httpsSite ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }] : []),
 ];
 
+const sandboxHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'no-referrer' },
+  {
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'none'",
+      "img-src * data: blob:",
+      "media-src * data: blob:",
+      "font-src * data:",
+      "style-src * 'unsafe-inline'",
+      "script-src * 'unsafe-inline' 'unsafe-eval'",
+      "connect-src 'none'",
+      "form-action 'none'",
+      "frame-ancestors 'self'",
+      "base-uri *",
+    ].join('; '),
+  },
+];
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {
     return [
-      { source: '/(.*)', headers: securityHeaders },
+      { source: '/((?!sandbox/).*)', headers: securityHeaders },
+      // 角色卡 HTML 沙盒：被本站以 sandbox iframe 嵌入；允许外链图片/样式/字体/脚本（状态图、美化常用 CDN），禁止网络请求外发
+      { source: '/sandbox/:path*', headers: sandboxHeaders },
       // Service Worker 必须每次重新校验，否则新版本发不出去
       { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }, { key: 'Service-Worker-Allowed', value: '/' }] },
     ];

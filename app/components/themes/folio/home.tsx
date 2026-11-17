@@ -210,7 +210,7 @@ export function FolioHome({ data }: { data: HomeData }) {
         <div className="fo-c1">酒馆<span className="fo-it">The Tavern, No.{issueNo} — {seasonEn(month)} {year}</span></div>
         <div className="fo-c2"><b>版权页</b>主编 · 酒馆编辑部<br />角色作者保留其作品署名权</div>
         <div className="fo-c3"><b>排印</b>正文 思源宋体 · 界面 思源黑体<br />拉丁 Instrument Serif · Newsreader</div>
-        <div className="fo-c4"><b>投稿</b><Link href="/create">写一位新角色 →</Link><br /><Link href="/plaza">翻阅广场</Link></div>
+        <div className="fo-c4"><b>投稿</b><Link href="/create">投一张角色卡 →</Link><br /><Link href="/plaza">翻阅广场</Link></div>
       </footer>
     </div>
   );

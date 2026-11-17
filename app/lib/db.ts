@@ -424,6 +424,10 @@ ensureColumn('characters', 'alternate_greetings', 'TEXT');
 ensureColumn('characters', 'card_fields', 'TEXT');
 ensureColumn('characters', 'cover_image', 'TEXT');
 ensureColumn('characters', 'avatar_image', 'TEXT');
+// 外部角色卡里平台表单不覆盖的部分：内嵌世界书、正则脚本、深度提示、原始卡 JSON（无损导出用）
+ensureColumn('characters', 'card_extras', 'TEXT');
+// 玩家在模型广场选的默认模型（新开对话用）
+ensureColumn('users', 'default_model', 'TEXT');
 ensureColumn('rooms', 'auto_mode', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('rooms', 'speaker_id', 'TEXT');
 
@@ -469,7 +473,9 @@ export function listCharacters(): DbCharacter[] {
 
 export function createChat(userId: number, characterId: string, title: string): number {
   const now = Date.now();
-  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, created_at, updated_at) VALUES (?,?,?,?,?)').run(userId, characterId, title, now, now);
+  // 新会话默认用玩家在模型广场选的模型（没选则走后台默认线路）
+  const preferred = (db.prepare('SELECT default_model FROM users WHERE id = ?').get(userId) as { default_model: string | null } | undefined)?.default_model || null;
+  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, model, created_at, updated_at) VALUES (?,?,?,?,?,?)').run(userId, characterId, title, preferred, now, now);
   return Number(result.lastInsertRowid);
 }
 

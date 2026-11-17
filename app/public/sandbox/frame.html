@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>card</title><style>html,body{margin:0;background:transparent}</style></head>
+<body><script>
+(function () {
+  // 角色卡美化 / 状态栏的沙盒：无同源权限（拿不到 cookie、改不了外层页面），只把内容高度报给外层
+  var done = false;
+  addEventListener('message', function (event) {
+    var data = event.data;
+    if (done || !data || data.type !== 'tavern-html' || event.source !== parent) return;
+    done = true;
+    var base = '<base target="_blank"><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
+      'html{height:auto}body{margin:0;background:transparent;display:flow-root;color:' + data.color + ';font:' + data.font + ';overflow-wrap:anywhere}' +
+      'img,video,svg{max-width:100%;height:auto}</style>';
+    var reporter = '<script>(function(){var b=document.body;function s(){if(!b)b=document.body;if(!b)return;var h=Math.max(b.scrollHeight,b.offsetHeight);parent.postMessage({type:"tavern-height",h:Math.ceil(h)},"*")}' +
+      'try{new ResizeObserver(s).observe(document.body)}catch(e){}addEventListener("load",s);setTimeout(s,30);setTimeout(s,400);setTimeout(s,1500);})()<\/script>';
+    var html = String(data.html || '');
+    var doc;
+    if (/<html[\s>]/i.test(html)) {
+      doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + base; }) : html.replace(/<html[^>]*>/i, function (m) { return m + '<head>' + base + '</head>'; });
+    } else {
+      doc = '<!doctype html><html><head><meta charset="utf-8">' + base + '</head><body>' + html + '</body></html>';
+    }
+    document.open();
+    document.write(doc + reporter);
+    document.close();
+  });
+  parent.postMessage({ type: 'tavern-ready' }, '*');
+})();
+</script></body></html>

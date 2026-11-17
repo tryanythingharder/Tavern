@@ -63,6 +63,7 @@ const ADMIN_NAV: { label: string; items: { href: string; label: string; path: st
     label: '配置',
     items: [
       { href: '/admin/channels', label: '渠道', path: 'M4 6h16v4H4zM4 14h16v4H4z' },
+      { href: '/admin/models', label: '模型广场', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
       { href: '/admin/model', label: '单线路配置', path: 'M4 7h16v10H4zM8 12h8' },
       { href: '/admin/settings', label: '接口配置', path: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-3 2-1-2-4-2 .5-1.5-1L15 4h-6l-.5 2.5-1.5 1L5 7l-2 4 2 1-2 1 2 4 2-.5 1.5 1L9 20h6l.5-2.5 1.5-1 2 .5 2-4z' },
     ],
@@ -241,7 +242,7 @@ export function SiteShell({
               <div key={group.label}>
                 <div className="p-nav-label">{group.label}</div>
                 {group.items.map((item) => {
-                  const active = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
+                  const active = item.href === '/admin' ? pathname === '/admin' : pathname === item.href || pathname.startsWith(`${item.href}/`);
                   return (
                     <Link key={item.href} className="p-nav-item" href={item.href} aria-current={active ? 'page' : undefined}>
                       {icon(item.path)}
@@ -263,7 +264,7 @@ export function SiteShell({
         <div className="p-amain">
           <nav className="p-atabs" aria-label="后台分区">
             {ADMIN_NAV.flatMap((group) => group.items).map((item) => {
-              const active = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
+              const active = item.href === '/admin' ? pathname === '/admin' : pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined}>
                   {item.label}

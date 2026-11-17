@@ -5,7 +5,8 @@ import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getCharacterById } from '@/lib/db';
 import { getRoom, listRoomMessages } from '@/lib/rooms';
-import { listPersonas } from '@/lib/resources-db';
+import { listPersonas, listRegexRules } from '@/lib/resources-db';
+import { characterRegexRules } from '@/lib/card-extras';
 import { RoomChat } from '@/components/room-chat';
 import { AppearanceButton } from '@/components/appearance-drawer';
 
@@ -65,6 +66,8 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
             userName={userName}
             autoMode={room.autoMode}
             defaultSpeakerId={room.speakerId}
+            displayRules={listRegexRules(user.id).filter((rule) => rule.enabled && rule.scope !== 'send')}
+            memberRules={Object.fromEntries(members.map((member) => [member.id, characterRegexRules(member.id).filter((rule) => rule.enabled && rule.scope !== 'send')]))}
           />
         </div>
 

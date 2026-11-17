@@ -1,3 +1,4 @@
+import { characterLoreEntries, characterRegexRules } from '@/lib/card-extras';
 import db from '@/lib/db';
 import type { DbChat } from '@/lib/db';
 import {
@@ -409,7 +410,8 @@ export function loadGenerationConfig(userId: number, chat: DbChat): GenerationCo
   return {
     preset,
     persona,
-    loreEntries: selected.flatMap((book) => book.entries.filter((entry) => entry.enabled)),
-    regexRules: listRegexRules(userId),
+    // 角色卡自带的世界书和正则随角色生效
+    loreEntries: [...characterLoreEntries(chat.character_id), ...selected.flatMap((book) => book.entries.filter((entry) => entry.enabled))],
+    regexRules: [...characterRegexRules(chat.character_id), ...listRegexRules(userId)],
   };
 }

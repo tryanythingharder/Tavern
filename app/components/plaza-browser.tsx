@@ -88,7 +88,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
     setBusy(true);
     setImportError('');
     try {
-      if (file.size > 10 * 1024 * 1024) throw new Error('图片太大（上限 10MB）');
+      if (file.size > 20 * 1024 * 1024) throw new Error('图片太大（上限 20MB）');
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result ?? ''));
@@ -124,7 +124,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
         </div>
         <div className="p-page-title-actions">
           <button className="p-btn" type="button" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>导入角色卡</button>
-          <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+          <Link className="p-btn p-btn--primary" href="/create">发布角色</Link>
         </div>
       </header>
 

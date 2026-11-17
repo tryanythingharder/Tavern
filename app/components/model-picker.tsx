@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePlayMode } from '@/components/play-mode';
 
-type ModelOption = { id: string; source: string; isDefault: boolean; price?: number };
+type ModelOption = { id: string; source: string; isDefault: boolean; price?: number; name?: string; summary?: string };
 
 const priceLabel = (price?: number) => (typeof price === 'number' ? `${price} 点/千 tokens` : '');
 
@@ -56,7 +56,7 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
   const fallback = models.find((item) => item.isDefault)?.id ?? models[0].id;
   const active = current && models.some((item) => item.id === current) ? current : '';
   const shown = active || fallback;
-  const filtered = query.trim() ? models.filter((item) => item.id.toLowerCase().includes(query.trim().toLowerCase())) : models;
+  const filtered = query.trim() ? models.filter((item) => `${item.id} ${item.name ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())) : models;
 
   const pick = async (id: string) => {
     setSaving(true);
@@ -92,16 +92,17 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
               <span className="mp-opt-note">{mode !== 'newbie' ? `当前为 ${fallback}，按后台优先级自动切换线路` : '站点推荐的模型，线路不通时自动换'}</span>
             </button>
             {filtered.map((item) => {
-              const note = mode !== 'newbie' ? item.source : friendly(item.id);
+              const note = item.summary || (mode !== 'newbie' ? item.source : friendly(item.id));
               return (
                 <button key={item.id} type="button" role="option" aria-selected={active === item.id} className={`mp-opt${active === item.id ? ' is-on' : ''}`} disabled={saving} onClick={() => void pick(item.id)}>
-                  <span className="mp-opt-name">{item.id}{item.isDefault ? <em className="mp-tag">推荐</em> : null}{priceLabel(item.price) ? <em className="mp-price">{priceLabel(item.price)}</em> : null}</span>
+                  <span className="mp-opt-name">{item.name || item.id}{item.isDefault ? <em className="mp-tag">推荐</em> : null}{priceLabel(item.price) ? <em className="mp-price">{priceLabel(item.price)}</em> : null}</span>
                   {note ? <span className="mp-opt-note">{note}</span> : null}
                 </button>
               );
             })}
             {!filtered.length && <p className="mp-empty">没有匹配的模型</p>}
           </div>
+          <a className="mp-more" href="/models">模型广场：看介绍、设默认 →</a>
         </div>
       )}
     </div>

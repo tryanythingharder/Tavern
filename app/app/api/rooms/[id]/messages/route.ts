@@ -6,7 +6,6 @@ import { loadRoomConfig } from '@/lib/resources-db';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
-import { applyRegex } from '@/lib/prompt';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,7 +121,7 @@ export async function POST(request: Request, context: Params) {
 
         // 模型偶尔会在开头自己加「白露：」，去掉以免和气泡上的名字重复
         const stripSpeaker = (value: string) => value.replace(namePrefix, '');
-        const finalText = applyRegex(config.regexRules, stripSpeaker(full), { target: 'assistant', purpose: 'display', depth: 0 });
+        const finalText = stripSpeaker(full);
         if (finalText.trim()) {
           const saved = addRoomMessage(room.id, 'assistant', speaker.id, finalText);
           send({ type: 'done', messageId: saved.id, speakerId: speaker.id, content: finalText, cost: settlement.cost, balance: settlement.balance });
@@ -130,7 +129,7 @@ export async function POST(request: Request, context: Params) {
           send({ type: 'error', message: '模型没有返回内容，请重试' });
         }
       } catch (error) {
-        const partial = applyRegex(config.regexRules, full.replace(namePrefix, ''), { target: 'assistant', purpose: 'display', depth: 0 });
+        const partial = full.replace(namePrefix, '');
         if (partial.trim()) addRoomMessage(room.id, 'assistant', speaker.id, partial);
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {

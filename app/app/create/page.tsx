@@ -8,13 +8,14 @@ import { ProtoCover } from '@/components/proto-cover';
 import { WorkActions } from '@/components/work-actions';
 import { CreatorStatsView } from '@/components/creator-stats-view';
 import { creatorStats } from '@/lib/creator-stats';
+import { CardImportPanel } from '@/components/card-import-panel';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CreatePage({ searchParams }: { searchParams: Promise<{ edit?: string; tab?: string; status?: string; days?: string }> }) {
+export default async function CreatePage({ searchParams }: { searchParams: Promise<{ edit?: string; tab?: string; status?: string; days?: string; blank?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  const { edit, tab, status, days } = await searchParams;
+  const { edit, tab, status, days, blank } = await searchParams;
   const editing = edit ? getCharacterView(edit) : undefined;
   const owned = editing && editing.ownerId === user.id ? editing : undefined;
   const works = listOwnedCharacters(user.id);
@@ -65,7 +66,7 @@ export default async function CreatePage({ searchParams }: { searchParams: Promi
           </div>
           <div className="p-page-title-actions">
             {worksNav('works')}
-            <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+            <Link className="p-btn p-btn--primary" href="/create">导入角色卡</Link>
           </div>
         </header>
 
@@ -99,10 +100,19 @@ export default async function CreatePage({ searchParams }: { searchParams: Promi
             <div className="p-empty">
               <div className="p-empty-title">这个分类还没有作品</div>
               <p className="p-empty-text">先去创建一个人物，再决定是否发布到广场。</p>
-              <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+              <Link className="p-btn p-btn--primary" href="/create">导入角色卡</Link>
             </div>
           )}
         </div>
+      </div>
+    );
+  }
+
+  // 默认入口是导入：制卡交给外部工具；?blank=1 才打开简易表单
+  if (!owned && !blank) {
+    return (
+      <div className="p-inner">
+        <CardImportPanel />
       </div>
     );
   }

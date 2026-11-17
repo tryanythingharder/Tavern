@@ -14,7 +14,8 @@ export type CardFields = {
   creatorNotes: string;
 };
 export const CARD_FIELD_LIMITS: Record<keyof CardFields, number> = {
-  personality: 2000, scenario: 2000, mesExample: 6000, systemPrompt: 4000, postHistory: 2000, creatorNotes: 2000,
+  // 社区卡动辄上万字：上限按「导入不丢内容」设，真正喂给模型的长度由提示词预算控制
+  personality: 20000, scenario: 20000, mesExample: 30000, systemPrompt: 20000, postHistory: 20000, creatorNotes: 30000,
 };
 export function emptyCardFields(): CardFields {
   return { personality: '', scenario: '', mesExample: '', systemPrompt: '', postHistory: '', creatorNotes: '' };
@@ -49,11 +50,11 @@ export function parseOpenings(raw: string | null): { title: string; text: string
     if (!Array.isArray(list)) return [];
     return list
       .map((item, index) => ({
-        title: String((item && item.title) || `备用开场 ${index + 1}`).slice(0, 40),
+        title: String((item && item.title) || `备用开场 ${index + 1}`).slice(0, 60),
         text: String((item && item.text) || '').trim(),
       }))
       .filter((item) => item.text)
-      .slice(0, 8);
+      .slice(0, 40);
   } catch {
     return [];
   }
@@ -88,7 +89,7 @@ export function characterView(row: DbCharacter): CharacterView {
   let tags: string[] = [];
   try {
     const parsed = JSON.parse(row.tags);
-    if (Array.isArray(parsed)) tags = parsed.map(String).slice(0, 5);
+    if (Array.isArray(parsed)) tags = parsed.map(String).slice(0, 12);
   } catch {
     // 旧数据里 tags 不是 JSON 时忽略
   }
@@ -178,13 +179,13 @@ export type CharacterInput = {
 function normalizeInput(input: CharacterInput, fallbackName = '新角色') {
   const name = String(input.name ?? '').trim().slice(0, 32) || fallbackName;
   const tags = Array.isArray(input.tags)
-    ? input.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 5)
-    : String(input.tags ?? '').split(/[,，\s]+/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5);
+    ? input.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 12)
+    : String(input.tags ?? '').split(/[,，\s]+/).map((tag) => tag.trim()).filter(Boolean).slice(0, 12);
   return {
     name,
     hook: String(input.hook ?? '').trim().slice(0, 90),
-    greeting: String(input.greeting ?? '').trim().slice(0, 2000),
-    description: String(input.description ?? '').trim().slice(0, 3000),
+    greeting: String(input.greeting ?? '').trim().slice(0, 30000),
+    description: String(input.description ?? '').trim().slice(0, 60000),
     pace: String(input.pace ?? '').trim().slice(0, 120) || '慢热 · 细节叙事',
     tags,
     category: (CATEGORIES as readonly string[]).includes(String(input.category)) ? String(input.category) : '现代',
@@ -203,7 +204,7 @@ function normalizeOpenings(value: unknown): { title: string; text: string }[] {
         return { title: String(record?.title ?? `备用开场 ${index + 1}`).slice(0, 40), text: String(record?.text ?? '').trim() };
       })
       .filter((item) => item.text)
-      .slice(0, 8);
+      .slice(0, 40);
   }
   if (typeof value === 'string' && value.trim()) {
     return value
@@ -215,7 +216,7 @@ function normalizeOpenings(value: unknown): { title: string; text: string }[] {
         return hasTitle ? { title: first, text: lines.slice(1).join('\n').trim() } : { title: `备用开场 ${index + 1}`, text: block.trim() };
       })
       .filter((item) => item.text)
-      .slice(0, 8);
+      .slice(0, 40);
   }
   return [];
 }

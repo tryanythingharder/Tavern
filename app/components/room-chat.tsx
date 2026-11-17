@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { RpText, TypingDots } from '@/components/rp-text';
+import { TypingDots } from '@/components/rp-text';
+import { RichText } from '@/components/rich-text';
+import type { RegexRule } from '@/lib/resources';
 import { ModelPicker } from '@/components/model-picker';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string };
@@ -15,6 +17,9 @@ type Props = {
   userName: string;
   autoMode?: boolean;
   defaultSpeakerId?: string | null;
+  // 「仅显示」正则：玩家规则 + 成员角色卡自带脚本（按发言角色挑）
+  displayRules?: RegexRule[];
+  memberRules?: Record<string, RegexRule[]>;
 };
 
 const STRATEGY_HINT: Record<string, string> = {
@@ -24,7 +29,7 @@ const STRATEGY_HINT: Record<string, string> = {
   pooled: '随机：每轮从成员里抽一个。',
 };
 
-export function RoomChat({ roomId, strategy, members, initialMessages, userName, autoMode = false, defaultSpeakerId }: Props) {
+export function RoomChat({ roomId, strategy, members, initialMessages, userName, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {} }: Props) {
   const [messages, setMessages] = useState<RoomMessageView[]>(initialMessages);
   const [draft, setDraft] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -179,7 +184,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
                   <div className="p-msg-name">{isUser ? userName : member?.name ?? '角色'}</div>
                   <div className="p-msg-copy p-msg-text">
                     {message.content
-                      ? <RpText text={message.content} streaming={isLast && streaming && !isUser} />
+                      ? <RichText text={message.content} streaming={isLast && streaming && !isUser} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} />
                       : streaming ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
                   </div>
                 </div>

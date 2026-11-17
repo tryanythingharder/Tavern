@@ -97,6 +97,8 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             personaName={config.persona?.name}
             characterCover={cover}
             characterHue={character.hue}
+            displayRules={config.regexRules.filter((rule) => rule.enabled && rule.scope !== 'send')}
+            macros={{ char: character.name, user: config.persona?.name || user.nickname }}
           />
         </div>
 

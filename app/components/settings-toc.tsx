@@ -19,6 +19,7 @@ const GROUPS: { label: string; advanced?: boolean; items: TocItem[] }[] = [
     label: '资产',
     items: [
       { href: '/me/points', label: '点数与充值' },
+      { href: '/models', label: '模型广场' },
     ],
   },
   {

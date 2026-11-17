@@ -332,7 +332,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             <div className="p-field">
               <label className="p-label" htmlFor="create-tags">标签</label>
               <input id="create-tags" className="p-input" value={tags} placeholder="民国，悬疑，慢热" onChange={(event) => setTags(event.target.value)} />
-              <span className="p-hint">用逗号分隔，最多 5 个。</span>
+              <span className="p-hint">用逗号分隔，最多 12 个。</span>
             </div>
 
             <div className="p-field">
@@ -355,28 +355,28 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
             <p className="p-small creator-section-hint">这些字段和 ST V2 卡一一对应，导出时原样写回。支持 {'{{char}}'}、{'{{user}}'}；系统提示与后置指令可用 {'{{original}}'} 引用预设原文。玩家在「我的 → 角色卡覆盖」里写的同名字段会优先生效。</p>
             <div className="p-field">
               <label className="p-label" htmlFor="cf-personality">性格（personality）</label>
-              <textarea id="cf-personality" className="p-textarea" rows={3} maxLength={2000} value={card.personality} placeholder="嘴硬心软；生气时反而更客气。" onChange={(event) => setCardField('personality', event.target.value)} />
+              <textarea id="cf-personality" className="p-textarea" rows={3} maxLength={20000} value={card.personality} placeholder="嘴硬心软；生气时反而更客气。" onChange={(event) => setCardField('personality', event.target.value)} />
             </div>
             <div className="p-field">
               <label className="p-label" htmlFor="cf-scenario">场景（scenario）</label>
-              <textarea id="cf-scenario" className="p-textarea" rows={3} maxLength={2000} value={card.scenario} placeholder="1936 年冬，上海法租界的一间旧书店。" onChange={(event) => setCardField('scenario', event.target.value)} />
+              <textarea id="cf-scenario" className="p-textarea" rows={3} maxLength={20000} value={card.scenario} placeholder="1936 年冬，上海法租界的一间旧书店。" onChange={(event) => setCardField('scenario', event.target.value)} />
             </div>
             <div className="p-field">
               <label className="p-label" htmlFor="cf-mes">对话示例（mes_example）</label>
-              <textarea id="cf-mes" className="p-textarea cf-mono" rows={6} maxLength={6000} value={card.mesExample} placeholder={'<START>\n{{user}}：你好。\n{{char}}：*抬眼看了你一下* 「打烊了。」'} onChange={(event) => setCardField('mesExample', event.target.value)} />
+              <textarea id="cf-mes" className="p-textarea cf-mono" rows={6} maxLength={30000} value={card.mesExample} placeholder={'<START>\n{{user}}：你好。\n{{char}}：*抬眼看了你一下* 「打烊了。」'} onChange={(event) => setCardField('mesExample', event.target.value)} />
               <span className="p-hint">每段以 &lt;START&gt; 开头，只用来教模型说话的口吻，不会当作真实发生过的剧情。</span>
             </div>
             <div className="p-field">
               <label className="p-label" htmlFor="cf-system">系统提示（system_prompt）</label>
-              <textarea id="cf-system" className="p-textarea cf-mono" rows={3} maxLength={4000} value={card.systemPrompt} placeholder="留空则使用玩家预设的主提示词。" onChange={(event) => setCardField('systemPrompt', event.target.value)} />
+              <textarea id="cf-system" className="p-textarea cf-mono" rows={3} maxLength={20000} value={card.systemPrompt} placeholder="留空则使用玩家预设的主提示词。" onChange={(event) => setCardField('systemPrompt', event.target.value)} />
             </div>
             <div className="p-field">
               <label className="p-label" htmlFor="cf-post">后置指令（post_history_instructions）</label>
-              <textarea id="cf-post" className="p-textarea cf-mono" rows={2} maxLength={2000} value={card.postHistory} placeholder="放在对话历史之后，常用于强调文风或禁止事项。" onChange={(event) => setCardField('postHistory', event.target.value)} />
+              <textarea id="cf-post" className="p-textarea cf-mono" rows={2} maxLength={20000} value={card.postHistory} placeholder="放在对话历史之后，常用于强调文风或禁止事项。" onChange={(event) => setCardField('postHistory', event.target.value)} />
             </div>
             <div className="p-field">
               <label className="p-label" htmlFor="cf-notes">作者备注（creator_notes）</label>
-              <textarea id="cf-notes" className="p-textarea" rows={2} maxLength={2000} value={card.creatorNotes} placeholder="给玩家看的玩法说明，不会发给模型。" onChange={(event) => setCardField('creatorNotes', event.target.value)} />
+              <textarea id="cf-notes" className="p-textarea" rows={2} maxLength={20000} value={card.creatorNotes} placeholder="给玩家看的玩法说明，不会发给模型。" onChange={(event) => setCardField('creatorNotes', event.target.value)} />
             </div>
           </details>
 

@@ -75,7 +75,7 @@ export function LibraryBrowser({
         </div>
         <div className="p-page-title-actions">
           <Link className="p-btn" href="/create?tab=works">作品管理</Link>
-          <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+          <Link className="p-btn p-btn--primary" href="/create">发布角色</Link>
         </div>
       </header>
 

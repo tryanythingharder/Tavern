@@ -318,6 +318,8 @@ export type RegexRule = {
   depthFrom: number | null;
   depthTo: number | null;
   sort: number;
+  // ST 的 trimStrings：替换前先从匹配文本里删掉这些字符串
+  trim?: string[];
 };
 
 export function normalizeRegexRule(raw: unknown, index = 0): RegexRule {
@@ -484,6 +486,7 @@ export function parseStRegex(input: unknown): Omit<RegexRule, 'id' | 'sort'>[] |
         enabled: item.disabled !== true && item.enabled !== false,
         depthFrom: optionalInt(item.minDepth, -1, 9999),
         depthTo: optionalInt(item.maxDepth, 0, 9999),
+        trim: Array.isArray(item.trimStrings) ? item.trimStrings.map(String).filter(Boolean).slice(0, 20) : [],
       };
     })
     .filter((rule) => rule.find);

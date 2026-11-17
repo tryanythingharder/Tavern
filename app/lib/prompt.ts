@@ -15,6 +15,16 @@ import {
 } from '@/lib/resources';
 import { estimateTokens } from '@/lib/usage';
 import { parseCardFields } from '@/lib/characters';
+import { getSetting } from '@/lib/settings';
+
+// 预算按字符计（中文约 1 字 ≈ 1 token）。社区卡常见上万字设定 + 长世界书，默认 4 万字（旧值 6000 字装不下社区卡，历史会被挤光），预算越大每条越贵；
+// 后台可在 app_settings 里调 prompt.charBudget / prompt.loreBudget。
+function settingNumber(key: string, fallback: number, min: number, max: number): number {
+  const value = Number(getSetting(key, ''));
+  return Number.isFinite(value) && value > 0 ? Math.max(min, Math.min(max, value)) : fallback;
+}
+const promptBudget = () => settingNumber('prompt.charBudget', Math.max(PROMPT_CHAR_BUDGET, 40000), 4000, 1_000_000);
+const loreBudget = () => settingNumber('prompt.loreBudget', Math.max(LORE_BUDGET, 12000), 500, 400_000);
 
 // 提示词组装：把原型的 assemblePrompt 语义搬到服务端。
 // 块顺序来自预设；世界书按关键词扫描后进入「角色设定之前/之后/历史深度」等位置；
@@ -53,50 +63,9 @@ export type AssembleResult = {
 };
 
 // ---------- 正则 ----------
-
-const REGEX_TEXT_LIMIT = 20000;
-
-function compileRule(rule: RegexRule): RegExp | null {
-  const raw = rule.find;
-  if (!raw) return null;
-  const literal = raw.match(/^\/([^]*)\/([a-z]*)$/);
-  try {
-    if (literal) {
-      const flags = [...new Set(literal[2].split('').filter((char) => 'gimsuy'.includes(char)))].join('');
-      if (!literal[1]) return null;
-      return new RegExp(literal[1], flags.includes('g') ? flags : `${flags}g`);
-    }
-    return new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-  } catch {
-    return null;
-  }
-}
-
-export function applyRegex(
-  rules: RegexRule[],
-  text: string,
-  options: { target: 'user' | 'assistant'; purpose: 'send' | 'display'; depth?: number },
-): string {
-  let value = String(text ?? '');
-  if (value.length > REGEX_TEXT_LIMIT) value = value.slice(0, REGEX_TEXT_LIMIT);
-  for (const rule of rules) {
-    if (!rule.enabled || !rule.find) continue;
-    if (rule.scope !== 'both' && rule.scope !== options.purpose) continue;
-    if (rule.target !== 'all' && rule.target !== options.target) continue;
-    if (typeof options.depth === 'number') {
-      if (rule.depthFrom !== null && rule.depthFrom >= -1 && options.depth < rule.depthFrom) continue;
-      if (rule.depthTo !== null && rule.depthTo >= 0 && options.depth > rule.depthTo) continue;
-    }
-    const regex = compileRule(rule);
-    if (!regex) continue;
-    try {
-      value = value.replace(regex, rule.replacement);
-    } catch {
-      // 单条规则出错不影响整段文本
-    }
-  }
-  return value;
-}
+// 纯函数放在 lib/regex-apply.ts，客户端渲染也要用
+import { applyRegex } from '@/lib/regex-apply';
+export { applyRegex };
 
 // ---------- 世界书 ----------
 
@@ -132,7 +101,7 @@ export function scanLore(
   const hitKeys = new Map<string, string[]>();
   const activatedIds = new Set<string>();
   let buffer = base;
-  let budget = LORE_BUDGET;
+  let budget = loreBudget();
 
   const activate = (entry: LoreEntry, keys: string[]) => {
     if (activatedIds.has(entry.id)) return false;
@@ -298,7 +267,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   let historyChars = 0;
   let dropped = 0;
   if (historyBlock?.enabled) {
-    const budget = Math.max(PROMPT_CHAR_BUDGET - reserved, 0);
+    const budget = Math.max(promptBudget() - reserved, 0);
     const kept: ChatMessage[] = [];
     for (let index = history.length - 1; index >= 0; index -= 1) {
       const message = history[index];

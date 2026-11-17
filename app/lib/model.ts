@@ -4,6 +4,7 @@ import type { PresetParams } from '@/lib/resources';
 import { getSetting } from '@/lib/settings';
 import { channelCount, channelModels, channelRoutes, channelRoutesFor } from '@/lib/channels';
 import { modelPricePer1k } from '@/lib/points';
+import { isModelHidden, modelCatalogMeta, type ModelMeta } from '@/lib/model-catalog';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -56,7 +57,8 @@ function routeList(): { primary: ModelRoute; fallbacks: ModelRoute[] } {
 
 export function modelRoutes(preferred?: string | null): ModelRoute[] {
   const wanted = String(preferred ?? '').trim();
-  if (wanted) {
+  // 后台下架的模型：老会话里存着也不再走它，回落默认线路
+  if (wanted && !isModelHidden(wanted)) {
     const picked = channelCount() > 0
       ? channelRoutesFor(wanted)
       : (() => { const { primary, fallbacks } = routeList(); return [primary, ...fallbacks].filter((route) => route.baseUrl && route.apiKey && route.model === wanted); })();
@@ -85,8 +87,24 @@ export function modelName(preferred?: string | null): string {
 }
 
 // 玩家在对话里能选的模型（后台渠道启用的全部模型；没建渠道时用主线路 + 备用线路）。
-export type ModelOption = { id: string; source: string; isDefault: boolean; price: number };
+export type ModelOption = { id: string; source: string; isDefault: boolean; price: number; name?: string; summary?: string };
+// 玩家可选的模型：去掉后台下架的
 export function availableModels(): ModelOption[] {
+  const meta = modelCatalogMeta();
+  return allModels().filter((item) => !meta[item.id]?.hidden).map((item) => ({ ...item, name: meta[item.id]?.name || undefined, summary: meta[item.id]?.summary || undefined }));
+}
+
+// 模型广场：带展示信息；推荐的在前，其次按排序值、价格
+export type CatalogModel = ModelOption & { meta: ModelMeta };
+export function modelCatalog(options: { includeHidden?: boolean } = {}): CatalogModel[] {
+  const meta = modelCatalogMeta();
+  return allModels()
+    .map((item) => ({ ...item, meta: meta[item.id] ?? { name: '', summary: '', tags: [], context: '', featured: false, hidden: false, sort: 0 } }))
+    .filter((item) => options.includeHidden || !item.meta.hidden)
+    .sort((a, b) => Number(b.meta.featured) - Number(a.meta.featured) || a.meta.sort - b.meta.sort || a.price - b.price || a.id.localeCompare(b.id));
+}
+
+function allModels(): ModelOption[] {
   if (channelCount() > 0) {
     const list = channelModels();
     const fallback = modelRoutes()[0]?.model;
