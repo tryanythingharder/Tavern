@@ -1,17 +1,18 @@
 import { cookies } from 'next/headers';
 import { APPEARANCE_COOKIE, parseAppearanceCookie, type AppearancePrefs } from '@/lib/appearance';
 
-// 两套主题：书页（杂志排版）/ 戏台（角色卡牌）。配色令牌共用。
-// 夜幕（暗场）已按需求下线；旧 cookie 'nocturne' 自动落到默认主题。
-export type Theme = 'folio' | 'stage';
+// 三套主题：书页（杂志排版）/ 夜幕（电影感）/ 戏台（角色卡牌）。配色令牌共用；
+// 每套都有浅色（白天）与深色（夜间），见 Scheme。
+export type Theme = 'folio' | 'nocturne' | 'stage';
 export const THEMES: { id: Theme; label: string; hint: string }[] = [
   { id: 'folio', label: '书页', hint: '杂志式排版，像读一本小说' },
+  { id: 'nocturne', label: '夜幕', hint: '电影感排版，沉浸最强' },
   { id: 'stage', label: '戏台', hint: '角色卡牌，轻快好玩' },
 ];
 export const DEFAULT_THEME: Theme = 'folio';
 
 export function parseTheme(value: string | undefined | null): Theme {
-  return value === 'folio' || value === 'stage' ? value : DEFAULT_THEME;
+  return value === 'folio' || value === 'stage' || value === 'nocturne' ? value : DEFAULT_THEME;
 }
 
 // 明暗：每套主题都有浅色（白天）与深色（夜间）；默认跟随系统

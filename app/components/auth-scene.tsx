@@ -20,7 +20,7 @@ const SCENES = {
 
 export async function AuthScene() {
   const theme = await getTheme();
-  const scene = theme === 'stage' ? SCENES.stage : SCENES.folio;
+  const scene = theme === 'stage' || theme === 'nocturne' ? SCENES.stage : SCENES.folio;
   return (
     <aside className="p-auth-scene" data-scene={theme} aria-label={scene.alt}>
       <img className="p-auth-art" src={scene.src} alt={scene.alt} />

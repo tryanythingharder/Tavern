@@ -104,4 +104,4 @@ html[data-scheme="dark"] body:is([data-theme="stage"], [data-theme="folio"]) :is
 ) :is(small, span, i, b, svg) { color: inherit !important; opacity: .78; }
 html[data-scheme="dark"] body[data-theme="stage"] .stg-st--dark .stg-hash { color: currentColor; opacity: .55; }
 /* 戏台窄屏顶栏放不下第 6 个按钮：明暗开关收进「外观」抽屉 */
-@media (max-width: 430px) { html body[data-theme="stage"] .p-topbar .sc-toggle { display: none !important; } }
+@media (max-width: 430px) { html body:is([data-theme="stage"], [data-theme="nocturne"]) .p-topbar .sc-toggle { display: none !important; } }

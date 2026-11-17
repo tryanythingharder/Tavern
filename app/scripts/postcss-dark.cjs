@@ -65,7 +65,7 @@ function kindOf(prop) {
   if (/^(border|outline|column-rule|stroke)/.test(prop)) return 'line';
   if (prop.startsWith('--')) {
     if (/shadow/.test(prop)) return 'shadow';
-    if (/(ink|text|copy|muted|fg|focus|sub|faint|meta|dim|accent(?!-soft)|link|say|act|think|g9|g8|g7|g6)/.test(prop) && !/(bg|soft|surface|paper|card)/.test(prop)) return 'fg';
+    if (/(ink|text|copy|muted|fg|focus|sub|faint|meta|dim|accent(?!-soft)|link|say|act|think|placeholder|g9|g8|g7|g6)/.test(prop) && !/(bg|soft|surface|paper|card)/.test(prop)) return 'fg';
     if (/(line|border|rule|stroke|divider|hair)/.test(prop)) return 'line';
     return 'bg';
   }
@@ -106,12 +106,54 @@ function mapColor(c, kind) {
   return fmt(oklab2rgb([L2, A * k, B * k]), a);
 }
 
+// ---------- 反向：夜幕写的是深色原样，浅色（白天）由此生成 ----------
+const NBG = [[0, 0.965], [0.14, 0.975], [0.165, 0.988], [0.19, 1], [0.235, 0.958], [0.27, 0.935], [0.34, 0.885], [0.5, 0.76], [0.7, 0.52], [1, 0.26]];
+const NFG = [[1, 0.17], [0.96, 0.21], [0.84, 0.37], [0.77, 0.43], [0.64, 0.5], [0.45, 0.66], [0.2, 0.9], [0, 0.96]];
+const NLINE = [[0, 0.95], [0.2, 0.93], [0.27, 0.9], [0.34, 0.84], [0.6, 0.62], [1, 0.3]];
+function mapLight(c, kind) {
+  const [r, g, b, a] = c;
+  const [L, A, B] = rgb2oklab([r, g, b]);
+  const C = Math.hypot(A, B);
+  if (kind === 'shadow') {
+    if (C >= 0.04) return fmt(oklab2rgb([Math.min(L, 0.56), A, B]), a * 0.5);
+    if (L < 0.5) return fmt([24, 22, 20], Math.min(0.18, a * 0.32));
+    return fmt([0, 0, 0], a * 0.4);
+  }
+  if (a < 0.999 && C < 0.04) {
+    if (L > 0.8) return fmt(kind === 'fg' ? [27, 27, 29] : [0, 0, 0], kind === 'fg' ? a : Math.min(0.12, a * 0.75)); // 半透明白：悬停/分隔 → 半透明黑
+    if (Math.max(r, g, b) <= 6 && kind === 'bg') return a >= 0.45 ? fmt([r, g, b], a) : fmt([0, 0, 0], Math.min(0.05, a * 0.15)); // 纯黑：深遮罩保持，浅的（输入框/胶囊底）→ 极淡灰
+    if (kind === 'line') return fmt([0, 0, 0], Math.min(0.14, a * 0.5));
+    return fmt(oklab2rgb([lerp(NBG, L), 0, 0]), a); // 半透明暗玻璃 → 半透明白玻璃
+  }
+  if (C < 0.04) return fmt(oklab2rgb([lerp(kind === 'fg' ? NFG : kind === 'line' ? NLINE : NBG, L), A * 0.5, B * 0.5]), a);
+  // 彩色
+  let L2; let k = 1;
+  if (L < 0.4) { L2 = kind === 'fg' ? 0.42 : 0.955; k = kind === 'fg' ? 1 : Math.min(1, 0.035 / C + 0.25); }
+  else if (L > 0.86) { L2 = kind === 'fg' ? 0.42 : 0.94; k = kind === 'fg' ? 1 : 0.5; }
+  else { L2 = Math.min(L, kind === 'bg' ? 0.58 : 0.53); k = 1; }
+  return fmt(oklab2rgb([L2, A * k, B * k]), a < 0.999 ? a * 0.8 : a);
+}
+
 const COLOR_RE = /#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|\b(?:white|black)\b/g;
 
 function rewrite(value, prop, ctx) {
   if (/light-dark\(/.test(value)) return null;
   if (/url\(/.test(value) && !/gradient/.test(value)) return null;
   const kind = kindOf(prop);
+  if (ctx.reverse) {
+    if (/^--(on-|noc-serif|noc-sans|noc-latin)/.test(prop)) return null;
+    if (kind === 'fg' && (ctx.overImage || ctx.inkBg)) return null; // 压在图片/彩色按钮上的字照旧
+    let ch = false;
+    const o = value.replace(COLOR_RE, (tok) => {
+      const c = parse(tok);
+      if (!c) return tok;
+      const lt = mapLight(c, kind);
+      if (lt.toLowerCase() === tok.toLowerCase()) return tok;
+      ch = true;
+      return `light-dark(${lt}, ${tok})`;
+    });
+    return ch ? o : null;
+  }
   if (kind === 'fg' && !prop.startsWith('--')) {
     const c0 = parse((value.match(COLOR_RE) || [''])[0]);
     if (c0 && c0[0] > 235 && c0[1] > 235 && c0[2] > 235 && !ctx.inkBg) return null; // 白字只会出现在深色/彩色/图片上，深色下照旧
@@ -147,15 +189,19 @@ module.exports = () => ({
     if (!file || !ROOTS.some((r) => file.startsWith(r))) return;
     root.walkRules((rule) => {
       if (rule.parent && rule.parent.type === 'atrule' && /keyframes/.test(rule.parent.name)) return;
-      if (SKIP_SEL.test(rule.selector.replace(/:not\([^()]*\)/g, ''))) return;
+      if (SKIP_SEL.test(rule.selector.replace(/:not\([^()]*\)/g, '')) || /data-scheme/.test(rule.selector)) return;
       for (let p = rule.parent; p && p.type === 'atrule'; p = p.parent) if (/prefers-color-scheme/.test(p.params)) return;
       const overImage = (rule.nodes || []).some((n) => n.type === 'decl' && /^background/.test(n.prop) && (/url\(/.test(n.value) || /rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0?\.[3-9]/.test(n.value)));
       // 底色用的是「墨色」令牌（深色下会变浅），上面的白字要跟着变深
       const inkBg = (rule.nodes || []).some((n) => n.type === 'decl' && /^background/.test(n.prop) && /var\(--(?!ink,)[a-z-]*(ink|text|primary|accent(?!-soft)|focus|danger|g9[05]0|g800)\b/.test(n.value) || (n.type === 'decl' && /^background/.test(n.prop) && solidChromatic(n.value)));
 
+      // 夜幕：原样是深色，反向生成浅色
+      const reverse = /nocturne\.css$/.test(file) || /data-theme="?nocturne/.test(rule.selector);
+      const accentBg = reverse && (rule.nodes || []).some((n) => n.type === 'decl' && /^background/.test(n.prop) && (/var\(--[a-z-]*(accent(?!-soft)|primary|danger)\b/.test(n.value) || solidChromatic(n.value)));
+      const overImg = reverse && (rule.nodes || []).some((n) => n.type === 'decl' && /^background/.test(n.prop) && /url\(/.test(n.value));
       rule.each((node) => {
         if (node.type !== 'decl' || !COLOR_PROPS.test(node.prop)) return;
-        const v = rewrite(node.value, node.prop, { overImage, inkBg });
+        const v = rewrite(node.value, node.prop, { overImage: reverse ? overImg : overImage, inkBg: reverse ? accentBg : inkBg, reverse });
         if (v) node.value = v;
       });
     });
@@ -163,4 +209,5 @@ module.exports = () => ({
 });
 module.exports.postcss = true;
 module.exports.mapColor = mapColor;
+module.exports.mapLight = mapLight;
 module.exports.parse = parse;

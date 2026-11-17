@@ -2559,5 +2559,8 @@
  "明暗": "Light / dark",
  "切换到深色": "Switch to dark",
  "切换到浅色": "Switch to light",
- "每套主题都有浅色（白天）和深色（夜间）；选「跟随系统」会随手机或电脑的深色模式自动切换。": "Every theme has a light (day) and dark (night) version. “System” follows your device’s dark mode."
+ "每套主题都有浅色（白天）和深色（夜间）；选「跟随系统」会随手机或电脑的深色模式自动切换。": "Every theme has a light (day) and dark (night) version. “System” follows your device’s dark mode.",
+ "夜幕": "Nocturne",
+ "电影感排版，沉浸最强": "Cinematic layout, most immersive",
+ "电影感": "Cinematic"
 }

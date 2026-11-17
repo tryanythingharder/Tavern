@@ -8,6 +8,7 @@ import type { Theme } from '@/lib/theme';
 
 const OPTIONS: { id: Theme; label: string; hint?: string }[] = [
   { id: 'folio', label: '书页', hint: '纸页衬线' },
+  { id: 'nocturne', label: '夜幕', hint: '电影感' },
   { id: 'stage', label: '戏台', hint: '卡牌轻快' },
 ];
 

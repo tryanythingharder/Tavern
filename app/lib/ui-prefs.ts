@@ -10,7 +10,7 @@ const KEY_OF: Record<string, SyncedCookie> = { lang: 'tavern_lang', theme: 'tave
 
 function valid(name: SyncedCookie, value: string): boolean {
   if (name === 'tavern_lang') return value === 'zh' || value === 'en';
-  if (name === 'tavern_theme') return value === 'folio' || value === 'stage';
+  if (name === 'tavern_theme') return value === 'folio' || value === 'stage' || value === 'nocturne';
   if (name === 'tavern_scheme') return value === 'system' || value === 'light' || value === 'dark';
   if (name === 'tavern_mode') return value === 'newbie' || value === 'simple' || value === 'full';
   // 外观是 lib/appearance 序列化后的短串，只做长度与字符集检查，读取时还会再 sanitize
