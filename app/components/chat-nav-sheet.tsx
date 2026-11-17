@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
-// 手机端「目录」：右下角浮钮 → 底部抽屉，列出章节（每 12 条一章）与书签，点一下跳过去。
+// 手机端「目录」：对话页顶栏按钮 → 底部抽屉，列出章节（每 12 条一章）与书签，点一下跳过去。
 // 和书页主题的桌面目录同一套规则，只读 ChatRoom 渲染出的消息 DOM，不改共享组件。桌面端隐藏。
 
 const PER_CHAPTER = 12;
@@ -54,11 +55,10 @@ export function ChatNavSheet() {
 
   return (
     <>
-      <button type="button" className="cns-fab" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn--sm cns-fab" aria-label="目录" title="目录" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" /></svg>
-        <span>目录</span>
       </button>
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div className="cns" role="dialog" aria-modal="true" aria-label="章节与书签">
           <button type="button" className="cns-scrim" aria-label="关闭" tabIndex={-1} onClick={() => setOpen(false)} />
           <div className="cns-sheet">
@@ -102,7 +102,7 @@ export function ChatNavSheet() {
             )}
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

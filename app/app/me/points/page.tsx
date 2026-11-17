@@ -1,5 +1,6 @@
 import { paymentCurrency as __cur } from '@/lib/billing';
 import Link from 'next/link';
+import { tr } from '@/lib/i18n/runtime';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { listLedger, pointsSummary } from '@/lib/points';
@@ -26,7 +27,8 @@ function humanNote(raw: string | null | undefined): { text: string; chatId?: num
     .replace(/^预扣\s*·\s*/, '')
     .replace(/chat:(\d+)/g, '对话 #$1')
     .replace(/room:(\d+)/g, '房间 #$1')
-    .replace(/\s*·\s*$/, '');
+    .replace(/\s*·\s*$/, '')
+    .replace(/^代写(?=\s|·|$)/, () => tr('代写'));
   return { text, chatId: chat ? Number(chat[1]) : undefined };
 }
 

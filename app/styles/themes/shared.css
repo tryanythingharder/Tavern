@@ -342,13 +342,8 @@ html body[data-theme="stage"] .stg-seg :is(button, a) { white-space: nowrap; }
 /* ─── 手机端目录抽屉（章节 + 书签），桌面端由主题自己的目录承担 ─── */
 .cns-fab { display: none; }
 @media (max-width: 1023px) {
-  .cns-fab {
-    display: inline-flex; align-items: center; gap: 6px; position: fixed; z-index: 40;
-    right: max(12px, env(safe-area-inset-right)); top: calc(66px + env(safe-area-inset-top));
-    min-height: 40px; padding: 0 14px 0 12px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600;
-    border: 1px solid var(--ca-line, #e6e6e8); background: color-mix(in srgb, var(--ca-card, #fff) 92%, transparent);
-    color: var(--ca-ink, #1b1b1d); box-shadow: 0 6px 20px rgba(27,27,29,.12); backdrop-filter: blur(8px); cursor: pointer;
-  }
+  /* 放在对话顶栏里，和「搜索」「设定」同排，不再浮在正文上 */
+  .cns-fab { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; padding-inline: 8px; }
   .cns-fab svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 }
 .cns { position: fixed; inset: 0; z-index: 90; }

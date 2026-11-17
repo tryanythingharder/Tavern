@@ -29,3 +29,5 @@ html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .nf-kicker::after {
   html[data-lang="en"] body[data-theme="folio"] .fo-ctool .fo-rt { display: none; }
   html[data-lang="en"] body[data-theme="folio"] .fo-ctool .fo-notes-btn { margin-left: auto; }
 }
+/* 英文界面里 ST 术语和标签本身重复（My personas · Persona），设置目录里不再并列，避免窄栏截断 */
+html[data-lang="en"] .p-toc .pm-st { display: none; }

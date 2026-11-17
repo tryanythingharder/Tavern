@@ -57,7 +57,6 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
     <main className="p-inner">
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
       <div className="p-rp-workbench" data-theme-chat={theme}>
-        <ChatNavSheet />
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">
@@ -74,6 +73,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                <ChatNavSheet />
                 <ChatSearch chatId={chat.id} characterName={character.name} />
                 <ChatSettings chatId={chat.id} />
                 <AppearanceButton className="btn btn--sm ua-trigger--chat" />
