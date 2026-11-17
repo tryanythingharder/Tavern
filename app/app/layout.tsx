@@ -9,7 +9,7 @@ import { listChats } from '@/lib/db';
 import { imageCost, ttsCost } from '@/lib/media';
 import { pointsSummary } from '@/lib/points';
 import { getViewMode } from '@/lib/view';
-import { getAppearancePrefs, getTheme } from '@/lib/theme';
+import { getAppearancePrefs, getScheme, getTheme } from '@/lib/theme';
 import { getPlayMode } from '@/lib/play-mode-server';
 import { PlayModeChooser } from '@/components/play-mode';
 import { appearanceBodyProps } from '@/lib/appearance';
@@ -42,6 +42,7 @@ import '../styles/themes/folio.css';
 import '../styles/themes/stage.css';
 // 用户自定义外观：只在 body[data-u-*] 存在时覆盖主题，必须最后导入
 import '../styles/themes/custom.css';
+import '../styles/themes/dark.css';
 // 英文界面下替换 CSS 伪元素里的中文
 import '../styles/i18n-en.css';
 
@@ -57,12 +58,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // viewport-fit=cover 让 env(safe-area-inset-*) 在 iOS 刘海屏/底部横条上生效
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#ffffff' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: [{ media: '(prefers-color-scheme: light)', color: '#ffffff' }, { media: '(prefers-color-scheme: dark)', color: '#151413' }] };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   const view = await getViewMode();
   const theme = await getTheme();
+  const scheme = await getScheme();
   const playMode = await getPlayMode();
   const appearance = getAppearance(user?.id ?? null);
   const custom = await getAppearancePrefs();
@@ -90,8 +92,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     costs = { text: pointsSummary(user.id).perThousand, image: imageCost(), tts: ttsCost() };
   }
   return (
-    <html lang={locale === 'en' ? 'en' : 'zh-CN'} data-lang={locale}>
+    <html lang={locale === 'en' ? 'en' : 'zh-CN'} data-lang={locale} data-scheme-pref={scheme} data-scheme={scheme === 'dark' ? 'dark' : scheme === 'light' ? 'light' : undefined} suppressHydrationWarning>
       <head>
+        {/* 明暗：跟随系统时在首帧前读系统设置，避免白闪；系统切换时同步 */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var r=document.documentElement,q=window.matchMedia('(prefers-color-scheme: dark)');function a(){var p=r.dataset.schemePref||'system';r.dataset.scheme=p==='dark'||(p==='system'&&q.matches)?'dark':'light'}a();try{q.addEventListener('change',a)}catch(e){q.addListener&&q.addListener(a)}})();` }} />
         {/* 界面语言：英文时在 hydration 前加载词典，客户端渲染与服务端一致 */}
         <script dangerouslySetInnerHTML={{ __html: `window.__TAVERN_LANG=${JSON.stringify(locale)};` }} />
         {locale === 'en' ? <Script src={`/i18n-en.js?v=${dictVersion()}`} strategy="beforeInteractive" /> : null}

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { CharacterCover } from '@/components/character-cover';
 import { AppearanceButton, AppearanceDrawer } from '@/components/appearance-drawer';
+import { SchemeToggle } from '@/components/scheme-switch';
 import type { AppearancePrefs } from '@/lib/appearance';
 import type { Theme } from '@/lib/theme';
 import { AnnouncementBar } from '@/components/announcement-bar';
@@ -290,6 +291,7 @@ export function SiteShell({
           </nav>
           <Link className="cinema-logo" href="/">酒馆</Link>
           <div className="cinema-nav-right">
+            <SchemeToggle className="pill" />
             <AppearanceButton />
             {userName && (
               <Link className="pill" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>
@@ -387,6 +389,7 @@ export function SiteShell({
           <Link className="p-topbar-icon p-topbar-search" href="/search" aria-label="搜索">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
           </Link>
+          <SchemeToggle className="p-topbar-icon" />
           <AppearanceButton />
           {userName && (
             <Link className="p-topbar-icon" href="/notifications" aria-label={unread ? `通知，${unread} 条未读` : '通知'}>

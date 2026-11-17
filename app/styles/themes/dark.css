@@ -1,0 +1,107 @@
+/* ==========================================================================
+   深色模式（夜间）：html[data-scheme="dark"]。书页、戏台各有一套深色。
+   dark.gen.css 由 scripts/gen-dark.mjs 自动把亮色字面量映射成深色；
+   这里是手调的令牌（暖墨底 + 提亮朱砂）与生成层处理不好的例外，加载在它之后。
+   ========================================================================== */
+
+html[data-scheme="dark"] { color-scheme: dark; }
+
+/* ---------- 公共令牌：暖墨色阶 ---------- */
+:root[data-scheme="dark"],
+html[data-scheme="dark"] body {
+  --dk-bg: #151413; --dk-rail: #1a1918; --dk-card: #1f1d1c; --dk-sunken: #100f0e; --dk-hover: #2a2826;
+  --dk-ink: #eeebe7; --dk-copy: #c9c4be; --dk-muted: #a29c95; --dk-line: #34312e; --dk-line-strong: #4a4642;
+  --dk-accent: #f0714f; --dk-accent-soft: #3b2019; --dk-player: #2a2320; --dk-on-accent: #1a0d09;
+
+  --ca-bg: var(--dk-bg); --ca-paper: var(--dk-card); --ca-rail: var(--dk-rail); --ca-card: var(--dk-card); --ca-sunken: var(--dk-sunken); --ca-hover: var(--dk-hover);
+  --ca-ink: var(--dk-ink); --ca-copy: var(--dk-copy); --ca-muted: var(--dk-muted); --ca-line: var(--dk-line); --ca-line-strong: var(--dk-line-strong); --ca-border: var(--dk-line);
+  --ca-accent: var(--dk-accent); --ca-accent-soft: var(--dk-accent-soft);
+  --pp-accent: var(--dk-accent); --pp-accent-soft: var(--dk-accent-soft); --pp-focus: var(--dk-accent);
+  --accent: var(--dk-accent); --accent-soft: var(--dk-accent-soft);
+  --bg: var(--dk-bg); --text: var(--dk-ink); --text-2: var(--dk-copy); --muted: var(--dk-muted);
+  --g0: var(--dk-card); --g25: #191817; --g50: var(--dk-bg); --g100: #24221f; --g200: var(--dk-line); --g300: var(--dk-line-strong);
+  --g400: #6a655f; --g500: #8a847d; --g600: #a29c95; --g700: #b9b3ac; --g800: #d6d1cb; --g900: var(--dk-ink); --g950: #f6f3ef;
+}
+
+html[data-scheme="dark"] body[data-theme="folio"] {
+  --fo-bg: var(--dk-bg); --fo-rail: var(--dk-rail); --fo-card: var(--dk-card); --fo-sunken: var(--dk-sunken); --fo-hover: var(--dk-hover);
+  --fo-ink: var(--dk-ink); --fo-copy: var(--dk-copy); --fo-muted: var(--dk-muted); --fo-line: var(--dk-line); --fo-line-strong: var(--dk-line-strong);
+  --fo-accent: var(--dk-accent); --fo-accent-soft: var(--dk-accent-soft); --fo-player: var(--dk-player);
+}
+html[data-scheme="dark"] body[data-theme="stage"]:not(.p-cinema) {
+  --stg-bg: var(--dk-bg); --stg-rail: var(--dk-rail); --stg-card: var(--dk-card); --stg-sunken: var(--dk-sunken); --stg-hover: var(--dk-hover);
+  --stg-ink: var(--dk-ink); --stg-copy: var(--dk-copy); --stg-muted: var(--dk-muted); --stg-line: var(--dk-line); --stg-line-strong: var(--dk-line-strong);
+  --stg-accent: var(--dk-accent); --stg-accent-soft: var(--dk-accent-soft); --stg-player: var(--dk-player);
+  --stg-sheen: linear-gradient(135deg, #24221f 0%, #1c1a19 38%, #24221f 52%, #191817 100%);
+}
+
+html[data-scheme="dark"] body { background: var(--dk-bg); color: var(--dk-ink); }
+html[data-scheme="dark"] ::selection { background: var(--dk-accent-soft); color: var(--dk-ink); }
+
+/* 用户自选强调色：深色下提亮，保证深底上可读 */
+html[data-scheme="dark"] body[data-u-accent] {
+  --u-accent-dk: color-mix(in oklab, var(--u-accent) 74%, #fff);
+  --fo-accent: var(--u-accent-dk) !important; --stg-accent: var(--u-accent-dk) !important;
+  --ca-accent: var(--u-accent-dk) !important; --pp-accent: var(--u-accent-dk) !important; --pp-focus: var(--u-accent-dk) !important;
+  --accent: var(--u-accent-dk) !important; --cai-primary: var(--u-accent-dk) !important;
+  --u-accent-soft: color-mix(in srgb, var(--u-accent) 24%, var(--dk-card));
+  --fo-player: color-mix(in srgb, var(--u-accent) 12%, var(--dk-card)) !important;
+  --stg-player: color-mix(in srgb, var(--u-accent) 12%, var(--dk-card)) !important;
+  --u-ref-user: color-mix(in srgb, var(--u-accent) 12%, var(--dk-card));
+}
+html[data-scheme="dark"] body[data-u-accent] :is(.p-btn--primary, .btn--primary, .noc-btn--primary):not(:disabled),
+html[data-scheme="dark"] body[data-u-accent] .p-chat-send:not(:disabled):not(.is-stop) { background: var(--u-accent-dk) !important; border-color: var(--u-accent-dk) !important; color: var(--dk-on-accent) !important; }
+
+/* 背景色调滤镜：深色下只留极淡的一层 */
+html[data-scheme="dark"] body[data-u-tint] .ua-tint { opacity: .25; mix-blend-mode: soft-light; }
+
+/* 图片、头像不做任何处理；主题选择器的小样也换成深色 */
+html[data-scheme="dark"] .th-picker-item--folio .th-picker-swatch {
+  background:
+    linear-gradient(#eeebe7, #eeebe7) 12px 14px / 46% 10px no-repeat,
+    linear-gradient(#8a847d, #8a847d) 12px 34px / 70% 3px no-repeat,
+    linear-gradient(#8a847d, #8a847d) 12px 42px / 62% 3px no-repeat,
+    linear-gradient(#eeebe7, #eeebe7) 12px 64px / calc(100% - 24px) 1px no-repeat,
+    #151413;
+}
+html[data-scheme="dark"] .th-picker-item--stage .th-picker-swatch {
+  background:
+    linear-gradient(#24221f, #24221f) 10px 10px / 44% calc(100% - 20px) no-repeat,
+    linear-gradient(#eeebe7, #eeebe7) calc(100% - 10px) 10px / 40% 44% no-repeat,
+    linear-gradient(#f0714f, #f0714f) calc(100% - 10px) calc(100% - 10px) / 40% 30% no-repeat,
+    #100f0e;
+}
+
+/* 明暗切换控件 */
+.sc-switch { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--ca-line, #e6e6e8); border-radius: 999px; background: var(--ca-card, #fff); }
+.sc-switch button {
+  min-height: 36px; min-width: 64px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--ca-muted, #6b6b73); font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.sc-switch button[aria-checked="true"] { background: var(--ca-ink, #1b1b1d); color: var(--ca-bg, #fff); }
+body[data-theme="folio"] .sc-switch, body[data-theme="folio"] .sc-switch button { border-radius: 2px; }
+.sc-toggle { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+@media (hover: none) { .sc-switch button { min-height: 40px; } }
+
+/* 「墨色岛」：亮色下本来就是黑底白字、压在立绘上的卡片，深色下原样保留（局部回到浅色令牌） */
+html[data-scheme="dark"] body[data-theme="stage"] :is(.stg-script, .stg-deck) {
+  color-scheme: light;
+  --stg-bg: #f7f7f8; --stg-card: #ffffff; --stg-sunken: #ebebec; --stg-hover: #f0f0f1;
+  --stg-ink: #1b1b1d; --stg-copy: #4a4a50; --stg-muted: #77777e; --stg-line: #e6e6e8; --stg-line-strong: #d5d5d9;
+  --stg-accent: #c9401f; --stg-accent-soft: #f9e8e4;
+  --ca-ink: #1b1b1d; --ca-card: #ffffff; --ca-line: #e6e6e8; --ca-muted: #6b6b73;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+/* 深色下强调色会提亮：压在强调色上的字统一用深字（含继承颜色的按钮与计数） */
+html[data-scheme="dark"] body:is([data-theme="stage"], [data-theme="folio"]) :is(
+  .stg-btn--indigo, .stg-st.is-on, .stg-step.is-now, .stg-me, .stg-persona i,
+  .p-chip:is([aria-pressed="true"], [aria-selected="true"], .is-active, .is-on),
+  .p-unread-badge
+) { color: var(--dk-on-accent) !important; }
+html[data-scheme="dark"] body:is([data-theme="stage"], [data-theme="folio"]) :is(
+  .stg-btn--indigo, .stg-st.is-on, .p-chip:is([aria-pressed="true"], [aria-selected="true"], .is-active, .is-on)
+) :is(small, span, i, b, svg) { color: inherit !important; opacity: .78; }
+html[data-scheme="dark"] body[data-theme="stage"] .stg-st--dark .stg-hash { color: currentColor; opacity: .55; }
+/* 戏台窄屏顶栏放不下第 6 个按钮：明暗开关收进「外观」抽屉 */
+@media (max-width: 430px) { html body[data-theme="stage"] .p-topbar .sc-toggle { display: none !important; } }

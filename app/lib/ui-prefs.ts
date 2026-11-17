@@ -2,15 +2,16 @@ import db from './db';
 
 // 跟账号走的界面偏好：语言、主题、玩法模式、外观。浏览器里仍以 cookie 为准（首屏无需查库），
 // 每次改动同步到账号；在新设备登录时把账号里的偏好写回 cookie。
-export const SYNCED_COOKIES = ['tavern_lang', 'tavern_theme', 'tavern_mode', 'tavern_appearance'] as const;
+export const SYNCED_COOKIES = ['tavern_lang', 'tavern_theme', 'tavern_mode', 'tavern_appearance', 'tavern_scheme'] as const;
 export type SyncedCookie = (typeof SYNCED_COOKIES)[number];
 export type UiPrefs = Partial<Record<SyncedCookie, string>>;
 
-const KEY_OF: Record<string, SyncedCookie> = { lang: 'tavern_lang', theme: 'tavern_theme', mode: 'tavern_mode', appearance: 'tavern_appearance' };
+const KEY_OF: Record<string, SyncedCookie> = { lang: 'tavern_lang', theme: 'tavern_theme', mode: 'tavern_mode', appearance: 'tavern_appearance', scheme: 'tavern_scheme' };
 
 function valid(name: SyncedCookie, value: string): boolean {
   if (name === 'tavern_lang') return value === 'zh' || value === 'en';
   if (name === 'tavern_theme') return value === 'folio' || value === 'stage';
+  if (name === 'tavern_scheme') return value === 'system' || value === 'light' || value === 'dark';
   if (name === 'tavern_mode') return value === 'newbie' || value === 'simple' || value === 'full';
   // 外观是 lib/appearance 序列化后的短串，只做长度与字符集检查，读取时还会再 sanitize
   return value.length <= 1500 && /^[A-Za-z0-9%._~!*'()-]*$/.test(value);

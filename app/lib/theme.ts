@@ -14,6 +14,18 @@ export function parseTheme(value: string | undefined | null): Theme {
   return value === 'folio' || value === 'stage' ? value : DEFAULT_THEME;
 }
 
+// 明暗：每套主题都有浅色（白天）与深色（夜间）；默认跟随系统
+export type Scheme = 'system' | 'light' | 'dark';
+export const SCHEME_COOKIE = 'tavern_scheme';
+export const DEFAULT_SCHEME: Scheme = 'system';
+export function parseScheme(value: string | undefined | null): Scheme {
+  return value === 'light' || value === 'dark' || value === 'system' ? value : DEFAULT_SCHEME;
+}
+export async function getScheme(): Promise<Scheme> {
+  const store = await cookies();
+  return parseScheme(store.get(SCHEME_COOKIE)?.value);
+}
+
 export async function getTheme(): Promise<Theme> {
   const store = await cookies();
   return parseTheme(store.get('tavern_theme')?.value);

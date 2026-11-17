@@ -2552,5 +2552,12 @@
  "近 {0} 天新开 {1}": "{1} started in the last {0} days",
  "近 {0} 天新增 {1}": "{1} added in the last {0} days",
  "近 {0} 天每天新开的对话": "New chats per day, last {0} days",
- "近 {0} 天新对话": "New chats ({0}d)"
+ "近 {0} 天新对话": "New chats ({0}d)",
+ "浅色": "Light",
+ "深色": "Dark",
+ "跟随系统": "System",
+ "明暗": "Light / dark",
+ "切换到深色": "Switch to dark",
+ "切换到浅色": "Switch to light",
+ "每套主题都有浅色（白天）和深色（夜间）；选「跟随系统」会随手机或电脑的深色模式自动切换。": "Every theme has a light (day) and dark (night) version. “System” follows your device’s dark mode."
 }

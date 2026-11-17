@@ -2,7 +2,7 @@
 let timer: ReturnType<typeof setTimeout> | null = null;
 let pending: Record<string, string> = {};
 
-export function syncPref(key: 'lang' | 'theme' | 'mode' | 'appearance', value: string, immediate = false): Promise<void> {
+export function syncPref(key: 'lang' | 'theme' | 'mode' | 'appearance' | 'scheme', value: string, immediate = false): Promise<void> {
   pending[key] = value;
   if (timer) clearTimeout(timer);
   const send = () => {

@@ -3,6 +3,7 @@
 import { PlayModeSwitch } from '@/components/play-mode';
 import { useId, type ReactNode } from 'react';
 import { ThemeSwitch } from '@/components/theme-switch';
+import { SchemeSwitch } from '@/components/scheme-switch';
 import { LanguageSwitch } from '@/components/language-switch';
 import { resetAppearance, setAppearance, useAppearance } from '@/components/appearance-store';
 import {
@@ -127,6 +128,11 @@ export function AppearancePanel({ theme, initial, showTheme = true }: { theme: T
           <ThemeSwitch initial={theme} variant="cards" />
         </Section>
       )}
+
+      <Section title="明暗" prefs={prefs}>
+        <SchemeSwitch />
+        <p className="ua-hint">每套主题都有浅色（白天）和深色（夜间）；选「跟随系统」会随手机或电脑的深色模式自动切换。</p>
+      </Section>
 
       <Section title="玩法模式" prefs={prefs}>
         <PlayModeSwitch />
