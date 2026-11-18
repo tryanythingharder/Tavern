@@ -15,7 +15,7 @@ import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
 import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
-import { ChatFocusToggle } from '@/components/chat-focus';
+import { ChatFocusToggle, ChatPortraitToggle, ChatFocusChrome } from '@/components/chat-focus';
 import { chatFocusBootScript } from '@/lib/chat-focus';
 import { loadExtras } from '@/lib/card-extras';
 
@@ -62,7 +62,13 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
     <main className="p-inner">
       <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard) }} />
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
-      <div className="p-rp-workbench" data-theme-chat={theme}>
+      {cover && (
+        <aside className="chat-portrait" aria-hidden="true">
+          <img src={cover} alt="" />
+        </aside>
+      )}
+      <ChatFocusChrome />
+      <div className="p-rp-workbench" data-theme-chat={theme} data-has-portrait={cover ? '' : undefined}>
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">
@@ -79,6 +85,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                {cover && <ChatPortraitToggle />}
                 <ChatFocusToggle richCard={richCard} />
                 <ChatNavSheet />
                 <ChatSearch chatId={chat.id} characterName={character.name} />
