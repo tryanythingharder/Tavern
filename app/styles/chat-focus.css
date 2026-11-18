@@ -60,35 +60,35 @@ html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .chat-portrait-btn
 }
 
 @media (min-width: 1200px) {
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) {
   --portrait-w: clamp(260px, 26vw, 420px);
   --focus-col: min(860px, calc(100vw - var(--portrait-w) - 160px));
 }
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) .chat-portrait {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) .chat-portrait {
   display: block; position: fixed; z-index: 2; left: 32px; top: 64px; bottom: 28px; width: var(--portrait-w);
   pointer-events: none;
 }
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) .chat-portrait img {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) .chat-portrait img {
   width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block;
   -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent); mask-image: linear-gradient(180deg, #000 82%, transparent);
 }
 /* 消息区、输入区左边让出立绘的位置，列在剩下空间里居中 */
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) .p-chat-scroll {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) .p-chat-scroll {
   padding-left: calc(var(--portrait-w) + 96px) !important; box-sizing: border-box;
 }
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) .p-chat > .p-chat-compose.p-chat-compose {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) .p-chat > .p-chat-compose.p-chat-compose {
   width: auto !important; margin-left: calc(var(--portrait-w) + 96px) !important; margin-right: 0 !important;
 }
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"][data-theme="stage"]:not(#_):not(#__) .p-chat > .p-chat-compose.p-chat-compose {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"][data-theme="stage"]:not(#_):not(#__) .p-chat > .p-chat-compose.p-chat-compose {
   margin-left: 0 !important; transform: none !important; width: var(--focus-col) !important;
   left: calc(var(--portrait-w) + 96px + (100% - var(--portrait-w) - 96px - var(--focus-col)) / 2) !important;
 }
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > .fo-ctool.fo-ctool {
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > .fo-ctool.fo-ctool {
   width: var(--focus-col) !important;
   margin-left: calc(var(--portrait-w) + 96px + (100% - var(--portrait-w) - 96px - var(--focus-col)) / 2) !important;
   margin-right: 0 !important;
 }
-html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#_):not(#__) .p-chat-head-in { padding-left: 20px; }
+html[data-chat-focus][data-chat-portrait] body[data-page="chat"]:not(#_):not(#__) .p-chat-head-in { padding-left: 20px; }
 }
 @media (min-width: 901px) and (max-width: 1199.98px) {
   html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .chat-portrait-btn { display: none !important; }
@@ -107,4 +107,16 @@ html[data-chat-focus]:not([data-chat-portrait-off]) body[data-page="chat"]:not(#
 /* 舞台主题输入卡自带内边距：里面那一列跟着卡宽，别再撑到列宽溢出 */
 @media (min-width: 901px) {
   html[data-chat-focus] body[data-page="chat"][data-theme="stage"]:not(#_):not(#__) .p-chat > .p-chat-compose > .p-chat-col { width: auto !important; margin: 0 !important; }
+}
+
+/* 带 HTML 美化的卡：沉浸时卡里的立绘、插图、状态栏框比正文列再宽一些。
+   夜幕：居中外扩；书版：左边有页码/署名栏，只向右外扩，左缘和正文对齐；舞台是气泡，不外扩 */
+@media (min-width: 1200px) {
+  html[data-chat-focus][data-chat-rich] body[data-page="chat"][data-theme="nocturne"]:not(#_):not(#__) .rp-html-frame {
+    --frame-w: min(1120px, calc(100vw - 160px));
+    width: var(--frame-w); max-width: none; margin-left: calc(50% - var(--frame-w) / 2); margin-right: 0;
+  }
+  html[data-chat-focus][data-chat-rich] body[data-page="chat"][data-theme="folio"]:not(#_):not(#__) .rp-html-frame {
+    width: min(calc(100% + 180px), calc(100% + (100vw - var(--focus-col)) / 2 - 72px)); max-width: none; margin-left: 0; margin-right: 0;
+  }
 }

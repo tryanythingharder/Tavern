@@ -62,13 +62,13 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
     <main className="p-inner">
       <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard) }} />
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
-      {cover && (
+      {cover && !richCard && (
         <aside className="chat-portrait" aria-hidden="true">
           <img src={cover} alt="" />
         </aside>
       )}
       <ChatFocusChrome />
-      <div className="p-rp-workbench" data-theme-chat={theme} data-has-portrait={cover ? '' : undefined}>
+      <div className="p-rp-workbench" data-theme-chat={theme} data-has-portrait={cover && !richCard ? '' : undefined}>
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">
@@ -85,7 +85,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                {cover && <ChatPortraitToggle />}
+                {cover && !richCard && <ChatPortraitToggle />}
                 <ChatFocusToggle richCard={richCard} />
                 <ChatNavSheet />
                 <ChatSearch chatId={chat.id} characterName={character.name} />

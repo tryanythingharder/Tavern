@@ -28,8 +28,11 @@ export function ChatFocusToggle({ richCard }: { richCard: boolean }) {
   }, []);
 
   useEffect(() => {
+    const root = document.documentElement;
     apply(stored(richCard));
-    return () => document.documentElement.removeAttribute('data-chat-focus');
+    if (richCard) root.setAttribute('data-chat-rich', '');
+    else root.removeAttribute('data-chat-rich');
+    return () => { root.removeAttribute('data-chat-focus'); root.removeAttribute('data-chat-rich'); };
   }, [apply, richCard]);
 
   const toggle = useCallback(() => {
@@ -66,18 +69,19 @@ export function ChatFocusToggle({ richCard }: { richCard: boolean }) {
   );
 }
 
-// 沉浸时左侧立绘的开关（只在沉浸模式、宽屏、角色有封面时显示）
+// 沉浸时左侧立绘的开关：只给普通卡（带 HTML 美化的卡自己会在消息里放立绘、插图、状态栏，
+// 侧边再放一张会挤窄正文）。默认关，打开后记住。只在沉浸模式、宽屏、角色有封面时显示。
 export function ChatPortraitToggle() {
-  const [on, setOn] = useState(true);
+  const [on, setOn] = useState(false);
   useEffect(() => {
-    setOn(!document.documentElement.hasAttribute('data-chat-portrait-off'));
-    return () => document.documentElement.removeAttribute('data-chat-portrait-off');
+    setOn(document.documentElement.hasAttribute('data-chat-portrait'));
+    return () => document.documentElement.removeAttribute('data-chat-portrait');
   }, []);
   const toggle = () => {
     const next = !on;
     const root = document.documentElement;
-    if (next) root.removeAttribute('data-chat-portrait-off');
-    else root.setAttribute('data-chat-portrait-off', '');
+    if (next) root.setAttribute('data-chat-portrait', '');
+    else root.removeAttribute('data-chat-portrait');
     try { localStorage.setItem(CHAT_PORTRAIT_KEY, next ? '1' : '0'); } catch { /* 隐私模式 */ }
     setOn(next);
   };
