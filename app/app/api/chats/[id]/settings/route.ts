@@ -1,6 +1,7 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import db, { getChat } from '@/lib/db';
-import { availableModels } from '@/lib/model';
+import { availableModels, modelName } from '@/lib/model';
+import { contextWindow } from '@/lib/prompt';
 import { chatSettings, ensureDefaultPreset, listLorebooks, listPersonas, listPresets, updateChatSettings } from '@/lib/resources-db';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,8 @@ export async function GET(_request: Request, context: Params) {
   return json({
     settings: chatSettings(chat),
     model: chat.model ?? '',
+    // 当前模型的上下文上限，设置面板里给「上下文长度」做提示
+    context: contextWindow(modelName(chat.model), 0),
     models: availableModels(),
     presets: listPresets(user.id).map((preset) => ({ id: preset.id, name: preset.name, params: preset.params })),
     personas: listPersonas(user.id).map((persona) => ({ id: persona.id, name: persona.name, boundCharacters: persona.boundCharacters })),

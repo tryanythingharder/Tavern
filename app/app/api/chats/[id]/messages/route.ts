@@ -94,6 +94,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     rag,
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
+    model: modelName(chat.model),
   });
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));

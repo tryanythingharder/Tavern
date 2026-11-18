@@ -49,3 +49,19 @@ export function saveModelCatalogMeta(entries: Record<string, unknown>): Record<s
 export function isModelHidden(id: string): boolean {
   return modelCatalogMeta()[id]?.hidden === true;
 }
+
+// 「200K」「128k」「1M」「32768」→ tokens；写不出数字就是 0（未知）
+export function parseContextTokens(value: string): number {
+  const match = String(value ?? '').trim().replace(/[,，_\s]/g, '').match(/^(\d+(?:\.\d+)?)([kKmM万]?)/);
+  if (!match) return 0;
+  const unit = match[2].toLowerCase();
+  const scale = unit === 'k' ? 1000 : unit === 'm' ? 1_000_000 : unit === '万' ? 10_000 : 1;
+  const tokens = Math.round(Number(match[1]) * scale);
+  return Number.isFinite(tokens) && tokens >= 1000 ? Math.min(tokens, 10_000_000) : 0;
+}
+
+// 模型自己的上下文上限（后台模型广场填的「上下文」），没填返回 0
+export function modelContextTokens(id: string | null | undefined): number {
+  if (!id) return 0;
+  return parseContextTokens(modelCatalogMeta()[id]?.context ?? '');
+}

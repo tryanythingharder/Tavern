@@ -8,6 +8,7 @@ export const PARAM_FIELDS: ParamField[] = [
   { key: 'temperature', label: 'temperature', min: 0, max: 2, step: 0.05, core: true, help: '越高越放飞，越低越稳' },
   { key: 'topP', label: 'top_p', min: 0.05, max: 1, step: 0.01, core: true, help: '只在累计概率内取词' },
   { key: 'maxTokens', label: 'max_tokens', min: 16, max: 8192, step: 16, core: true, help: '单条回复长度上限' },
+  { key: 'contextSize', label: 'context_size', min: 0, max: 10000000, step: 1024, core: true, help: '上下文长度（tokens）。0 = 跟随模型上限；超过模型上限按上限算' },
   { key: 'repetitionPenalty', label: 'repetition_penalty', min: 1, max: 2, step: 0.01, core: true, help: '压制复读' },
   { key: 'topK', label: 'top_k', min: 0, max: 200, step: 1, core: false, help: '0 = 不限' },
   { key: 'minP', label: 'min_p', min: 0, max: 1, step: 0.01, core: false, help: '过滤低概率词' },

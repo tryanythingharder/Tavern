@@ -259,6 +259,7 @@ html body[data-theme="folio"] .pt-prices li { border-radius: 0; background: tran
 
 /* 对话设定里的采样参数 */
 .cs-param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.cs-ctx-hint { display: block; margin-top: 8px; color: var(--muted, #6b6259); font-size: 12px; line-height: 1.5; }
 .cs-param { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .cs-param span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .8; }
 .cs-param .p-input { height: 34px; }

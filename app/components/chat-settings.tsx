@@ -11,6 +11,7 @@ type SettingsData = {
   presets: { id: number; name: string; params?: PresetParams }[];
   personas: { id: number; name: string; boundCharacters: string[] }[];
   lorebooks: { id: number; name: string; count: number }[];
+  context?: { window: number; modelLimit: number; cap: number };
 };
 
 type Preview = {
@@ -22,6 +23,7 @@ type Preview = {
   chars: number;
   dropped: number;
   loreHits: { title: string; keys: string[] }[];
+  context?: { window: number; modelLimit: number; requested: number; history: number };
 };
 
 type MemoryData = {
@@ -41,6 +43,8 @@ const TABS: [Tab, string][] = [
   ['memory', '记忆'],
   ['backup', '备份与导出'],
 ];
+
+const fmtK = (tokens: number) => (tokens >= 1_000_000 ? `${+(tokens / 1_000_000).toFixed(2)}M` : `${Math.round(tokens / 1000)}K`);
 
 const formatTime = (value: number) => new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -284,6 +288,13 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                         </label>
                       ))}
                     </div>
+                    {data.context && (
+                      <small className="cs-ctx-hint">
+                        context_size 填 0 跟随模型：{data.context.modelLimit ? `当前模型上限 ${fmtK(data.context.modelLimit)}` : `当前模型没标上限，按默认 ${fmtK(data.context.window)}`}
+                        {data.context.cap ? `，全站封顶 ${fmtK(data.context.cap)}` : ''}。填得越大能记住越多，单次消耗也越高。
+                        {params.contextSize > 0 && params.contextSize > (data.context.cap || data.context.modelLimit || data.context.window) ? ` 你填的超过上限，按 ${fmtK(Math.min(data.context.cap || Infinity, data.context.modelLimit || data.context.window))} 算。` : ''}
+                      </small>
+                    )}
                   </div>
                 )}
 
@@ -315,7 +326,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                 {preview && (
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <p className="small" style={{ marginTop: 0 }}>
-                      约 {preview.tokens} tokens · {preview.chars} 字符 · 历史丢弃 {preview.dropped} 条
+                      约 {preview.tokens} tokens · {preview.chars} 字符{preview.context ? ` · 窗口 ${fmtK(preview.context.window)}${preview.context.requested ? '（预设设定）' : '（跟随模型）'}` : ''} · 历史丢弃 {preview.dropped} 条
                       {preview.persona ? ` · 身份 ${preview.persona.name}` : ''}
                     </p>
                     <p className="small" style={{ margin: '0 0 8px' }}>

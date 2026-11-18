@@ -64,6 +64,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     rag,
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
+    model: modelName(chat.model),
   });
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, maxCost, `重新生成 · ${modelName(chat.model)}`, `chat:${chat.id}`);

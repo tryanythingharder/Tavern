@@ -47,6 +47,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     summary: memory.summary.text,
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
+    model: modelName(chat.model),
   });
   const who = config.persona?.name || '玩家';
   prompt.messages.push({

@@ -101,7 +101,7 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
   return (
     <section className="p-card p-card--pad">
       <ErrorLine message={error} />
-      <p className="p-hint">计费参考 new-api：「按量」= 点 / 千 tokens（输入+输出合计，不足 1 点按 1 点）；「按次」= 每次生成固定扣点，和长短无关；「分档」按本次发给模型的上下文 tokens 切换价格，写法 272K=6，1M=10（超过 272K 按 6 扣，超过 1M 按 10 扣），留空 = 不分档。「跟随全局」= 按量 {basePrice} 点。下架后广场和对话里都选不到，已选它的老会话回落到默认线路。</p>
+      <p className="p-hint">计费参考 new-api：「按量」= 点 / 千 tokens（输入+输出合计，不足 1 点按 1 点）；「按次」= 每次生成固定扣点，和长短无关；「分档」按本次发给模型的上下文 tokens 切换价格，写法 272K=6，1M=10（超过 272K 按 6 扣，超过 1M 按 10 扣），留空 = 不分档。「上下文」一栏既是广场展示，也是这个模型的上下文上限（玩家的 context_size 不会超过它；留空按后台默认 32K）。「跟随全局」= 按量 {basePrice} 点。下架后广场和对话里都选不到，已选它的老会话回落到默认线路。</p>
       <div className="am-scroll">
         <table className="am-table">
           <thead>

@@ -1,3 +1,4 @@
+import { modelName } from '@/lib/model';
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { getChat, getCharacterById, listMessages } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
@@ -36,6 +37,7 @@ export async function GET(_request: Request, context: Params) {
     rag,
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
+    model: modelName(chat.model),
   });
 
   return json({
@@ -47,5 +49,6 @@ export async function GET(_request: Request, context: Params) {
     chars: result.chars,
     dropped: result.dropped,
     loreHits: result.loreHits,
+    context: result.context,
   });
 }

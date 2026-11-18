@@ -8,7 +8,7 @@ type Status = {
   image: { baseUrl: string; model: string; size: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   tts: { baseUrl: string; model: string; voice: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean; currency: string; providers: Plugin[]; storage: Plugin[] };
-  billing: { textPer1k: number; upstreamCostPer1kCents: number; modelPrices?: string; models?: string[]; dailyFree?: number; firstTopupPct?: number; inviteReward?: number; inviteeBonus?: number; inviteMax?: number };
+  billing: { textPer1k: number; upstreamCostPer1kCents: number; modelPrices?: string; models?: string[]; dailyFree?: number; firstTopupPct?: number; inviteReward?: number; inviteeBonus?: number; inviteMax?: number; defaultContext?: string; maxContext?: string };
   mail: { from: string; hasKey: boolean; mode: 'resend' | 'outbox' };
 };
 
@@ -16,7 +16,7 @@ type Form = {
   image: { baseUrl: string; apiKey: string; model: string; size: string; cost: string };
   tts: { baseUrl: string; apiKey: string; model: string; voice: string; cost: string };
   payment: { pricePerPointCents: string; provider: string; checkoutUrl: string; secret: string };
-  billing: { textPer1k: string; upstreamCostPer1kCents: string; modelPrices: string; dailyFree: string; firstTopupPct: string; inviteReward: string; inviteeBonus: string; inviteMax: string };
+  billing: { textPer1k: string; upstreamCostPer1kCents: string; modelPrices: string; dailyFree: string; firstTopupPct: string; inviteReward: string; inviteeBonus: string; inviteMax: string; defaultContext: string; maxContext: string };
   mail: { from: string; resendKey: string };
 };
 
@@ -24,7 +24,7 @@ const EMPTY: Form = {
   image: { baseUrl: '', apiKey: '', model: '', size: '1024x1024', cost: '20' },
   tts: { baseUrl: '', apiKey: '', model: '', voice: 'alloy', cost: '5' },
   payment: { pricePerPointCents: '1', provider: '', checkoutUrl: '', secret: '' },
-  billing: { textPer1k: '2', upstreamCostPer1kCents: '0', modelPrices: '', dailyFree: '0', firstTopupPct: '0', inviteReward: '0', inviteeBonus: '0', inviteMax: '50' },
+  billing: { textPer1k: '2', upstreamCostPer1kCents: '0', modelPrices: '', dailyFree: '0', firstTopupPct: '0', inviteReward: '0', inviteeBonus: '0', inviteMax: '50', defaultContext: '', maxContext: '' },
   mail: { from: '', resendKey: '' },
 };
 
@@ -55,7 +55,7 @@ export function AdminSettings() {
         image: { baseUrl: data.image.baseUrl, apiKey: '', model: data.image.model, size: data.image.size, cost: String(data.image.cost) },
         tts: { baseUrl: data.tts.baseUrl, apiKey: '', model: data.tts.model, voice: data.tts.voice, cost: String(data.tts.cost) },
         payment: { pricePerPointCents: String(data.payment.pricePerPointCents), provider: data.payment.provider, checkoutUrl: data.payment.checkoutUrl, secret: '' },
-        billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents), modelPrices: data.billing.modelPrices ?? '', dailyFree: String(data.billing.dailyFree ?? 0), firstTopupPct: String(data.billing.firstTopupPct ?? 0), inviteReward: String(data.billing.inviteReward ?? 0), inviteeBonus: String(data.billing.inviteeBonus ?? 0), inviteMax: String(data.billing.inviteMax ?? 50) },
+        billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents), modelPrices: data.billing.modelPrices ?? '', dailyFree: String(data.billing.dailyFree ?? 0), firstTopupPct: String(data.billing.firstTopupPct ?? 0), inviteReward: String(data.billing.inviteReward ?? 0), inviteeBonus: String(data.billing.inviteeBonus ?? 0), inviteMax: String(data.billing.inviteMax ?? 50), defaultContext: data.billing.defaultContext ?? '', maxContext: data.billing.maxContext ?? '' },
         mail: { from: data.mail.from, resendKey: '' },
       });
     } catch (caught) {
@@ -232,6 +232,20 @@ export function AdminSettings() {
           <label htmlFor="model-prices">按模型定价（每行 模型id=每千 tokens 点数；没写的模型用上面的统一价）</label>
           <textarea id="model-prices" className="p-textarea" rows={5} value={form.billing.modelPrices} placeholder={'claude-sonnet-4.5=6\ndeepseek-r1=3\ngpt-4o-mini=1'} onChange={(event) => setForm({ ...form, billing: { ...form.billing, modelPrices: event.target.value } })} />
           {status?.billing.models?.length ? <span className="p-small">当前可选模型：{status.billing.models.join('、')}</span> : null}
+        </div>
+        <h3 className="p-form-section-title" style={{ margin: '18px 0 4px', fontSize: 14 }}>上下文长度</h3>
+        <p className="small" style={{ marginTop: 0 }}>每个模型的上限在「模型广场」里填（如 200K）。玩家可在预设里把 context_size 调小，不会超过模型上限。可写 32K、1M 或纯数字，留空用默认。</p>
+        <div className="p-field-row">
+          {([
+            ['defaultContext', '没标上限的模型（tokens）', '默认 32K'],
+            ['maxContext', '全站封顶（tokens）', '留空不封顶；设了以后谁都不能超过它'],
+          ] as const).map(([key, label, hint]) => (
+            <div className="p-field" key={key}>
+              <label htmlFor={`ctx-${key}`}>{label}</label>
+              <input id={`ctx-${key}`} className="p-input" value={form.billing[key]} placeholder={key === 'defaultContext' ? '32K' : '不封顶'} onChange={(event) => setForm({ ...form, billing: { ...form.billing, [key]: event.target.value } })} />
+              <span className="p-small">{hint}</span>
+            </div>
+          ))}
         </div>
         <h3 className="p-form-section-title" style={{ margin: '18px 0 4px', fontSize: 14 }}>福利与增长</h3>
         <p className="small" style={{ marginTop: 0 }}>填 0 表示关闭，用户端不会显示。改动立即生效。</p>

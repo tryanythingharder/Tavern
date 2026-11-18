@@ -105,6 +105,8 @@ export type PresetParams = {
   presencePenalty: number;
   frequencyPenalty: number;
   maxTokens: number;
+  // ST 的「上下文长度」(openai_max_context)：0 = 跟随模型上限；填了就用它，但不超过模型上限
+  contextSize: number;
   seed: number;
 };
 
@@ -135,6 +137,7 @@ export const DEFAULT_PARAMS: PresetParams = {
   presencePenalty: 0,
   frequencyPenalty: 0,
   maxTokens: 400,
+  contextSize: 0,
   seed: -1,
 };
 
@@ -155,6 +158,7 @@ export function normalizeParams(raw: unknown): PresetParams {
     presencePenalty: clamp(source.presencePenalty, -2, 2, DEFAULT_PARAMS.presencePenalty),
     frequencyPenalty: clamp(source.frequencyPenalty, -2, 2, DEFAULT_PARAMS.frequencyPenalty),
     maxTokens: int(source.maxTokens, 16, 8192, DEFAULT_PARAMS.maxTokens),
+    contextSize: int(source.contextSize, 0, 10_000_000, DEFAULT_PARAMS.contextSize),
     seed: int(source.seed, -1, 2147483647, DEFAULT_PARAMS.seed),
   };
 }
@@ -428,6 +432,7 @@ export function parseStPreset(input: unknown): ImportedPreset | null {
     presencePenalty: raw.presence_penalty ?? raw.presence_pen,
     frequencyPenalty: raw.frequency_penalty ?? raw.freq_pen,
     maxTokens: raw.openai_max_tokens ?? raw.max_tokens ?? raw.n_predict,
+    contextSize: raw.openai_max_context ?? raw.max_context_length ?? raw.max_length,
     seed: raw.seed,
   });
   return {

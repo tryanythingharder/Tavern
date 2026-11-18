@@ -6,6 +6,7 @@ import { isAdmin } from '@/lib/auth';
 import { deleteSetting, getSetting, hasSetting, setSetting } from '@/lib/settings';
 import { imageConfig, ttsConfig } from '@/lib/media';
 import { logAdmin } from '@/lib/audit';
+import { parseContextTokens } from '@/lib/model-catalog';
 import { paymentCurrency, pricePerPointCents, upstreamCostPer1kCents } from '@/lib/billing';
 import { modelFallbacks } from '@/lib/model';
 import { modelPrices, parseModelPrices, pointsPerThousand } from '@/lib/points';
@@ -47,6 +48,9 @@ function status() {
       modelPrices: Object.entries(modelPrices()).map(([id, price]) => `${id}=${price}`).join('\n'),
       models: availableModels().map((item) => item.id),
       ...growthConfig(),
+      // 上下文：模型没标上限时的默认窗口、全站封顶（tokens；空 = 默认 32K / 不封顶）
+      defaultContext: getSetting('prompt.defaultContext', ''),
+      maxContext: getSetting('prompt.maxContext', ''),
     },
     model: {
       baseUrl: getSetting('model.baseUrl', process.env.TAVERN_MODEL_BASE_URL ?? ''),
@@ -109,7 +113,15 @@ export async function PATCH(request: Request) {
   for (const key of ['dailyFree', 'firstTopupPct', 'inviteReward', 'inviteeBonus', 'inviteMax'] as const) {
     if (body.billing && typeof body.billing[key] === 'string') body.billing[key] = String(Math.max(0, Math.round(Number(body.billing[key]) || 0)));
   }
+  for (const key of ['defaultContext', 'maxContext'] as const) {
+    if (body.billing && typeof body.billing[key] === 'string') {
+      const tokens = parseContextTokens(body.billing[key] as string);
+      if (tokens) body.billing[key] = String(tokens);
+      else { delete body.billing[key]; deleteSetting(key === 'defaultContext' ? 'prompt.defaultContext' : 'prompt.maxContext'); }
+    }
+  }
   write(body.billing, {
+    defaultContext: 'prompt.defaultContext', maxContext: 'prompt.maxContext',
     modelPrices: 'points.models', textPer1k: 'points.text', upstreamCostPer1kCents: 'billing.upstreamCostPer1kCents',
     dailyFree: 'growth.dailyFree', firstTopupPct: 'growth.firstTopupPct', inviteReward: 'growth.inviteReward', inviteeBonus: 'growth.inviteeBonus', inviteMax: 'growth.inviteMax',
   });
