@@ -20,8 +20,16 @@
     } else {
       doc = '<!doctype html><html><head><meta charset="utf-8">' + base + '</head><body>' + html + '</body></html>';
     }
+    // 对比度兜底：卡里常写死浅底（#fff8ee 之类）却不写字色，深色模式下就成了浅底浅字；反过来也一样。
+    // 只改「自己有不透明底色、字色和底色同为浅/同为深」的元素，作者明确配好的颜色不动。
+    var fixer = '<script>(function(){function rgb(c){var m=String(c).match(/[\\d.]+/g);return m?m.map(Number):[0,0,0,0]}' +
+      'function lum(a){return(0.2126*a[0]+0.7152*a[1]+0.0722*a[2])/255}' +
+      'function fix(){var all=document.body?document.body.getElementsByTagName("*"):[];for(var i=0;i<all.length&&i<4000;i++){var el=all[i],cs=getComputedStyle(el),bg=rgb(cs.backgroundColor);' +
+      'if(bg.length<3||(bg.length>3&&bg[3]<0.6))continue;var fg=rgb(cs.color),lb=lum(bg),lf=lum(fg);' +
+      'if(lb>0.62&&lf>0.55)el.style.color="#2b2420";else if(lb<0.35&&lf<0.4)el.style.color="#f1ebe4"}}' +
+      'addEventListener("load",fix);setTimeout(fix,60)})()<\/script>';
     document.open();
-    document.write(doc + reporter);
+    document.write(doc + fixer + reporter);
     document.close();
   });
   parent.postMessage({ type: 'tavern-ready' }, '*');

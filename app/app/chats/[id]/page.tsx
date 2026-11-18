@@ -15,6 +15,9 @@ import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
 import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
+import { ChatFocusToggle } from '@/components/chat-focus';
+import { chatFocusBootScript } from '@/lib/chat-focus';
+import { loadExtras } from '@/lib/card-extras';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '对话' });
@@ -51,10 +54,13 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
     { label: '世界', value: lorebookCount ? `${lorebookCount} 本世界书` : '没有绑定世界书', note: '提到关键词时自动带上', href: '/me/lorebooks' },
   ];
   const theme = await getTheme();
+  // 卡里带 HTML 美化（立绘、状态栏等）时，沉浸模式默认打开
+  const richCard = loadExtras(character.id).flags?.html === true;
   const cover = character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null);
 
   return (
     <main className="p-inner">
+      <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard) }} />
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
       <div className="p-rp-workbench" data-theme-chat={theme}>
         <div className="p-chat">
@@ -73,6 +79,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                <ChatFocusToggle richCard={richCard} />
                 <ChatNavSheet />
                 <ChatSearch chatId={chat.id} characterName={character.name} />
                 <ChatSettings chatId={chat.id} />

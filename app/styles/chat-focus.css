@@ -1,0 +1,52 @@
+/* ==========================================================================
+   对话页 · 沉浸模式（<html data-chat-focus>）
+   收起站点侧栏/底栏和各主题的左右栏，对话单栏铺满并加宽，
+   角色封面虚化铺底。给外部卡自带的立绘、插图、状态栏（HTML 沙盒）留出位置。
+   选择器带两个 :not(#_) 压过主题里的高特异性规则。
+   ========================================================================== */
+/* 只在宽屏生效：窄屏本来就是单栏 */
+@media (min-width: 901px) {
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) {
+  --focus-col: min(920px, calc(100vw - 48px));
+  --fo-measure: 920px;
+}
+
+/* 站点导航：侧栏、手机底栏、影院顶栏 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-side, .p-tabbar, .cinema-nav) { display: none !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-shell { grid-template-columns: minmax(0, 1fr) !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-main { margin-left: 0 !important; padding-left: 0 !important; grid-column: 1 / -1 !important; }
+
+/* 主题两侧栏（书版/旁注、导轨/档案、角色卡/章节）与通用「故事设定」栏 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > :not(.p-chat):not(.fo-ctool) { display: none !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench {
+  grid-template-columns: minmax(0, 1fr) !important; column-gap: 0 !important;
+  background: transparent !important;
+}
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > .p-chat,
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > .fo-ctool { grid-column: 1 !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-rp-workbench > .p-chat, .p-chat-scroll, .p-chat-compose) { background: transparent !important; box-shadow: none !important; }
+
+/* 消息列与输入框加宽 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-chat-scroll .p-chat-col, .p-chat-compose > .p-chat-col, .p-chat-compose .p-chat-col, .p-chat-compose) {
+  width: var(--focus-col) !important; max-width: none !important; margin-left: auto !important; margin-right: auto !important;
+}
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-chat-compose { width: auto !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .fo-ctool { width: var(--focus-col); margin-inline: auto; }
+
+/* 封面虚化铺底（和外观里的「立绘背景」同一层；没开外观选项时沉浸也显示） */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .chat-backdrop {
+  display: block; position: fixed; inset: -140px; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center 20%; filter: blur(36px) saturate(.85); opacity: .22;
+}
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .chat-backdrop ~ .p-rp-workbench { position: relative; z-index: 1; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-main, .p-inner, .p-shell) { background: transparent; }
+
+/* 顶栏：对话自己的那一条保留（搜索、设定、外观、退出沉浸），去掉底色让画面通透 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-chat-head { background: transparent !important; border-bottom-color: transparent !important; }
+}
+
+.chat-focus-btn { display: inline-flex; align-items: center; gap: 4px; }
+.chat-focus-btn .p-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.chat-focus-btn[aria-pressed="true"] { color: var(--ca-accent, #c9401f); }
+/* 手机和窄屏对话页本来就没有站点导航和侧栏，不需要这个开关 */
+@media (max-width: 900px) { .chat-focus-btn { display: none !important; } }

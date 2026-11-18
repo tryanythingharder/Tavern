@@ -44,6 +44,7 @@ import '../styles/themes/stage.css';
 // 用户自定义外观：只在 body[data-u-*] 存在时覆盖主题，必须最后导入
 import '../styles/themes/custom.css';
 import '../styles/themes/dark.css';
+import '../styles/chat-focus.css';
 // 英文界面下替换 CSS 伪元素里的中文
 import '../styles/i18n-en.css';
 
