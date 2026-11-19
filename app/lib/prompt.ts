@@ -274,6 +274,9 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
       .replace(/\{\{user\}\}/gi, userName)
       .replace(/\{\{persona\}\}/gi, userName);
 
+  const nameMacros = (value: string) =>
+    value.replace(/\{\{char\}\}/gi, character.name).replace(/\{\{user\}\}/gi, userName).replace(/\{\{persona\}\}/gi, userName);
+
   const blocks: PromptBlock[] = [];
   let reserved = 0;
   for (const item of preset.order) {
@@ -305,11 +308,12 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
       const message = history[index];
       if (message.role === 'system') continue;
       const depth = history.length - 1 - index;
-      const text = applyRegex(regexRules, message.content, {
+      // 开场白、玩家消息里的 {{user}}/{{char}} 照 ST 换成名字（只换名字宏，不重掷骰子之类）
+      const text = nameMacros(applyRegex(regexRules, message.content, {
         target: message.role === 'user' ? 'user' : 'assistant',
         purpose: 'send',
         depth,
-      });
+      }));
       const content = `${prefixFor(message.role)}${text}`;
       const cost = estimateTokens(content) + 4;
       if (kept.length && historyTokens + cost > budget) {
@@ -366,7 +370,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   // 历史块被关掉时至少保留玩家最新一句话，否则模型没有可回应的内容
   if (!historyBlock?.enabled) {
     const lastUser = [...history].reverse().find((message) => message.role === 'user');
-    if (lastUser) messages.push({ role: 'user', content: applyRegex(regexRules, lastUser.content, { target: 'user', purpose: 'send', depth: 0 }) });
+    if (lastUser) messages.push({ role: 'user', content: nameMacros(applyRegex(regexRules, lastUser.content, { target: 'user', purpose: 'send', depth: 0 })) });
   }
 
   const text = messages.map((message) => `${message.role}:\n${message.content}`).join('\n\n');

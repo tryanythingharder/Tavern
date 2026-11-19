@@ -36,7 +36,10 @@ export function RichText({
   const shown = useMemo(() => {
     // MVU 的 <UpdateVariable> 命令块只给程序看，不显示（ST 里一般靠卡自带正则藏，没带的卡也别露出来）
     const base = role === 'assistant' ? stripMvuBlocks(text) : text;
-    return rules?.length ? applyRegex(rules, base, { target: role, purpose: 'display', depth, macros }) : base;
+    const out = rules?.length ? applyRegex(rules, base, { target: role, purpose: 'display', depth, macros }) : base;
+    // 开场白里的 {{user}}/{{char}} 照 ST 显示成名字
+    if (!macros || !out.includes('{{')) return out;
+    return out.replace(/\{\{char\}\}/gi, macros.char ?? '').replace(/\{\{(?:user|persona)\}\}/gi, macros.user ?? '');
   }, [rules, text, role, depth, macros]);
   const version = useMemo(() => `${hash(text)}:${variables?.rev ?? ''}`, [text, variables?.rev]);
   const segments = useMemo(() => splitRich(shown), [shown]);
