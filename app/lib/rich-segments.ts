@@ -76,6 +76,9 @@ function splitHtmlLines(text: string, out: RichSegment[]) {
 }
 
 export function splitRich(text: string): RichSegment[] {
+  // 单独一行的 Markdown 图片 ![说明](https://…) 当作插图，走 HTML 沙盒渲染（和卡里的 <img> 一样进画面栏）
+  text = text.replace(/^[ \t]*!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)[ \t]*$/gm, (_all, alt: string, url: string) =>
+    `<img src="${url.replace(/"/g, '%22')}" alt="${alt.replace(/[<>"]/g, '')}">`);
   const out: RichSegment[] = [];
   if (!text || !/[<`]/.test(text)) return [{ kind: 'text', text }];
   const fence = /```([\w-]*)[^\n]*\n([\s\S]*?)(?:```|$)/g;

@@ -15,7 +15,8 @@ import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
 import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
-import { ChatFocusToggle, ChatPortraitToggle, ChatFocusChrome } from '@/components/chat-focus';
+import { ChatFocusToggle, ChatFocusChrome } from '@/components/chat-focus';
+import { ChatStage } from '@/components/chat-stage';
 import { chatFocusBootScript } from '@/lib/chat-focus';
 import { loadExtras } from '@/lib/card-extras';
 
@@ -60,15 +61,11 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
 
   return (
     <main className="p-inner">
-      <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard) }} />
+      <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard, Boolean(cover)) }} />
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
-      {cover && !richCard && (
-        <aside className="chat-portrait" aria-hidden="true">
-          <img src={cover} alt="" />
-        </aside>
-      )}
+      {cover && <ChatStage cover={cover} name={character.name} />}
       <ChatFocusChrome />
-      <div className="p-rp-workbench" data-theme-chat={theme} data-has-portrait={cover && !richCard ? '' : undefined}>
+      <div className="p-rp-workbench" data-theme-chat={theme}>
         <div className="p-chat">
           <header className="p-chat-head">
             <div className="p-chat-col p-chat-head-in">
@@ -85,7 +82,6 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                {cover && !richCard && <ChatPortraitToggle />}
                 <ChatFocusToggle richCard={richCard} />
                 <ChatNavSheet />
                 <ChatSearch chatId={chat.id} characterName={character.name} />
