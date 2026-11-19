@@ -88,7 +88,7 @@ html[data-chat-stage-drag] body[data-page="chat"]:not(#_):not(#__) .p-rp-workben
 .chat-stage .chat-gallery-tile:not(#_):hover { box-shadow: 0 0 0 1px rgba(255,255,255,.3); }
 .chat-stage .chat-gallery-tile:not(#_):focus-visible { outline: 2px solid #f0714f; outline-offset: 2px; }
 .chat-stage .chat-gallery-tile.is-current:not(#_) { box-shadow: 0 0 0 2px #f0714f; }
-.chat-gallery-tile img { display: block; width: 100%; height: auto; }
+.chat-gallery-tile img { display: block; width: 100%; height: auto; min-height: 96px; object-fit: cover; }
 .chat-gallery-tile.is-cover img { aspect-ratio: 3 / 4; object-fit: cover; object-position: center 18%; }
 .chat-gallery-badge { position: absolute; left: 8px; top: 8px; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(15,11,9,.66); color: #fff; }
 .chat-gallery-empty { column-span: all; margin: 4px 2px 0; font-size: 12px; line-height: 1.7; color: rgba(243,236,229,.5); }
