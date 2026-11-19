@@ -12,6 +12,7 @@ type SettingsData = {
   presets: { id: number; name: string; params?: PresetParams }[];
   personas: { id: number; name: string; boundCharacters: string[] }[];
   lorebooks: { id: number; name: string; count: number }[];
+  cardLore?: CardLoreItem[];
   context?: { window: number; modelLimit: number; cap: number };
 };
 
@@ -48,6 +49,8 @@ const TABS: [Tab, string][] = [
 const fmtK = (tokens: number) => (tokens >= 1_000_000 ? `${+(tokens / 1_000_000).toFixed(2)}M` : `${Math.round(tokens / 1000)}K`);
 
 
+type CardLoreItem = { id: string; title: string; preview: string; trigger: 'constant' | 'keyword'; keywords: string[]; defaultOn: boolean; on: boolean };
+
 export function ChatSettings({ chatId }: { chatId: number }) {
   const mode = usePlayMode();
   const [open, setOpen] = useState(false);
@@ -72,6 +75,28 @@ export function ChatSettings({ chatId }: { chatId: number }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [cardLoreBusy, setCardLoreBusy] = useState(false);
+
+  // 卡内世界书开关即时保存（和预设/世界书的「保存」按钮分开）
+  const saveCardLore = async (next: CardLoreItem[] | null) => {
+    if (!data?.cardLore) return;
+    const list = next ?? data.cardLore.map((item) => ({ ...item, on: item.defaultOn }));
+    setData((prev) => (prev ? { ...prev, cardLore: list } : prev));
+    setCardLoreBusy(true);
+    setError('');
+    try {
+      await api(`/api/chats/${chatId}/settings`, {
+        method: 'PATCH',
+        body: JSON.stringify({ cardLore: next ? Object.fromEntries(list.map((item) => [item.id, item.on])) : null }),
+      });
+      flashSaved();
+    } catch (caught) {
+      setError((caught as Error).message);
+      void load();
+    } finally {
+      setCardLoreBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setError('');
@@ -321,6 +346,41 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     </div>
                   )}
                 </div>
+                )}
+
+                {!!data.cardLore?.length && (
+                  <div className="field cs-cardlore">
+                    <label>卡内世界书 <small className="pm-st">Character Lore</small></label>
+                    <small className="hint">角色卡自带的条目，只对这个会话生效。卡作者常把插图、状态栏样式做成开关让你自己选。</small>
+                    <details className="cs-cardlore-box">
+                      <summary>
+                        已开 {data.cardLore.filter((item) => item.on).length} / {data.cardLore.length} 条
+                        {data.cardLore.some((item) => item.on !== item.defaultOn) ? ' · 改过' : ''}
+                      </summary>
+                      {data.cardLore.some((item) => item.on !== item.defaultOn) && (
+                        <button type="button" className="btn btn--sm btn--ghost cs-cardlore-reset" disabled={cardLoreBusy} onClick={() => void saveCardLore(null)}>恢复卡默认</button>
+                      )}
+                      <div className="cs-cardlore-list">
+                        {data.cardLore.map((item) => (
+                          <label className="check cs-cardlore-item" key={item.id} title={item.preview}>
+                            <input
+                              type="checkbox"
+                              checked={item.on}
+                              disabled={cardLoreBusy}
+                              onChange={(event) => void saveCardLore(data.cardLore!.map((entry) => (entry.id === item.id ? { ...entry, on: event.target.checked } : entry)))}
+                            />
+                            <span className="cs-cardlore-text">
+                              <span className="cs-cardlore-title">{item.title}</span>
+                              <small className="cs-cardlore-meta">
+                                {item.trigger === 'constant' ? '常驻' : item.keywords.length ? `关键词：${item.keywords.join('、')}` : '关键词触发'}
+                                {item.on !== item.defaultOn ? (item.defaultOn ? ' · 卡默认开' : ' · 卡默认关') : ''}
+                              </small>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
                 )}
 
                 {preview && (

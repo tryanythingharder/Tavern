@@ -389,6 +389,8 @@ ensureColumn('chats', 'branch_from_message_id', 'INTEGER');
 ensureColumn('chats', 'preset_id', 'INTEGER');
 ensureColumn('rooms', 'model', 'TEXT');
 ensureColumn('chats', 'persona_id', 'INTEGER');
+// 卡内世界书条目的会话级开关 {条目id: true|false}，只存和卡默认值不同的（卡作者常让玩家自己开插图、选状态栏）
+ensureColumn('chats', 'card_lore', 'TEXT');
 ensureColumn('chats', 'lorebook_ids', 'TEXT');
 ensureColumn('chats', 'summary', 'TEXT');
 ensureColumn('chats', 'summary_prefs', 'TEXT');
@@ -456,6 +458,7 @@ export type DbChat = {
   preset_id: number | null; persona_id: number | null; lorebook_ids: string | null;
   summary: string | null; summary_prefs: string | null; rag_prefs: string | null; memory: string | null;
   model?: string | null;
+  card_lore?: string | null;
   created_at: number; updated_at: number;
 };
 export type DbMessage = {
@@ -629,7 +632,7 @@ export function branchChat(chatId: number, userId: number, messageId: number): {
 
   const now = Date.now();
   const title = `${source.title}（分支）`;
-  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, branch_from_chat_id, branch_from_message_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?)').run(userId, source.character_id, title, chatId, messageId, now, now);
+  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, branch_from_chat_id, branch_from_message_id, card_lore, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)').run(userId, source.character_id, title, chatId, messageId, source.card_lore ?? null, now, now);
   const newId = Number(result.lastInsertRowid);
   const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, created_at) VALUES (?,?,?,?,?,?)');
   for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.created_at);

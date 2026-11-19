@@ -70,8 +70,48 @@ export function characterRegexRules(characterId: string): RegexRule[] {
   return loadExtras(characterId).regex.map((rule, index) => ({ ...rule, id: -(index + 1), sort: -1000 + index }));
 }
 
-export function characterLoreEntries(characterId: string): LoreEntry[] {
-  return (loadExtras(characterId).book?.entries ?? []).filter((entry) => entry.enabled).map((entry) => ({ ...entry, id: `card-${entry.id}` }));
+export type CardLoreOverrides = Record<string, boolean>;
+
+export function parseCardLore(raw: string | null | undefined): CardLoreOverrides {
+  if (!raw) return {};
+  try {
+    const value = JSON.parse(raw) as unknown;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([, on]) => typeof on === 'boolean')) as CardLoreOverrides;
+  } catch {
+    return {};
+  }
+}
+
+// overrides：会话里玩家改过的开关，没改过的照卡默认
+export function characterLoreEntries(characterId: string, overrides: CardLoreOverrides = {}): LoreEntry[] {
+  return (loadExtras(characterId).book?.entries ?? [])
+    .filter((entry) => overrides[entry.id] ?? entry.enabled)
+    .map((entry) => ({ ...entry, enabled: true, id: `card-${entry.id}` }));
+}
+
+// 设置面板用：卡内条目清单（不带正文，只给前 80 字预览）
+export function cardLoreList(characterId: string, overrides: CardLoreOverrides = {}) {
+  return (loadExtras(characterId).book?.entries ?? []).map((entry) => ({
+    id: entry.id,
+    title: entry.title || entry.keywords.slice(0, 3).join(' / ') || `#${entry.id}`,
+    preview: entry.text.replace(/\s+/g, ' ').slice(0, 80),
+    trigger: entry.constant ? 'constant' as const : 'keyword' as const,
+    keywords: entry.keywords.slice(0, 4),
+    defaultOn: entry.enabled,
+    on: overrides[entry.id] ?? entry.enabled,
+  }));
+}
+
+// 只留和卡默认不同的开关；条目已不存在的丢掉
+export function normalizeCardLore(characterId: string, wanted: CardLoreOverrides): CardLoreOverrides {
+  const entries = loadExtras(characterId).book?.entries ?? [];
+  const out: CardLoreOverrides = {};
+  for (const entry of entries) {
+    const value = wanted[entry.id];
+    if (typeof value === 'boolean' && value !== entry.enabled) out[entry.id] = value;
+  }
+  return out;
 }
 
 export function extrasSummary(extras: CardExtras) {
