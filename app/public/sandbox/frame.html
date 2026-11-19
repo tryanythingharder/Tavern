@@ -8,7 +8,7 @@
     var data = event.data;
     if (done || !data || data.type !== 'tavern-html' || event.source !== parent) return;
     done = true;
-    var base = '<base target="_blank"><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
+    var base = '<base target="_blank"><script>window.__tavernScheme=' + JSON.stringify(data.scheme === 'dark' ? 'dark' : 'light') + '<\/script><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
       'html{height:auto}body{margin:0;background:transparent;display:flow-root;color:' + data.color + ';font:' + data.font + ';overflow-wrap:anywhere}' +
       'img,video,svg{max-width:100%;height:auto}</style>';
     var reporter = '<script>(function(){var b=document.body;function s(){if(!b)b=document.body;if(!b)return;var h=Math.max(b.scrollHeight,b.offsetHeight);parent.postMessage({type:"tavern-height",h:Math.ceil(h)},"*")}' +
@@ -50,14 +50,8 @@
     } else {
       doc = '<!doctype html><html><head><meta charset="utf-8">' + base + helper + '</head><body>' + html + '</body></html>';
     }
-    // 对比度兜底：卡里常写死浅底（#fff8ee 之类）却不写字色，深色模式下就成了浅底浅字；反过来也一样。
-    // 只改「自己有不透明底色、字色和底色同为浅/同为深」的元素，作者明确配好的颜色不动。
-    var fixer = '<script>(function(){function rgb(c){var m=String(c).match(/[\\d.]+/g);return m?m.map(Number):[0,0,0,0]}' +
-      'function lum(a){return(0.2126*a[0]+0.7152*a[1]+0.0722*a[2])/255}' +
-      'function fix(){var all=document.body?document.body.getElementsByTagName("*"):[];for(var i=0;i<all.length&&i<4000;i++){var el=all[i],cs=getComputedStyle(el),bg=rgb(cs.backgroundColor);' +
-      'if(bg.length<3||(bg.length>3&&bg[3]<0.6))continue;var fg=rgb(cs.color),lb=lum(bg),lf=lum(fg);' +
-      'if(lb>0.62&&lf>0.55)el.style.color="#2b2420";else if(lb<0.35&&lf<0.4)el.style.color="#f1ebe4"}}' +
-      'addEventListener("load",fix);setTimeout(fix,60)})()<\/script>';
+    // 配色适配（深色模式下把卡里写死的浅底换深、深字换浅；两种模式都做字色兜底），见 adapt.js
+    var fixer = '<script src="' + new URL('adapt.js', location.href).href + '"><\/script>';
     // 插图上报：卡里的大图（排除图标、头像）报给外层，沉浸模式左侧画廊收集（components/chat-stage.tsx）
     var gallery = '<script>(function(){var big=[];' +
       'function scan(){var list=[];var imgs=document.images;for(var i=0;i<imgs.length;i++){var im=imgs[i];if(!im.complete||!im.naturalWidth)continue;' +

@@ -32,6 +32,16 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
   const ref = useRef<HTMLIFrameElement | null>(null);
   const [height, setHeight] = useState(48);
   const sent = useRef(false);
+  // 外层切换深浅色时整块重载：卡内适配和作者的 prefers-color-scheme 样式都按新配色重新算
+  const [scheme, setScheme] = useState<'light' | 'dark'>('light');
+  useEffect(() => {
+    const root = document.documentElement;
+    const read = () => setScheme(root.dataset.scheme === 'dark' ? 'dark' : 'light');
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-scheme'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     sent.current = false;
@@ -54,7 +64,6 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
       sent.current = true;
       const host = frame.parentElement ?? document.body;
       const style = getComputedStyle(host);
-      const scheme = document.documentElement.dataset.scheme === 'dark' ? 'dark' : 'light';
       frame.contentWindow.postMessage({ type: 'tavern-html', html, color: style.color, font: `${style.fontSize}/${style.lineHeight} ${style.fontFamily}`, scheme, vars, names: { char: macros?.char ?? '', user: macros?.user ?? '' } }, '*');
     };
     const onMessage = (event: MessageEvent) => {
@@ -77,10 +86,11 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
       window.removeEventListener('message', onMessage);
       frame.removeEventListener('load', post);
     };
-  }, [html, variables?.chatId, variables?.messageId, variables?.version, macros?.char, macros?.user]);
+  }, [scheme, html, variables?.chatId, variables?.messageId, variables?.version, macros?.char, macros?.user]);
 
   return (
     <iframe
+      key={scheme}
       ref={ref}
       className="rp-html-frame"
       src="/sandbox/frame.html"
@@ -88,7 +98,7 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
       referrerPolicy="no-referrer"
       loading="lazy"
       title={title}
-      style={{ height, overflow: height >= MAX_HEIGHT ? 'auto' : 'hidden' }}
+      style={{ height, colorScheme: scheme, overflow: height >= MAX_HEIGHT ? 'auto' : 'hidden' }}
       scrolling={height >= MAX_HEIGHT ? 'yes' : 'no'}
     />
   );
