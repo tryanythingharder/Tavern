@@ -17,8 +17,9 @@ import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
-import { memorySettings, ragChunks, refreshSummary, snapshotChat } from '@/lib/memory';
+import { memorySettings, ragChunks, refreshSummary, snapshotChat, promptMemory } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
+import { autoSummarize } from '@/lib/memory-llm';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 import { dailyFreeRemaining } from '@/lib/growth';
 import { toMessageView } from '@/lib/chat-view';
@@ -94,9 +95,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
-    summary: summary.text,
+    ...promptMemory({ ...chat, summary: JSON.stringify(summary) }, user.id),
     rag,
-    memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
     variables: vars,
@@ -152,6 +152,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           // 回复里的 EJS（如 setvar）在这一步才真正写变量
           await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
+          // 到间隔了就在后台更新模型摘要（不挡这次回复）
+          void autoSummarize(chatId, user.id);
           send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         } else {
           touchChat(chatId);

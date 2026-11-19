@@ -68,6 +68,10 @@ export type AssembleInput = {
   summary?: string;
   rag?: { role: string; text: string; index: number }[];
   memory?: string;
+  /** 摘要放哪（ST Summarize 的注入位置）；不传 = 按预设顺序原样放 */
+  summaryPlacement?: { position: 'prompt' | 'depth' | 'none'; depth: number; role: LoreRoleLike; template: string };
+  /** 作者注释（ST Author's Note），text 已合并好角色注释 */
+  authorNote?: { text: string; position: 'after' | 'before' | 'depth'; depth: number; role: LoreRoleLike; interval: number };
   // 角色卡覆盖（ST 的 system_prompt / post_history / mes_example / depth_prompt）
   card?: CharacterOverride | null;
   // 本次用的模型：决定上下文窗口
@@ -238,22 +242,27 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
       case 'persona':
         return persona ? [`【身份】${persona.name}`, persona.position === 'prompt' && persona.description ? `【说明】${persona.description}` : ''].filter(Boolean).join('\n') : '';
       case 'lore':
-        // M2 还没有作者注释与出口宏：把 AN / EM / Outlet 位置的条目并入这个世界书块，避免条目被静默丢弃
-        return loreBlock([...at('before'), ...at('anTop'), ...at('emTop'), ...at('anBottom'), ...at('emBottom'), ...at('outlet')]);
+        // 作者注释前后（anTop/anBottom）跟着作者注释走；示例前后（emTop/emBottom）进示例块；出口（outlet）只出现在 {{outlet::名字}} 处（同 ST）
+        return loreBlock(at('before'));
       case 'examples': {
         const source = ((input.card?.mesExample ?? '').trim() || cardFields.mesExample).trim();
-        if (!source) return '';
-        const normalized = /^<START>/i.test(source) ? source : `<START>\n${source}`;
-        return normalized
-          .split(/<START>/gi)
-          .slice(1)
-          .map((block) => block.trim())
-          .filter(Boolean)
-          .map((block) => `<START>\n${block}`)
-          .join('\n');
+        const examples = source
+          ? (/^<START>/i.test(source) ? source : `<START>\n${source}`)
+            .split(/<START>/gi)
+            .slice(1)
+            .map((block) => block.trim())
+            .filter(Boolean)
+            .map((block) => `<START>\n${block}`)
+            .join('\n')
+          : '';
+        return [loreBlock(at('emTop')), examples, loreBlock(at('emBottom'))].filter(Boolean).join('\n');
       }
-      case 'autosummary':
-        return input.summary ?? '';
+      case 'autosummary': {
+        const placement = input.summaryPlacement;
+        const summary = (input.summary ?? '').trim();
+        if (!summary || (placement && placement.position !== 'prompt')) return '';
+        return placement ? summaryText(placement.template, summary) : summary;
+      }
       case 'rag': {
         const chunks = input.rag ?? [];
         if (!chunks.length) return '';
@@ -262,14 +271,21 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
       }
       case 'memory':
         return input.memory ?? '';
+      case 'note':
+        // 预设里的「作者注释」槽位：位置选「主提示之后」时放在这里（槽位关掉或没有时跟在角色设定后）
+        return anPosition === 'after' ? anText : '';
       default:
         return '';
     }
   };
 
   const userName = persona?.name || '你';
+  const outlets = (value: string) =>
+    value
+      .replace(/\{\{summary\}\}/gi, () => (input.summary ?? '').trim())
+      .replace(/\{\{outlet::([^}]+)\}\}/gi, (_m, name: string) => at('outlet').filter((entry) => entry.outletName === name.trim()).map((entry) => entry.text).join('\n'));
   const resolveMacros = (value: string) =>
-    expandStMacros(resolveVariableMacros(value, input.variables ?? null))
+    expandStMacros(resolveVariableMacros(outlets(value), input.variables ?? null))
       .replace(/\{\{char\}\}/gi, character.name)
       .replace(/\{\{user\}\}/gi, userName)
       .replace(/\{\{persona\}\}/gi, userName);
@@ -277,8 +293,17 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   const nameMacros = (value: string) =>
     value.replace(/\{\{char\}\}/gi, character.name).replace(/\{\{user\}\}/gi, userName).replace(/\{\{persona\}\}/gi, userName);
 
+  // 作者注释：注释正文按插入频率（ST：每 N 条玩家消息插一次，0 = 不插），前后夹着世界书 anTop / anBottom
+  const note = input.authorNote;
+  const userTurns = history.filter((message) => message.role === 'user').length;
+  const noteDue = Boolean(note && note.text.trim() && note.interval > 0 && userTurns % note.interval === 0);
+  const anText = resolveMacros([loreBlock(at('anTop')), noteDue ? note!.text.trim() : '', loreBlock(at('anBottom'))].filter(Boolean).join('\n'));
+  const anPosition = note?.position ?? 'depth';
+
   const blocks: PromptBlock[] = [];
   let reserved = 0;
+  const noteSlot = preset.order.some((item) => item.key === 'note' && item.enabled);
+  if (anText && (anPosition === 'before' || (anPosition === 'after' && !noteSlot))) reserved += estimateTokens(anText) + 4;
   for (const item of preset.order) {
     const label = BLOCK_LABELS.get(item.key);
     if (!label) continue;
@@ -290,6 +315,9 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     if (item.enabled && text) reserved += estimateTokens(text) + 4;
     blocks.push({ key: item.key, label, text, chars: text.length, enabled: item.enabled });
   }
+
+  // 作者注释不在预设顺序里，单独列一块给「上下文预览」看
+  if (anText && !(anPosition === 'after' && noteSlot)) blocks.push({ key: 'authorNote', label: '作者注释', text: anText, chars: anText.length, enabled: true });
 
   // 历史：按预算从最新往回取，最新一条无论多长都保留
   const historyBlock = blocks.find((block) => block.key === 'history');
@@ -337,6 +365,11 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   if (persona && persona.position === 'depth' && persona.description.trim()) {
     injections.push({ depth: persona.depth, role: persona.role, text: `［玩家身份］${persona.description.trim()}` });
   }
+  if (anText && anPosition === 'depth') injections.push({ depth: note?.depth ?? 4, role: note?.role ?? 'system', text: anText });
+  const placement = input.summaryPlacement;
+  if (placement?.position === 'depth' && (input.summary ?? '').trim()) {
+    injections.push({ depth: placement.depth, role: placement.role, text: summaryText(placement.template, (input.summary ?? '').trim()) });
+  }
   if (input.card?.depthPrompt.trim()) {
     injections.push({ depth: input.card.depthDepth, role: input.card.depthRole, text: `［角色深度提示］${input.card.depthPrompt.trim()}` });
   }
@@ -349,6 +382,8 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
 
   // 拼最终消息：历史之前的块合成一条 system，历史之后的块（后置提示）单独跟在末尾
   const messages: ChatMessage[] = [];
+  const shown = (key: string) => blocks.find((block) => block.key === key && block.enabled && block.text);
+  const anAnchor = shown('character') ? 'character' : shown('system') ? 'system' : (blocks.find((block) => block.enabled && block.text && block.key !== 'history')?.key ?? '');
   const systemParts: string[] = [];
   let passedHistory = false;
   for (const item of preset.order) {
@@ -364,8 +399,15 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     const section = `### ${block.label}\n${block.text}`;
     if (passedHistory) messages.push({ role: 'system', content: section });
     else systemParts.push(section);
+    // ST「主提示之后」：跟在角色设定（故事串）后面
+    if (anText && anPosition === 'after' && !noteSlot && item.key === anAnchor) {
+      if (passedHistory) messages.push({ role: 'system', content: `### 作者注释\n${anText}` });
+      else systemParts.push(`### 作者注释\n${anText}`);
+    }
   }
   if (systemParts.length) messages.push({ role: 'system', content: systemParts.join('\n\n') });
+  if (anText && anPosition === 'before') messages.unshift({ role: 'system', content: `### 作者注释\n${anText}` });
+  else if (anText && anPosition === 'after' && !noteSlot && !anAnchor) messages.unshift({ role: 'system', content: `### 作者注释\n${anText}` });
 
   // 历史块被关掉时至少保留玩家最新一句话，否则模型没有可回应的内容
   if (!historyBlock?.enabled) {
@@ -389,3 +431,8 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
 }
 
 type LoreRoleLike = 'system' | 'user' | 'assistant';
+
+function summaryText(template: string, summary: string): string {
+  const tpl = template.trim() || '{{summary}}';
+  return /\{\{summary\}\}/i.test(tpl) ? tpl.replace(/\{\{summary\}\}/gi, () => summary) : `${tpl}\n${summary}`;
+}

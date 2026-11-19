@@ -6,7 +6,7 @@ import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
-import { memorySettings } from '@/lib/memory';
+import { memorySettings, promptMemory } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 import { dailyFreeRemaining } from '@/lib/growth';
@@ -49,8 +49,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
-    summary: memory.summary.text,
-    memory: memory.memory,
+    ...promptMemory(chat, user.id),
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
     variables: vars,

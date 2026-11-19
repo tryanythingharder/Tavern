@@ -29,21 +29,30 @@ type Preview = {
   ejsErrors?: { name: string; message: string }[];
 };
 
+type Role = 'system' | 'user' | 'assistant';
+type SummaryPrefs = { enabled: boolean; interval: number; mode: 'llm' | 'extract'; position: 'prompt' | 'depth' | 'none'; depth: number; role: Role; template: string; prompt: string; words: number };
+type NoteData = { text: string; position: 'after' | 'before' | 'depth'; depth: number; role: Role; interval: number };
 type MemoryData = {
-  status: { enabled: boolean; interval: number; covered: number; behind: number; text: string; source: string; updatedAt: number };
+  status: SummaryPrefs & { covered: number; behind: number; text: string; source: string; updatedAt: number; error: string; running: boolean };
   rag: { enabled: boolean; topK: number };
   memory: string;
+  note: NoteData;
+  characterNote: { text: string; mode: 'replace' | 'before' | 'after' };
+  characterName: string;
+  defaults: { summaryPrompt: string; summaryTemplate: string };
   messageCount: number;
   recentWindow: number;
+  error?: string;
 };
 
 type Backup = { id: number; message_count: number; created_at: number };
 
-type Tab = 'gen' | 'memory' | 'backup';
+type Tab = 'gen' | 'memory' | 'note' | 'backup';
 
 const TABS: [Tab, string][] = [
   ['gen', '生成'],
   ['memory', '记忆'],
+  ['note', '作者注释'],
   ['backup', '备份与导出'],
 ];
 
@@ -66,8 +75,11 @@ export function ChatSettings({ chatId }: { chatId: number }) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [memory, setMemory] = useState<MemoryData | null>(null);
   const [summaryText, setSummaryText] = useState('');
-  const [summaryEnabled, setSummaryEnabled] = useState(true);
-  const [summaryInterval, setSummaryInterval] = useState(12);
+  const [sp, setSp] = useState<SummaryPrefs | null>(null);
+  const setPref = <K extends keyof SummaryPrefs>(key: K, value: SummaryPrefs[K]) => setSp((prev) => (prev ? { ...prev, [key]: value } : prev));
+  const [note, setNote] = useState<NoteData | null>(null);
+  const setNoteField = <K extends keyof NoteData>(key: K, value: NoteData[K]) => setNote((prev) => (prev ? { ...prev, [key]: value } : prev));
+  const [charNote, setCharNote] = useState<MemoryData['characterNote']>({ text: '', mode: 'replace' });
   const [ragEnabled, setRagEnabled] = useState(true);
   const [ragTopK, setRagTopK] = useState(3);
   const [manualMemory, setManualMemory] = useState('');
@@ -122,8 +134,9 @@ export function ChatSettings({ chatId }: { chatId: number }) {
       const result = await api<MemoryData>(`/api/chats/${chatId}/memory`);
       setMemory(result);
       setSummaryText(result.status.text);
-      setSummaryEnabled(result.status.enabled);
-      setSummaryInterval(result.status.interval);
+      setSp(pickPrefs(result.status));
+      setNote(result.note);
+      setCharNote(result.characterNote);
       setRagEnabled(result.rag.enabled);
       setRagTopK(result.rag.topK);
       setManualMemory(result.memory);
@@ -145,7 +158,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
   useEffect(() => {
     if (!open) return;
     if (tab === 'gen') void load();
-    if (tab === 'memory') void loadMemory();
+    if (tab === 'memory' || tab === 'note') void loadMemory();
     if (tab === 'backup') void loadBackups();
   }, [open, tab, load, loadMemory, loadBackups]);
 
@@ -183,18 +196,30 @@ export function ChatSettings({ chatId }: { chatId: number }) {
       const result = await api<MemoryData>(`/api/chats/${chatId}/memory`, {
         method: 'PATCH',
         body: JSON.stringify({
-          summaryEnabled,
-          summaryInterval,
+          ...(sp ? {
+            summaryEnabled: sp.enabled,
+            summaryInterval: sp.interval,
+            summaryMode: sp.mode,
+            summaryPosition: sp.position,
+            summaryDepth: sp.depth,
+            summaryRole: sp.role,
+            summaryTemplate: sp.template,
+            summaryPrompt: sp.prompt,
+            summaryWords: sp.words,
+          } : {}),
           summaryText,
           ragEnabled,
           ragTopK,
           memory: manualMemory,
+          ...(note ? { note } : {}),
+          characterNote: charNote,
           refresh,
         }),
       });
       setMemory(result);
       setSummaryText(result.status.text);
-      flashSaved();
+      if (result.error) setError(result.error);
+      else flashSaved();
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -249,7 +274,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
           footer={
             <>
               {tab === 'gen' && mode !== 'newbie' && <button className="btn btn--sm" type="button" onClick={() => void runPreview()}>预览上下文</button>}
-              {tab === 'memory' && <button className="btn btn--sm" type="button" disabled={busy} onClick={() => void saveMemory(true)}>刷新摘要</button>}
+              {tab === 'memory' && <button className="btn btn--sm" type="button" disabled={busy} onClick={() => void saveMemory(true)}>{busy ? '处理中…' : '立即重写摘要'}</button>}
               {tab === 'backup' && <button className="btn btn--sm" type="button" disabled={busy} onClick={() => void makeBackup()}>现在留一份</button>}
               {tab !== 'backup' && (
                 <button
@@ -420,23 +445,79 @@ export function ChatSettings({ chatId }: { chatId: number }) {
             ) : (
               <>
                 <MemoryMap data={memory} ragOn={ragEnabled} manual={manualMemory.trim().length > 0} />
-                <h3 className="panel-title">自动摘要</h3>
+                <h3 className="panel-title">自动摘要 <small className="pm-st">Summarize</small></h3>
                 <p className="small" style={{ marginTop: 0 }}>
-                  已覆盖 {memory.status.covered} 条 · 落后 {memory.status.behind} 条 · 最近 {memory.recentWindow} 条始终按原文进入上下文
+                  已覆盖 {memory.status.covered} 条 · 落后 {memory.status.behind} 条
                   {memory.status.source === 'manual' ? ' · 当前是手改版本' : ''}
+                  {memory.status.running ? ' · 正在生成…' : ''}
                 </p>
-                <label className="check" style={{ marginBottom: 10 }}>
-                  <input type="checkbox" checked={summaryEnabled} onChange={(event) => setSummaryEnabled(event.target.checked)} />
-                  <span>启用自动摘要</span>
-                </label>
-                <div className="field-row">
-                  <div className="field">
-                    <label>每多少条更新一次</label>
-                    <input className="input" type="number" min={4} max={40} value={summaryInterval} onChange={(event) => setSummaryInterval(Number(event.target.value))} />
-                  </div>
-                </div>
+                {memory.status.error && <p className="p-form-error" role="status" style={{ marginTop: 0 }}>{memory.status.error}</p>}
+                {sp && (
+                  <>
+                    <label className="check" style={{ marginBottom: 10 }}>
+                      <input type="checkbox" checked={sp.enabled} onChange={(event) => setPref('enabled', event.target.checked)} />
+                      <span>启用自动摘要</span>
+                    </label>
+                    <div className="field-row">
+                      <div className="field">
+                        <label>摘要方式</label>
+                        <select className="select" value={sp.mode} onChange={(event) => setPref('mode', event.target.value as SummaryPrefs['mode'])}>
+                          <option value="llm">模型生成（扣点数）</option>
+                          <option value="extract">抽取式（免费）</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>每多少条更新一次</label>
+                        <input className="input" type="number" min={4} max={100} value={sp.interval} onChange={(event) => setPref('interval', Number(event.target.value))} />
+                      </div>
+                      {sp.mode === 'llm' && (
+                        <div className="field">
+                          <label>字数上限</label>
+                          <input className="input" type="number" min={50} max={2000} step={50} value={sp.words} onChange={(event) => setPref('words', Number(event.target.value))} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="field-row">
+                      <div className="field">
+                        <label>插入位置</label>
+                        <select className="select" value={sp.position} onChange={(event) => setPref('position', event.target.value as SummaryPrefs['position'])}>
+                          <option value="prompt">按预设顺序（「自动摘要」块）</option>
+                          <option value="depth">聊天内 @深度</option>
+                          <option value="none">不自动插入（只用 {'{{summary}}'} 宏）</option>
+                        </select>
+                      </div>
+                      {sp.position === 'depth' && (
+                        <>
+                          <div className="field">
+                            <label>深度</label>
+                            <input className="input" type="number" min={0} max={999} value={sp.depth} onChange={(event) => setPref('depth', Number(event.target.value))} />
+                          </div>
+                          <div className="field">
+                            <label>角色</label>
+                            <RoleSelect value={sp.role} onChange={(value) => setPref('role', value)} />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <details className="mm-adv">
+                      <summary>摘要提示词与插入模板</summary>
+                      {sp.mode === 'llm' && (
+                        <div className="field">
+                          <label>摘要提示词（{'{{words}}'} = 字数上限）</label>
+                          <textarea className="textarea" rows={4} value={sp.prompt} onChange={(event) => setPref('prompt', event.target.value)} />
+                          <button className="btn btn--sm" style={{ alignSelf: 'flex-start', width: 'auto', marginTop: 6 }} type="button" onClick={() => setPref('prompt', memory.defaults.summaryPrompt)}>恢复默认</button>
+                        </div>
+                      )}
+                      <div className="field">
+                        <label>插入模板（{'{{summary}}'} = 摘要正文）</label>
+                        <input className="input" value={sp.template} onChange={(event) => setPref('template', event.target.value)} />
+                        <button className="btn btn--sm" style={{ alignSelf: 'flex-start', width: 'auto', marginTop: 6 }} type="button" onClick={() => setPref('template', memory.defaults.summaryTemplate)}>恢复默认</button>
+                      </div>
+                    </details>
+                  </>
+                )}
                 <div className="field">
-                  <label>摘要文本（可手改，改后标记为手改版本）</label>
+                  <label>摘要文本（可手改；模型模式会在手改版本的基础上继续更新）</label>
                   <textarea className="textarea" rows={6} value={summaryText} onChange={(event) => setSummaryText(event.target.value)} />
                 </div>
 
@@ -458,6 +539,60 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                   <label>剧情要点（每轮都会进入上下文）</label>
                   <textarea className="textarea" rows={4} value={manualMemory} placeholder="例如：玩家把伞借给了沈砚之；两人约好明晚在报馆后门见。" onChange={(event) => setManualMemory(event.target.value)} />
                 </div>
+              </>
+            )
+          )}
+
+          {tab === 'note' && (
+            !memory || !note ? (
+              <SettingsSkeleton />
+            ) : (
+              <>
+                <p className="small" style={{ marginTop: 0, marginBottom: 14 }}>写给模型的场外提示，按位置和频率插进上下文，不会显示在对话里。适合放当前目标、文风要求、需要模型一直记着的事。<small className="pm-st">Author&apos;s Note</small></p>
+                <div className="field">
+                  <label>这个会话的作者注释</label>
+                  <textarea className="textarea" rows={5} value={note.text} placeholder="例如：[风格：克制、留白；本章目标：让{{char}}说出当年离开的真正原因]" onChange={(event) => setNoteField('text', event.target.value)} />
+                </div>
+                <div className="field-row">
+                  <div className="field">
+                    <label>插入位置</label>
+                    <select className="select" value={note.position} onChange={(event) => setNoteField('position', event.target.value as NoteData['position'])}>
+                      <option value="depth">聊天内 @深度</option>
+                      <option value="after">主提示之后（预设里的作者注释位置）</option>
+                      <option value="before">主提示之前</option>
+                    </select>
+                  </div>
+                  {note.position === 'depth' && (
+                    <>
+                      <div className="field">
+                        <label>深度</label>
+                        <input className="input" type="number" min={0} max={999} value={note.depth} onChange={(event) => setNoteField('depth', Number(event.target.value))} />
+                      </div>
+                      <div className="field">
+                        <label>角色</label>
+                        <RoleSelect value={note.role} onChange={(value) => setNoteField('role', value)} />
+                      </div>
+                    </>
+                  )}
+                  <div className="field">
+                    <label>每几条消息插一次（0 = 不插）</label>
+                    <input className="input" type="number" min={0} max={999} value={note.interval} onChange={(event) => setNoteField('interval', Number(event.target.value))} />
+                  </div>
+                </div>
+                <h3 className="panel-title" style={{ marginTop: 8 }}>{memory.characterName ? `「${memory.characterName}」的角色注释` : '角色注释'}</h3>
+                <p className="small" style={{ marginTop: 0 }}>对你和这个角色的所有会话都生效，只有你自己能看到。</p>
+                <div className="field">
+                  <textarea className="textarea" rows={4} value={charNote.text} onChange={(event) => setCharNote({ ...charNote, text: event.target.value })} />
+                </div>
+                <div className="field">
+                  <label>和会话注释怎么合并</label>
+                  <select className="select" value={charNote.mode} onChange={(event) => setCharNote({ ...charNote, mode: event.target.value as MemoryData['characterNote']['mode'] })}>
+                    <option value="replace">有角色注释时代替会话注释</option>
+                    <option value="before">放在会话注释前面</option>
+                    <option value="after">放在会话注释后面</option>
+                  </select>
+                </div>
+                <p className="small">世界书里「作者注释之前 / 之后」的条目会跟着作者注释的位置插入。</p>
               </>
             )
           )}
@@ -516,6 +651,21 @@ function SettingsSkeleton({ rows = 2 }: { rows?: number }) {
       <span className="p-skeleton cs-skel-label" />
       <span className="p-skeleton cs-skel-area" />
     </div>
+  );
+}
+
+function pickPrefs(status: MemoryData['status']): SummaryPrefs {
+  const { enabled, interval, mode, position, depth, role, template, prompt, words } = status;
+  return { enabled, interval, mode, position, depth, role, template, prompt, words };
+}
+
+function RoleSelect({ value, onChange }: { value: Role; onChange: (value: Role) => void }) {
+  return (
+    <select className="select" value={value} onChange={(event) => onChange(event.target.value as Role)}>
+      <option value="system">系统</option>
+      <option value="user">玩家</option>
+      <option value="assistant">角色</option>
+    </select>
   );
 }
 

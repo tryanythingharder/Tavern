@@ -14,7 +14,7 @@ import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
-import { memorySettings, ragChunks, snapshotChat, summaryState } from '@/lib/memory';
+import { memorySettings, ragChunks, snapshotChat, summaryState, promptMemory } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 
@@ -64,9 +64,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'regenerate',
-    summary: summaryState(chat).text,
+    ...promptMemory(chat, user.id),
     rag,
-    memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
     variables: vars,

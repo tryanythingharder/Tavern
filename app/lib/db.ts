@@ -375,6 +375,15 @@ db.exec(`
         updated_at INTEGER NOT NULL,
         PRIMARY KEY (user_id, character_id)
     );
+    -- 角色作者注释（ST 的 Character Author's Note）：玩家给某个角色设的注释，对这个角色的所有会话生效
+    CREATE TABLE IF NOT EXISTS character_notes (
+        user_id INTEGER NOT NULL,
+        character_id TEXT NOT NULL,
+        text TEXT NOT NULL DEFAULT '',
+        mode TEXT NOT NULL DEFAULT 'replace',
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (user_id, character_id)
+    );
 `);
 
 // 旧库补列：M1 后半段加了候选与分支来源。SQLite 的 ADD COLUMN 带默认值是安全的。
@@ -391,6 +400,8 @@ ensureColumn('rooms', 'model', 'TEXT');
 ensureColumn('chats', 'persona_id', 'INTEGER');
 // 卡内世界书条目的会话级开关 {条目id: true|false}，只存和卡默认值不同的（卡作者常让玩家自己开插图、选状态栏）
 ensureColumn('chats', 'card_lore', 'TEXT');
+// 作者注释（ST Author's Note），JSON：{ text, position, depth, role, interval }
+ensureColumn('chats', 'author_note', 'TEXT');
 ensureColumn('chats', 'lorebook_ids', 'TEXT');
 ensureColumn('chats', 'summary', 'TEXT');
 ensureColumn('chats', 'summary_prefs', 'TEXT');
@@ -459,6 +470,7 @@ export type DbChat = {
   summary: string | null; summary_prefs: string | null; rag_prefs: string | null; memory: string | null;
   model?: string | null;
   card_lore?: string | null;
+  author_note?: string | null;
   created_at: number; updated_at: number;
 };
 export type DbMessage = {
@@ -643,7 +655,7 @@ export function branchChat(chatId: number, userId: number, messageId: number): {
 
 export type GenerationStatus = 'pending' | 'done' | 'aborted' | 'error';
 
-export function startGeneration(userId: number, chatId: number | null, kind: 'send' | 'regenerate' | 'room' | 'image' | 'tts', model: string): number {
+export function startGeneration(userId: number, chatId: number | null, kind: 'send' | 'regenerate' | 'room' | 'image' | 'tts' | 'summary', model: string): number {
   const result = db.prepare('INSERT INTO generation_events (user_id, chat_id, kind, model, status, created_at) VALUES (?,?,?,?,?,?)').run(userId, chatId, kind, model, 'pending', Date.now());
   return Number(result.lastInsertRowid);
 }

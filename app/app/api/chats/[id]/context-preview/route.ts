@@ -6,7 +6,7 @@ import { assemblePrompt } from '@/lib/prompt';
 import { chatVariables } from '@/lib/mvu-server';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { getOverride } from '@/lib/cards';
-import { memorySettings, ragChunks, summaryState } from '@/lib/memory';
+import { memorySettings, ragChunks, summaryState, promptMemory } from '@/lib/memory';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,9 +37,8 @@ export async function GET(_request: Request, context: Params) {
     persona: config.persona,
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
-    summary: summaryState(chat).text,
+    ...promptMemory(chat, user.id),
     rag,
-    memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
     variables: vars,
