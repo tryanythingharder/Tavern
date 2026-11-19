@@ -5,6 +5,7 @@ import { createCharacter, getCharacterView, setCharacterCover, updateCharacter }
 import { parseStCharacterCard } from '@/lib/cards-import';
 import { parsePngCard } from '@/lib/png-card';
 import { extractExtras, extrasSummary, saveExtras } from '@/lib/card-extras';
+import { cardCompat } from '@/lib/card-compat';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,5 +58,5 @@ export async function POST(request: Request) {
     coverImage = saveMedia(pngBuffer, 'png', { ownerId: user.id, visibility: 'public' });
     setCharacterCover(character.id, coverImage);
   }
-  return json({ character: { ...character, coverImage }, extras: extrasSummary(extras) }, targetId ? 200 : 201);
+  return json({ character: { ...character, coverImage }, extras: extrasSummary(extras), compat: cardCompat(raw) }, targetId ? 200 : 201);
 }

@@ -5,22 +5,27 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { api } from '@/components/settings-ui';
 import { cardFileBody, describeExtras, type ImportExtras } from '@/lib/card-file';
+import { CompatList } from '@/components/compat-list';
+import type { CompatReport } from '@/lib/card-compat';
 
 export function WorkActions({ characterId, status }: { characterId: string; status: string }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [compat, setCompat] = useState<CompatReport | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   // 外部工具改完卡后重新导入：覆盖这个角色（保留评论、收藏、会话和版本历史）
   const reimport = async (file: File) => {
     setBusy(true);
     setMessage('');
+    setCompat(null);
     try {
       const body = await cardFileBody(file);
-      const result = await api<{ extras?: ImportExtras }>('/api/characters/import', { method: 'POST', body: JSON.stringify({ ...body, characterId }) });
+      const result = await api<{ extras?: ImportExtras; compat?: CompatReport }>('/api/characters/import', { method: 'POST', body: JSON.stringify({ ...body, characterId }) });
       setMessage(`已更新。${describeExtras(result.extras)}`);
+      setCompat(result.compat && (result.compat.partial || result.compat.no) ? result.compat : null);
       router.refresh();
     } catch (caught) {
       setMessage((caught as Error).message);
@@ -65,6 +70,7 @@ export function WorkActions({ characterId, status }: { characterId: string; stat
         <button className="p-btn p-btn--sm" type="button" onClick={() => setConfirming(true)}>删除</button>
       )}
       {message && <span className="p-small">{message}</span>}
+      {compat && <CompatList report={compat} />}
     </div>
   );
 }

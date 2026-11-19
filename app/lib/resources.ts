@@ -488,7 +488,8 @@ export function parseStRegex(input: unknown): Omit<RegexRule, 'id' | 'sort'>[] |
         replacement: text(item.replaceString, text(item.replace)),
         scope,
         target,
-        enabled: item.disabled !== true && item.enabled !== false,
+        // 只作用于世界书(5)/推理(6)/斜杠命令(3)的规则不该套到消息上，导入后先停用（原样保留在 raw 里，导出不丢）
+        enabled: item.disabled !== true && item.enabled !== false && !(placement.length > 0 && !placement.includes(1) && !placement.includes(2)),
         depthFrom: optionalInt(item.minDepth, -1, 9999),
         depthTo: optionalInt(item.maxDepth, 0, 9999),
         trim: Array.isArray(item.trimStrings) ? item.trimStrings.map(String).filter(Boolean).slice(0, 20) : [],

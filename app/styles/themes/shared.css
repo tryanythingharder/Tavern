@@ -610,6 +610,17 @@ html body[data-theme="folio"] .version-row { border-radius: 0 !important; }
 .ci-paste[open] { display: grid; gap: 10px; }
 .ci-paste[open] > .p-btn { justify-self: start; }
 .ci-done { flex-wrap: wrap; gap: 8px; }
+/* 导入兼容体检（components/compat-list.tsx） */
+.ci-compat { flex-basis: 100%; display: grid; gap: 6px; margin-top: 6px; font-size: 13px; line-height: 1.55; text-align: left; }
+.ci-compat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ci-compat-item { display: grid; grid-template-columns: 8px auto 1fr; align-items: baseline; gap: 8px; }
+.ci-compat-dot { width: 8px; height: 8px; border-radius: 50%; background: #3f8a5a; display: inline-block; flex: none; }
+.ci-compat-item.is-partial .ci-compat-dot { background: #b7791f; }
+.ci-compat-item.is-no .ci-compat-dot { background: #c9401f; }
+.ci-compat-tag { font-size: 12px; color: #6b6259; white-space: nowrap; }
+.ci-compat-text b { font-weight: 600; margin-right: 6px; }
+.ci-compat-detail { color: #6b6259; }
+.ci-compat-ok { margin: 0; display: flex; gap: 8px; align-items: baseline; color: #6b6259; }
 .ci-tools { display: grid; gap: 12px; }
 .ci-tool-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .ci-tool { display: grid; gap: 6px; padding: 16px 18px; text-decoration: none; color: inherit; transition: border-color .15s ease, transform .15s ease; }

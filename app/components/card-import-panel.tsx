@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { FileDrop } from '@/components/file-drop';
 import { api } from '@/components/settings-ui';
 import { cardFileBody, describeExtras, type ImportExtras } from '@/lib/card-file';
+import { CompatList } from '@/components/compat-list';
+import type { CompatReport } from '@/lib/card-compat';
 
 // 制卡交给外部工具，平台负责「无损导入 → 补封面标签 → 发布」
 const TOOLS = [
@@ -20,14 +22,14 @@ export function CardImportPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [text, setText] = useState('');
-  const [done, setDone] = useState<{ id: string; name: string; extras: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; name: string; extras: string; compat?: CompatReport } | null>(null);
 
   const send = async (body: { png?: string; json?: string }) => {
     setBusy(true);
     setError('');
     try {
-      const result = await api<{ character: { id: string; name: string }; extras?: ImportExtras }>('/api/characters/import', { method: 'POST', body: JSON.stringify(body) });
-      setDone({ id: result.character.id, name: result.character.name, extras: describeExtras(result.extras) });
+      const result = await api<{ character: { id: string; name: string }; extras?: ImportExtras; compat?: CompatReport }>('/api/characters/import', { method: 'POST', body: JSON.stringify(body) });
+      setDone({ id: result.character.id, name: result.character.name, extras: describeExtras(result.extras), compat: result.compat });
       setText('');
     } catch (caught) {
       setError((caught as Error).message);
@@ -54,7 +56,7 @@ export function CardImportPanel() {
           <div className="p-notice ci-done" role="status">
             <div className="p-notice-main">
               <div className="p-notice-title">「{done.name}」已导入，现在是待审核状态</div>
-              {done.extras && <div>{done.extras}</div>}
+              {done.compat?.items.length ? <CompatList report={done.compat} /> : done.extras && <div>{done.extras}</div>}
             </div>
             <Link className="p-btn p-btn--sm p-btn--primary" href={`/create?edit=${done.id}`}>补封面和标签</Link>
             <Link className="p-btn p-btn--sm" href={`/c/${done.id}`}>查看</Link>
