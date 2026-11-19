@@ -31,14 +31,14 @@ export function RichText({
   role?: 'user' | 'assistant';
   depth?: number;
   /** 给状态栏脚本读 MVU 变量用：这条消息所在的会话和楼层 */
-  variables?: { chatId: number; messageId: number };
+  variables?: { chatId: number; messageId: number; rev?: string };
 }) {
   const shown = useMemo(() => {
     // MVU 的 <UpdateVariable> 命令块只给程序看，不显示（ST 里一般靠卡自带正则藏，没带的卡也别露出来）
     const base = role === 'assistant' ? stripMvuBlocks(text) : text;
     return rules?.length ? applyRegex(rules, base, { target: role, purpose: 'display', depth, macros }) : base;
   }, [rules, text, role, depth, macros]);
-  const version = useMemo(() => hash(text), [text]);
+  const version = useMemo(() => `${hash(text)}:${variables?.rev ?? ''}`, [text, variables?.rev]);
   const segments = useMemo(() => splitRich(shown), [shown]);
   if (segments.length === 1 && segments[0].kind === 'text') return <RpText text={segments[0].text} streaming={streaming} />;
   return (
@@ -48,7 +48,7 @@ export function RichText({
         if (segment.kind === 'text') return <RpText key={index} text={segment.text} streaming={streaming && last} />;
         // 生成中不渲染半截 HTML（iframe 每个字都重建会闪），收尾后再显示
         if (streaming) return <div key={index} className="rp-html-pending" role="status">状态栏 / 美化内容生成中…</div>;
-        return <HtmlFrame key={`${index}-${hash(segment.html)}`} html={segment.html} variables={variables ? { ...variables, version } : undefined} macros={macros} />;
+        return <HtmlFrame key={`${index}-${hash(segment.html)}`} html={segment.html} variables={variables ? { chatId: variables.chatId, messageId: variables.messageId, version } : undefined} macros={macros} />;
       })}
     </>
   );

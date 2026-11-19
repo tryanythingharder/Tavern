@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { hasMvuCommands } from '@/lib/mvu';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/settings-ui';
@@ -92,6 +93,31 @@ function friendlyError(message: string): string {
 export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessageView[]>(initialMessages);
+  // MVU 变量是按楼层重放出来的：前面任何一楼的变量命令变了（编辑、重生、换候选、删除），
+  // 后面各楼的状态栏都要重新取。这里给每楼算一个「此前所有变量命令」的累积指纹，交给状态栏当缓存版本。
+  const mvuHashes = useRef(new Map<number | string, { content: string; h: number }>());
+  const mvuRev = useMemo(() => {
+    const rev = new Map<number, string>();
+    const cache = mvuHashes.current;
+    let acc = 0;
+    for (const m of messages) {
+      if (m.role === 'assistant' && typeof m.content === 'string') {
+        let item = cache.get(m.id);
+        if (!item || item.content !== m.content) {
+          let h = 0;
+          if (hasMvuCommands(m.content)) {
+            for (let i = 0; i < m.content.length; i += 1) h = (Math.imul(31, h) + m.content.charCodeAt(i)) | 0;
+            h = (Math.imul(31, h) + Number(m.id)) | 0 || 1;
+          }
+          item = { content: m.content, h };
+          cache.set(m.id, item);
+        }
+        if (item.h) acc = (Math.imul(1000003, acc) + item.h) | 0;
+      }
+      if (typeof m.id === 'number') rev.set(m.id, String(acc));
+    }
+    return rev;
+  }, [messages]);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState('');
@@ -607,7 +633,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       ) : (
                         <div className="p-msg-copy p-msg-text">
                           {message.content
-                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={macros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id } : undefined} />
+                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={macros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
                             : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
                         </div>
                       )}

@@ -90,7 +90,8 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
 
   return (
     <iframe
-      key={scheme}
+      // frame 只认第一次 postMessage，变量版本变了（前面楼层改过）要换一个新 iframe
+      key={`${scheme}:${variables?.version ?? ''}`}
       ref={ref}
       className="rp-html-frame"
       src="/sandbox/frame.html"
