@@ -219,8 +219,9 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
   }
 
   const scanTexts = recent.map((message) => `${message.role === 'user' ? userName : nameOf(message.speakerId)}：${message.content}`);
+  const messageCount = scanTexts.length;
   scanTexts.push(...members.map((character) => character.description));
-  const scan = scanLore(loreEntries, scanTexts);
+  const scan = scanLore(loreEntries, scanTexts, { messageCount });
   if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${macros(entry.text)}`).join('\n')}`);
   if (persona?.description.trim()) blocks.push(`### 玩家身份\n【身份】${persona.name}\n${persona.description.trim()}`);
 

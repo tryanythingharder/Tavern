@@ -100,17 +100,75 @@ export { applyRegex };
 
 // ---------- 世界书 ----------
 
-type LoreScanOptions = { caseSensitive: boolean; matchWholeWords: boolean; recursive: boolean; scanDepth: number; trigger: string; budget: number };
+type LoreScanOptions = {
+  caseSensitive: boolean; matchWholeWords: boolean; recursive: boolean; scanDepth: number; trigger: string; budget: number;
+  // scanTexts 前 messageCount 项是聊天消息（旧→新），其余是角色设定/身份等额外来源；不传 = 全是消息
+  messageCount?: number;
+  // 整段聊天（旧→新，带说话人前缀），给黏性/冷却/延迟推算历史状态用
+  history?: string[];
+};
 
 const CJK = /[\u3400-\u9fff\u3000-\u303f\uff00-\uffef]/;
 
 function keyMatches(haystack: string, keyword: string, caseSensitive: boolean, wholeWords: boolean): boolean {
   if (!keyword) return false;
+  // ST：/…/flags 写法的关键词按正则匹配
+  const regex = /^\/([\s\S]+)\/([gimsuy]*)$/.exec(keyword);
+  if (regex) {
+    try {
+      return new RegExp(regex[1], regex[2].replace('g', '')).test(haystack);
+    } catch {
+      return false;
+    }
+  }
   const hay = caseSensitive ? haystack : haystack.toLowerCase();
   const key = caseSensitive ? keyword : keyword.toLowerCase();
   if (!wholeWords || CJK.test(key)) return hay.includes(key);
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`(^|[^\\p{L}\\p{N}_])${escaped}($|[^\\p{L}\\p{N}_])`, 'u').test(hay);
+}
+
+function keysPass(entry: LoreEntry, buffer: string, settings: LoreScanOptions): string | null {
+  if (!entry.keywords.length) return null;
+  const caseSensitive = entry.caseSensitive ?? settings.caseSensitive;
+  const wholeWords = entry.matchWholeWords ?? settings.matchWholeWords;
+  const primary = entry.keywords.find((keyword) => keyMatches(buffer, keyword, caseSensitive, wholeWords));
+  if (!primary) return null;
+  if (entry.selective && entry.secondaryKeywords.length) {
+    const results = entry.secondaryKeywords.map((keyword) => keyMatches(buffer, keyword, caseSensitive, wholeWords));
+    const passed =
+      entry.logic === 'andAny'
+        ? results.some(Boolean)
+        : entry.logic === 'notAll'
+          ? results.some((result) => !result)
+          : entry.logic === 'notAny'
+            ? !results.some(Boolean)
+            : results.every(Boolean);
+    if (!passed) return null;
+  }
+  return primary;
+}
+
+type TimedState = 'free' | 'sticky' | 'cooldown' | 'delay';
+
+// ST 定时效果不落库，按聊天记录重放推出当前状态：
+// 在每个历史长度 k 上看这条是否被触发（常驻或关键词命中最近 scanDepth 条），触发后黏性保持 sticky 条，之后冷却 cooldown 条。
+function timedState(entry: LoreEntry, history: string[], depth: number, extras: string, settings: LoreScanOptions): TimedState {
+  const length = history.length;
+  if (entry.delay && length < entry.delay) return 'delay';
+  if (!entry.sticky && !entry.cooldown) return 'free';
+  let activeUntil = -1;
+  let cooldownUntil = -1;
+  for (let k = Math.max(1, entry.delay ?? 0); k < length; k += 1) {
+    if (k <= activeUntil || k <= cooldownUntil) continue;
+    const window = history.slice(Math.max(0, k - depth), k).join('\n') + (extras ? `\n${extras}` : '');
+    if (!entry.constant && !keysPass(entry, window, settings)) continue;
+    activeUntil = entry.sticky ? k + entry.sticky : k;
+    cooldownUntil = entry.cooldown ? activeUntil + entry.cooldown : -1;
+  }
+  if (length <= activeUntil && entry.sticky) return 'sticky';
+  if (length <= cooldownUntil) return 'cooldown';
+  return 'free';
 }
 
 export function scanLore(
@@ -127,61 +185,95 @@ export function scanLore(
     budget: loreBudgetFor(DEFAULT_CONTEXT),
     ...options,
   };
+  const messageCount = Math.min(settings.messageCount ?? scanTexts.length, scanTexts.length);
+  const messages = scanTexts.slice(0, messageCount);
+  const extras = scanTexts.slice(messageCount).join('\n');
+  // 扫描深度从最新一条往回数（ST 同）；条目可以单独设深度
+  const windowFor = (depth: number) => messages.slice(Math.max(0, messages.length - depth)).join('\n') + (extras ? `\n${extras}` : '');
+  const base = windowFor(settings.scanDepth);
+  const history = settings.history ?? messages;
+
   const active = entries.filter((entry) => entry.enabled).sort((a, b) => b.priority - a.priority);
-  const base = scanTexts.slice(0, settings.scanDepth).join('\n');
+  const states = new Map<string, TimedState>();
+  for (const entry of active) {
+    if (entry.sticky || entry.cooldown || entry.delay) states.set(entry.id, timedState(entry, history, entry.scanDepth ?? settings.scanDepth, extras, settings));
+  }
   const activated: LoreEntry[] = [];
   const hitKeys = new Map<string, string[]>();
   const activatedIds = new Set<string>();
-  let buffer = base;
+  const costs = new Map<string, number>();
+  let recursionText = '';
   let budget = settings.budget;
 
   const activate = (entry: LoreEntry, keys: string[]) => {
     if (activatedIds.has(entry.id)) return false;
     const cost = entry.text.length;
-    if (cost > budget && !entry.constant) return false;
+    if (cost > budget && !entry.constant && !entry.ignoreBudget) return false;
     budget -= cost;
+    costs.set(entry.id, cost);
     activatedIds.add(entry.id);
     activated.push(entry);
     hitKeys.set(entry.id, keys);
-    if (settings.recursive && !entry.preventRecursion) buffer += `\n${entry.text}`;
+    if (settings.recursive && !entry.preventRecursion) recursionText += `\n${entry.text}`;
     return true;
   };
+  const blocked = (entry: LoreEntry) => {
+    const state = states.get(entry.id);
+    return state === 'cooldown' || state === 'delay';
+  };
 
-  // 常驻条目先占预算（优先级从高到低）
-  for (const entry of active) if (entry.constant) activate(entry, ['常驻']);
+  // 黏性中的条目直接生效，常驻条目再按优先级占预算
+  for (const entry of active) if (states.get(entry.id) === 'sticky') activate(entry, ['黏性']);
+  for (const entry of active) if (entry.constant && !blocked(entry)) activate(entry, ['常驻']);
 
   const maxPasses = settings.recursive ? 4 : 1;
   for (let pass = 0; pass < maxPasses; pass += 1) {
     let added = false;
     for (const entry of active) {
-      if (activatedIds.has(entry.id)) continue;
+      if (activatedIds.has(entry.id) || blocked(entry)) continue;
       if (entry.excludeRecursion && pass > 0) continue;
-      if (!entry.keywords.length) continue;
-      const caseSensitive = entry.caseSensitive ?? settings.caseSensitive;
-      const wholeWords = entry.matchWholeWords ?? settings.matchWholeWords;
-      const primary = entry.keywords.find((keyword) => keyMatches(buffer, keyword, caseSensitive, wholeWords));
+      if (entry.delayUntilRecursion && pass === 0) continue;
+      const own = entry.scanDepth !== null && entry.scanDepth !== undefined && entry.scanDepth !== settings.scanDepth ? windowFor(entry.scanDepth) : base;
+      const buffer = pass > 0 && !entry.excludeRecursion ? own + recursionText : own;
+      const primary = keysPass(entry, buffer, settings);
       if (!primary) continue;
-      if (entry.selective && entry.secondaryKeywords.length) {
-        const results = entry.secondaryKeywords.map((keyword) => keyMatches(buffer, keyword, caseSensitive, wholeWords));
-        const passed =
-          entry.logic === 'andAny'
-            ? results.some(Boolean)
-            : entry.logic === 'notAll'
-              ? results.some((result) => !result)
-              : entry.logic === 'notAny'
-                ? !results.some(Boolean)
-                : results.every(Boolean);
-        if (!passed) continue;
-      }
       if (entry.probability < 100 && Math.random() * 100 >= entry.probability) continue;
       if (activate(entry, [primary])) added = true;
     }
-    if (!added) break;
+    if (!added && !(settings.recursive && pass === 0 && active.some((entry) => entry.delayUntilRecursion))) break;
   }
 
+  // 包含组：同组多条命中只留一条（黏性 > 组优先(取优先级最高) > 按权重随机）
+  const groups = new Map<string, LoreEntry[]>();
+  for (const entry of activated) {
+    for (const name of (entry.group ?? '').split(',').map((item) => item.trim()).filter(Boolean)) {
+      groups.set(name, [...(groups.get(name) ?? []), entry]);
+    }
+  }
+  const losers = new Set<string>();
+  for (const members of groups.values()) {
+    const live = members.filter((entry) => !losers.has(entry.id));
+    if (live.length < 2) continue;
+    const stickies = live.filter((entry) => states.get(entry.id) === 'sticky');
+    let winner: LoreEntry;
+    if (stickies.length) winner = stickies[0];
+    else if (live.some((entry) => entry.groupOverride)) winner = live.filter((entry) => entry.groupOverride).sort((a, b) => b.priority - a.priority)[0];
+    else {
+      const total = live.reduce((sum, entry) => sum + Math.max(0, entry.groupWeight ?? 100), 0);
+      let roll = Math.random() * (total || 1);
+      winner = live[live.length - 1];
+      for (const entry of live) {
+        roll -= Math.max(0, entry.groupWeight ?? 100);
+        if (roll < 0) { winner = entry; break; }
+      }
+    }
+    for (const entry of live) if (entry.id !== winner.id) losers.add(entry.id);
+  }
+  const kept = activated.filter((entry) => !losers.has(entry.id));
+
   return {
-    entries: activated,
-    hits: activated.map((entry) => ({ title: entry.title, keys: hitKeys.get(entry.id) ?? [] })),
+    entries: kept,
+    hits: kept.map((entry) => ({ title: entry.title, keys: hitKeys.get(entry.id) ?? [] })),
   };
 }
 
@@ -215,7 +307,12 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   if (persona?.description) scanTexts.push(persona.description);
 
   const ctx = contextWindow(input.model, preset.params.contextSize);
-  const scan = scanLore(loreEntries, scanTexts, { trigger: triggered, budget: loreBudgetFor(ctx.window) });
+  const scan = scanLore(loreEntries, scanTexts, {
+    trigger: triggered,
+    budget: loreBudgetFor(ctx.window),
+    messageCount: recent.length,
+    history: history.map((message) => `${message.role === 'user' ? (persona?.name || '你') : character.name}：${message.content}`),
+  });
   const at = (position: LoreEntry['position']) => scan.entries.filter((entry) => entry.position === position);
 
   const blockText = (key: string): string => {

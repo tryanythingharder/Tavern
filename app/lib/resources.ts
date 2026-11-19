@@ -247,6 +247,17 @@ export type LoreEntry = {
   probability: number;
   excludeRecursion: boolean;
   preventRecursion: boolean;
+  // ST 定时效果（按消息条数）：黏性 = 触发后保持 N 条；冷却 = 结束后 N 条内不再触发；延迟 = 会话不足 N 条时不触发
+  sticky?: number;
+  cooldown?: number;
+  delay?: number;
+  // ST 包含组：同组同时命中只留一条（组优先 > 权重随机）；逗号分隔可属多组
+  group?: string;
+  groupOverride?: boolean;
+  groupWeight?: number;
+  useGroupScoring?: boolean;
+  ignoreBudget?: boolean;
+  delayUntilRecursion?: boolean;
 };
 
 export type Lorebook = { id: number; name: string; entries: LoreEntry[]; updated_at: number };
@@ -268,6 +279,27 @@ function normalizeLogic(value: unknown): LoreLogic {
 function normalizeRole(value: unknown): LoreRole {
   if (typeof value === 'number') return LORE_ROLES[value] ?? 'system';
   return LORE_ROLES.includes(value as LoreRole) ? (value as LoreRole) : 'system';
+}
+
+function timedAndGroup(entry: Record<string, unknown>, extensions: Record<string, unknown>, pick: (...values: unknown[]) => unknown): Partial<LoreEntry> {
+  const out: Partial<LoreEntry> = {};
+  const sticky = optionalInt(pick(entry.sticky, extensions.sticky), 0, 1000);
+  const cooldown = optionalInt(pick(entry.cooldown, extensions.cooldown), 0, 1000);
+  const delay = optionalInt(pick(entry.delay, extensions.delay), 0, 1000);
+  if (sticky) out.sticky = sticky;
+  if (cooldown) out.cooldown = cooldown;
+  if (delay) out.delay = delay;
+  const group = pick(entry.group, extensions.group);
+  if (typeof group === 'string' && group.trim()) {
+    out.group = group.trim().slice(0, 200);
+    if (pick(entry.groupOverride, extensions.group_override) === true) out.groupOverride = true;
+    const weight = optionalInt(pick(entry.groupWeight, extensions.group_weight), 0, 10000);
+    out.groupWeight = weight ?? 100;
+    if (pick(entry.useGroupScoring, extensions.use_group_scoring) === true) out.useGroupScoring = true;
+  }
+  if (pick(entry.ignoreBudget, extensions.ignore_budget) === true) out.ignoreBudget = true;
+  if (pick(entry.delayUntilRecursion, extensions.delay_until_recursion)) out.delayUntilRecursion = true;
+  return out;
 }
 
 export function normalizeLoreEntry(raw: unknown, index = 0): LoreEntry {
@@ -298,6 +330,7 @@ export function normalizeLoreEntry(raw: unknown, index = 0): LoreEntry {
     probability: probability ?? 100,
     excludeRecursion: pick(entry.excludeRecursion, extensions.exclude_recursion) === true,
     preventRecursion: pick(entry.preventRecursion, extensions.prevent_recursion) === true,
+    ...timedAndGroup(entry, extensions, pick),
   };
 }
 

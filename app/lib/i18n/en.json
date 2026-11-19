@@ -2974,5 +2974,16 @@
  "摘要正在生成，请稍等": "Summary is being generated, please wait",
  "模型未配置，已改用抽取式": "No model configured; used extractive summary instead",
  "模型生成（扣点数）": "Model-written (costs points)",
- "抽取式（免费）": "Extractive (free)"
+ "抽取式（免费）": "Extractive (free)",
+ "黏性（触发后保持 N 条）": "Sticky (stay on for N messages)",
+ "冷却（之后 N 条不触发）": "Cooldown (skip the next N messages)",
+ "延迟（满 N 条才触发）": "Delay (only after N messages)",
+ "包含组（同组只取一条，逗号分隔）": "Inclusion group (one per group, comma-separated)",
+ "组内权重": "Group weight",
+ "组内优先": "Prioritize in group",
+ "检查点": "Checkpoint",
+ "打开检查点": "Open checkpoint",
+ "在这里创建检查点": "Create a checkpoint here",
+ "分支自": "Branched from",
+ "已从原故事创建分支": "Branched from the original story"
 }

@@ -263,6 +263,39 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                   <span>启用</span>
                 </label>
               </div>
+              {/* ST 定时效果与包含组：按消息条数计 */}
+              <div className="p-field-row">
+                <div className="p-field">
+                  <label>黏性（触发后保持 N 条）</label>
+                  <input className="p-input" type="number" min={0} max={1000} value={entry.sticky ?? 0} onChange={(event) => updateEntry(entryIndex, { sticky: Number(event.target.value) || undefined })} />
+                </div>
+                <div className="p-field">
+                  <label>冷却（之后 N 条不触发）</label>
+                  <input className="p-input" type="number" min={0} max={1000} value={entry.cooldown ?? 0} onChange={(event) => updateEntry(entryIndex, { cooldown: Number(event.target.value) || undefined })} />
+                </div>
+                <div className="p-field">
+                  <label>延迟（满 N 条才触发）</label>
+                  <input className="p-input" type="number" min={0} max={1000} value={entry.delay ?? 0} onChange={(event) => updateEntry(entryIndex, { delay: Number(event.target.value) || undefined })} />
+                </div>
+              </div>
+              <div className="p-field-row">
+                <div className="p-field">
+                  <label>包含组（同组只取一条，逗号分隔）</label>
+                  <input className="p-input" value={entry.group ?? ''} maxLength={200} onChange={(event) => updateEntry(entryIndex, { group: event.target.value || undefined })} />
+                </div>
+                {entry.group ? (
+                  <>
+                    <div className="p-field">
+                      <label>组内权重</label>
+                      <input className="p-input" type="number" min={0} max={10000} value={entry.groupWeight ?? 100} onChange={(event) => updateEntry(entryIndex, { groupWeight: Number(event.target.value) })} />
+                    </div>
+                    <label className="p-check" style={{ alignSelf: 'end', marginBottom: 14 }}>
+                      <input type="checkbox" checked={entry.groupOverride === true} onChange={(event) => updateEntry(entryIndex, { groupOverride: event.target.checked || undefined })} />
+                      <span>组内优先</span>
+                    </label>
+                  </>
+                ) : null}
+              </div>
               <button
                 className="p-btn p-btn--sm p-btn--danger"
                 type="button"

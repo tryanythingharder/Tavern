@@ -16,13 +16,9 @@ const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : isOb
 
 // 世界书条目里平台暂时不认的 ST 设置（值为「默认/关闭」时不算用到）
 const LORE_IGNORED: { label: string; used: (entry: Obj, ext: Obj) => boolean }[] = [
-  { label: '黏性/冷却/延迟', used: (e, x) => [e.sticky, x.sticky, e.cooldown, x.cooldown, e.delay, x.delay].some((v) => Number(v) > 0) },
-  { label: '包含组', used: (e, x) => [e.group, x.group].some((v) => typeof v === 'string' && v.trim() !== '') },
   { label: '向量匹配', used: (e, x) => e.vectorized === true || x.vectorized === true },
   { label: '角色过滤', used: (e, x) => [e.characterFilter, x.character_filter].some((v) => isObj(v) && (list(v.names).length > 0 || list(v.tags).length > 0)) },
   { label: '生成类型触发', used: (e, x) => list(e.triggers ?? x.triggers).length > 0 },
-  { label: '延迟到递归', used: (e, x) => Boolean(e.delayUntilRecursion ?? x.delay_until_recursion) },
-  { label: '无视预算', used: (e, x) => e.ignoreBudget === true || x.ignore_budget === true },
   {
     label: '匹配人设/描述等额外来源',
     used: (e, x) => ['match_persona_description', 'match_character_description', 'match_character_personality', 'match_character_depth_prompt', 'match_scenario', 'match_creator_notes']
