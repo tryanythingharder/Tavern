@@ -1,3 +1,4 @@
+import { displayCardText } from '@/lib/st-macros';
 import Link from 'next/link';
 import type { ChatChromeData } from '@/components/themes/chat-chrome';
 import { latinName, pad } from '@/components/themes/folio/lib';
@@ -8,6 +9,8 @@ import { FolioBookmarks, FolioComposerTools, FolioFolio, FolioProgress, FolioToc
 export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
   const { character } = chrome;
   const latin = latinName({ id: character.id, ownerId: character.cover?.startsWith('/characters/') ? null : 1 });
+  // 设定里常有 ST 注释宏 {{// …}}（作者备注 / 加密串），不能原样当题记显示
+  const epigraph = displayCardText(character.description, character.name).slice(0, 240);
   const paceParts = character.pace.split(/[·・]/).map((part) => part.trim()).filter(Boolean);
   const issue = pad(new Date().getMonth() + 1);
 
@@ -29,8 +32,8 @@ export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
           <div className="fo-by">文 / {character.author}{character.tags.length > 0 && <> · {character.tags.slice(0, 2).join(' · ')}</>}</div>
           {character.hook && <p className="fo-hook">{character.hook}</p>}
           <FolioToc title={chrome.chatTitle} />
-          {character.description && (
-            <blockquote className="fo-epi"><span className="fo-it">Epigraph</span>{character.description}</blockquote>
+          {epigraph && (
+            <blockquote className="fo-epi"><span className="fo-it">Epigraph</span>{epigraph}</blockquote>
           )}
           {paceParts.length > 0 && (
             <dl className="fo-style">

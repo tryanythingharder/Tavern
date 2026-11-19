@@ -19,7 +19,11 @@ export async function startStory(characterId: string, formData: FormData) {
   const opening = alternate?.text || character.greeting;
   const title = alternate?.title || '默认开场';
   const chatId = createChat(user.id, character.id, title);
-  addMessage(chatId, 'assistant', opening);
+  // ST：备选开场白是第一条消息的候选，进故事后还能左右滑动切换
+  const greetings = [character.greeting, ...alternates.map((item) => item.text)].filter((text) => text && text.trim());
+  const chosen = Math.max(0, greetings.indexOf(opening));
+  if (greetings.length > 1) addMessage(chatId, 'assistant', opening, greetings, chosen);
+  else addMessage(chatId, 'assistant', opening);
   if (personaId) updateChatSettings(user.id, chatId, { presetId: null, personaId, lorebookIds: null });
   redirect(`/chats/${chatId}`);
 }

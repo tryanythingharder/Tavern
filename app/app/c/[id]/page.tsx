@@ -1,3 +1,4 @@
+import { displayCardText } from '@/lib/st-macros';
 import { tr } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -172,7 +173,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
             <div className="p-card-head"><h2>公开设定</h2><span className="p-small">作者公开内容</span></div>
             <div className="p-sub">
               <div className="p-eyebrow">角色与场景</div>
-              <p>{character.description || '作者没有填写更多描述。'}</p>
+              <p>{displayCardText(character.description, character.name) || '作者没有填写更多描述。'}</p>
             </div>
             <div className="p-sub">
               <div className="p-eyebrow">互动节奏</div>

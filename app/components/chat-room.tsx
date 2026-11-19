@@ -250,7 +250,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   }, [chatId, loadingOlder, messages]);
 
   const streamInto = useCallback(
-    async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void): Promise<boolean> => {
+    async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void, prefix = ''): Promise<boolean> => {
       const controller = new AbortController();
       abortRef.current = controller;
       setStreaming(true);
@@ -294,7 +294,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             }
             if (event.type === 'delta' && event.text) {
               text += event.text;
-              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: text } : item)));
+              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
             } else if (event.type === 'done') {
               completed = true;
               if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free });
@@ -431,6 +431,25 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     },
     [streaming, streamInto],
   );
+
+  // ST「继续」：最后一条是角色消息时接着它往下写（不插玩家消息）；否则退回发一句「*继续*」
+  const continueLast = useCallback(async () => {
+    if (streaming) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant' || typeof last.id !== 'number' || !last.content) {
+      void send('*继续*');
+      return;
+    }
+    setFailed(null);
+    emitHelperEvent('generation_started', 'continue');
+    const accepted = await streamInto(`/api/messages/${last.id}/continue`, {}, last.id, undefined, last.content);
+    if (accepted) {
+      emitHelperEvent('message_updated', { dbId: last.id });
+      emitHelperEvent('generation_ended', { dbId: last.id });
+    } else {
+      setMessages((prev) => prev.map((item) => (item.id === last.id ? { ...item, content: last.content } : item)));
+    }
+  }, [messages, streaming, streamInto, send]);
 
   const saveEdit = useCallback(async () => {
     if (!editing) return;
@@ -618,6 +637,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           {messages.map((message, index) => {
             const isUser = message.role === 'user';
             const isLatest = index === messages.length - 1;
+            // ST：第一条开场白只能在备选开场白之间切换，不生成新版
+            const isGreeting = !hasMore && index === 0 && !isUser;
             const numericId = typeof message.id === 'number' ? message.id : null;
             const isEditing = editing !== null && editing.id === message.id;
             const isStreamingThis = streamingId === message.id;
@@ -635,7 +656,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                   const dx = t.clientX - start.x; const dy = t.clientY - start.y;
                   if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                   if (dx > 0 && message.selected > 0) void switchCandidate(message, message.selected - 1);
-                  else if (dx < 0) void (message.selected < message.candidateCount - 1 ? switchCandidate(message, message.selected + 1) : regenerate(message));
+                  else if (dx < 0) void (message.selected < message.candidateCount - 1 ? switchCandidate(message, message.selected + 1) : isGreeting ? undefined : regenerate(message));
                 } : undefined}
               >
                 <span className={`p-avatar${!isUser && characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : characterHue }}>
@@ -700,6 +721,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       <span className="rp-swipe-index" aria-live="polite">{Math.max(1, message.selected + 1)} / {Math.max(1, message.candidateCount)}</span>
                       {message.selected < message.candidateCount - 1 ? (
                         <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void switchCandidate(message, message.selected + 1)}><Ico name="next" /></button>
+                      ) : isGreeting ? (
+                        <button type="button" aria-label="下一版回复" disabled><Ico name="next" /></button>
                       ) : (
                         <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="next" /></button>
                       )}
@@ -734,7 +757,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                           {numericId !== null && !isStreamingThis && (
                             <button type="button" data-act="bookmark" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void toggleBookmark(message)}><Ico name="star" /></button>
                           )}
-                          {!isUser && numericId !== null && !isStreamingThis && (
+                          {!isUser && !isGreeting && numericId !== null && !isStreamingThis && (
                             <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="regen" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
@@ -844,7 +867,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           </div>
           <div className="p-chat-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
             <span className="p-chat-acts">
-              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void send('*继续*')} title="不写台词，让角色把这一幕继续演下去">▸ 继续</button>
+              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void continueLast()} title="不写台词，让角色接着上一条往下写">▸ 继续</button>
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
               <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
               <ModelPicker chatId={chatId} />

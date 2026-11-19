@@ -15,8 +15,9 @@ const securityHeaders = [
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "img-src 'self' data: blob:",
-      "media-src 'self' blob:",
+      // 卡里的插图/立绘多在外链图床（画廊、单行 Markdown 图片在主页面里显示），只放行 https
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' blob: https:",
       "font-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
       isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",

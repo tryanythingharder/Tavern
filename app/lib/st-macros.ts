@@ -60,3 +60,13 @@ export function expandStMacros(text: string, ctx: Ctx = {}): string {
   out = out.replace(/\s*\{\{trim\}\}\s*/gi, '');
   return out;
 }
+
+/** 给页面展示用的卡片文字：去掉 ST 注释宏 {{// …}}（作者备注、加密串），{{char}} 换成角色名，其余宏不显示 */
+export function displayCardText(text: string | null | undefined, charName: string, userName = '你'): string {
+  return String(text ?? '')
+    .replace(/\{\{\/\/[\s\S]*?\}\}/g, '')
+    .replace(/\{\{char\}\}/gi, charName)
+    .replace(/\{\{user\}\}/gi, userName)
+    .replace(/\{\{[^{}]*\}\}/g, '')
+    .trim();
+}

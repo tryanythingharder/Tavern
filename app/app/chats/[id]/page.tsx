@@ -19,7 +19,7 @@ import { ChatNavSheet } from '@/components/chat-nav-sheet';
 import { ChatFocusToggle, ChatFocusChrome } from '@/components/chat-focus';
 import { ChatStage } from '@/components/chat-stage';
 import { chatFocusBootScript } from '@/lib/chat-focus';
-import { loadExtras } from '@/lib/card-extras';
+import { characterLoreEntries, loadExtras, parseCardLore } from '@/lib/card-extras';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '对话' });
@@ -44,7 +44,9 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const hasPortrait = character.owner_id === null || Boolean(character.cover_image);
   const bookmarks = messages.filter((message) => message.bookmark).length;
   const settings = chatSettings(chat);
-  const lorebookCount = settings.lorebookIds === null ? listLorebooks(user.id).length : settings.lorebookIds.length;
+  // 卡内世界书也算一本（有启用条目时），不然带世界书的卡会显示「没有绑定世界书」
+  const cardLoreOn = characterLoreEntries(character.id, parseCardLore(chat.card_lore)).some((entry) => entry.enabled);
+  const lorebookCount = (settings.lorebookIds === null ? listLorebooks(user.id).length : settings.lorebookIds.length) + (cardLoreOn ? 1 : 0);
   const memory = summaryStatus(chat, messages.length);
   const branches = chatBranches(chat.id, user.id);
   const contextRows = [
