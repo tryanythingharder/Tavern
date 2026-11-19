@@ -1,3 +1,4 @@
+import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import {
   appendCandidate,
@@ -53,12 +54,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const memory = memorySettings(chat);
   const lastUser = [...history].reverse().find((item) => item.role === 'user');
   const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
+  const vars = chatVariables(chat.id, chat.character_id, { beforeId: message.id });
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
     history,
     preset: config.preset,
     persona: config.persona,
-    loreEntries: config.loreEntries,
+    loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'regenerate',
     summary: summaryState(chat).text,
@@ -66,8 +69,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
-    variables: chatVariables(chat.id, chat.character_id, { beforeId: message.id }),
+    variables: vars,
   });
+  // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
+  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'regenerate' });
+  prompt.messages = ejs.messages;
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, maxCost, `重新生成 · ${modelName(chat.model)}`, `chat:${chat.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
@@ -108,6 +114,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const finalText = full;
         if (finalText.trim()) {
           const candidate = appendCandidate(message.id, finalText);
+          await applyReplyTemplates(finalText, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { beforeId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
           send({
             type: 'done',

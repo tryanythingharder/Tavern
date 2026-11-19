@@ -1,3 +1,4 @@
+import { templateLore, templatePrompt } from '@/lib/ejs-server';
 import { modelName } from '@/lib/model';
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { getChat, getCharacterById, listMessages } from '@/lib/db';
@@ -27,26 +28,35 @@ export async function GET(_request: Request, context: Params) {
   const memory = memorySettings(chat);
   const lastUser = [...history].reverse().find((message) => message.role === 'user');
   const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
+  const vars = chatVariables(chat.id, chat.character_id);
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const result = assemblePrompt({
     character,
     history,
     preset: config.preset,
     persona: config.persona,
-    loreEntries: config.loreEntries,
+    loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     summary: summaryState(chat).text,
     rag,
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
-    variables: chatVariables(chat.id, chat.character_id),
+    variables: vars,
   });
+  // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
+  const ejs = await templatePrompt(result.messages, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
+  result.messages = ejs.messages;
+  // 预览里分块显示的也换成处理后的文本
+  const ejsBlocks = await templatePrompt(result.blocks.map((block) => ({ role: 'system' as const, content: block.text })), { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
+  result.blocks = result.blocks.map((block, index) => ({ ...block, text: ejsBlocks.messages[index]?.content ?? block.text }));
 
   return json({
     preset: { id: config.preset.id, name: config.preset.name, params: config.preset.params, instruct: config.preset.instruct },
     persona: config.persona ? { id: config.persona.id, name: config.persona.name } : null,
     blocks: result.blocks,
     messages: result.messages,
+    ejsErrors: [...ejsLore.errors, ...ejs.errors, ...ejsBlocks.errors.filter((item) => !ejs.errors.some((other) => other.message === item.message))],
     tokens: result.tokens,
     chars: result.chars,
     dropped: result.dropped,

@@ -1,3 +1,4 @@
+import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import {
@@ -83,12 +84,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // 摘要按间隔自动刷新；检索只从「最近 8 条」之前的历史里挑片段
   const summary = refreshSummary(chatId, character.name, history);
   const rag = memory.ragPrefs.enabled ? ragChunks(history, text, memory.ragPrefs.topK) : [];
+  const vars = chatVariables(chat.id, chat.character_id);
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
     history,
     preset: config.preset,
     persona: config.persona,
-    loreEntries: config.loreEntries,
+    loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
     summary: summary.text,
@@ -96,8 +99,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
-    variables: chatVariables(chat.id, chat.character_id),
+    variables: vars,
   });
+  // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
+  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
+  prompt.messages = ejs.messages;
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
@@ -143,6 +149,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const finalText = full;
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
+          // 回复里的 EJS（如 setvar）在这一步才真正写变量
+          await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
           send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         } else {

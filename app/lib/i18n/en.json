@@ -2898,5 +2898,7 @@
  "关键词：{0}": "Keywords: {0}",
  "关键词触发": "Keyword-triggered",
  "· 卡默认开": "· on by default",
- "· 卡默认关": "· off by default"
+ "· 卡默认关": "· off by default",
+ "EJS 模板出错（出错的部分去掉代码后发送）：{0}": "EJS template error (the broken parts are sent with the code removed): {0}",
+ "EJS 模板出错（出错的部分去掉代码后发送）：": "EJS template error (the broken parts are sent with the code removed): "
 }

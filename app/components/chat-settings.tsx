@@ -26,6 +26,7 @@ type Preview = {
   dropped: number;
   loreHits: { title: string; keys: string[] }[];
   context?: { window: number; modelLimit: number; requested: number; history: number };
+  ejsErrors?: { name: string; message: string }[];
 };
 
 type MemoryData = {
@@ -392,6 +393,11 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     <p className="small" style={{ margin: '0 0 8px' }}>
                       世界书命中：{preview.loreHits.length ? preview.loreHits.map((hit) => `${hit.title}（${hit.keys.join('、')}）`).join('；') : '无'}
                     </p>
+                    {!!preview.ejsErrors?.length && (
+                      <p className="small cs-ejs-error" style={{ margin: '0 0 8px' }}>
+                        EJS 模板出错（出错的部分去掉代码后发送）：{preview.ejsErrors.map((item) => item.message).join('；')}
+                      </p>
+                    )}
                     {preview.blocks.filter((block) => block.enabled && block.text).map((block) => (
                       <details className="preview-block" key={block.key}>
                         <summary className="preview-block-head">{block.label} · {block.chars} 字符</summary>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RpText } from '@/components/rp-text';
 import { HtmlFrame } from '@/components/html-frame';
 import { applyRegex, type RegexMacros } from '@/lib/regex-apply';
@@ -13,6 +13,28 @@ function hash(value: string): string {
   for (let i = 0; i < value.length; i += 1) h = (Math.imul(31, h) + value.charCodeAt(i)) | 0;
   return `${value.length}-${h}`;
 }
+
+// 楼层里的 EJS（<% %>）由服务端沙盒渲染（/api/chats/[id]/render）；结果按楼层+原文缓存
+const EJS_RE = /<%/;
+const renderCache = new Map<string, Promise<string>>();
+function renderEjs(chatId: number, messageId: number, key: string): Promise<string> {
+  const cacheKey = `${chatId}:${messageId}:${key}`;
+  let hit = renderCache.get(cacheKey);
+  if (!hit) {
+    hit = fetch(`/api/chats/${chatId}/render?message=${messageId}`, { cache: 'no-store' })
+      .then((response) => (response.ok ? (response.json() as Promise<{ text?: string }>) : Promise.reject(new Error(String(response.status)))))
+      .then((data) => String(data.text ?? ''))
+      .catch((error) => {
+        renderCache.delete(cacheKey);
+        throw error;
+      });
+    renderCache.set(cacheKey, hit);
+    if (renderCache.size > 300) renderCache.delete(renderCache.keys().next().value as string);
+  }
+  return hit;
+}
+// 渲染结果回来前先把代码块藏起来，别让玩家看到一闪而过的 <% %>
+const stripEjs = (value: string) => value.replace(/<%(?!%)[\s\S]*?%>/g, '');
 
 // 消息正文：先套「仅显示」正则（玩家规则 + 角色卡自带脚本），再把 HTML 片段交给沙盒渲染。
 export function RichText({
@@ -33,14 +55,29 @@ export function RichText({
   /** 给状态栏脚本读 MVU 变量用：这条消息所在的会话和楼层 */
   variables?: { chatId: number; messageId: number; rev?: string };
 }) {
+  const ejsKey = !streaming && variables && EJS_RE.test(text) ? `${hash(text)}:${variables.rev ?? ''}` : '';
+  const [ejsText, setEjsText] = useState<{ key: string; text: string } | null>(null);
+  const ejsChat = variables?.chatId ?? 0;
+  const ejsMessage = variables?.messageId ?? 0;
+  useEffect(() => {
+    if (!ejsKey || !ejsChat || !ejsMessage) return;
+    let alive = true;
+    const put = (value: string) => {
+      if (alive) setEjsText((prev) => (prev?.key === ejsKey && prev.text === value ? prev : { key: ejsKey, text: value }));
+    };
+    renderEjs(ejsChat, ejsMessage, ejsKey).then(put, () => put(stripEjs(text)));
+    return () => { alive = false; };
+  }, [ejsKey, ejsChat, ejsMessage, text]);
+  const source = ejsKey ? (ejsText?.key === ejsKey ? ejsText.text : stripEjs(text)) : text;
+
   const shown = useMemo(() => {
     // MVU 的 <UpdateVariable> 命令块只给程序看，不显示（ST 里一般靠卡自带正则藏，没带的卡也别露出来）
-    const base = role === 'assistant' ? stripMvuBlocks(text) : text;
+    const base = role === 'assistant' ? stripMvuBlocks(source) : source;
     const out = rules?.length ? applyRegex(rules, base, { target: role, purpose: 'display', depth, macros }) : base;
     // 开场白里的 {{user}}/{{char}} 照 ST 显示成名字
     if (!macros || !out.includes('{{')) return out;
     return out.replace(/\{\{char\}\}/gi, macros.char ?? '').replace(/\{\{(?:user|persona)\}\}/gi, macros.user ?? '');
-  }, [rules, text, role, depth, macros]);
+  }, [rules, source, role, depth, macros]);
   const version = useMemo(() => `${hash(text)}:${variables?.rev ?? ''}`, [text, variables?.rev]);
   const segments = useMemo(() => splitRich(shown), [shown]);
   if (segments.length === 1 && segments[0].kind === 'text') return <RpText text={segments[0].text} streaming={streaming} />;

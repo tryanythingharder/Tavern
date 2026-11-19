@@ -50,6 +50,8 @@ const sandboxHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // EJS 沙盒（lib/ejs.ts）：QuickJS 的 WASM 加载方式不适合被打包，按原样从 node_modules 载入
+  serverExternalPackages: ['quickjs-emscripten', 'quickjs-emscripten-core', '@jitl/quickjs-wasmfile-release-sync'],
   async headers() {
     return [
       { source: '/((?!sandbox/).*)', headers: securityHeaders },

@@ -1,3 +1,4 @@
+import { templateLore, templatePrompt } from '@/lib/ejs-server';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getChat, getCharacterById, listMessages, startGeneration } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
@@ -37,20 +38,26 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const config = loadGenerationConfig(user.id, chat);
   const memory = memorySettings(chat);
+  const ejsHistory = listMessages(chatId);
+  const vars = chatVariables(chat.id, chat.character_id);
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
-    history: listMessages(chatId),
+    history: ejsHistory,
     preset: config.preset,
     persona: config.persona,
-    loreEntries: config.loreEntries,
+    loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
     summary: memory.summary.text,
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
-    variables: chatVariables(chat.id, chat.character_id),
+    variables: vars,
   });
+  // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
+  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars, generateType: 'impersonate' });
+  prompt.messages = ejs.messages;
   const who = config.persona?.name || '玩家';
   prompt.messages.push({
     role: 'system',
