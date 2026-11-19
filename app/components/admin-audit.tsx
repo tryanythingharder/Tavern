@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import { useState } from 'react';
 
 type Entry = { id: number; adminName: string; action: string; detail: string; createdAt: number };
@@ -49,7 +50,7 @@ export function AdminAudit({ initial }: { initial: Entry[] }) {
           <tbody>
             {visible.map((entry) => (
               <tr key={entry.id}>
-                <td data-label="时间" className="small">{new Date(entry.createdAt).toLocaleString('zh-CN')}</td>
+                <td data-label="时间" className="small"><LocalTime value={entry.createdAt} /></td>
                 <td data-label="管理员">{entry.adminName}</td>
                 <td data-label="操作">{entry.action}</td>
                 <td data-label="详情" className="small">{entry.detail || '—'}</td>

@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime, formatTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
@@ -33,7 +34,7 @@ function relative(value: number | null): string {
   if (diff < 60_000) return '刚刚测试';
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前测试`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前测试`;
-  return `${new Date(value).toLocaleDateString('zh-CN')} 测试`;
+  return `${formatTime(value, 'date')} 测试`;
 }
 
 function ChannelForm({
@@ -324,7 +325,7 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
                       <td data-label="优先级">{channel.priority}</td>
                       <td data-label="状态">
                         <span className={`p-pill p-pill--sm ${channel.enabled ? 'p-pill--ok' : 'p-pill--outline'}`}>{channel.enabled ? '启用' : '停用'}</span>
-                        <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>{relative(channel.lastTestAt)}</span>
+                        <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>{channel.lastTestAt ? <LocalTime value={channel.lastTestAt} style="date" render={relative} /> : relative(null)}</span>
                       </td>
                       <td data-label="操作">
                         <div className="admin-actions">

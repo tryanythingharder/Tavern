@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
@@ -69,7 +70,7 @@ export function AdminReview({ characters }: { characters: CharacterRow[] }) {
                 <td data-label="作者">{row.ownerName ?? row.author}</td>
                 <td data-label="题材">{row.category}</td>
                 <td data-label="状态"><span className={`p-pill p-pill--sm ${STATUS_PILL[row.status] ?? 'p-pill--outline'}`}>{STATUS_LABEL[row.status] ?? row.status}</span></td>
-                <td data-label="创建时间" className="small">{row.createdAt ? new Date(row.createdAt).toLocaleDateString('zh-CN') : '—'}</td>
+                <td data-label="创建时间" className="small">{row.createdAt ? <LocalTime value={row.createdAt} style="date" /> : '—'}</td>
                 <td data-label="操作">
                   <div className="admin-actions">
                     <Link className="p-btn p-btn--sm" href={`/c/${row.id}`}>查看</Link>

@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { usePlayMode } from '@/components/play-mode';
@@ -46,7 +47,6 @@ const TABS: [Tab, string][] = [
 
 const fmtK = (tokens: number) => (tokens >= 1_000_000 ? `${+(tokens / 1_000_000).toFixed(2)}M` : `${Math.round(tokens / 1000)}K`);
 
-const formatTime = (value: number) => new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export function ChatSettings({ chatId }: { chatId: number }) {
   const mode = usePlayMode();
@@ -406,7 +406,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                   {backups.map((backup) => (
                     <div className="res-row" key={backup.id} style={{ padding: '10px 12px' }}>
                       <div className="res-row-main">
-                        <div className="res-row-title" style={{ fontSize: 13.5 }}>{formatTime(backup.created_at)}</div>
+                        <div className="res-row-title" style={{ fontSize: 13.5 }}><LocalTime value={backup.created_at} style="mdhm" /></div>
                         <div className="res-row-sub">{backup.message_count} 条消息</div>
                       </div>
                       <div className="res-actions">

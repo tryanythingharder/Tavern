@@ -635,12 +635,12 @@ html body[data-theme="folio"] .version-row { border-radius: 0 !important; }
 .mg-price b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .mg-pick { display: inline-flex; align-items: center; gap: 8px; }
 .mg-note { margin-top: 18px; }
-.am-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.am-table { width: 100%; min-width: 1180px; border-collapse: collapse; font-size: 13px; }
 .am-table th, .am-table td { padding: 8px 6px; border-bottom: 1px solid var(--ca-line, var(--border, #e6e6e8)); vertical-align: top; text-align: left; }
 .am-table td .p-input { min-width: 0; width: 100%; }
-.am-table .am-id { font-family: ui-monospace, monospace; word-break: break-all; max-width: 200px; }
+.am-table .am-id { font-family: ui-monospace, monospace; overflow-wrap: anywhere; min-width: 150px; max-width: 220px; }
 .am-table .am-num { width: 92px; }
-.am-table td .am-mode { width: 108px; min-width: 108px; }
+.am-table td .am-mode { width: 144px; min-width: 144px; }
 .am-table .am-tiers { min-width: 170px; }
 .am-table .am-tiers .p-small { margin-top: 4px; line-height: 1.4; }
 .am-table .am-bad { color: #c9401f; }

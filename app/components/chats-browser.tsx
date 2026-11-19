@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime, formatTime } from '@/components/local-time';
 import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -33,7 +34,7 @@ function relative(timestamp: number): string {
   if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`;
   if (diff < day) return `${Math.floor(diff / hour)} 小时前`;
   if (diff < day * 7) return `${Math.floor(diff / day)} 天前`;
-  return new Date(timestamp).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+  return formatTime(timestamp, 'md');
 }
 
 function MoreIcon() {
@@ -237,7 +238,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
                 <div className="p-library-sub">房间 · {room.count} 条消息</div>
               </div>
             </Link>
-            <div className="p-chat-row-meta"><span>{relative(room.updatedAt)}</span><span>{room.count} 条</span></div>
+            <div className="p-chat-row-meta"><span><LocalTime value={room.updatedAt} style="md" render={relative} /></span><span>{room.count} 条</span></div>
           </div>
         ))}
 
@@ -255,7 +256,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
                   <div className="p-library-sub">本地保存 · {chat.count} 条消息</div>
                 </div>
               </Link>
-              <div className="p-chat-row-meta"><span>{relative(chat.updatedAt)}</span><span>{chat.count} 条</span></div>
+              <div className="p-chat-row-meta"><span><LocalTime value={chat.updatedAt} style="md" render={relative} /></span><span>{chat.count} 条</span></div>
               <div className="p-chat-row-action">
                 <button className="p-btn p-btn--sm p-btn--icon" type="button" aria-label={`管理${chat.title}`} onClick={() => openManage(chat)}>
                   <MoreIcon />

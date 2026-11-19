@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -120,7 +121,7 @@ export function AdminPanel({ users }: { users: AdminUser[] }) {
                     {row.status === 'banned' ? '已封禁' : row.status === 'deleted' ? '已注销' : '正常'}
                   </span>
                 </td>
-                <td data-label="注册时间" className="small">{row.createdAt ? new Date(row.createdAt).toLocaleDateString('zh-CN') : '—'}</td>
+                <td data-label="注册时间" className="small">{row.createdAt ? <LocalTime value={row.createdAt} style="date" /> : '—'}</td>
                 <td data-label="今日" className="small">
                   <span className="p-cell-group">
                     <span className="p-nowrap">{row.runsToday} 次</span>

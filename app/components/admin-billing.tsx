@@ -1,4 +1,5 @@
 'use client';
+import { LocalTime } from '@/components/local-time';
 import { formatMoney } from '@/lib/money';
 
 import { useRouter } from 'next/navigation';
@@ -143,7 +144,7 @@ export function AdminBilling({ orders, currency = 'USD' }: { orders: Order[]; cu
                   <td data-label="金额">{yuan(order.priceCents)}</td>
                   <td data-label="点数">{order.points.toLocaleString('zh-CN')} 点</td>
                   <td data-label="状态"><span className={`p-pill p-pill--sm ${STATUS_PILL[order.status] ?? 'p-pill--outline'}`}>{STATUS_LABEL[order.status] ?? order.status}</span></td>
-                  <td data-label="时间" className="small">{new Date(order.createdAt).toLocaleString('zh-CN')}</td>
+                  <td data-label="时间" className="small"><LocalTime value={order.createdAt} /></td>
                   <td data-label="操作">
                     <div className="admin-actions">
                       <button className="p-btn p-btn--sm" type="button" onClick={() => setDetail(order)}>详情</button>
@@ -183,8 +184,8 @@ export function AdminBilling({ orders, currency = 'USD' }: { orders: Order[]; cu
                 <tr><td>点数</td><td>{detail.points.toLocaleString('zh-CN')} 点</td></tr>
                 <tr><td>金额</td><td>{yuan(detail.priceCents)}</td></tr>
                 <tr><td>状态</td><td>{STATUS_LABEL[detail.status] ?? detail.status}</td></tr>
-                <tr><td>创建时间</td><td>{new Date(detail.createdAt).toLocaleString('zh-CN')}</td></tr>
-                <tr><td>到账时间</td><td>{detail.paidAt ? new Date(detail.paidAt).toLocaleString('zh-CN') : '—'}</td></tr>
+                <tr><td>创建时间</td><td><LocalTime value={detail.createdAt} /></td></tr>
+                <tr><td>到账时间</td><td>{detail.paidAt ? <LocalTime value={detail.paidAt} /> : '—'}</td></tr>
               </tbody>
             </table>
           </div>

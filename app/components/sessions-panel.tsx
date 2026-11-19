@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import { useState } from 'react';
 import { api } from '@/components/settings-ui';
 
@@ -63,8 +64,8 @@ export function SessionsPanel({ initial }: { initial: SessionInfo[] }) {
               </div>
               <p className="p-room-last">
                 {session.ip ? `${session.ip} · ` : ''}
-                {session.createdAt ? `登录于 ${new Date(session.createdAt).toLocaleString('zh-CN')}` : '登录时间未知'}
-                {' · '}有效至 {new Date(session.expiresAt).toLocaleDateString('zh-CN')}
+                {session.createdAt ? <>登录于 <LocalTime value={session.createdAt} /></> : '登录时间未知'}
+                {' · '}有效至 <LocalTime value={session.expiresAt} style="date" />
               </p>
             </div>
             {!session.current && (

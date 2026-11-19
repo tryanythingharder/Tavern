@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime, formatTime } from '@/components/local-time';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/components/settings-ui';
@@ -31,7 +32,7 @@ function relative(timestamp: number): string {
   if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`;
   if (diff < day) return `${Math.floor(diff / hour)} 小时前`;
   if (diff < day * 7) return `${Math.floor(diff / day)} 天前`;
-  return new Date(timestamp).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+  return formatTime(timestamp, 'md');
 }
 
 export function NotificationsList({ initial }: { initial: Item[] }) {
@@ -84,7 +85,7 @@ export function NotificationsList({ initial }: { initial: Item[] }) {
                   {!item.read && <span className="p-unread-dot" aria-label="未读" />}
                 </span>
                 {item.body && <span className="p-notification-text">{item.body}</span>}
-                <span className="p-notification-time">{relative(item.createdAt)}</span>
+                <span className="p-notification-time"><LocalTime value={item.createdAt} style="md" render={relative} /></span>
               </span>
               <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
             </>

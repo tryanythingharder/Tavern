@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -103,7 +104,7 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
                   <td data-label="创建人">{code.createdByName ?? '—'}</td>
                   <td data-label="使用人">{code.usedByName ?? '—'}</td>
                   <td data-label="状态"><span className={`p-pill p-pill--sm ${code.usedBy ? 'p-pill--outline' : 'p-pill--ok'}`}>{code.usedBy ? '已使用' : '未使用'}</span></td>
-                  <td data-label="生成时间" className="small">{new Date(code.createdAt).toLocaleString('zh-CN')}</td>
+                  <td data-label="生成时间" className="small"><LocalTime value={code.createdAt} /></td>
                 </tr>
               ))}
               {!codes.length && <tr><td colSpan={7} className="admin-empty">还没有兑换码。</td></tr>}

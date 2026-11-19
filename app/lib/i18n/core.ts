@@ -7,7 +7,7 @@ export type Dict = Record<string, string>;
 export const LOCALE_COOKIE = 'tavern_lang';
 const HAN = /[\u4e00-\u9fff]/;
 
-type Pattern = { re: RegExp; out: string; hint: string; hanOk: boolean[] };
+type Pattern = { re: RegExp; out: string; hint: string; hanOk: boolean[]; lit: number };
 type Compiled = { exact: Map<string, string>; patterns: Pattern[] };
 let compiledFor: Dict | null = null;
 let compiled: Compiled = { exact: new Map(), patterns: [] };
@@ -41,10 +41,11 @@ function compile(dict: Dict): Compiled {
       });
       // 输出里 {n} 对应键里第 n 个占位，用捕获顺序映射回去
       let out = v;
-      patterns.push({ re: new RegExp('^' + src + '$'), out: JSON.stringify(order) + '\u0000' + out, hint, hanOk });
+      patterns.push({ re: new RegExp('^' + src + '$'), out: JSON.stringify(order) + '\u0000' + out, hint, hanOk, lit: k.replace(/\{\d+\}/g, '').length });
     } else exact.set(k, v);
   }
-  patterns.sort((a, b) => b.hint.length - a.hint.length);
+  // 提示词一样长时，字面量多的（更具体的）先试：「订单 #{0} 充值」排在「订单 #{0}{1}」前面
+  patterns.sort((a, b) => b.hint.length - a.hint.length || b.lit - a.lit);
   return { exact, patterns };
 }
 
@@ -71,6 +72,8 @@ export function translate(input: string, dict: Dict | null | undefined, depth = 
     const outParts = key.split(sep).map((x) => (HAN.test(x) ? translate(x, dict, depth + 1) : x));
     if (outParts.every((x) => !HAN.test(x))) return lead + outParts.join(join) + tail;
   }
+  // 多个模板都能匹配时，优先用「每个占位内容也能翻干净」的那个；都不行再用第一个（占位里是角色名等内容）
+  let fallback: string | null = null;
   for (const p of compiled.patterns) {
     if (p.hint && !key.includes(p.hint)) continue;
     const m = key.match(p.re);
@@ -78,8 +81,12 @@ export function translate(input: string, dict: Dict | null | undefined, depth = 
     const [orderJson, out] = p.out.split('\u0000');
     const order: number[] = JSON.parse(orderJson);
     const caps: Record<number, string> = {};
-    order.forEach((n, i) => { caps[n] = translate(m[i + 1], dict, depth + 1); });
-    return lead + out.replace(/\{(\d+)\}/g, (_x, n) => caps[Number(n)] ?? '') + tail;
+    let clean = true;
+    order.forEach((n, i) => { caps[n] = translate(m[i + 1], dict, depth + 1); if (HAN.test(caps[n])) clean = false; });
+    const result = lead + out.replace(/\{(\d+)\}/g, (_x, n) => caps[Number(n)] ?? '') + tail;
+    if (clean) return result;
+    if (fallback === null) fallback = result;
   }
+  if (fallback !== null) return fallback;
   return key !== raw ? lead + key + tail : input;
 }

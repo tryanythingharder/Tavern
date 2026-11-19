@@ -1,4 +1,5 @@
 'use client';
+import { LocalTime } from '@/components/local-time';
 import { formatMoney } from '@/lib/money';
 
 import { useRouter } from 'next/navigation';
@@ -107,7 +108,7 @@ export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: 
               <div className="res-row" key={order.id} style={{ padding: '10px 12px' }}>
                 <div className="res-row-main">
                   <div className="res-row-title" style={{ fontSize: 13.5 }}>#{order.id} · {order.points} 点 · {yuan(order.priceCents)}</div>
-                  <div className="res-row-sub">{new Date(order.createdAt).toLocaleString('zh-CN')}</div>
+                  <div className="res-row-sub"><LocalTime value={order.createdAt} /></div>
                 </div>
                 <span className="tag" style={{ height: 22, padding: '0 10px', fontSize: 11 }}>{STATUS_LABEL[order.status] ?? order.status}</span>
               </div>
