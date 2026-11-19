@@ -10,7 +10,7 @@
     done = true;
     var base = '<base target="_blank"><script>window.__tavernScheme=' + JSON.stringify(data.scheme === 'dark' ? 'dark' : 'light') + '<\/script><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
       'html{height:auto}body{margin:0;background:transparent;display:flow-root;color:' + data.color + ';font:' + data.font + ';overflow-wrap:anywhere}' +
-      'img,video,svg{max-width:100%;height:auto}</style>';
+      'img,video,svg{max-width:100%;height:auto}:where(img,video,canvas,iframe){vertical-align:bottom}</style>';
     var reporter = '<script>(function(){var b=document.body;function s(){if(!b)b=document.body;if(!b)return;var h=Math.max(b.scrollHeight,b.offsetHeight);parent.postMessage({type:"tavern-height",h:Math.ceil(h)},"*")}' +
       'try{new ResizeObserver(s).observe(document.body)}catch(e){}addEventListener("load",s);setTimeout(s,30);setTimeout(s,400);setTimeout(s,1500);})()<\/script>';
     var html = String(data.html || '');

@@ -437,8 +437,13 @@ export function resolveVariableMacros(text: string, state: MvuState | null): str
   return text.replace(/\{\{\s*(get|format)_(?:message|chat|global)_variable::([^}]+)\}\}|\{\{\s*getvar::([^}]+)\}\}/gi, (_match, kind: string | undefined, a: string | undefined, b: string | undefined) => {
     const parts = toPathRaw((a ?? b ?? '').trim());
     if (!/^(stat_data|display_data|delta_data)$/.test(parts[0] ?? '')) parts.unshift('stat_data');
-    return formatValue(getIn(root, parts), kind?.toLowerCase() === 'format');
+    return formatValue(unwrapDescribed(getIn(root, parts)), kind?.toLowerCase() === 'format');
   });
+}
+
+// MVU 常把变量写成 [值, "说明"]；宏只要值本身（和 Mvu.getMvuVariable 一致）
+function unwrapDescribed(value: Json | undefined): Json | undefined {
+  return Array.isArray(value) && value.length === 2 && typeof value[1] === 'string' ? value[0] : value;
 }
 
 function toPathRaw(path: string): string[] {
