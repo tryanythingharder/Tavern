@@ -28,16 +28,12 @@
       'if(bg.length<3||(bg.length>3&&bg[3]<0.6))continue;var fg=rgb(cs.color),lb=lum(bg),lf=lum(fg);' +
       'if(lb>0.62&&lf>0.55)el.style.color="#2b2420";else if(lb<0.35&&lf<0.4)el.style.color="#f1ebe4"}}' +
       'addEventListener("load",fix);setTimeout(fix,60)})()<\/script>';
-    // 插图上报：卡里的大图（排除图标、头像）报给外层，沉浸模式的画面栏跟着阅读位置换图；点图在画面栏放大。
-    // 外层画面栏展开时（tavern-stage open），这些大图缩成一条缩略图，避免同一张图出现两次。
-    var gallery = '<style>html.tv-stage img.tv-big{max-height:96px;object-fit:cover;cursor:zoom-in;border-radius:8px}</style><script>(function(){var big=[];' +
+    // 插图上报：卡里的大图（排除图标、头像）报给外层，沉浸模式左侧画廊收集（components/chat-stage.tsx）
+    var gallery = '<script>(function(){var big=[];' +
       'function scan(){var list=[];var imgs=document.images;for(var i=0;i<imgs.length;i++){var im=imgs[i];if(!im.complete||!im.naturalWidth)continue;' +
-      'if(im.naturalWidth>=240&&im.naturalHeight>=160&&im.getBoundingClientRect().width>=140){im.classList.add("tv-big");list.push(im.currentSrc||im.src)}}' +
+      'if(im.naturalWidth>=240&&im.naturalHeight>=160&&im.getBoundingClientRect().width>=140)list.push(im.currentSrc||im.src)}' +
       'if(list.join("|")!==big.join("|")){big=list;parent.postMessage({type:"tavern-images",list:list},"*")}}' +
-      'addEventListener("load",scan);setTimeout(scan,80);setTimeout(scan,800);document.addEventListener("load",function(e){if(e.target&&e.target.tagName==="IMG")scan()},true);' +
-      'document.addEventListener("click",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&t.classList.contains("tv-big")&&document.documentElement.classList.contains("tv-stage")){e.preventDefault();parent.postMessage({type:"tavern-pick",src:t.currentSrc||t.src},"*")}},true);' +
-      'addEventListener("message",function(e){var d=e.data;if(e.source===parent&&d&&d.type==="tavern-stage"){document.documentElement.classList.toggle("tv-stage",!!d.open)}});' +
-      'parent.postMessage({type:"tavern-stage-ask"},"*")})()<\/script>';
+      'addEventListener("load",scan);setTimeout(scan,80);setTimeout(scan,800);document.addEventListener("load",function(e){if(e.target&&e.target.tagName==="IMG")scan()},true);})()<\/script>';
     document.open();
     document.write(doc + fixer + gallery + reporter);
     document.close();

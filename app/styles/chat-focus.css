@@ -53,12 +53,12 @@ html[data-chat-focus][data-chat-head-hide] .chat-head-hotzone { display: block; 
 
 }
 
-/* 画面栏（components/chat-stage.tsx）：宽屏（≥1200）沉浸时固定在左侧，平时立绘，读到插图换插图。
+/* 画廊（components/chat-stage.tsx）：宽屏（≥1200）沉浸时固定在左侧，收集故事里的插图（去重）。
    <html data-chat-stage="open|rail">；宽度 --stage-open-w 由拖动设置。整个对话区往右让出画面栏的宽度。 */
 .chat-stage { display: none; color-scheme: light; }
 @media (min-width: 1200px) {
 html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) {
-  --stage-w: var(--stage-open-w, clamp(300px, 34vw, 560px));
+  --stage-w: var(--stage-open-w, clamp(260px, 22vw, 360px));
   --focus-col: min(860px, calc(100vw - var(--stage-w) - 220px));
 }
 html[data-chat-focus][data-chat-stage="rail"] body[data-page="chat"]:not(#_):not(#__) {
@@ -76,43 +76,39 @@ html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .
 }
 html[data-chat-stage-drag] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench { transition: none !important; }
 
-/* 画面：立绘铺满（偏上取景），插图完整显示、背后垫同图虚化；右缘和底部渐隐到页面底色 */
-.chat-stage-view { position: absolute; inset: 0; overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 72px), transparent);
-  mask-image: linear-gradient(90deg, #000 calc(100% - 72px), transparent); }
-.chat-stage-layer { position: absolute; inset: 0; animation: chat-stage-in .45s ease both; }
-.chat-stage-layer.is-leaving { animation: chat-stage-out .45s ease both; }
-@keyframes chat-stage-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes chat-stage-out { from { opacity: 1; } to { opacity: 0; } }
-.chat-stage-img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 18%; }
-.chat-stage[data-kind="art"] .chat-stage-img { object-fit: contain; object-position: center; padding: 64px 28px 132px 20px; box-sizing: border-box; filter: drop-shadow(0 18px 40px rgba(0,0,0,.35)); }
-.chat-stage-blur { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(28px) brightness(.55) saturate(.85); }
-/* 底部名字压在画上：加一层暗渐变保证白字可读 */
-.chat-stage-view::after { content: ""; position: absolute; inset: auto 0 0 0; height: 42%; background: linear-gradient(0deg, rgba(14,11,9,.82), transparent); pointer-events: none; }
-.chat-stage-cap { position: absolute; left: 36px; right: 84px; bottom: 32px; color: #f6efe8; text-shadow: 0 1px 12px rgba(0,0,0,.45); }
-.chat-stage-name { font-family: var(--font-serif, "Noto Serif SC", serif); font-size: clamp(26px, 2.6vw, 40px); letter-spacing: .12em; line-height: 1.2; }
-.chat-stage-sub { margin-top: 8px; font-size: 13px; color: rgba(246,239,232,.78); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.chat-stage .chat-stage-sub button:not(#_) { font-family: inherit; font-size: 12px; line-height: 1.4; min-height: 0; height: auto; box-shadow: none; letter-spacing: 0; color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 3px 12px; cursor: pointer; }
-.chat-stage .chat-stage-sub button:not(#_):hover { background: rgba(255,255,255,.24); }
-.chat-stage-fold, .chat-stage-rail { cursor: pointer; }
-.chat-stage-fold { position: absolute; top: 16px; right: 28px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3);
-  background: rgba(20,16,13,.42); color: #fff; display: grid; place-items: center; backdrop-filter: blur(6px); opacity: .75; transition: opacity .2s; }
-.chat-stage:hover .chat-stage-fold, .chat-stage-fold:focus-visible { opacity: 1; }
+/* 画廊：深墨底，头部标题 + 两列瀑布流；读到的那张加强调色圈 */
+.chat-stage { background: #15110e; color: #f3ece5; }
+.chat-gallery-head { position: absolute; left: 0; right: 0; top: 0; height: 76px; padding: 18px 20px 0 24px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,.08); }
+.chat-gallery-title { font-family: var(--font-serif, "Noto Serif SC", serif); font-size: 20px; letter-spacing: .2em; }
+.chat-gallery-sub { margin-top: 4px; font-size: 12px; color: rgba(243,236,229,.62); }
+.chat-gallery-grid { position: absolute; left: 0; right: 0; top: 76px; bottom: 0; overflow-y: auto; padding: 16px 20px 28px 20px; box-sizing: border-box;
+  columns: 2 150px; column-gap: 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
+.chat-stage .chat-gallery-tile:not(#_) { position: relative; display: block; width: 100%; margin: 0 0 10px; padding: 0; border: 0; border-radius: 8px; overflow: hidden;
+  background: rgba(255,255,255,.04); cursor: zoom-in; break-inside: avoid; box-shadow: 0 0 0 1px rgba(255,255,255,.08); transition: box-shadow .2s, transform .2s; min-height: 0; height: auto; }
+.chat-stage .chat-gallery-tile:not(#_):hover { box-shadow: 0 0 0 1px rgba(255,255,255,.3); }
+.chat-stage .chat-gallery-tile:not(#_):focus-visible { outline: 2px solid #f0714f; outline-offset: 2px; }
+.chat-stage .chat-gallery-tile.is-current:not(#_) { box-shadow: 0 0 0 2px #f0714f; }
+.chat-gallery-tile img { display: block; width: 100%; height: auto; }
+.chat-gallery-tile.is-cover img { aspect-ratio: 3 / 4; object-fit: cover; object-position: center 18%; }
+.chat-gallery-badge { position: absolute; left: 8px; top: 8px; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(15,11,9,.66); color: #fff; }
+.chat-gallery-empty { column-span: all; margin: 4px 2px 0; font-size: 12px; line-height: 1.7; color: rgba(243,236,229,.5); }
+.chat-stage-fold { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); background: transparent; color: #fff; display: grid; place-items: center; cursor: pointer; flex: none; }
+.chat-stage-fold:hover { background: rgba(255,255,255,.08); }
 .chat-stage svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* 拖动条：右边缘 10px，悬停显示一条细线 */
 .chat-stage-grip { position: absolute; top: 0; bottom: 0; right: -5px; width: 10px; cursor: col-resize; z-index: 2; touch-action: none; }
 .chat-stage-grip::after { content: ""; position: absolute; top: 50%; left: 4px; width: 2px; height: 56px; margin-top: -28px; border-radius: 2px; background: var(--ca-accent, #c9401f); opacity: 0; transition: opacity .2s; }
 .chat-stage-grip:hover::after, .chat-stage-grip:focus-visible::after, html[data-chat-stage-drag] .chat-stage-grip::after { opacity: 1; }
-/* 收成窄条：一条缩略图 + 展开箭头 */
-.chat-stage-rail { position: absolute; inset: 0; border: 0; padding: 0; background: rgba(20,16,13,.9); color: #fff; overflow: hidden; display: block; width: 100%; }
-.chat-stage-rail img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; transition: opacity .2s; }
-.chat-stage-rail:hover img { opacity: .8; }
-.chat-stage-rail svg { position: absolute; top: 20px; left: 50%; margin-left: -9px; filter: drop-shadow(0 1px 4px rgba(0,0,0,.6)); }
+/* 收成窄条：竖排「画廊」+ 插图数 */
+.chat-stage .chat-stage-rail:not(#_) { position: absolute; inset: 0; border: 0; padding: 18px 0 0; background: #15110e; color: #f3ece5; display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; cursor: pointer; min-height: 0; height: auto; border-radius: 0; box-shadow: none; }
+.chat-stage .chat-stage-rail:not(#_):hover { background: #1f1915; }
+.chat-stage-rail-label { writing-mode: vertical-rl; letter-spacing: .4em; font-size: 13px; color: rgba(243,236,229,.8); }
+.chat-stage-rail-count { min-width: 22px; height: 22px; border-radius: 11px; background: #c9401f; color: #fff; font-size: 12px; line-height: 22px; text-align: center; padding: 0 6px; box-sizing: border-box; }
 
-/* 画面栏展开时，消息里的生成图片缩成一条缩略图（点击在画面栏放大），不重复占版面 */
-html[data-chat-focus][data-chat-stage="open"] body[data-page="chat"]:not(#_):not(#__) .p-msg figure img {
-  max-height: 96px; object-fit: cover; cursor: zoom-in;
-}
+/* 从画廊跳回原文时，那条消息闪一下 */
+.p-msg.is-gallery-hit { animation: chat-gallery-hit 1.6s ease; border-radius: 10px; }
+@keyframes chat-gallery-hit { 0%, 40% { box-shadow: 0 0 0 2px var(--ca-accent, #c9401f); } 100% { box-shadow: 0 0 0 2px transparent; } }
+
 /* 顶栏让开左缘 */
 html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .p-chat-head-in { padding-left: 20px; }
 }
@@ -120,7 +116,7 @@ html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .
   html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .chat-stage { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .chat-stage-layer, .chat-stage-layer.is-leaving { animation-duration: 1ms; }
+  .p-msg.is-gallery-hit { animation: none; outline: 2px solid var(--ca-accent, #c9401f); }
   html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) :is(.chat-stage, .p-rp-workbench) { transition: none !important; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -149,3 +145,12 @@ html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .
     width: min(calc(100% + 180px), calc(100% + (100vw - var(--focus-col)) / 2 - 72px)); max-width: none; margin-left: 0; margin-right: 0;
   }
 }
+
+/* 画廊大图 */
+.chat-lightbox { color-scheme: light; position: fixed; inset: 0; z-index: 200; background: rgba(10,8,7,.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; box-sizing: border-box; }
+.chat-lightbox img { max-width: 100%; max-height: calc(100vh - 140px); object-fit: contain; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.chat-lightbox-bar { display: flex; align-items: center; gap: 10px; color: #f3ece5; font-size: 13px; }
+.chat-lightbox-bar button { font: inherit; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; min-width: 34px; height: 34px; padding: 0 12px; cursor: pointer; }
+.chat-lightbox-bar button:disabled { opacity: .35; cursor: default; }
+.chat-lightbox-bar button:not(:disabled):hover { background: rgba(255,255,255,.2); }
+.chat-lightbox-bar .chat-lightbox-jump { background: #c9401f; border-color: #c9401f; }

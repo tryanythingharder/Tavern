@@ -30,31 +30,18 @@ export function HtmlFrame({ html, title = '角色卡美化内容' }: { html: str
       const data = event.data as { type?: string; h?: number; list?: unknown; src?: unknown } | null;
       if (data?.type === 'tavern-ready') post();
       else if (data?.type === 'tavern-images' && Array.isArray(data.list)) {
-        // 只收 http(s)/data 图片地址，交给画面栏（components/chat-stage.tsx）
+        // 只收 http(s)/data 图片地址，交给左侧画廊（components/chat-stage.tsx）
         const list = data.list.filter((src): src is string => typeof src === 'string' && /^(https?:|data:image\/)/i.test(src)).slice(0, 12);
         frame.dataset.images = JSON.stringify(list);
         window.dispatchEvent(new Event('tavern:images'));
-      } else if (data?.type === 'tavern-pick' && typeof data.src === 'string' && /^(https?:|data:image\/)/i.test(data.src)) {
-        window.dispatchEvent(new CustomEvent('tavern:stage-pick', { detail: { src: data.src } }));
-      } else if (data?.type === 'tavern-stage-ask') sendStage();
+      }
       else if (data?.type === 'tavern-height' && typeof data.h === 'number') setHeight(Math.max(16, Math.min(MAX_HEIGHT, data.h)));
     };
-    // 画面栏展开与否告诉 frame（展开时卡里大图缩成缩略图）
-    const sendStage = () => {
-      const root = document.documentElement;
-      const open = root.hasAttribute('data-chat-focus') && root.getAttribute('data-chat-stage') === 'open' && window.innerWidth >= 1200;
-      frame.contentWindow?.postMessage({ type: 'tavern-stage', open }, '*');
-    };
-    const observer = new MutationObserver(sendStage);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-chat-stage', 'data-chat-focus'] });
-    window.addEventListener('resize', sendStage);
     window.addEventListener('message', onMessage);
     frame.addEventListener('load', post);
     post();
     return () => {
       window.removeEventListener('message', onMessage);
-      window.removeEventListener('resize', sendStage);
-      observer.disconnect();
       frame.removeEventListener('load', post);
     };
   }, [html]);
