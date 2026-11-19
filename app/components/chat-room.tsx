@@ -607,7 +607,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       ) : (
                         <div className="p-msg-copy p-msg-text">
                           {message.content
-                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={macros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} />
+                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={macros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id } : undefined} />
                             : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
                         </div>
                       )}

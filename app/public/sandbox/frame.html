@@ -14,11 +14,41 @@
     var reporter = '<script>(function(){var b=document.body;function s(){if(!b)b=document.body;if(!b)return;var h=Math.max(b.scrollHeight,b.offsetHeight);parent.postMessage({type:"tavern-height",h:Math.ceil(h)},"*")}' +
       'try{new ResizeObserver(s).observe(document.body)}catch(e){}addEventListener("load",s);setTimeout(s,30);setTimeout(s,400);setTimeout(s,1500);})()<\/script>';
     var html = String(data.html || '');
+    // 酒馆助手 / MVU 兼容层：状态栏脚本常直接用 $、_、getVariables、Mvu.getMvuData、getCurrentMessageId。
+    // 变量是外层按楼层算好传进来的只读快照（lib/mvu.ts）；脚本里改变量只改本地副本，不会写回。
+    var helper = '';
+    if (/<script/i.test(String(data.html || ''))) {
+      var vendor = function (name) { return new URL('vendor/' + name, location.href).href; };
+      var payload = JSON.stringify({ vars: data.vars || null, names: data.names || {} }).replace(/</g, '\\u003c');
+      helper = '<script src="' + vendor('jquery.min.js') + '"><\/script><script src="' + vendor('lodash.min.js') + '"><\/script><script>(function(){' +
+        'var P=' + payload + ';var V=P.vars||{stat_data:{},display_data:{},delta_data:{},index:0};var N=P.names||{};' +
+        'function cp(x){return JSON.parse(JSON.stringify(x==null?{}:x))}' +
+        'var local={stat_data:cp(V.stat_data),display_data:cp(V.display_data),delta_data:cp(V.delta_data)};' +
+        'function gv(o){var t=(o&&o.type)||"chat";return(t==="message"||t==="chat")?cp(local):{}}' +
+        'function noop(){return{stop:function(){}}}' +
+        'window.getVariables=gv;window.getAllVariables=function(){return cp(local)};' +
+        'window.replaceVariables=function(v,o){if(!o||o.type==="message"||o.type==="chat")local=cp(v)};' +
+        'window.insertOrAssignVariables=function(v){_.merge(local,cp(v))};window.updateVariablesWith=function(f){var r=f(local);if(r)local=r;return local};' +
+        'window.deleteVariable=function(p){_.unset(local,p)};' +
+        'window.getCurrentMessageId=function(){return V.index||0};window.getLastMessageId=window.getCurrentMessageId;' +
+        'window.getChatMessages=function(){return[{message_id:V.index||0,role:"assistant",name:N.char||"",message:"",data:cp(local),swipe_id:0,swipes:[""],is_hidden:false}]};' +
+        'window.getMessageId=function(){return V.index||0};' +
+        'window.substitudeMacros=function(s){return String(s).replace(/\\{\\{char\\}\\}/gi,N.char||"").replace(/\\{\\{user\\}\\}/gi,N.user||"")};' +
+        'window.triggerSlash=function(){return Promise.resolve("")};window.waitGlobalInitialized=function(){return Promise.resolve()};' +
+        'window.eventOn=noop;window.eventOnce=noop;window.eventMakeFirst=noop;window.eventMakeLast=noop;window.eventOff=function(){};window.eventEmit=function(){return Promise.resolve()};' +
+        'window.tavern_events={};window.iframe_events={};' +
+        'window.Mvu={getMvuData:function(){return cp(local)},getMvuVariable:function(d,p,o){var v=_.get(d&&d.stat_data?d.stat_data:d,p);if(Array.isArray(v)&&v.length===2&&typeof v[1]==="string")v=v[0];return v===undefined&&o?o.default_value:v},' +
+        'replaceMvuData:function(){return Promise.resolve()},setMvuVariable:function(d,p,v){_.set(d.stat_data||d,p,v);return Promise.resolve(true)},events:{}};' +
+        'if(!window.toastr)window.toastr={info:function(){},success:function(){},warning:function(){},error:function(){}};' +
+        'window.SillyTavern={getContext:function(){return{chat:[],name1:N.user||"",name2:N.char||"",characters:[],chatMetadata:{variables:{}}}}};' +
+        'window.TavernHelper={getVariables:gv,getCurrentMessageId:window.getCurrentMessageId,getChatMessages:window.getChatMessages,substitudeMacros:window.substitudeMacros,triggerSlash:window.triggerSlash};' +
+        '})()<\/script>';
+    }
     var doc;
     if (/<html[\s>]/i.test(html)) {
-      doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + base; }) : html.replace(/<html[^>]*>/i, function (m) { return m + '<head>' + base + '</head>'; });
+      doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + base + helper; }) : html.replace(/<html[^>]*>/i, function (m) { return m + '<head>' + base + helper + '</head>'; });
     } else {
-      doc = '<!doctype html><html><head><meta charset="utf-8">' + base + '</head><body>' + html + '</body></html>';
+      doc = '<!doctype html><html><head><meta charset="utf-8">' + base + helper + '</head><body>' + html + '</body></html>';
     }
     // 对比度兜底：卡里常写死浅底（#fff8ee 之类）却不写字色，深色模式下就成了浅底浅字；反过来也一样。
     // 只改「自己有不透明底色、字色和底色同为浅/同为深」的元素，作者明确配好的颜色不动。

@@ -12,6 +12,7 @@ import {
   touchChat,
 } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
+import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
@@ -95,6 +96,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
+    variables: chatVariables(chat.id, chat.character_id),
   });
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));

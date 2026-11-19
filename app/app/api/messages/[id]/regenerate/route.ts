@@ -9,6 +9,7 @@ import {
   startGeneration,
 } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
+import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
@@ -65,6 +66,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
+    variables: chatVariables(chat.id, chat.character_id, { beforeId: message.id }),
   });
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, maxCost, `重新生成 · ${modelName(chat.model)}`, `chat:${chat.id}`);

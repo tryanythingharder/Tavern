@@ -2,6 +2,7 @@ import { modelName } from '@/lib/model';
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { getChat, getCharacterById, listMessages } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
+import { chatVariables } from '@/lib/mvu-server';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { getOverride } from '@/lib/cards';
 import { memorySettings, ragChunks, summaryState } from '@/lib/memory';
@@ -38,6 +39,7 @@ export async function GET(_request: Request, context: Params) {
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
+    variables: chatVariables(chat.id, chat.character_id),
   });
 
   return json({

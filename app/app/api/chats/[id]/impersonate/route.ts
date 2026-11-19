@@ -1,6 +1,7 @@
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getChat, getCharacterById, listMessages, startGeneration } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
+import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
@@ -48,6 +49,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     memory: memory.memory,
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),
+    variables: chatVariables(chat.id, chat.character_id),
   });
   const who = config.persona?.name || '玩家';
   prompt.messages.push({
