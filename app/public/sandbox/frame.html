@@ -4,11 +4,13 @@
 (function () {
   // 角色卡美化 / 状态栏的沙盒：无同源权限（拿不到 cookie、改不了外层页面），只把内容高度报给外层
   var done = false;
+  // 沙盒没有 allow-same-origin，卡里脚本一碰 localStorage 就抛错中断；换成只在本页有效的内存版
+  var STORAGE = "(function(){function mem(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}['localStorage','sessionStorage'].forEach(function(n){try{window[n].getItem('x')}catch(e){try{Object.defineProperty(window,n,{value:mem(),configurable:true})}catch(_){}}})})();";
   addEventListener('message', function (event) {
     var data = event.data;
     if (done || !data || data.type !== 'tavern-html' || event.source !== parent) return;
     done = true;
-    var base = '<base target="_blank"><script>window.__tavernScheme=' + JSON.stringify(data.scheme === 'dark' ? 'dark' : 'light') + '<\/script><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
+    var base = '<base target="_blank"><script>window.__tavernScheme=' + JSON.stringify(data.scheme === 'dark' ? 'dark' : 'light') + ';' + STORAGE + '<\/script><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
       'html{height:auto}body{margin:0;background:transparent;display:flow-root;color:' + data.color + ';font:' + data.font + ';overflow-wrap:anywhere}' +
       'img,video,svg{max-width:100%;height:auto}:where(img,video,canvas,iframe){vertical-align:bottom}</style>';
     var reporter = '<script>(function(){var b=document.body;function s(){if(!b)b=document.body;if(!b)return;var h=Math.max(b.scrollHeight,b.offsetHeight);parent.postMessage({type:"tavern-height",h:Math.ceil(h)},"*")}' +

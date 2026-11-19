@@ -16,6 +16,14 @@ export function compileRule(rule: Pick<RegexRule, 'find'>, forceGlobal = true): 
       if (!literal[1]) return null;
       return new RegExp(literal[1], forceGlobal && !flags.includes('g') ? `${flags}g` : flags);
     }
+    // 没写成 /…/flags：平台自建规则按纯文本找（老行为）；卡里的脚本照 ST 当作正则、不带 flags（只换第一处）
+    if (!forceGlobal) {
+      try {
+        return new RegExp(raw);
+      } catch {
+        // 不是合法正则就退回纯文本
+      }
+    }
     return new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
   } catch {
     return null;

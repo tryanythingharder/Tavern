@@ -17,6 +17,7 @@ import { parseCardFields } from '@/lib/characters';
 import { getSetting } from '@/lib/settings';
 import { modelContextTokens } from '@/lib/model-catalog';
 import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
+import { expandStMacros } from '@/lib/st-macros';
 
 // 上下文预算按 tokens 计，和 ST 一样：窗口 = 玩家预设里的「上下文长度」（0 = 跟随模型），但不超过模型自己的上限
 // （后台模型广场填的「上下文」，如 200K）。模型没填上限时用后台 prompt.defaultContext（默认 32K）；
@@ -268,7 +269,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
 
   const userName = persona?.name || '你';
   const resolveMacros = (value: string) =>
-    resolveVariableMacros(value, input.variables ?? null)
+    expandStMacros(resolveVariableMacros(value, input.variables ?? null))
       .replace(/\{\{char\}\}/gi, character.name)
       .replace(/\{\{user\}\}/gi, userName)
       .replace(/\{\{persona\}\}/gi, userName);

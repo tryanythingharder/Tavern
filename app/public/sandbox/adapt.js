@@ -58,13 +58,44 @@
   }
   function fresh(el, prop, value) { var rec = applied.get(el); return !rec || rec[prop] !== value; }
 
-  // 元素实际所在的底色：往上找第一个不透明底，找不到就是外层页面的底
-  function backdrop(el) {
-    for (var node = el; node && node.nodeType === 1; node = node.parentElement) {
-      var c = parse(getComputedStyle(node).backgroundColor);
-      if (c && c[3] >= 0.5) return c;
+  // 元素实际所在的底色：从外到内把各层底（底色 + 渐变的平均色，带透明度）叠到外层页面底色上。
+  // 只看不透明的第一层会漏掉「半透明深色渐变卡片」这种（酒馆默认是深色界面，很多卡就这么写）
+  // 一层渐变的平均色（按透明度加权）；多层背景（逗号分隔）各算一层，下层在后
+  function oneGradient(img) {
+    var stops = img.match(/rgba?\([^)]*\)/g) || [];
+    var sum = [0, 0, 0], a = 0, n = 0;
+    stops.forEach(function (t) { var c = parse(t); if (!c) return; sum[0] += c[0] * c[3]; sum[1] += c[1] * c[3]; sum[2] += c[2] * c[3]; a += c[3]; n++; });
+    if (!n || a <= 0) return null;
+    return [sum[0] / a, sum[1] / a, sum[2] / a, a / n];
+  }
+  function gradientLayers(img) {
+    if (!img || img === 'none' || !/gradient/.test(img)) return [];
+    var parts = [], depth = 0, start = 0;
+    for (var i = 0; i < img.length; i++) {
+      var ch = img[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if (ch === ',' && depth === 0) { parts.push(img.slice(start, i)); start = i + 1; }
     }
-    return dark ? [30, 26, 23, 1] : [255, 255, 255, 1];
+    parts.push(img.slice(start));
+    return parts.map(function (part) { return /gradient/.test(part) && !/url\(/.test(part) ? oneGradient(part) : null; }).filter(Boolean);
+  }
+  function backdrop(el) {
+    var layers = [];
+    for (var node = el; node && node.nodeType === 1; node = node.parentElement) {
+      var cs = getComputedStyle(node);
+      var opaque = false;
+      gradientLayers(cs.backgroundImage).forEach(function (g) { if (g[3] > 0.02) layers.push(g); if (g[3] >= 0.95) opaque = true; });
+      var c = parse(cs.backgroundColor);
+      if (c && c[3] > 0.02) layers.push(c);
+      if (opaque || (c && c[3] >= 0.95)) break;
+    }
+    var out = dark ? [30, 26, 23] : [255, 255, 255];
+    for (var i = layers.length - 1; i >= 0; i--) {
+      var l = layers[i], k = Math.min(1, l[3]);
+      out = [out[0] + (l[0] - out[0]) * k, out[1] + (l[1] - out[1]) * k, out[2] + (l[2] - out[2]) * k];
+    }
+    return [out[0], out[1], out[2], 1];
   }
 
   var skipDark = false;
@@ -82,7 +113,9 @@
         var bg = parse(cs.backgroundColor);
         if (bg && bg[3] > 0.05 && lum(bg) > 0.55 && fresh(el, 'backgroundColor', cs.backgroundColor)) set(el, 'backgroundColor', darkBg(bg));
         var img = cs.backgroundImage;
-        if (img && img !== 'none' && /gradient/.test(img) && !/url\(/.test(img) && fresh(el, 'backgroundImage', img)) {
+        // background-clip: text 的渐变是字色，不能当底色压暗
+        var clipText = /text/.test(cs.webkitBackgroundClip || '') || /text/.test(cs.backgroundClip || '');
+        if (!clipText && img && img !== 'none' && /gradient/.test(img) && !/url\(/.test(img) && fresh(el, 'backgroundImage', img)) {
           var changed = false;
           var next = img.replace(/rgba?\([^)]*\)/g, function (token) {
             var c = parse(token);
