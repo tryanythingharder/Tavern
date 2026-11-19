@@ -10,11 +10,11 @@ const MAX_HEIGHT = 2400;
 // 状态栏脚本（酒馆助手 / MVU 写法）要读变量时，先按楼层取一次再交给 frame；同一楼同一内容只取一次
 const HELPER_RE = /getVariables|Mvu\b|stat_data|getCurrentMessageId|getChatMessages|TavernHelper|SillyTavern|waitGlobalInitialized/;
 const varCache = new Map<string, Promise<unknown>>();
-function loadVariables(chatId: number, messageId: number, version: string): Promise<unknown> {
-  const key = `${chatId}:${messageId}:${version}`;
+function loadVariables(chatId: number, messageId: number, version: string, room = false): Promise<unknown> {
+  const key = `${room ? 'r' : 'c'}${chatId}:${messageId}:${version}`;
   let hit = varCache.get(key);
   if (!hit) {
-    hit = fetch(`/api/chats/${chatId}/variables?message=${messageId}`, { cache: 'no-store' })
+    hit = fetch(`/api/${room ? 'rooms' : 'chats'}/${chatId}/variables?message=${messageId}`, { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
       .catch(() => null);
     varCache.set(key, hit);
@@ -26,7 +26,8 @@ function loadVariables(chatId: number, messageId: number, version: string): Prom
 export function HtmlFrame({ html, title = '角色卡美化内容', variables, macros }: {
   html: string;
   title?: string;
-  variables?: { chatId: number; messageId: number; version: string };
+  /** room=true 时 chatId 是房间 id（群聊） */
+  variables?: { chatId: number; messageId: number; version: string; room?: boolean };
   macros?: { char?: string; user?: string };
 }) {
   const ref = useRef<HTMLIFrameElement | null>(null);
@@ -56,7 +57,7 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
     let ready = !(variables && HELPER_RE.test(html));
     let cancelled = false;
     if (!ready && variables) {
-      void loadVariables(variables.chatId, variables.messageId, variables.version).then((value) => {
+      void loadVariables(variables.chatId, variables.messageId, variables.version, variables.room).then((value) => {
         if (cancelled) return;
         vars = value;
         ready = true;
@@ -90,7 +91,7 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
       window.removeEventListener('message', onMessage);
       frame.removeEventListener('load', post);
     };
-  }, [scheme, html, variables?.chatId, variables?.messageId, variables?.version, macros?.char, macros?.user]);
+  }, [scheme, html, variables?.chatId, variables?.messageId, variables?.version, variables?.room, macros?.char, macros?.user]);
 
   return (
     <iframe

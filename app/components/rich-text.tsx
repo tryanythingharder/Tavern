@@ -53,11 +53,12 @@ export function RichText({
   role?: 'user' | 'assistant';
   depth?: number;
   /** 给状态栏脚本读 MVU 变量用：这条消息所在的会话和楼层 */
-  variables?: { chatId: number; messageId: number; rev?: string };
+  variables?: { chatId: number; messageId: number; rev?: string; room?: boolean };
 }) {
   const ejsKey = !streaming && variables && EJS_RE.test(text) ? `${hash(text)}:${variables.rev ?? ''}` : '';
   const [ejsText, setEjsText] = useState<{ key: string; text: string } | null>(null);
-  const ejsChat = variables?.chatId ?? 0;
+  // 群聊暂不跑楼层 EJS（只藏掉代码）
+  const ejsChat = variables?.room ? 0 : variables?.chatId ?? 0;
   const ejsMessage = variables?.messageId ?? 0;
   useEffect(() => {
     if (!ejsKey || !ejsChat || !ejsMessage) return;
@@ -68,7 +69,7 @@ export function RichText({
     renderEjs(ejsChat, ejsMessage, ejsKey).then(put, () => put(stripEjs(text)));
     return () => { alive = false; };
   }, [ejsKey, ejsChat, ejsMessage, text]);
-  const source = ejsKey ? (ejsText?.key === ejsKey ? ejsText.text : stripEjs(text)) : text;
+  const source = ejsKey && !ejsChat ? stripEjs(text) : ejsKey ? (ejsText?.key === ejsKey ? ejsText.text : stripEjs(text)) : text;
 
   const shown = useMemo(() => {
     // MVU 的 <UpdateVariable> 命令块只给程序看，不显示（ST 里一般靠卡自带正则藏，没带的卡也别露出来）
@@ -88,7 +89,7 @@ export function RichText({
         if (segment.kind === 'text') return <RpText key={index} text={segment.text} streaming={streaming && last} />;
         // 生成中不渲染半截 HTML（iframe 每个字都重建会闪），收尾后再显示
         if (streaming) return <div key={index} className="rp-html-pending" role="status">状态栏 / 美化内容生成中…</div>;
-        return <HtmlFrame key={`${index}-${hash(segment.html)}`} html={segment.html} variables={variables ? { chatId: variables.chatId, messageId: variables.messageId, version } : undefined} macros={macros} />;
+        return <HtmlFrame key={`${index}-${hash(segment.html)}`} html={segment.html} variables={variables ? { chatId: variables.chatId, messageId: variables.messageId, version, room: variables.room } : undefined} macros={macros} />;
       })}
     </>
   );

@@ -3,6 +3,7 @@ import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
 import { addRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, listRoomMessages, pickSpeaker } from '@/lib/rooms';
 import { loadRoomConfig } from '@/lib/resources-db';
+import { roomVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
@@ -74,6 +75,7 @@ export async function POST(request: Request, context: Params) {
     persona: config.persona,
     loreEntries: config.loreEntries,
     regexRules: config.regexRules,
+    variables: roomVariables(room.id, room.characterIds),
   });
   const promptTokens = estimatePromptTokens(prompt);
   const maxCost = pointsCost(promptTokens, config.preset.params.maxTokens, modelName(room.model));

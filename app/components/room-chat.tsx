@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { hasMvuCommands } from '@/lib/mvu';
 import { TypingDots } from '@/components/rp-text';
 import { RichText } from '@/components/rich-text';
 import type { RegexRule } from '@/lib/resources';
@@ -41,6 +42,31 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages]);
+
+  // 每楼「此前所有变量命令」的累积指纹：前面楼层改了变量，后面的状态栏要重新取（同单聊 chat-room.tsx）
+  const mvuHashes = useRef(new Map<number | string, { content: string; h: number }>());
+  const mvuRev = useMemo(() => {
+    const rev = new Map<number, string>();
+    const cache = mvuHashes.current;
+    let acc = 0;
+    for (const m of messages) {
+      if (m.role === 'assistant') {
+        let item = cache.get(m.id);
+        if (!item || item.content !== m.content) {
+          let h = 0;
+          if (hasMvuCommands(m.content)) {
+            for (let i = 0; i < m.content.length; i += 1) h = (Math.imul(31, h) + m.content.charCodeAt(i)) | 0;
+            h = (Math.imul(31, h) + Number(m.id)) | 0 || 1;
+          }
+          item = { content: m.content, h };
+          cache.set(m.id, item);
+        }
+        if (item.h) acc = (Math.imul(1000003, acc) + item.h) | 0;
+      }
+      if (typeof m.id === 'number') rev.set(m.id, String(acc));
+    }
+    return rev;
   }, [messages]);
 
   const memberOf = (id: string | null) => members.find((member) => member.id === id);
@@ -184,7 +210,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
                   <div className="p-msg-name">{isUser ? userName : member?.name ?? '角色'}</div>
                   <div className="p-msg-copy p-msg-text">
                     {message.content
-                      ? <RichText text={message.content} streaming={isLast && streaming && !isUser} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} />
+                      ? <RichText text={message.content} streaming={isLast && streaming && !isUser} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId: roomId, messageId: message.id, rev: mvuRev.get(message.id), room: true } : undefined} />
                       : streaming ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
                   </div>
                 </div>

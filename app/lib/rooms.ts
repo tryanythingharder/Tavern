@@ -2,6 +2,8 @@ import db, { getCharacterById, type DbCharacter } from '@/lib/db';
 import { applyRegex, scanLore } from '@/lib/prompt';
 import { renderContextTemplate, type LoreEntry, type Persona, type Preset, type RegexRule } from '@/lib/resources';
 import type { ChatMessage } from '@/lib/model';
+import { characterLoreEntries, characterRegexRules } from '@/lib/card-extras';
+import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
 
 // M4 房间/群聊：多个角色共享一段对话。发言者按策略挑选（自然/轮流/手动/随机池），
 // 提示词里同时给出所有成员的人设，并要求本轮只以被选中的角色回应。
@@ -181,11 +183,22 @@ export type RoomPromptInput = {
   persona: Persona | null;
   loreEntries: LoreEntry[];
   regexRules: RegexRule[];
+  /** 房间共享的 MVU 变量（lib/mvu-server.ts roomVariables） */
+  variables?: MvuState | null;
 };
 
 export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
-  const { room, messages, speaker, preset, persona, loreEntries, regexRules } = input;
+  const { room, messages, speaker, preset, persona, regexRules, variables } = input;
   const userName = persona?.name || '你';
+  // 成员卡自带的世界书一起扫（InitVar 这类只给变量用的条目不进提示词）
+  const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title));
+  const loreEntries = [...cardLore, ...input.loreEntries];
+  const macros = (value: string, charName = speaker.name) =>
+    resolveVariableMacros(value, variables ?? null)
+      .replace(/\{\{char\}\}/gi, charName)
+      .replace(/\{\{(?:user|persona)\}\}/gi, userName);
+  // 每个成员卡的「发送」正则只作用于该成员自己的楼层
+  const sendRules = new Map(room.characterIds.map((id) => [id, characterRegexRules(id).filter((rule) => rule.enabled)]));
   const members = room.characterIds.map((id) => getCharacterById(id)).filter((character): character is DbCharacter => Boolean(character));
   const nameOf = (id: string | null) => (id ? getCharacterById(id)?.name ?? '角色' : '角色');
   const recent = messages.slice(-20);
@@ -202,13 +215,13 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
       legacy: '',
       instructions: character.pace,
     });
-    blocks.push(`### 角色 · ${character.name}\n${card}`);
+    blocks.push(`### 角色 · ${character.name}\n${macros(card, character.name)}`);
   }
 
   const scanTexts = recent.map((message) => `${message.role === 'user' ? userName : nameOf(message.speakerId)}：${message.content}`);
   scanTexts.push(...members.map((character) => character.description));
   const scan = scanLore(loreEntries, scanTexts);
-  if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${entry.text}`).join('\n')}`);
+  if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${macros(entry.text)}`).join('\n')}`);
   if (persona?.description.trim()) blocks.push(`### 玩家身份\n【身份】${persona.name}\n${persona.description.trim()}`);
 
   blocks.push(
@@ -221,10 +234,13 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
     ].join('\n'),
   );
 
-  const history: ChatMessage[] = recent.map((message) => ({
-    role: message.role === 'user' ? 'user' : 'assistant',
-    content: `${message.role === 'user' ? userName : nameOf(message.speakerId)}：${applyRegex(regexRules, message.content, { target: message.role === 'user' ? 'user' : 'assistant', purpose: 'send' })}`,
-  }));
+  const history: ChatMessage[] = recent.map((message, index) => {
+    const target = message.role === 'user' ? 'user' : 'assistant';
+    const depth = recent.length - 1 - index;
+    const rules = [...(message.speakerId ? sendRules.get(message.speakerId) ?? [] : []), ...regexRules];
+    const content = applyRegex(rules, message.content, { target, purpose: 'send', depth, macros: { char: nameOf(message.speakerId), user: userName } });
+    return { role: target, content: `${message.role === 'user' ? userName : nameOf(message.speakerId)}：${content}` };
+  });
 
-  return [{ role: 'system', content: blocks.join('\n\n') }, ...history];
+  return [{ role: 'system', content: macros(blocks.join('\n\n')) }, ...history];
 }
