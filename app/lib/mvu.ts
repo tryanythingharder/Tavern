@@ -11,7 +11,7 @@ type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Obj = { [key: string]: Json };
 const isObj = (value: unknown): value is Obj => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
-export type MvuState = { stat_data: Obj; display_data: Obj; delta_data: Obj };
+export type MvuState = { stat_data: Obj; display_data: Obj; delta_data: Obj; /** 酒馆助手脚本写的聊天/全局变量（lib/helper-vars.ts），宏也能读 */ scoped?: { chat?: Record<string, unknown>; global?: Record<string, unknown> } };
 
 // ---------- JS 字面量解析（命令参数）----------
 class Reader {
@@ -434,11 +434,22 @@ function formatValue(value: Json | undefined, pretty: boolean): string {
 export function resolveVariableMacros(text: string, state: MvuState | null): string {
   if (!state || !text.includes('{{')) return text;
   const root: Obj = { stat_data: state.stat_data, display_data: state.display_data, delta_data: state.delta_data };
-  return text.replace(/\{\{\s*(get|format)_(?:message|chat|global)_variable::([^}]+)\}\}|\{\{\s*getvar::([^}]+)\}\}/gi, (_match, kind: string | undefined, a: string | undefined, b: string | undefined) => {
-    const parts = toPathRaw((a ?? b ?? '').trim());
-    if (!/^(stat_data|display_data|delta_data)$/.test(parts[0] ?? '')) parts.unshift('stat_data');
-    return formatValue(unwrapDescribed(getIn(root, parts)), kind?.toLowerCase() === 'format');
-  });
+  return text.replace(
+    /\{\{\s*(get|format)_(message|chat|global)_variable::([^}]+)\}\}|\{\{\s*get(global)?var::([^}]+)\}\}/gi,
+    (_match, kind: string | undefined, scope: string | undefined, a: string | undefined, isGlobal: string | undefined, b: string | undefined) => {
+      const raw = (a ?? b ?? '').trim();
+      const pretty = kind?.toLowerCase() === 'format';
+      // 聊天/全局变量（脚本写的）优先；没有再按 MVU 的 stat_data 找
+      const bucket = isGlobal || scope?.toLowerCase() === 'global' ? state.scoped?.global : scope?.toLowerCase() === 'message' ? undefined : state.scoped?.chat;
+      if (bucket) {
+        const hit = getIn(bucket as unknown as Json, toPathRaw(raw));
+        if (hit !== undefined) return formatValue(unwrapDescribed(hit), pretty);
+      }
+      const parts = toPathRaw(raw);
+      if (!/^(stat_data|display_data|delta_data)$/.test(parts[0] ?? '')) parts.unshift('stat_data');
+      return formatValue(unwrapDescribed(getIn(root, parts)), pretty);
+    },
+  );
 }
 
 // MVU 常把变量写成 [值, "说明"]；宏只要值本身（和 Mvu.getMvuVariable 一致）

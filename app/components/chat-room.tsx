@@ -8,6 +8,7 @@ import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
 import { RpText, TypingDots } from '@/components/rp-text';
 import { RichText } from '@/components/rich-text';
+import { HelperRunner, emitHelperEvent, type HelperActions } from '@/components/helper-runner';
 import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
@@ -388,7 +389,14 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
+    emitHelperEvent('generation_started', 'normal');
     const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => { if (override === undefined) setDraft(''); });
+    if (accepted) {
+      emitHelperEvent('message_sent', { fromEnd: 1 });
+      emitHelperEvent('message_received', { fromEnd: 0 });
+      emitHelperEvent('character_message_rendered', { fromEnd: 0 });
+      emitHelperEvent('generation_ended', { fromEnd: 0 });
+    }
     if (!accepted) {
       // 请求未被接受：撤掉本地乐观消息，避免留下空气泡
       setMessages((prev) => prev.filter((item) => item.id !== assistantKey && item.id !== `local-user-${stamp}`));
@@ -406,7 +414,14 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       setConfirming(null);
       setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: '' } : item)));
       setFailed(null);
+      emitHelperEvent('generation_started', 'regenerate');
       const accepted = await streamInto(`/api/messages/${message.id}/regenerate`, {}, message.id);
+      if (accepted) {
+        emitHelperEvent('message_swiped', { dbId: message.id });
+        emitHelperEvent('message_received', { dbId: message.id });
+        emitHelperEvent('character_message_rendered', { dbId: message.id });
+        emitHelperEvent('generation_ended', { dbId: message.id });
+      }
       if (!accepted) {
         // 重新生成没被接受：恢复原文，不把消息清空
         setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: message.content } : item)));
@@ -431,6 +446,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       const saved = data.message;
       setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content: saved.content } : item)));
       setEditing(null);
+      emitHelperEvent('message_edited', { dbId: editing.id });
+      emitHelperEvent('message_updated', { dbId: editing.id });
     } catch (caught) {
       setError((caught as Error).message);
     }
@@ -442,6 +459,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       if (!response.ok) throw new Error('删除失败');
       setMessages((prev) => prev.filter((item) => item.id !== id));
       setConfirming(null);
+      emitHelperEvent('message_deleted', { dbId: id });
     } catch (caught) {
       setError((caught as Error).message);
     }
@@ -459,12 +477,28 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string };
       if (!response.ok || typeof data.content !== 'string') throw new Error(data.message || '切换失败');
       setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index } : item)));
+      emitHelperEvent('message_swiped', { dbId: message.id });
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
       setSwitching(null);
     }
   }, []);
+
+  // 卡内酒馆助手脚本能调用的动作（components/helper-runner.tsx）
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  const helperActions = useMemo<HelperActions>(() => ({
+    send: (text) => { void sendRef.current(text); },
+    setInput: (text) => { setDraft(text); inputRef.current?.focus(); },
+    editMessage: async (id, content) => {
+      const response = await fetch(`/api/messages/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView };
+      if (!response.ok || !data.message) throw new Error('保存失败');
+      const saved = data.message;
+      setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, content: saved.content } : item)));
+    },
+  }), []);
 
   const branch = useCallback(
     async (message: ChatMessageView) => {
@@ -755,6 +789,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               ))}
             </div>
           )}
+          <HelperRunner chatId={chatId} names={{ char: characterName, user: personaName || macros?.user || '' }} actions={helperActions} />
           <NewbieTip />
           {preview && draft.trim() && !streaming && (
             <div className="p-chat-preview" aria-live="polite">

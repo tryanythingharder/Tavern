@@ -6,7 +6,7 @@ import { normalizeLoreEntries, parseStRegex, type LoreEntry, type LoreRole, type
 //   regex  卡内正则脚本 extensions.regex_scripts（状态栏 / 美化常用）
 //   depth  extensions.depth_prompt（角色深度提示）
 //   raw    原始卡的 data 对象，导出时在它上面覆盖平台字段，做到无损往返
-//   flags  卡里用到的扩展：酒馆助手脚本（暂不执行）、MVU 变量（lib/mvu.ts 已支持）、HTML 美化
+//   flags  卡里用到的扩展：酒馆助手脚本（lib/helper-scripts.ts，对话里沙盒运行）、MVU 变量（lib/mvu.ts 已支持）、HTML 美化
 export type CardExtras = {
   spec: string;
   book: { name: string; entries: LoreEntry[] } | null;

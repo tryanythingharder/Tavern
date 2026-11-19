@@ -2878,5 +2878,14 @@
  "九十八": "XCVIII",
  "九十九": "XCIX",
  "{0} 回合": "{0} turns",
- "第{0}幕 · 第 {1} 回合": "Act {0} · turn {1}"
+ "第{0}幕 · 第 {1} 回合": "Act {0} · turn {1}",
+ "MVU 变量会按楼层生效；卡里的酒馆助手脚本会在对话里运行（沙盒内，不能联网）。": "MVU variables update message by message, and the card's TavernHelper scripts run in the chat (sandboxed, no network).",
+ "卡里的酒馆助手脚本会在对话里运行（沙盒内，不能联网）。": "The card's TavernHelper scripts run in the chat (sandboxed, no network).",
+ "卡内脚本": "Card scripts",
+ "卡内脚本 {0}": "Card scripts {0}",
+ "卡内脚本已关闭": "Card scripts off",
+ "卡内脚本：{0}": "Card scripts: {0}",
+ "已由平台内置 MVU 接管：{0}": "Handled by built-in MVU: {0}",
+ "卡内脚本用到了 /{0}，本站暂不支持": "A card script used /{0}, which isn't supported here",
+ "卡内脚本的变量太大，没能保存": "Card script variables are too large to save"
 }

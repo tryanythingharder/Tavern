@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>script</title></head>
+<body><script>
+(function () {
+  // 酒馆助手脚本的后台运行器：一个脚本一个隐藏 iframe（和酒馆一致），由 components/helper-runner.tsx 创建。
+  // sandbox 不给 allow-same-origin，CSP connect-src 'none'：脚本拿不到本站 cookie、改不了外层页面、不能联网。
+  // 能做的事都通过 postMessage 交给外层：写变量（外层落库）、脚本按钮、发消息、改楼层、提示。
+  var started = false;
+  addEventListener('message', function (event) {
+    var data = event.data;
+    if (started || !data || data.type !== 'tavern-script' || event.source !== parent) return;
+    started = true;
+    var vendor = function (name) { return new URL('vendor/' + name, location.href).href; };
+    var boot = JSON.stringify({ script: data.script, snapshot: data.snapshot, names: data.names || {} }).replace(/</g, '\\u003c');
+    var shim = '<script>window.__TAVERN_BOOT=' + boot + ';<\/script><script src="' + new URL('runner-api.js', location.href).href + '"><\/script>';
+    var body = String(data.script && data.script.content || '');
+    // 用 module 跑：支持顶层 await 和 import 外链库（作者常从 CDN import）
+    var user = '<script type="module">\n' + body.replace(/<\/script/gi, '<\\/script') + '\n<\/script>';
+    var doc = '<!doctype html><html><head><meta charset="utf-8"><script src="' + vendor('jquery.min.js') + '"><\/script><script src="' + vendor('lodash.min.js') + '"><\/script>' + shim + '</head><body>' + user + '</body></html>';
+    document.open();
+    document.write(doc);
+    document.close();
+  });
+  parent.postMessage({ type: 'tavern-ready' }, '*');
+})();
+</script></body></html>

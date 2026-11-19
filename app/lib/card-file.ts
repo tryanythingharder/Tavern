@@ -22,8 +22,8 @@ export function describeExtras(extras?: ImportExtras | null): string {
   // 拼出来的整句运行时词典对不上，逐句先翻译再拼
   const sentences: string[] = [];
   if (parts.length) sentences.push(tr(`已带入：${parts.map((part) => tr(part)).join(currentLocale() === 'en' ? ', ' : '、')}。`));
-  if (extras.mvu && extras.helperScripts) sentences.push(tr('MVU 变量会按楼层生效；卡里的酒馆助手脚本暂不执行（导出时原样保留）。'));
+  if (extras.mvu && extras.helperScripts) sentences.push(tr('MVU 变量会按楼层生效；卡里的酒馆助手脚本会在对话里运行（沙盒内，不能联网）。'));
   else if (extras.mvu) sentences.push(tr('MVU 变量会按楼层生效。'));
-  else if (extras.helperScripts) sentences.push(tr('卡里的酒馆助手脚本暂不执行（导出时原样保留）。'));
+  else if (extras.helperScripts) sentences.push(tr('卡里的酒馆助手脚本会在对话里运行（沙盒内，不能联网）。'));
   return sentences.join(' ');
 }
