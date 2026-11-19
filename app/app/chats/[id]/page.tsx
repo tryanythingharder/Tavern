@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { getChat, getCharacterById, listMessagesPage } from '@/lib/db';
+import { chatBranches, getChat, getCharacterById, listMessagesPage } from '@/lib/db';
+import { ChatBranches } from '@/components/chat-branches';
 import { toMessageView } from '@/lib/chat-view';
 import { ChatRoom } from '@/components/chat-room';
 import { ChatSettings } from '@/components/chat-settings';
@@ -29,9 +30,8 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const { id } = await params;
-  const { from, at } = await searchParams;
+  const { from } = await searchParams;
   const branchFrom = Number(from) || null;
-  const branchAt = Number(at) || null;
   const chat = getChat(Number(id), user.id);
   if (!chat) notFound();
   const character = getCharacterById(chat.character_id);
@@ -46,7 +46,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const settings = chatSettings(chat);
   const lorebookCount = settings.lorebookIds === null ? listLorebooks(user.id).length : settings.lorebookIds.length;
   const memory = summaryStatus(chat, messages.length);
-  const branchIndex = branchAt ? messages.findIndex((message) => message.id === branchAt) + 1 : 0;
+  const branches = chatBranches(chat.id, user.id);
   const contextRows = [
     { label: '角色', value: character.name, note: '开始故事时冻结的版本，之后修改角色不影响这里', href: `/c/${character.id}` },
     { label: '你的身份', value: config.persona?.name ?? '未设置', note: '只在这段故事里生效', href: '/me/personas' },
@@ -90,12 +90,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
               </div>
             </div>
           </header>
-          {branchFrom && branchIndex > 0 && (
-            <div className="p-branch-note" role="status">
-              <span>已从原故事创建分支 · 第 {branchIndex} 条消息</span>
-              <Link href={`/chats/${branchFrom}`}>回到原故事</Link>
-            </div>
-          )}
+          <ChatBranches info={branches} justCreated={Boolean(branchFrom && branchFrom === branches.parent?.id)} />
           <ChatRoom
             chatId={chat.id}
             characterName={character.name}

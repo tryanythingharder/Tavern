@@ -861,3 +861,19 @@ body[data-page]:not(.p-cinema) .ca-scene-cover.p-cover:not(.has-portrait):not(.p
     body[data-page="chats"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count,
     body[data-page="library"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count { grid-column: 2; justify-self: end; margin-left: 0; }
 }
+
+/* 分支导航：来源 + 从这里分出的分支/检查点 */
+.p-branch-links { display: inline-flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+.p-branch-menu { position: relative; }
+.p-branch-menu > summary { cursor: pointer; list-style: none; color: var(--text); font-weight: var(--fw-semi, 600); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.p-branch-menu > summary::-webkit-details-marker { display: none; }
+.p-branch-menu > summary::after { content: " ▾"; font-size: 10px; }
+.p-branch-menu[open] > summary::after { content: " ▴"; }
+.p-branch-menu ul { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; margin: 0; padding: 6px; list-style: none; min-width: 240px; max-width: min(360px, 86vw); max-height: 320px; overflow: auto; background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, .14); }
+.p-branch-menu li a { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; text-decoration: none; font-weight: 400; white-space: normal; }
+.p-branch-menu li a:hover, .p-branch-menu li a:focus-visible { background: var(--surface-2); }
+.p-branch-name { color: var(--text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.p-branch-meta { color: var(--text-3, var(--text-2)); font-size: 11px; }
+.p-msg-checkpoint { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); font-size: 12px; text-decoration: none; }
+.p-msg-checkpoint:hover { color: var(--text); border-color: var(--text-3, var(--border)); }
+.p-msg-checkpoint .p-icon { width: 13px; height: 13px; }

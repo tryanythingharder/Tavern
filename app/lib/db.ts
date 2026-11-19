@@ -411,6 +411,12 @@ ensureColumn('chats', 'memory', 'TEXT');
 ensureColumn('chats', 'model', 'TEXT');
 ensureColumn('messages', 'bookmark', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'attachment', 'TEXT');
+// ST 检查点：这条消息分出的检查点会话
+ensureColumn('messages', 'checkpoint_chat_id', 'INTEGER');
+// 酒馆助手变量表（lib/helper-vars.ts 也建同一张表；这里先建，分支复制/删除会话时用得到）
+db.exec(`CREATE TABLE IF NOT EXISTS helper_vars (
+    user_id INTEGER NOT NULL, scope TEXT NOT NULL, scope_id TEXT NOT NULL, data TEXT NOT NULL, updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, scope, scope_id));`);
 ensureColumn('room_messages', 'attachment', 'TEXT');
 ensureColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user'");
 ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
@@ -475,7 +481,7 @@ export type DbChat = {
 };
 export type DbMessage = {
   id: number; chat_id: number; role: 'user' | 'assistant' | 'system'; content: string;
-  candidates: string | null; selected: number; bookmark: number; attachment: string | null; created_at: number;
+  candidates: string | null; selected: number; bookmark: number; attachment: string | null; checkpoint_chat_id?: number | null; created_at: number;
 };
 
 export function getCharacterById(id: string): DbCharacter | undefined {
@@ -520,6 +526,8 @@ export function deleteChat(chatId: number, userId: number): boolean {
   db.prepare('DELETE FROM messages WHERE chat_id = ?').run(chatId);
   db.prepare('DELETE FROM chat_backups WHERE chat_id = ?').run(chatId);
   db.prepare('UPDATE chats SET branch_from_chat_id = NULL WHERE branch_from_chat_id = ?').run(chatId);
+  db.prepare('UPDATE messages SET checkpoint_chat_id = NULL WHERE checkpoint_chat_id = ?').run(chatId);
+  db.prepare("DELETE FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?").run(userId, String(chatId));
   db.prepare('DELETE FROM chats WHERE id = ? AND user_id = ?').run(chatId, userId);
   return true;
 }
@@ -635,20 +643,84 @@ export function selectCandidate(messageId: number, index: number): { index: numb
   return { index, count: list.length, content: list[index] };
 }
 
-// 从某条消息分支：新会话复制到这条（含）为止的消息，原会话不动。
-export function branchChat(chatId: number, userId: number, messageId: number): { id: number; title: string } | null {
-  const source = getChat(chatId, userId);
+// 从某条消息分支（ST「创建分支 / 检查点」）：新会话复制到这条（含）为止的消息，原会话不动。
+// 会话设置（预设、身份、模型、世界书、卡内世界书开关、作者注释、记忆设置、手动记忆、助手 chat 变量）一起带过去；
+// 摘要只在它没覆盖到分支点之后时保留，否则清空让新分支重新总结（不然会把原故事后面的剧情带进分支）。
+// checkpoint=true：ST 的检查点，原会话这条消息记下检查点会话 id，原会话继续用。
+const BRANCH_COPY_COLUMNS = ['preset_id', 'persona_id', 'model', 'card_lore', 'author_note', 'lorebook_ids', 'summary_prefs', 'rag_prefs', 'memory'] as const;
+
+export function branchChat(chatId: number, userId: number, messageId: number, options: { checkpoint?: boolean; name?: string } = {}): { id: number; title: string } | null {
+  const source = getChat(chatId, userId) as (DbChat & Record<string, unknown>) | undefined;
   if (!source) return null;
   const rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND id <= ? ORDER BY id').all(chatId, messageId) as DbMessage[];
   if (!rows.length || rows[rows.length - 1].id !== messageId) return null;
 
   const now = Date.now();
-  const title = `${source.title}（分支）`;
-  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, branch_from_chat_id, branch_from_message_id, card_lore, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)').run(userId, source.character_id, title, chatId, messageId, source.card_lore ?? null, now, now);
+  const name = String(options.name ?? '').trim().slice(0, 80);
+  let title: string;
+  if (options.checkpoint) {
+    const count = (db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND checkpoint_chat_id IS NOT NULL').get(chatId) as { n: number }).n;
+    title = name || `${source.title} · 检查点 ${count + 1}`;
+  } else {
+    title = name || `${source.title}（分支）`;
+  }
+  let summary: string | null = source.summary ?? null;
+  if (summary) {
+    try {
+      const state = JSON.parse(summary) as { covered?: number };
+      if (Number(state.covered) > rows.length) summary = null;
+    } catch {
+      summary = null;
+    }
+  }
+  const values = BRANCH_COPY_COLUMNS.map((column) => (source[column] ?? null) as string | number | null);
+  const result = db.prepare(
+    `INSERT INTO chats (user_id, character_id, title, branch_from_chat_id, branch_from_message_id, summary, ${BRANCH_COPY_COLUMNS.join(', ')}, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,${BRANCH_COPY_COLUMNS.map(() => '?').join(',')},?,?)`,
+  ).run(userId, source.character_id, title, chatId, messageId, summary, ...values, now, now);
   const newId = Number(result.lastInsertRowid);
-  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, created_at) VALUES (?,?,?,?,?,?)');
-  for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.created_at);
+  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, created_at) VALUES (?,?,?,?,?,?,?,?)');
+  db.exec('BEGIN');
+  try {
+    for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.bookmark ?? 0, row.attachment ?? null, row.created_at);
+    // 酒馆助手 / EJS 的 chat 变量随分支复制（ST 复制 chat_metadata.variables）
+    db.prepare(`INSERT OR IGNORE INTO helper_vars (user_id, scope, scope_id, data, updated_at)
+      SELECT user_id, scope, ?, data, ? FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?`).run(String(newId), now, userId, String(chatId));
+    if (options.checkpoint) db.prepare('UPDATE messages SET checkpoint_chat_id = ? WHERE id = ?').run(newId, messageId);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
   return { id: newId, title };
+}
+
+export type ChatBranchInfo = {
+  parent: { id: number; title: string; messageIndex: number; exists: boolean } | null;
+  children: { id: number; title: string; messageId: number; messageIndex: number; updatedAt: number; checkpoint: boolean }[];
+};
+
+// 分支关系：这段故事从哪里分出来、从这里又分出了哪些（含检查点）
+export function chatBranches(chatId: number, userId: number): ChatBranchInfo {
+  const chat = getChat(chatId, userId);
+  if (!chat) return { parent: null, children: [] };
+  let parent: ChatBranchInfo['parent'] = null;
+  if (chat.branch_from_chat_id) {
+    const row = getChat(chat.branch_from_chat_id, userId);
+    const index = row && chat.branch_from_message_id
+      ? (db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND id <= ?').get(row.id, chat.branch_from_message_id) as { n: number }).n
+      : 0;
+    if (row) parent = { id: row.id, title: row.title, messageIndex: index, exists: true };
+  }
+  const rows = db.prepare('SELECT id, title, branch_from_message_id AS messageId, updated_at AS updatedAt FROM chats WHERE user_id = ? AND branch_from_chat_id = ? ORDER BY created_at DESC').all(userId, chatId) as { id: number; title: string; messageId: number; updatedAt: number }[];
+  const checkpoints = new Set((db.prepare('SELECT checkpoint_chat_id AS id FROM messages WHERE chat_id = ? AND checkpoint_chat_id IS NOT NULL').all(chatId) as { id: number }[]).map((row) => row.id));
+  const indexOf = db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND id <= ?');
+  const children = rows.map((row) => ({
+    ...row,
+    messageIndex: (indexOf.get(chatId, row.messageId) as { n: number }).n,
+    checkpoint: checkpoints.has(row.id),
+  }));
+  return { parent, children };
 }
 
 // ---------- 生成计量 ----------

@@ -22,6 +22,7 @@ export type ChatMessageView = {
   candidateCount: number;
   selected: number;
   bookmark?: boolean;
+  checkpoint?: number | null;
   attachment?: ChatAttachmentView | null;
   createdAt?: number;
 };
@@ -56,7 +57,7 @@ type StreamEvent = {
 };
 
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5"} as const;
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z"} as const;
 function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
@@ -500,17 +501,28 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     },
   }), []);
 
+  // ST「创建分支」跳到新会话；「创建检查点」留在这里，消息上挂一个检查点入口
   const branch = useCallback(
-    async (message: ChatMessageView) => {
+    async (message: ChatMessageView, checkpoint = false) => {
       if (typeof message.id !== 'number') return;
+      if (checkpoint && message.checkpoint) {
+        router.push(`/chats/${message.checkpoint}?from=${chatId}&at=${message.id}`);
+        return;
+      }
       try {
         const response = await fetch(`/api/chats/${chatId}/branch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messageId: message.id }),
+          body: JSON.stringify({ messageId: message.id, checkpoint }),
         });
         const data = (await response.json().catch(() => ({}))) as { chatId?: number; message?: string };
         if (!response.ok || !data.chatId) throw new Error(data.message || '分支失败');
+        if (checkpoint) {
+          const created = data.chatId;
+          setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, checkpoint: created } : item)));
+          setOpenActions(null);
+          return;
+        }
         router.push(`/chats/${data.chatId}?from=${chatId}&at=${message.id}`);
       } catch (caught) {
         setError((caught as Error).message);
@@ -674,6 +686,12 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       {message.attachment?.kind === 'audio' && (
                         <audio controls src={message.attachment.url} style={{ display: 'block', width: '100%', maxWidth: 360, marginTop: 8 }} />
                       )}
+                      {message.checkpoint ? (
+                        <a className="p-msg-checkpoint" href={`/chats/${message.checkpoint}?from=${chatId}&at=${message.id}`}>
+                          <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS.checkpoint} /></svg>
+                          <span>检查点</span>
+                        </a>
+                      ) : null}
                     </>
                   )}
                   {!isEditing && !isUser && isLatest && numericId !== null && !isStreamingThis && message.content && (
@@ -721,6 +739,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                           )}
                           {numericId !== null && !isStreamingThis && (
                             <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" onClick={() => void branch(message)}><Ico name="branch" /></button>
+                          )}
+                          {numericId !== null && !isStreamingThis && (
+                            <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} onClick={() => void branch(message, true)}><Ico name="checkpoint" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
                             <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}><Ico name="x" /></button>

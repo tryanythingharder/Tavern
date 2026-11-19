@@ -10,6 +10,7 @@ export type ChatMessageView = {
   candidateCount: number;
   selected: number;
   bookmark: boolean;
+  checkpoint: number | null;
   attachment: ChatAttachment | null;
   createdAt: number;
 };
@@ -38,6 +39,7 @@ export function toMessageView(message: DbMessage): ChatMessageView {
     candidateCount: messageCandidates(message).length,
     selected: message.selected,
     bookmark: message.bookmark === 1,
+    checkpoint: message.checkpoint_chat_id ?? null,
     attachment: parseAttachment(message.attachment),
     createdAt: message.created_at,
   };
