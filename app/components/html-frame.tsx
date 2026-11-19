@@ -33,7 +33,11 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
   const [height, setHeight] = useState(48);
   const sent = useRef(false);
   // 外层切换深浅色时整块重载：卡内适配和作者的 prefers-color-scheme 样式都按新配色重新算
-  const [scheme, setScheme] = useState<'light' | 'dark'>('light');
+  // 首帧就按 <html data-scheme>（head 内联脚本在水合前已写好）取，深色用户不用再把每个 iframe 重载一遍
+  // （重载出来的 iframe 是 lazy 的，离开视口就不加载，往回翻时高度会跳）
+  const [scheme, setScheme] = useState<'light' | 'dark'>(() =>
+    typeof document !== 'undefined' && document.documentElement.dataset.scheme === 'dark' ? 'dark' : 'light',
+  );
   useEffect(() => {
     const root = document.documentElement;
     const read = () => setScheme(root.dataset.scheme === 'dark' ? 'dark' : 'light');
@@ -99,6 +103,7 @@ export function HtmlFrame({ html, title = '角色卡美化内容', variables, ma
       referrerPolicy="no-referrer"
       loading="lazy"
       title={title}
+      suppressHydrationWarning
       style={{ height, colorScheme: scheme, overflow: height >= MAX_HEIGHT ? 'auto' : 'hidden' }}
       scrolling={height >= MAX_HEIGHT ? 'yes' : 'no'}
     />
