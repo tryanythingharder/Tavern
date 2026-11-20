@@ -1,3 +1,4 @@
+import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getCharacterById, startGeneration } from '@/lib/db';
@@ -36,6 +37,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const speaker = getCharacterById(lastSpeaker ?? room.characterIds[0] ?? '');
   if (!speaker) return fail('房间里没有角色', 400);
   const config = loadRoomConfig(user.id, room);
+  const genPrefs = getGenPrefs(user.id);
   const prompt = buildRoomPrompt({
     room,
     messages,
@@ -71,7 +73,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       let full = '';
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       try {
-        for await (const event of streamChat(prompt, { signal: request.signal, params: { ...config.preset.params, maxTokens }, model: room.model })) {
+        for await (const event of streamChat(prompt, { signal: request.signal, params: { ...config.preset.params, maxTokens }, model: room.model, ...streamExtras(genPrefs, [], { user: config.userName, char: speaker.name }) })) {
           if (event.type === 'route') { connected = true; billedModel = event.model; }
           else if (event.type === 'content') { full += event.text; send({ type: 'delta', text: event.text }); }
           else if (event.type === 'usage') usage = event;
@@ -80,7 +82,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         const completion = usage?.completionTokens ?? estimateTokens(full);
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: used, completionTokens: completion, totalTokens: used + completion, estimated: !usage });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(used, completion, billedModel), `room:${room.id}`);
-        send({ type: 'done', text: full.trim(), cost: settlement.cost, balance: settlement.balance });
+        send({ type: 'done', text: (genPrefs.trimSentences ? trimToEndSentence(full) : full).trim(), cost: settlement.cost, balance: settlement.balance });
       } catch (error) {
         const aborted = request.signal.aborted;
         finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });

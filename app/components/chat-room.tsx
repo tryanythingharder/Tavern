@@ -1,4 +1,5 @@
 'use client';
+import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasMvuCommands } from '@/lib/mvu';
@@ -27,6 +28,7 @@ export type ChatMessageView = {
   attachment?: ChatAttachmentView | null;
   personaName?: string | null;
   personaAvatar?: string | null;
+  thought?: ThoughtView | null;
   createdAt?: number;
 };
 
@@ -59,6 +61,8 @@ type StreamEvent = {
   candidateCount?: number;
   cost?: number;
   balance?: number;
+  reasoning?: ThoughtView | null;
+  autoContinue?: boolean;
 };
 
 
@@ -151,6 +155,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageBusy, setImageBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const autoContinueRef = useRef<{ id: number; content: string } | null>(null);
+  const thoughtsOpen = useThoughtsOpen();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const prependingRef = useRef(false);
@@ -267,8 +273,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       setStreamingId(targetId);
       setError('');
       let text = '';
+      let thinking = '';
       let completed = false;
       let accepted = false;
+      autoContinueRef.current = null;
       try {
         const response = await fetch(url, {
           method: 'POST',
@@ -302,11 +310,17 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             } catch {
               continue;
             }
-            if (event.type === 'delta' && event.text) {
+            if (event.type === 'reasoning' && event.text) {
+              thinking += event.text;
+              const live = thinking;
+              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, thought: { t: live, ms: 0 } } : item)));
+            } else if (event.type === 'delta' && event.text) {
               text += event.text;
               setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
             } else if (event.type === 'done') {
               completed = true;
+              // ST 自动继续：服务端判断回复还没到目标长度
+              if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
               if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free });
               setMessages((prev) =>
                 prev.map((item) =>
@@ -315,6 +329,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                         ...item,
                         id: event.messageId ?? item.id,
                         content: event.content ?? text,
+                        thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
                         candidateCount: event.candidateCount ?? item.candidateCount,
                         selected: event.candidateIndex ?? item.selected,
                       }
@@ -391,6 +406,19 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
   }, [chatId, draft, impersonating, streaming]);
 
+  // ST 自动继续：最多接 5 次，玩家点停止或某次没续出内容就停
+  const runAutoContinue = useCallback(async () => {
+    for (let round = 0; round < 5; round += 1) {
+      const next = autoContinueRef.current;
+      if (!next) return;
+      autoContinueRef.current = null;
+      const accepted = await streamInto(`/api/messages/${next.id}/continue`, {}, next.id, undefined, next.content);
+      if (!accepted) return;
+      emitHelperEvent('message_updated', { dbId: next.id });
+    }
+    autoContinueRef.current = null;
+  }, [streamInto]);
+
   const send = useCallback(async (override?: string) => {
     const text = (override ?? draft).trim();
     if (!text || streaming) return;
@@ -409,6 +437,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       emitHelperEvent('message_received', { fromEnd: 0 });
       emitHelperEvent('character_message_rendered', { fromEnd: 0 });
       emitHelperEvent('generation_ended', { fromEnd: 0 });
+      await runAutoContinue();
     }
     if (!accepted) {
       // 请求未被接受：撤掉本地乐观消息，避免留下空气泡
@@ -418,14 +447,14 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     } else {
       setFailed(null);
     }
-  }, [chatId, draft, streaming, streamInto]);
+  }, [chatId, draft, streaming, streamInto, runAutoContinue]);
 
   const regenerate = useCallback(
     async (message: ChatMessageView) => {
       if (streaming || typeof message.id !== 'number') return;
       setEditing(null);
       setConfirming(null);
-      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: '' } : item)));
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: '', thought: null } : item)));
       setFailed(null);
       emitHelperEvent('generation_started', 'regenerate');
       const accepted = await streamInto(`/api/messages/${message.id}/regenerate`, {}, message.id);
@@ -434,6 +463,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         emitHelperEvent('message_received', { dbId: message.id });
         emitHelperEvent('character_message_rendered', { dbId: message.id });
         emitHelperEvent('generation_ended', { dbId: message.id });
+        await runAutoContinue();
       }
       if (!accepted) {
         // 重新生成没被接受：恢复原文，不把消息清空
@@ -441,7 +471,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         setFailed({ type: 'regen', message });
       }
     },
-    [streaming, streamInto],
+    [streaming, streamInto, runAutoContinue],
   );
 
   // ST「继续」：最后一条是角色消息时接着它往下写（不插玩家消息）；否则退回发一句「*继续*」
@@ -458,10 +488,11 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     if (accepted) {
       emitHelperEvent('message_updated', { dbId: last.id });
       emitHelperEvent('generation_ended', { dbId: last.id });
+      await runAutoContinue();
     } else {
       setMessages((prev) => prev.map((item) => (item.id === last.id ? { ...item, content: last.content } : item)));
     }
-  }, [messages, streaming, streamInto, send]);
+  }, [messages, streaming, streamInto, send, runAutoContinue]);
 
   const saveEdit = useCallback(async () => {
     if (!editing) return;
@@ -506,9 +537,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ index }),
       });
-      const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string };
+      const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string; thought?: ThoughtView | null };
       if (!response.ok || typeof data.content !== 'string') throw new Error(data.message || '切换失败');
-      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index } : item)));
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index, thought: data.thought ?? null } : item)));
       emitHelperEvent('message_swiped', { dbId: message.id });
     } catch (caught) {
       setError((caught as Error).message);
@@ -714,11 +745,14 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                           {message.attachment.prompt && <figcaption className="p-small" style={{ marginTop: 6 }}>{message.attachment.prompt}</figcaption>}
                         </figure>
                       ) : (
+                        <>
+                        {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} /> : null}
                         <div className="p-msg-copy p-msg-text">
                           {message.content
                             ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={displayMacros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
                             : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
                         </div>
+                        </>
                       )}
                       {message.attachment?.kind === 'audio' && (
                         <audio controls src={message.attachment.url} style={{ display: 'block', width: '100%', maxWidth: 360, marginTop: 8 }} />

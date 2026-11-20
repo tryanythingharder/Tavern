@@ -887,3 +887,22 @@ html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-msg-checkpoint { j
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-branch-note { position: static; margin: 4px 14px 0; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-rp-status { position: static; }
 }
+
+/* ST 推理折叠块：消息正文上方，「思考了 N 秒」 */
+.p-thought { margin: 2px 0 8px; font-size: 13px; color: var(--text-2); }
+.p-thought-summary { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; list-style: none; user-select: none; font-size: 12px; line-height: 1.5; }
+.p-thought-summary::-webkit-details-marker { display: none; }
+.p-thought-summary:hover { color: var(--text); border-color: var(--text-3, var(--border)); }
+.p-thought-summary:focus-visible { outline: 2px solid var(--accent, #c9401f); outline-offset: 2px; }
+.p-thought-icon { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.p-thought.is-live .p-thought-summary span { animation: p-thought-pulse 1.4s ease-in-out infinite; }
+@keyframes p-thought-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .p-thought.is-live .p-thought-summary span { animation: none; } }
+.p-thought-body { margin-top: 8px; padding: 8px 12px; border-left: 2px solid var(--border); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; max-height: 320px; overflow: auto; }
+html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-thought { justify-self: start; width: auto; max-width: 100%; }
+
+/* 生成行为（全局）设置 */
+.p-gen-prefs-head { margin-top: 32px; }
+.p-gen-prefs .p-check { margin: 6px 0; }
+.p-gen-prefs-inline { max-width: 220px; margin: 4px 0 8px 26px; }
+.p-gen-prefs-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }

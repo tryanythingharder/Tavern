@@ -1,4 +1,5 @@
 'use client';
+import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasMvuCommands } from '@/lib/mvu';
@@ -8,7 +9,7 @@ import type { RegexRule } from '@/lib/resources';
 import { ModelPicker } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 
-type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null };
+type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
 
 type Props = {
@@ -59,6 +60,8 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
   const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const autoContinueRef = useRef<number | null>(null);
+  const thoughtsOpen = useThoughtsOpen();
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -122,7 +125,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
       setMessages((prev) => prev.map((item) => {
         if (item.id !== target) return item;
         base = mode.kind === 'continue' ? item.content : '';
-        return { ...item, content: base };
+        return { ...item, content: base, ...(mode.kind === 'regenerate' ? { thought: null } : {}) };
       }));
     }
     setStreamingId(streamKey);
@@ -130,7 +133,9 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     const controller = new AbortController();
     abortRef.current = controller;
     let full = '';
+    let thinking = '';
     let completed = false;
+    autoContinueRef.current = null;
     try {
       const payload = mode.kind === 'send'
         ? { text: mode.text, speakerId: strategy === 'manual' ? speakerId : undefined }
@@ -162,7 +167,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
         for (const part of parts) {
           const line = part.trim();
           if (!line.startsWith('data:')) continue;
-          let event: { type: string; text?: string; message?: string; messageId?: number; speakerId?: string; name?: string; content?: string; candidateIndex?: number; candidateCount?: number };
+          let event: { type: string; text?: string; message?: string; messageId?: number; speakerId?: string; name?: string; content?: string; candidateIndex?: number; candidateCount?: number; reasoning?: ThoughtView | null; autoContinue?: boolean };
           try {
             event = JSON.parse(line.slice(5).trim());
           } catch {
@@ -171,12 +176,17 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
           if (event.type === 'speaker') {
             setTyping(event.name ?? null);
             setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, speakerId: event.speakerId ?? item.speakerId } : item)));
+          } else if (event.type === 'reasoning' && event.text) {
+            thinking += event.text;
+            const live = thinking;
+            setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, thought: { t: live, ms: 0 } } : item)));
           } else if (event.type === 'delta' && event.text) {
             full += event.text;
             const shown = base ? base + full : full;
             setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, content: shown } : item)));
           } else if (event.type === 'done') {
             completed = true;
+            if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = event.messageId;
             setMessages((prev) =>
               prev.map((item) =>
                 item.id === streamKey
@@ -184,6 +194,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                       ...item,
                       id: event.messageId ?? item.id,
                       content: event.content ?? full,
+                      thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
                       speakerId: event.speakerId ?? item.speakerId,
                       ...(event.candidateCount ? { candidateCount: event.candidateCount, selected: event.candidateIndex ?? event.candidateCount - 1 } : {}),
                     }
@@ -216,11 +227,24 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     setOpenActions(null);
     setStreaming(true);
     try {
-      const ok = await streamReply(mode);
+      let ok = await streamReply(mode);
+      // ST 自动继续：回复不到目标长度就接着写，最多 5 次
+      for (let round = 0; ok && round < 5 && autoContinueRef.current !== null; round += 1) {
+        const id = autoContinueRef.current;
+        autoContinueRef.current = null;
+        ok = await streamReply({ kind: 'continue', messageId: id });
+      }
+      autoContinueRef.current = null;
       // 自动推进：玩家发言后的首轮回应之后，再让最多两位成员接话
       if (ok && autoMode && mode.kind === 'send') {
         for (let index = 0; index < 2; index += 1) {
-          const next = await streamReply({ kind: 'auto' });
+          let next = await streamReply({ kind: 'auto' });
+          for (let round = 0; next && round < 5 && autoContinueRef.current !== null; round += 1) {
+            const id = autoContinueRef.current;
+            autoContinueRef.current = null;
+            next = await streamReply({ kind: 'continue', messageId: id });
+          }
+          autoContinueRef.current = null;
           if (!next) break;
         }
       }
@@ -252,7 +276,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
       const data = (await response.json().catch(() => ({}))) as { message?: RoomMessageView & { message?: string } };
       if (response.ok && data.message) {
         const updated = data.message;
-        setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: updated.content, selected: updated.selected, candidateCount: updated.candidateCount } : item)));
+        setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: updated.content, selected: updated.selected, candidateCount: updated.candidateCount, thought: updated.thought ?? null } : item)));
       } else setError('切换失败');
     } finally {
       setSwitching(null);
@@ -435,6 +459,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                     </div>
                   ) : (
                     <>
+                      {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} /> : null}
                       <div className="p-msg-copy p-msg-text">
                         {message.content
                           ? <RichText text={message.content} streaming={isStreamingThis} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />

@@ -1,3 +1,4 @@
+import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
 import { moderateText } from '@/lib/auto-moderation';
@@ -10,6 +11,7 @@ import {
   getCharacterById,
   listMessages,
   listMessagesPage,
+  setMessageReasoning,
   startGeneration,
   touchChat,
 } from '@/lib/db';
@@ -80,6 +82,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!character) return fail('角色不存在', 404);
 
   const config = loadGenerationConfig(user.id, chat);
+  const genPrefs = getGenPrefs(user.id);
   const userMessage = addMessage(chatId, 'user', text, undefined, undefined, personaSender(user.id, config.persona));
   const memory = memorySettings(chat);
   const history = listMessages(chatId);
@@ -90,7 +93,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
-    history,
+    history: addReasoningToHistory(history, genPrefs),
     preset: config.preset,
     persona: config.persona,
     userName: config.userName,
@@ -130,16 +133,23 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         }
       };
       let full = '';
+      const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) })) {
           if (event.type === 'route') {
             connected = true;
             billedModel = event.model;
           } else if (event.type === 'content') {
+            trace.onContent();
             full += event.text;
             send({ type: 'delta', text: event.text });
+          } else if (event.type === 'reasoning') {
+            trace.onReasoning(event.text);
+            send({ type: 'reasoning', text: event.text });
+          } else if (event.type === 'finish') {
+            trace.finish = event.reason;
           } else if (event.type === 'usage') {
             usage = event;
           }
@@ -151,23 +161,29 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chatId}`);
         settled = true;
         // 落库原文；「仅显示」正则在渲染时套用（和 ST 一样，状态栏 HTML 不会被当成历史喂回模型）
-        const finalText = full;
+        const finalText = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        const thought = trace.result();
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
+          if (thought) setMessageReasoning(saved.id, 0, thought);
           // 回复里的 EJS（如 setvar）在这一步才真正写变量
           await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
           // 到间隔了就在后台更新模型摘要（不挡这次回复）
           void autoSummarize(chatId, user.id);
-          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
+          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         } else {
           touchChat(chatId);
           send({ type: 'done', messageId: null, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         }
       } catch (error) {
         // 中断或失败时，把已经生成的部分保存下来，并按实际 token 结算预扣
-        const partial = full;
-        if (partial.trim()) addMessage(chatId, 'assistant', partial, [partial]);
+        const partial = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        if (partial.trim()) {
+          const savedPartial = addMessage(chatId, 'assistant', partial, [partial]);
+          const thought = trace.result();
+          if (thought) setMessageReasoning(savedPartial.id, 0, thought);
+        }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
           model: billedModel,

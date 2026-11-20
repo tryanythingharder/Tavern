@@ -168,6 +168,8 @@ export type StreamOptions = {
   params?: PresetParams;
   stop?: string[];
   model?: string | null;
+  // ST「自动解析」：正文以前缀（<think>）开头时，前缀到后缀之间当作思考内容
+  reasoningTags?: { prefix: string; suffix: string } | null;
 };
 
 // 上游可重试的状态：限流、超时、网关故障（含 Cloudflare 52x、Anthropic 529 过载）
@@ -249,6 +251,71 @@ export class StopTrimmer {
     const out = this.stopped ? '' : this.held;
     this.held = '';
     return out;
+  }
+}
+
+// 把正文开头的 <think>…</think> 拆成思考内容（流式：前缀/后缀可能被切在两块之间）
+export class ThinkSplitter {
+  private state: 'start' | 'in' | 'out';
+  private buf = '';
+  private closed = false; // 刚闭合：吞掉后缀后面紧跟的空白
+  private readonly prefix: string;
+  private readonly suffix: string;
+  constructor(prefix: string, suffix: string) {
+    this.prefix = prefix;
+    this.suffix = suffix;
+    this.state = prefix.trim() && suffix.trim() ? 'start' : 'out';
+  }
+  push(text: string): { reasoning: string; content: string } {
+    if (this.state === 'out') {
+      if (!this.closed) return { reasoning: '', content: text };
+      const content = text.replace(/^\s+/, '');
+      if (content) this.closed = false;
+      return { reasoning: '', content };
+    }
+    this.buf += text;
+    let reasoning = '';
+    let content = '';
+    if (this.state === 'start') {
+      const lead = this.buf.trimStart();
+      const prefix = this.prefix.trim();
+      if (lead.length < prefix.length && prefix.startsWith(lead)) return { reasoning, content };
+      if (lead.startsWith(prefix)) {
+        this.state = 'in';
+        this.buf = lead.slice(prefix.length);
+      } else {
+        this.state = 'out';
+        content = this.buf;
+        this.buf = '';
+        return { reasoning, content };
+      }
+    }
+    if (this.state === 'in') {
+      const suffix = this.suffix.trim();
+      const at = this.buf.indexOf(suffix);
+      if (at >= 0) {
+        reasoning = this.buf.slice(0, at);
+        content = this.buf.slice(at + suffix.length).replace(/^\s+/, '');
+        this.buf = '';
+        this.state = 'out';
+        this.closed = !content;
+      } else {
+        let hold = 0;
+        for (let size = Math.min(suffix.length - 1, this.buf.length); size > 0; size -= 1) {
+          if (suffix.startsWith(this.buf.slice(-size))) { hold = size; break; }
+        }
+        reasoning = this.buf.slice(0, this.buf.length - hold);
+        this.buf = this.buf.slice(this.buf.length - hold);
+      }
+    }
+    return { reasoning, content };
+  }
+  // 流结束：还在开头缓冲的当正文；思考没闭合的把剩下的当思考（ST 同样处理）
+  flush(): { reasoning: string; content: string } {
+    const rest = this.buf;
+    this.buf = '';
+    if (this.state === 'in') return { reasoning: rest, content: '' };
+    return { reasoning: '', content: rest };
   }
 }
 
@@ -410,6 +477,7 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
     yield { type: 'route', model: usedModel };
 
     const trimmer = new StopTrimmer(stops);
+    const splitter = options.reasoningTags ? new ThinkSplitter(options.reasoningTags.prefix, options.reasoningTags.suffix) : null;
     let produced = false;
     let reasoned = false;
     let finish = '';
@@ -418,8 +486,10 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
         throw new UpstreamError(`上游中途报错：${parsed.error}`);
       }
       for (const text of parsed.reasoning) { reasoned = true; yield { type: 'reasoning', text }; }
-      for (const text of parsed.content) {
-        const out = trimmer.push(text);
+      for (const raw of parsed.content) {
+        const part = splitter ? splitter.push(raw) : { reasoning: '', content: raw };
+        if (part.reasoning) { reasoned = true; yield { type: 'reasoning', text: part.reasoning }; }
+        const out = part.content ? trimmer.push(part.content) : '';
         if (out) { produced = true; yield { type: 'content', text: out }; }
       }
       if (parsed.finish) finish = parsed.finish;
@@ -491,6 +561,12 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
       } finally {
         if (trimmer.stopped) await reader.cancel().catch(() => undefined);
       }
+    }
+    if (splitter) {
+      const tail = splitter.flush();
+      if (tail.reasoning) { reasoned = true; yield { type: 'reasoning', text: tail.reasoning }; }
+      const out = tail.content ? trimmer.push(tail.content) : '';
+      if (out) { produced = true; yield { type: 'content', text: out }; }
     }
     const rest = trimmer.flush();
     if (rest) { produced = true; yield { type: 'content', text: rest }; }

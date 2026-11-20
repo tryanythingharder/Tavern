@@ -1,3 +1,5 @@
+import { setMessageReasoning } from '@/lib/db';
+import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { getMessage } from '@/lib/db';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
@@ -52,6 +54,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!modelConfigured()) return fail('模型未配置：请在 .env.local 设置三个 TAVERN_MODEL_* 变量', 500);
 
   const config = loadGenerationConfig(user.id, chat);
+  const genPrefs = getGenPrefs(user.id);
   const history = listMessagesBefore(chat.id, message.id);
   const memory = memorySettings(chat);
   const lastUser = [...history].reverse().find((item) => item.role === 'user');
@@ -60,7 +63,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
-    history,
+    history: addReasoningToHistory(history, genPrefs),
     preset: config.preset,
     persona: config.persona,
     userName: config.userName,
@@ -96,16 +99,23 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         }
       };
       let full = '';
+      const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) })) {
           if (event.type === 'route') {
             connected = true;
             billedModel = event.model;
           } else if (event.type === 'content') {
+            trace.onContent();
             full += event.text;
             send({ type: 'delta', text: event.text });
+          } else if (event.type === 'reasoning') {
+            trace.onReasoning(event.text);
+            send({ type: 'reasoning', text: event.text });
+          } else if (event.type === 'finish') {
+            trace.finish = event.reason;
           } else if (event.type === 'usage') {
             usage = event;
           }
@@ -116,9 +126,11 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chat.id}`);
         settled = true;
-        const finalText = full;
+        const finalText = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        const thought = trace.result();
         if (finalText.trim()) {
           const candidate = appendCandidate(message.id, finalText);
+          if (candidate) setMessageReasoning(message.id, candidate.index, thought);
           await applyReplyTemplates(finalText, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { beforeId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
           send({
@@ -127,6 +139,8 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
             content: finalText,
             candidateIndex: candidate?.index ?? 0,
             candidateCount: candidate?.count ?? 1,
+            reasoning: thought,
+            autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish),
             cost: settlement.cost,
             balance: settlement.balance,
           });
@@ -135,8 +149,11 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         }
       } catch (error) {
         // 中断时保留已生成的部分，作为候选存下来
-        const partial = full;
-        if (partial.trim()) appendCandidate(message.id, partial);
+        const partial = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        if (partial.trim()) {
+          const candidate = appendCandidate(message.id, partial);
+          if (candidate) setMessageReasoning(message.id, candidate.index, trace.result());
+        }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
           model: billedModel,

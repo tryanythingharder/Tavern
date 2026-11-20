@@ -1,3 +1,4 @@
+import { withReasoning } from '@/lib/reasoning';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -469,6 +470,11 @@ ensureColumn('messages', 'persona_avatar', 'TEXT');
 ensureColumn('room_messages', 'persona_name', 'TEXT');
 ensureColumn('room_messages', 'persona_avatar', 'TEXT');
 ensureColumn('rooms', 'persona_id', 'INTEGER');
+// ST 的生成行为设置（高级格式化 / 用户设置里的全局项）：自定义停止词、裁剪不完整句子、自动继续、思考内容
+ensureColumn('users', 'gen_prefs', 'TEXT');
+// 模型的思考过程，按候选序号存：{"0":{"t":"…","ms":1234}}（ST 存在 extra.reasoning / swipe_info）
+ensureColumn('messages', 'reasoning', 'TEXT');
+ensureColumn('room_messages', 'reasoning', 'TEXT');
 
 // 首次启动把种子角色写入数据库；之后以数据库为准。
 const seeded = db.prepare('SELECT COUNT(*) AS count FROM characters').get() as { count: number };
@@ -501,7 +507,7 @@ export type DbChat = {
 };
 export type DbMessage = {
   id: number; chat_id: number; role: 'user' | 'assistant' | 'system'; content: string;
-  candidates: string | null; selected: number; bookmark: number; attachment: string | null; checkpoint_chat_id?: number | null; created_at: number;
+  candidates: string | null; selected: number; bookmark: number; attachment: string | null; checkpoint_chat_id?: number | null; created_at: number; reasoning?: string | null;
   persona_name?: string | null; persona_avatar?: string | null;
 };
 
@@ -589,6 +595,13 @@ export function addMessage(chatId: number, role: DbMessage['role'], content: str
 
 export function touchChat(chatId: number) {
   db.prepare('UPDATE chats SET updated_at = ? WHERE id = ?').run(Date.now(), chatId);
+}
+
+// 思考内容按候选序号存
+export function setMessageReasoning(messageId: number, index: number, value: { t: string; ms: number } | null): void {
+  const row = db.prepare('SELECT reasoning FROM messages WHERE id = ?').get(messageId) as { reasoning: string | null } | undefined;
+  if (!row) return;
+  db.prepare('UPDATE messages SET reasoning = ? WHERE id = ?').run(withReasoning(row.reasoning, index, value), messageId);
 }
 
 export function getMessage(messageId: number): DbMessage | undefined {
@@ -702,10 +715,10 @@ export function branchChat(chatId: number, userId: number, messageId: number, op
      VALUES (?,?,?,?,?,?,${BRANCH_COPY_COLUMNS.map(() => '?').join(',')},?,?)`,
   ).run(userId, source.character_id, title, chatId, messageId, summary, ...values, now, now);
   const newId = Number(result.lastInsertRowid);
-  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
+  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, persona_name, persona_avatar, reasoning, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   db.exec('BEGIN');
   try {
-    for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.bookmark ?? 0, row.attachment ?? null, row.persona_name ?? null, row.persona_avatar ?? null, row.created_at);
+    for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.bookmark ?? 0, row.attachment ?? null, row.persona_name ?? null, row.persona_avatar ?? null, row.reasoning ?? null, row.created_at);
     // 酒馆助手 / EJS 的 chat 变量随分支复制（ST 复制 chat_metadata.variables）
     db.prepare(`INSERT OR IGNORE INTO helper_vars (user_id, scope, scope_id, data, updated_at)
       SELECT user_id, scope, ?, data, ? FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?`).run(String(newId), now, userId, String(chatId));

@@ -1,3 +1,6 @@
+import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
+import { setRoomMessageReasoning } from '@/lib/rooms';
+import type { Reasoning } from '@/lib/reasoning';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
@@ -66,6 +69,7 @@ async function handlePost(request: Request, context: Params) {
   if (!modelConfigured()) return fail('模型未配置：请在 .env.local 设置三个 TAVERN_MODEL_* 变量', 500);
 
   const config = loadRoomConfig(user.id, room);
+  const genPrefs = getGenPrefs(user.id);
   const userRoomMessage = !auto ? addRoomMessage(room.id, 'user', null, text, personaSender(user.id, config.persona)) : null;
   const allMessages = listRoomMessages(room.id);
   // 重新生成：上下文到目标之前为止；继续：包含目标本身
@@ -88,7 +92,7 @@ async function handlePost(request: Request, context: Params) {
 
   const prompt = buildRoomPrompt({
     room,
-    messages,
+    messages: addReasoningToHistory(messages, genPrefs),
     speaker,
     preset: config.preset,
     persona: config.persona,
@@ -124,18 +128,25 @@ async function handlePost(request: Request, context: Params) {
         }
       };
       let full = '';
+      const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       // 先把本轮发言者告诉客户端，界面可以显示「谁正在输入」
       send({ type: 'speaker', speakerId: speaker.id, name: speaker.name });
       try {
-        for await (const event of streamChat(prompt, { signal: request.signal, params: config.preset.params, model: room.model })) {
+        for await (const event of streamChat(prompt, { signal: request.signal, params: config.preset.params, model: room.model, ...streamExtras(genPrefs, [], { user: config.userName, char: speaker.name }) })) {
           if (event.type === 'route') {
             connected = true;
             billedModel = event.model;
           } else if (event.type === 'content') {
+            trace.onContent();
             full += event.text;
             send({ type: 'delta', text: event.text });
+          } else if (event.type === 'reasoning') {
+            trace.onReasoning(event.text);
+            send({ type: 'reasoning', text: event.text });
+          } else if (event.type === 'finish') {
+            trace.finish = event.reason;
           } else if (event.type === 'usage') {
             usage = event;
           }
@@ -149,28 +160,43 @@ async function handlePost(request: Request, context: Params) {
 
         // 模型偶尔会在开头自己加「白露：」，去掉以免和气泡上的名字重复
         const stripSpeaker = (value: string) => value.replace(namePrefix, '');
-        const finalText = mode === 'continue' ? full : stripSpeaker(full);
+        const raw = mode === 'continue' ? full : stripSpeaker(full);
+        const finalText = genPrefs.trimSentences ? trimToEndSentence(raw) : raw;
+        const thought = trace.result();
         if (finalText.trim()) {
           if (mode === 'continue' && target) {
             const content = joinContinue(target.content, finalText);
             editRoomMessage(target.id, content);
-            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content, cost: settlement.cost, balance: settlement.balance });
+            const merged = mergeThought(target.thought, thought);
+            if (thought) setRoomMessageReasoning(target.id, target.selected, merged);
+            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content, reasoning: merged, autoContinue: wantsAutoContinue(genPrefs, content, finalText, trace.finish), cost: settlement.cost, balance: settlement.balance });
           } else if (mode === 'regenerate' && target) {
             const candidate = addRoomCandidate(target.id, finalText);
-            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content: finalText, candidateIndex: candidate.index, candidateCount: candidate.count, cost: settlement.cost, balance: settlement.balance });
+            setRoomMessageReasoning(target.id, candidate.index, thought);
+            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content: finalText, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), candidateIndex: candidate.index, candidateCount: candidate.count, cost: settlement.cost, balance: settlement.balance });
           } else {
             const saved = addRoomMessage(room.id, 'assistant', speaker.id, finalText);
-            send({ type: 'done', messageId: saved.id, speakerId: speaker.id, content: finalText, cost: settlement.cost, balance: settlement.balance });
+            if (thought) setRoomMessageReasoning(saved.id, 0, thought);
+            send({ type: 'done', messageId: saved.id, speakerId: speaker.id, content: finalText, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, balance: settlement.balance });
           }
         } else {
           send({ type: 'error', message: '模型没有返回内容，请重试' });
         }
       } catch (error) {
-        const partial = mode === 'continue' ? full : full.replace(namePrefix, '');
+        const rawPartial = mode === 'continue' ? full : full.replace(namePrefix, '');
+        const partial = genPrefs.trimSentences ? trimToEndSentence(rawPartial) : rawPartial;
         if (partial.trim()) {
-          if (mode === 'continue' && target) editRoomMessage(target.id, joinContinue(target.content, partial));
-          else if (mode === 'regenerate' && target) addRoomCandidate(target.id, partial);
-          else addRoomMessage(room.id, 'assistant', speaker.id, partial);
+          const thought = trace.result();
+          if (mode === 'continue' && target) {
+            editRoomMessage(target.id, joinContinue(target.content, partial));
+            if (thought) setRoomMessageReasoning(target.id, target.selected, mergeThought(target.thought, thought));
+          } else if (mode === 'regenerate' && target) {
+            const candidate = addRoomCandidate(target.id, partial);
+            setRoomMessageReasoning(target.id, candidate.index, thought);
+          } else {
+            const saved = addRoomMessage(room.id, 'assistant', speaker.id, partial);
+            if (thought) setRoomMessageReasoning(saved.id, 0, thought);
+          }
         }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
@@ -210,4 +236,10 @@ async function handlePost(request: Request, context: Params) {
 // 同一会话同时只跑一条生成；流期间发心跳防代理断连
 export async function POST(request: Request, context: Params) {
   return withGenerationLock(`room:${(await context.params).id}`, () => handlePost(request, context));
+}
+
+// 续写的思考接在原来那段后面
+function mergeThought(previous: Reasoning | null, next: Reasoning | null): Reasoning | null {
+  if (!next) return previous;
+  return previous ? { t: `${previous.t}\n\n${next.t}`, ms: previous.ms + next.ms } : next;
 }

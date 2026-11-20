@@ -1,3 +1,4 @@
+import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { templateLore, templatePrompt } from '@/lib/ejs-server';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
@@ -38,6 +39,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!character) return fail('角色不存在', 404);
 
   const config = loadGenerationConfig(user.id, chat);
+  const genPrefs = getGenPrefs(user.id);
   const memory = memorySettings(chat);
   const ejsHistory = listMessages(chatId);
   const vars = chatVariables(chat.id, chat.character_id);
@@ -83,7 +85,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       let full = '';
       let total = 0;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: { ...prompt.params, maxTokens }, stop: prompt.stop, model: chat.model })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: { ...prompt.params, maxTokens }, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) })) {
           if (event.type === 'route') {
             connected = true;
             billedModel = event.model;
@@ -93,7 +95,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         const tokens = total || prompt.tokens + estimateTokens(full);
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens, total ? Math.max(0, total - prompt.tokens) : estimateTokens(full), billedModel), `chat:${chatId}`);
-        send({ type: 'done', text: full.trim(), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
+        send({ type: 'done', text: (genPrefs.trimSentences ? trimToEndSentence(full) : full).trim(), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
       } catch (error) {
         const aborted = request.signal.aborted;
         finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });

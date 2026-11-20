@@ -1,3 +1,4 @@
+import { reasoningAt, type Reasoning } from '@/lib/reasoning';
 import { messageCandidates, type DbMessage } from '@/lib/db';
 
 // 客户端需要的消息视图：正文 + 候选数量（>1 才显示切换）。
@@ -15,6 +16,8 @@ export type ChatMessageView = {
   /** 玩家消息：发送时的身份名与头像（ST 每条消息的 name / force_avatar） */
   personaName: string | null;
   personaAvatar: string | null;
+  /** 当前候选的思考内容（ST 折叠的「思考过程」） */
+  thought: Reasoning | null;
   createdAt: number;
 };
 
@@ -46,6 +49,7 @@ export function toMessageView(message: DbMessage): ChatMessageView {
     attachment: parseAttachment(message.attachment),
     personaName: message.persona_name ?? null,
     personaAvatar: message.persona_avatar ?? null,
+    thought: message.role === 'assistant' ? reasoningAt(message.reasoning, message.selected) : null,
     createdAt: message.created_at,
   };
 }

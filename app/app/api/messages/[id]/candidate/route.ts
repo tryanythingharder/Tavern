@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
-import { getOwnedMessage, selectCandidate } from '@/lib/db';
+import { getMessage, getOwnedMessage, selectCandidate } from '@/lib/db';
+import { reasoningAt } from '@/lib/reasoning';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,5 +21,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const selected = selectCandidate(message.id, Number(body.index));
   if (!selected) return fail('候选不存在', 400);
 
-  return Response.json(selected);
+  // 换版时把这一版的思考内容一起带回去
+  const fresh = getMessage(message.id);
+  return Response.json({ ...selected, thought: fresh ? reasoningAt(fresh.reasoning, selected.index) : null });
 }

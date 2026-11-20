@@ -1,3 +1,6 @@
+import { setMessageReasoning } from '@/lib/db';
+import { reasoningAt } from '@/lib/reasoning';
+import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { getMessage } from '@/lib/db';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
@@ -58,8 +61,16 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!modelConfigured()) return fail('模型未配置：请在 .env.local 设置三个 TAVERN_MODEL_* 变量', 500);
 
   const config = loadGenerationConfig(user.id, chat);
+  const genPrefs = getGenPrefs(user.id);
   const history = [...listMessagesBefore(chat.id, message.id), message];
   const base = message.content;
+  // 续写的思考接在原来那段后面（ST 续写时同样保留原思考）
+  const previousThought = reasoningAt(message.reasoning, message.selected ?? 0);
+  const mergeThought = (trace: GenTrace) => {
+    const next = trace.result();
+    if (!next) return null;
+    return previousThought ? { t: `${previousThought.t}\n\n${next.t}`, ms: previousThought.ms + next.ms } : next;
+  };
   const memory = memorySettings(chat);
   const lastUser = [...history].reverse().find((item) => item.role === 'user');
   const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
@@ -67,7 +78,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
-    history,
+    history: addReasoningToHistory(history, genPrefs),
     preset: config.preset,
     persona: config.persona,
     userName: config.userName,
@@ -103,16 +114,23 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         }
       };
       let full = '';
+      const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
+        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) })) {
           if (event.type === 'route') {
             connected = true;
             billedModel = event.model;
           } else if (event.type === 'content') {
+            trace.onContent();
             full += event.text;
             send({ type: 'delta', text: event.text });
+          } else if (event.type === 'reasoning') {
+            trace.onReasoning(event.text);
+            send({ type: 'reasoning', text: event.text });
+          } else if (event.type === 'finish') {
+            trace.finish = event.reason;
           } else if (event.type === 'usage') {
             usage = event;
           }
@@ -123,18 +141,26 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chat.id}`);
         settled = true;
-        if (full.trim()) {
-          const finalText = joinContinue(base, full);
+        const added = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        if (added.trim()) {
+          const finalText = joinContinue(base, added);
           updateMessageContent(message.id, finalText);
+          const thought = mergeThought(trace);
+          if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
           await applyReplyTemplates(full, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
-          send({ type: 'done', messageId: message.id, content: finalText, cost: settlement.cost, balance: settlement.balance });
+          send({ type: 'done', messageId: message.id, content: finalText, reasoning: thought ?? reasoningAt(message.reasoning, message.selected ?? 0), autoContinue: wantsAutoContinue(genPrefs, finalText, added, trace.finish), cost: settlement.cost, balance: settlement.balance });
         } else {
           send({ type: 'error', message: '模型没有返回内容，请重试' });
         }
       } catch (error) {
         // 中断时保留已生成的部分，作为候选存下来
-        if (full.trim()) updateMessageContent(message.id, joinContinue(base, full));
+        const partial = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        if (partial.trim()) {
+          updateMessageContent(message.id, joinContinue(base, partial));
+          const thought = mergeThought(trace);
+          if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
+        }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
           model: billedModel,

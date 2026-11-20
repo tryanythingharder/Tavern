@@ -1,3 +1,4 @@
+import { reasoningAt, withReasoning, type Reasoning } from '@/lib/reasoning';
 import db, { getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
 import { applyRegex, scanLore, summaryText } from '@/lib/prompt';
 import type { RoomPromptMemory } from '@/lib/room-memory';
@@ -40,6 +41,8 @@ export type RoomMessage = {
   /** 玩家消息：发送时的身份名与头像 */
   personaName: string | null;
   personaAvatar: string | null;
+  /** 当前候选的思考内容 */
+  thought: Reasoning | null;
 };
 
 type RoomRow = {
@@ -50,7 +53,7 @@ type RoomRow = {
 type RoomMessageRow = {
   id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number;
   candidates?: string | null; selected?: number | null; checkpoint_room_id?: number | null; attachment?: string | null;
-  persona_name?: string | null; persona_avatar?: string | null;
+  persona_name?: string | null; persona_avatar?: string | null; reasoning?: string | null;
 };
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -180,6 +183,7 @@ function messageFromRow(row: RoomMessageRow): RoomMessage {
     checkpoint: row.checkpoint_room_id ?? null,
     personaName: row.persona_name ?? null,
     personaAvatar: row.persona_avatar ?? null,
+    thought: row.role === 'user' ? null : reasoningAt(row.reasoning, Math.min(Math.max(row.selected ?? 0, 0), count - 1)),
   };
 }
 
@@ -204,7 +208,7 @@ export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speak
   const personaAvatar = sender?.avatar ?? null;
   const result = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?)').run(roomId, role, speakerId, content, personaName, personaAvatar, now);
   db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, roomId);
-  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar };
+  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar, thought: null };
 }
 
 /**
@@ -229,6 +233,12 @@ export function insertRoomGreetings(room: Room): number {
   }
   if (inserted) db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, room.id);
   return inserted;
+}
+
+export function setRoomMessageReasoning(messageId: number, index: number, value: { t: string; ms: number } | null): void {
+  const row = db.prepare('SELECT reasoning FROM room_messages WHERE id = ?').get(messageId) as { reasoning: string | null } | undefined;
+  if (!row) return;
+  db.prepare('UPDATE room_messages SET reasoning = ? WHERE id = ?').run(withReasoning(row.reasoning, index, value), messageId);
 }
 
 export function deleteRoomMessage(messageId: number): void {
@@ -299,8 +309,8 @@ export function branchRoom(userId: number, roomId: number, messageId: number, ch
       now,
     );
     const newId = Number(created.lastInsertRowid);
-    db.prepare(`INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, attachment, persona_name, persona_avatar, created_at)
-      SELECT ?, role, speaker_id, content, candidates, selected, attachment, persona_name, persona_avatar, created_at FROM room_messages WHERE room_id = ? AND id <= ? ORDER BY id`).run(newId, roomId, messageId);
+    db.prepare(`INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, attachment, persona_name, persona_avatar, reasoning, created_at)
+      SELECT ?, role, speaker_id, content, candidates, selected, attachment, persona_name, persona_avatar, reasoning, created_at FROM room_messages WHERE room_id = ? AND id <= ? ORDER BY id`).run(newId, roomId, messageId);
     if (checkpoint) db.prepare('UPDATE room_messages SET checkpoint_room_id = ? WHERE id = ?').run(newId, messageId);
     // 作者注释 / 摘要设置跟着走；摘要只在没覆盖到分支点之后时才复制（同单聊分支）
     const source = db.prepare('SELECT author_note, summary, summary_prefs FROM rooms WHERE id = ?').get(roomId) as { author_note: string | null; summary: string | null; summary_prefs: string | null };
