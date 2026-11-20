@@ -1,4 +1,5 @@
 import { withReasoning } from '@/lib/reasoning';
+import { addMeta as _addMeta, withMeta as _withMeta, type GenMeta } from '@/lib/msg-meta';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -478,6 +479,9 @@ ensureColumn('rooms', 'persona_id', 'INTEGER');
 ensureColumn('users', 'gen_prefs', 'TEXT');
 // 模型的思考过程，按候选序号存：{"0":{"t":"…","ms":1234}}（ST 存在 extra.reasoning / swipe_info）
 ensureColumn('messages', 'reasoning', 'TEXT');
+// ST 对齐：隐藏消息（/hide，幽灵图标，不发给模型）与每个候选的生成信息（lib/msg-meta.ts）
+ensureColumn('messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('messages', 'meta', 'TEXT');
 ensureColumn('room_messages', 'reasoning', 'TEXT');
 
 // 首次启动把种子角色写入数据库；之后以数据库为准。
@@ -513,6 +517,7 @@ export type DbMessage = {
   id: number; chat_id: number; role: 'user' | 'assistant' | 'system'; content: string;
   candidates: string | null; selected: number; bookmark: number; attachment: string | null; checkpoint_chat_id?: number | null; created_at: number; reasoning?: string | null;
   persona_name?: string | null; persona_avatar?: string | null;
+  hidden?: number; meta?: string | null;
 };
 
 export function getCharacterById(id: string): DbCharacter | undefined {
@@ -581,6 +586,13 @@ export function listMessagesPage(chatId: number, beforeId: number | null, limit 
 }
 
 // 重新生成某条消息时，上下文只取它之前的消息（不含它本身）。
+// 这一页第一条之前还有多少条（ST 楼层号 = 偏移 + 页内序号）
+export function messageOffset(chatId: number, firstId: number | undefined): number {
+  if (!firstId) return 0;
+  const row = db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND id < ?').get(chatId, firstId) as { n: number };
+  return Number(row.n) || 0;
+}
+
 export function listMessagesBefore(chatId: number, messageId: number, limit = 200): DbMessage[] {
   const rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND id < ? ORDER BY id DESC LIMIT ?').all(chatId, messageId, limit) as DbMessage[];
   return rows.reverse();
@@ -846,3 +858,27 @@ export function transaction<T>(fn: () => T): T {
 }
 
 export default db;
+
+// ---- ST 对齐：隐藏 / 批量删除 / 生成信息 ----
+
+export function setMessagesHidden(chatId: number, ids: number[], hidden: boolean): number {
+  if (!ids.length) return 0;
+  const stmt = db.prepare('UPDATE messages SET hidden = ? WHERE chat_id = ? AND id = ?');
+  let count = 0;
+  for (const id of ids) count += Number(stmt.run(hidden ? 1 : 0, chatId, id).changes);
+  if (count) touchChat(chatId);
+  return count;
+}
+
+// 删除这一条及之后的全部消息（ST 删除模式选到最后一条）
+export function deleteMessagesFrom(chatId: number, fromId: number): number {
+  const result = db.prepare('DELETE FROM messages WHERE chat_id = ? AND id >= ?').run(chatId, fromId);
+  if (result.changes) touchChat(chatId);
+  return Number(result.changes);
+}
+
+export function recordMessageMeta(messageId: number, index: number, meta: GenMeta, accumulate = false): void {
+  const row = db.prepare('SELECT meta FROM messages WHERE id = ?').get(messageId) as { meta: string | null } | undefined;
+  if (!row) return;
+  db.prepare('UPDATE messages SET meta = ? WHERE id = ?').run(accumulate ? _addMeta(row.meta, index, meta) : _withMeta(row.meta, index, meta), messageId);
+}

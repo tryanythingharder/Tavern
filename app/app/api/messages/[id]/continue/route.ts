@@ -1,4 +1,4 @@
-import { setMessageReasoning } from '@/lib/db';
+import { recordMessageMeta, setMessageReasoning } from '@/lib/db';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { reasoningAt } from '@/lib/reasoning';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
@@ -118,6 +118,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       };
       let full = '';
       const trace = new GenTrace();
+      const startedAt = Date.now();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
@@ -148,6 +149,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (added.trim()) {
           const finalText = joinContinue(base, added);
           updateMessageContent(message.id, finalText);
+          recordMessageMeta(message.id, message.selected ?? 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now() }, true);
           const thought = mergeThought(trace);
           if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
           await applyReplyTemplates(full, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) }).catch(() => null);
@@ -161,6 +163,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         const partial = genPrefs.trimSentences ? trimToEndSentence(full) : full;
         if (partial.trim()) {
           updateMessageContent(message.id, joinContinue(base, partial));
+          recordMessageMeta(message.id, message.selected ?? 0, { model: billedModel, tokens: estimateTokens(full), ms: Date.now() - startedAt, at: Date.now() }, true);
           const thought = mergeThought(trace);
           if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
         }

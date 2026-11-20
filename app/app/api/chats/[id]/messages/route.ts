@@ -13,6 +13,8 @@ import {
   listMessages,
   listMessagesPage,
   setMessageReasoning,
+  messageOffset,
+  recordMessageMeta,
   startGeneration,
   touchChat,
 } from '@/lib/db';
@@ -47,7 +49,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const before = Number(url.searchParams.get('before')) || null;
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 60));
   const page = listMessagesPage(chat.id, before, limit);
-  return Response.json({ messages: page.messages.map(toMessageView), hasMore: page.hasMore });
+  return Response.json({ messages: page.messages.map(toMessageView), hasMore: page.hasMore, offset: messageOffset(chat.id, page.messages[0]?.id) });
 }
 
 // POST /api/chats/[id]/messages
@@ -67,7 +69,8 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 
   const body = (await request.json().catch(() => ({}))) as { text?: string };
   const text = String(body.text ?? '').trim();
-  if (!text) return fail('消息不能为空', 400);
+  // ST：输入框为空时点发送 = 不加玩家消息，直接让角色回复（接着当前最后一条）
+  if (!text && !listMessages(chatId, 1).length) return fail('消息不能为空', 400);
   if (text) {
     const verdict = await moderateText(text);
     if (!verdict.ok) return fail(verdict.message, 422);
@@ -86,12 +89,13 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 
   const config = loadGenerationConfig(user.id, chat);
   const genPrefs = getGenPrefs(user.id);
-  const userMessage = addMessage(chatId, 'user', text, undefined, undefined, personaSender(user.id, config.persona));
+  const userMessage = text ? addMessage(chatId, 'user', text, undefined, undefined, personaSender(user.id, config.persona)) : null;
   const memory = memorySettings(chat);
   const history = listMessages(chatId);
   // 摘要按间隔自动刷新；检索只从「最近 8 条」之前的历史里挑片段
   const summary = refreshSummary(chatId, character.name, history);
-  const rag = memory.ragPrefs.enabled ? ragChunks(history, text, memory.ragPrefs.topK) : [];
+  const query = text || [...history].reverse().find((message) => message.role === 'user')?.content || '';
+  const rag = memory.ragPrefs.enabled && query ? ragChunks(history, query, memory.ragPrefs.topK) : [];
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
@@ -116,7 +120,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `对话生成 · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) {
-    deleteMessage(userMessage.id);
+    if (userMessage) deleteMessage(userMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
   }
   const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
@@ -136,6 +140,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         }
       };
       let full = '';
+      const startedAt = Date.now();
       const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
@@ -169,6 +174,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
           if (thought) setMessageReasoning(saved.id, 0, thought);
+          recordMessageMeta(saved.id, 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now() });
           // 回复里的 EJS（如 setvar）在这一步才真正写变量
           await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
@@ -186,6 +192,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
           const savedPartial = addMessage(chatId, 'assistant', partial, [partial]);
           const thought = trace.result();
           if (thought) setMessageReasoning(savedPartial.id, 0, thought);
+          recordMessageMeta(savedPartial.id, 0, { model: billedModel, tokens: estimateTokens(full), ms: Date.now() - startedAt, at: Date.now() });
         }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {

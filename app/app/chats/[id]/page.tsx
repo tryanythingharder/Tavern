@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { chatBranches, getChat, getCharacterById, listMessagesPage } from '@/lib/db';
+import { chatBranches, getChat, getCharacterById, listMessagesPage, messageOffset } from '@/lib/db';
 import { ChatBranches } from '@/components/chat-branches';
 import { toMessageView } from '@/lib/chat-view';
 import { ChatRoom } from '@/components/chat-room';
@@ -98,6 +98,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             characterName={character.name}
             initialMessages={messages}
             initialHasMore={messagePage.hasMore}
+            initialOffset={messageOffset(chat.id, messagePage.messages[0]?.id)}
             quickReplies={quickReplies}
             media={{ image: imageConfigured(), tts: ttsConfigured(), imageCost: imageCost() }}
             title={chat.title}

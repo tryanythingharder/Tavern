@@ -14,6 +14,7 @@ import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
+import { SLASH_HELP, isSlash, parseSlash } from '@/lib/slash';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -30,6 +31,10 @@ export type ChatMessageView = {
   personaAvatar?: string | null;
   thought?: ThoughtView | null;
   createdAt?: number;
+  /** ST 隐藏（幽灵）：不发给模型 */
+  hidden?: boolean;
+  /** 生成信息：模型 / 输出 tokens / 耗时 */
+  meta?: { model: string; tokens: number; ms: number; at: number } | null;
 };
 
 type Props = {
@@ -37,6 +42,8 @@ type Props = {
   characterName: string;
   initialMessages: ChatMessageView[];
   initialHasMore?: boolean;
+  /** 第一条已加载消息之前还有几条（ST 楼层号 = 偏移 + 序号） */
+  initialOffset?: number;
   quickReplies?: { label: string; content: string }[];
   media?: { image: boolean; tts: boolean; imageCost: number };
   title?: string;
@@ -66,7 +73,7 @@ type StreamEvent = {
 };
 
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z"} as const;
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
 function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
@@ -101,7 +108,7 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies = [], media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
   const router = useRouter();
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
@@ -135,6 +142,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     return rev;
   }, [messages]);
   const [hasMore, setHasMore] = useState(initialHasMore);
+  const [offset, setOffset] = useState(initialOffset);
+  const [notice, setNotice] = useState('');
+  const [slashHelp, setSlashHelp] = useState(false);
+  const [confirmingFrom, setConfirmingFrom] = useState<number | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState('');
   const [preview, setPreview] = useState(false);
@@ -227,8 +238,12 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     try {
       const response = await fetch(`/api/chats/${chatId}/messages`, { cache: 'no-store' });
       if (!response.ok) return;
-      const data = (await response.json()) as { messages?: ChatMessageView[] };
-      if (Array.isArray(data.messages)) setMessages(data.messages);
+      const data = (await response.json()) as { messages?: ChatMessageView[]; offset?: number; hasMore?: boolean };
+      if (Array.isArray(data.messages)) {
+        setMessages(data.messages);
+        if (typeof data.offset === 'number') setOffset(data.offset);
+        if (typeof data.hasMore === 'boolean') setHasMore(data.hasMore);
+      }
     } catch {
       // 对齐失败不影响本地内容，下次刷新再取
     }
@@ -247,9 +262,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     try {
       const response = await fetch(`/api/chats/${chatId}/messages?before=${firstId}&limit=40`, { cache: 'no-store' });
       if (!response.ok) throw new Error('加载失败');
-      const data = (await response.json()) as { messages?: ChatMessageView[]; hasMore?: boolean };
+      const data = (await response.json()) as { messages?: ChatMessageView[]; hasMore?: boolean; offset?: number };
       if (Array.isArray(data.messages) && data.messages.length) {
         prependingRef.current = true;
+        if (typeof data.offset === 'number') setOffset(data.offset);
         setMessages((prev) => [...data.messages!, ...prev]);
         setHasMore(Boolean(data.hasMore));
         requestAnimationFrame(() => {
@@ -421,12 +437,20 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
 
   const send = useCallback(async (override?: string) => {
     const text = (override ?? draft).trim();
-    if (!text || streaming) return;
+    if (streaming) return;
+    // 斜杠命令（ST STscript 常用子集）
+    if (override === undefined && isSlash(text)) {
+      setDraft('');
+      await slashRef.current(text);
+      return;
+    }
+    // ST：空着点发送 = 不加玩家消息，让角色接着回复
+    if (!text && !messages.length) return;
     const stamp = Date.now();
     const assistantKey = `local-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0, personaName: persona.name, personaAvatar: persona.avatar, createdAt: Date.now() },
+      ...(text ? [{ id: `local-user-${stamp}`, role: 'user' as const, content: text, candidateCount: 0, selected: 0, personaName: persona.name, personaAvatar: persona.avatar, createdAt: Date.now() }] : []),
       { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
@@ -447,7 +471,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     } else {
       setFailed(null);
     }
-  }, [chatId, draft, streaming, streamInto, runAutoContinue]);
+  }, [chatId, draft, streaming, streamInto, runAutoContinue, messages.length, persona.name, persona.avatar]);
 
   const regenerate = useCallback(
     async (message: ChatMessageView) => {
@@ -548,12 +572,101 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
   }, []);
 
+  // ---- ST 对齐：隐藏 / 删到最后 / 旁白 / 斜杠命令（/api/chats/[id]/ops）----
+  const ops = useCallback(async (body: Record<string, unknown>) => {
+    const response = await fetch(`/api/chats/${chatId}/ops`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView | string; ids?: number[]; hidden?: boolean; deleted?: number };
+    if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : '操作失败');
+    return data;
+  }, [chatId]);
+
+  const toggleHidden = useCallback(async (message: ChatMessageView) => {
+    if (typeof message.id !== 'number') return;
+    const next = !message.hidden;
+    try {
+      await ops({ op: next ? 'hide' : 'unhide', ids: [message.id] });
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, hidden: next } : item)));
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [ops]);
+
+  const removeFrom = useCallback(async (id: number) => {
+    try {
+      await ops({ op: 'delete-from', messageId: id });
+      setMessages((prev) => prev.filter((item) => typeof item.id !== 'number' || item.id < id));
+      setConfirmingFrom(null);
+      emitHelperEvent('message_deleted', { dbId: id });
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [ops]);
+
+  const regenRef = useRef(regenerate);
+  regenRef.current = regenerate;
+  const continueRef = useRef(continueLast);
+  continueRef.current = continueLast;
+  const impersonateRef = useRef(impersonate);
+  impersonateRef.current = impersonate;
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  const runSlash = useCallback(async (text: string) => {
+    setError('');
+    try {
+      for (const command of parseSlash(text)) {
+        const { name, arg } = command;
+        if (name === 'help') setSlashHelp(true);
+        else if (name === 'sys' || name === 'send') {
+          if (!arg) throw new Error(`/${name} 后面要写内容`);
+          const data = await ops({ op: name === 'sys' ? 'narrate' : 'send', text: arg });
+          if (data.message && typeof data.message === 'object') setMessages((prev) => [...prev, data.message as ChatMessageView]);
+        } else if (name === 'trigger') await sendRef.current('');
+        else if (name === 'continue') await continueRef.current();
+        else if (name === 'regen') {
+          const last = [...messagesRef.current].reverse().find((item) => item.role === 'assistant');
+          if (last) await regenRef.current(last);
+        } else if (name === 'impersonate') {
+          setDraft(arg);
+          await sleep(0);
+          await impersonateRef.current();
+        } else if (name === 'hide' || name === 'unhide') {
+          if (!/\d/.test(arg)) throw new Error(`/${name} 后面写楼层号，例如 /${name} 3-5`);
+          const data = await ops({ op: name, range: arg });
+          const ids = new Set(data.ids ?? []);
+          setMessages((prev) => prev.map((item) => (typeof item.id === 'number' && ids.has(item.id) ? { ...item, hidden: name === 'hide' } : item)));
+          setNotice(`已${name === 'hide' ? '隐藏' : '取消隐藏'} ${ids.size} 条`);
+        } else if (name === 'cut' || name === 'del') {
+          const body = name === 'cut' ? { op: 'delete', range: arg } : { op: 'delete', last: Number(arg) || 1 };
+          if (name === 'cut' && !/\d/.test(arg)) throw new Error('/cut 后面写楼层号，例如 /cut 3-5');
+          const data = await ops(body);
+          await resync();
+          setNotice(`已删除 ${data.deleted ?? 0} 条`);
+        } else if (name === 'setinput') {
+          setDraft(arg);
+          inputRef.current?.focus();
+        } else if (name === 'echo') setNotice(arg);
+        else throw new Error(`本站暂不支持 /${name.slice(1)}，输入 /help 查看可用命令`);
+      }
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [ops, resync]);
+  const slashRef = useRef(runSlash);
+  slashRef.current = runSlash;
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 2600);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   // 卡内酒馆助手脚本能调用的动作（components/helper-runner.tsx）
   const sendRef = useRef(send);
   sendRef.current = send;
   const helperActions = useMemo<HelperActions>(() => ({
     send: (text) => { void sendRef.current(text); },
     setInput: (text) => { setDraft(text); inputRef.current?.focus(); },
+    slash: (text) => slashRef.current(text),
     editMessage: async (id, content) => {
       const response = await fetch(`/api/messages/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
       const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView };
@@ -679,6 +792,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           </section>
           {messages.map((message, index) => {
             const isUser = message.role === 'user';
+            const isNarrator = message.role === 'system';
+            const floor = offset + index;
+            const metaText = message.meta ? `${message.meta.tokens} tokens · ${(message.meta.ms / 1000).toFixed(1)}s` : '';
             const isLatest = index === messages.length - 1;
             // ST：第一条开场白只能在备选开场白之间切换，不生成新版
             const isGreeting = !hasMore && index === 0 && !isUser;
@@ -689,7 +805,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               <article
                 key={message.id}
                 id={`msg-${message.id}`}
-                className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLatest ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
+                className={`p-msg${isUser ? ' p-msg-user' : ''}${isNarrator ? ' p-msg-narrator' : ''}${message.hidden ? ' is-hidden' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLatest ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
                 onTouchStart={!isUser && isLatest ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
                 onTouchEnd={!isUser && isLatest ? (event) => {
                   // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版
@@ -702,7 +818,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                   else if (dx < 0) void (message.selected < message.candidateCount - 1 ? switchCandidate(message, message.selected + 1) : isGreeting ? undefined : regenerate(message));
                 } : undefined}
               >
-                {isUser ? (
+                {isNarrator ? null : isUser ? (
                   <UserAvatar name={message.personaName || personaName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
                 ) : (
                   <span className={`p-avatar${characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: characterHue }}>
@@ -710,7 +826,11 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                   </span>
                 )}
                 <div>
-                  <div className="p-msg-name"><span className="p-msg-who">{isUser ? (message.personaName || personaName) : characterName}</span><MsgTime at={message.createdAt} /></div>
+                  <div className="p-msg-name">
+                    <span className="p-msg-who">{isNarrator ? '旁白' : isUser ? (message.personaName || personaName) : characterName}</span>
+                    <MsgTime at={message.createdAt} />
+                    {message.hidden && <span className="p-msg-ghost" title="已隐藏：这条不会发给模型"><Ico name="ghost" />已隐藏</span>}
+                  </div>
                   {isEditing ? (
                     <div>
                       <textarea
@@ -783,7 +903,13 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                   )}
                   {!isEditing && (
                     <div className="p-msg-tools">
-                      {confirming !== null && confirming === numericId ? (
+                      {confirmingFrom !== null && confirmingFrom === numericId ? (
+                        <>
+                          <span className="p-msg-confirm">删除这条及之后的 {messages.length - index} 条？</span>
+                          <button type="button" aria-label="确认删除这条及之后的消息" title="确认删除" onClick={() => void removeFrom(confirmingFrom)}><Ico name="check" /></button>
+                          <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirmingFrom(null)}><Ico name="x" /></button>
+                        </>
+                      ) : confirming !== null && confirming === numericId ? (
                         <>
                           <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void remove(confirming)}><Ico name="check" /></button>
                           <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
@@ -817,7 +943,16 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                             <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} onClick={() => void branch(message, true)}><Ico name="checkpoint" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
+                            <button type="button" data-act="hide" aria-label={message.hidden ? '取消隐藏' : '隐藏（不发给模型）'} title={message.hidden ? '取消隐藏' : '隐藏：不发给模型'} aria-pressed={message.hidden === true} onClick={() => void toggleHidden(message)}><Ico name="ghost" /></button>
+                          )}
+                          {numericId !== null && !isStreamingThis && (
                             <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
+                          )}
+                          {numericId !== null && !isStreamingThis && !isLatest && (
+                            <button type="button" data-act="cut" aria-label="删除这条及之后的消息" title="删除这条及之后" onClick={() => setConfirmingFrom(numericId)}><Ico name="cut" /></button>
+                          )}
+                          {numericId !== null && (
+                            <span className="p-msg-meta" title={message.meta ? `${message.meta.model} · ${metaText}` : `第 ${floor} 楼`}>#{floor}{message.meta ? ` · ${message.meta.model} · ${metaText}` : ''}</span>
                           )}
                           {!isUser && numericId !== null && !isStreamingThis && (
                             <ReportButton targetType="message" targetId={numericId} className="p-msg-tool" label="举报" icon={<Ico name="flag" />} />
@@ -847,6 +982,13 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
             <span>{unseen ? `${unseen} 条新消息` : '回到最新'}</span>
           </button>
+          {notice && <div className="p-chat-notice" role="status">{notice}</div>}
+          {slashHelp && (
+            <div className="p-slash-help" role="dialog" aria-label="斜杠命令">
+              <div className="p-slash-help-head"><strong>斜杠命令</strong><span className="p-small">和 SillyTavern 写法一致，可以用 | 串联</span><button type="button" className="p-btn p-btn--sm" onClick={() => setSlashHelp(false)}>关闭</button></div>
+              <dl>{SLASH_HELP.map((item) => <div key={item.cmd}><dt><code>{item.cmd}</code></dt><dd>{item.desc}</dd></div>)}</dl>
+            </div>
+          )}
           {error && (
             <div role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>
               <div>{friendlyError(error)}</div>
@@ -904,13 +1046,13 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                 }
               }}
               rows={1}
-              placeholder="写下台词，或用 *行动描述* 推进故事…"
+              placeholder="写下台词，或用 *行动描述* 推进故事…（/ 开头是命令，/help 查看）"
               aria-label="消息"
             />
             {streaming ? (
               <button className="p-chat-send is-stop" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成"><span className="rd-stop" aria-hidden="true" /></button>
             ) : (
-              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim()} aria-label="发送">
+              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim() && !messages.length} aria-label={draft.trim() ? '发送' : '让角色接着回复'} title={draft.trim() ? undefined : '空着发送：让角色接着回复'}>
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
               </button>
             )}

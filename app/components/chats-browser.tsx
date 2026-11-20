@@ -304,7 +304,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
               <a className="p-choice" href={`/api/chats/${manage.id}/export?format=txt`} download>
                 <span className="p-choice-main"><span className="p-choice-title">导出阅读用 txt</span><span className="p-choice-sub">纯文本对白，方便外发阅读</span></span>
               </a>
-              <a className="p-choice" href={`/api/chats/${manage.id}/export?format=jsonl`} download>
+              <a className="p-choice" href={`/api/chats/${manage.id}/export?format=st`} download>
                 <span className="p-choice-main"><span className="p-choice-title">导出聊天记录</span><span className="p-choice-sub">SillyTavern 的 .jsonl，可直接导入 ST</span></span>
               </a>
               {manage.lastMessageId && (

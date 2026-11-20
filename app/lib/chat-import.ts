@@ -5,6 +5,9 @@ export type ImportedMessage = {
   content: string;
   candidates?: string[];
   selected?: number;
+  hidden?: boolean;
+  /** ST extra.reasoning（当前候选的思考内容） */
+  reasoning?: { t: string; ms: number };
 };
 
 export type ParsedChatImport = {
@@ -46,6 +49,9 @@ function messageFrom(item: unknown): ImportedMessage | null {
   if (typeof item.role === 'string') role = roleOf(item.role);
   else if (typeof item.is_user === 'boolean') role = item.is_user ? 'user' : 'assistant';
   else role = 'assistant';
+  // ST 旁白（/sys）：extra.type = narrator → 本站 system 角色消息
+  if (isRecord(item.extra) && item.extra.type === 'narrator' && !item.is_user) role = 'system';
+  const hidden = item.is_system === true || item.hidden === true;
 
   // ST 把隐藏消息记成 is_system（/hide）；没有 role 的系统消息仍按 assistant 导入
   const swipes = Array.isArray(item.swipes) ? item.swipes.map(textOf).filter((text) => text.trim()) : [];
@@ -54,6 +60,8 @@ function messageFrom(item: unknown): ImportedMessage | null {
     role,
     content,
     ...(swipes.length > 1 ? { candidates: swipes, selected } : {}),
+    ...(hidden ? { hidden: true } : {}),
+    ...(isRecord(item.extra) && typeof item.extra.reasoning === 'string' && item.extra.reasoning.trim() ? { reasoning: { t: item.extra.reasoning, ms: Number(item.extra.reasoning_duration) || 0 } } : {}),
   };
 }
 

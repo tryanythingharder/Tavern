@@ -15,13 +15,14 @@ export async function GET(request: Request, context: Params) {
   const chat = getChat(id, user.id);
   if (!chat) return fail('会话不存在', 404);
   const character = getCharacterById(chat.character_id);
-  const format = new URL(request.url).searchParams.get('format') === 'jsonl' ? 'jsonl' : 'txt';
-  const body = exportChat(chat, character?.name ?? '角色', listMessages(chat.id, 10000), format);
+  const wanted = new URL(request.url).searchParams.get('format');
+  const format = wanted === 'jsonl' ? 'jsonl' : wanted === 'st' ? 'st' : 'txt';
+  const body = exportChat(chat, character?.name ?? '角色', listMessages(chat.id, 10000), format, user.nickname);
   const safeTitle = chat.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 40) || `chat-${chat.id}`;
   return new Response(body, {
     headers: {
-      'Content-Type': format === 'jsonl' ? 'application/x-ndjson; charset=utf-8' : 'text/plain; charset=utf-8',
-      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`${safeTitle}.${format}`)}`,
+      'Content-Type': format !== 'txt' ? 'application/x-ndjson; charset=utf-8' : 'text/plain; charset=utf-8',
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`${safeTitle}${format === 'st' ? '.st' : ''}.${format === 'txt' ? 'txt' : 'jsonl'}`)}`,
       'Cache-Control': 'no-store',
     },
   });

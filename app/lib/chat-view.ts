@@ -1,3 +1,4 @@
+import { metaAt, type GenMeta } from '@/lib/msg-meta';
 import { reasoningAt, type Reasoning } from '@/lib/reasoning';
 import { messageCandidates, type DbMessage } from '@/lib/db';
 
@@ -19,6 +20,10 @@ export type ChatMessageView = {
   /** 当前候选的思考内容（ST 折叠的「思考过程」） */
   thought: Reasoning | null;
   createdAt: number;
+  /** ST 隐藏消息（幽灵）：不发给模型、不参与世界书扫描 */
+  hidden: boolean;
+  /** 当前候选的生成信息（模型 / tokens / 耗时） */
+  meta: GenMeta | null;
 };
 
 function parseAttachment(raw: string | null): ChatAttachment | null {
@@ -51,5 +56,7 @@ export function toMessageView(message: DbMessage): ChatMessageView {
     personaAvatar: message.persona_avatar ?? null,
     thought: message.role === 'assistant' ? reasoningAt(message.reasoning, message.selected) : null,
     createdAt: message.created_at,
+    hidden: message.hidden === 1,
+    meta: message.role === 'assistant' ? metaAt(message.meta, message.selected) : null,
   };
 }

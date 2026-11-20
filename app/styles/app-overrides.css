@@ -914,3 +914,27 @@ html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-thought { justify-
 .p-age-wall h1 { margin: 4px 0 0; font-size: 26px; }
 .p-age-wall p { margin: 0; }
 .p-notice--warn { border-color: #d9a441; background: #fbf3e2; margin-bottom: 16px; }
+
+/* ST 对齐：隐藏消息（幽灵）、旁白、楼层号/生成信息、斜杠命令帮助 */
+.p-msg.is-hidden > div > .p-msg-copy,
+.p-msg.is-hidden .p-msg-text,
+.p-msg.is-hidden > .p-avatar { opacity: .5; }
+.p-msg-ghost { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-size: 11px; color: var(--muted, #8a8580); }
+.p-msg-ghost .p-icon { width: 13px; height: 13px; }
+.p-msg-tools .p-msg-meta { display: inline-flex; align-items: center; margin-left: 4px; padding: 0 4px; font-size: 11px; color: var(--muted, #8a8580); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
+.p-msg-narrator { grid-template-columns: 1fr !important; text-align: center; }
+.p-msg-narrator .p-msg-name { justify-content: center; }
+.p-msg-narrator .p-msg-who { font-style: italic; letter-spacing: .08em; }
+.p-msg-narrator .p-msg-copy { font-style: italic; color: var(--muted, #6f6a64); max-width: 60ch; margin-inline: auto; }
+.p-msg-confirm { font-size: 12px; color: var(--muted, #6f6a64); padding: 0 4px; white-space: nowrap; }
+.p-chat-notice { margin: 0 0 8px; font-size: 13px; color: var(--muted, #6f6a64); }
+.p-slash-help { margin: 0 0 10px; padding: 12px 14px; border: 1px solid var(--border, #e5e0da); border-radius: 12px; background: var(--surface, #fff); font-size: 13px; max-height: 260px; overflow: auto; }
+.p-slash-help-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.p-slash-help-head .p-btn { margin-left: auto; }
+.p-slash-help dl { margin: 0; display: grid; gap: 4px; }
+.p-slash-help dl > div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; }
+.p-slash-help dt, .p-slash-help dd { margin: 0; }
+.p-slash-help code { font-size: 12px; }
+body[data-theme="stage"] .p-msg-narrator { display: flex !important; justify-content: center; }
+body[data-theme="stage"] .p-msg-narrator > div { display: flex !important; flex-direction: column; align-items: center; width: 100%; }
+body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 4px; }

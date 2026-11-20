@@ -294,7 +294,9 @@ function overridePrompt(base: string, override: string | undefined, allowed: boo
 }
 
 export function assemblePrompt(input: AssembleInput): AssembleResult {
-  const { character, history, preset, persona, loreEntries, regexRules } = input;
+  const { character, preset, persona, loreEntries, regexRules } = input;
+  // ST：隐藏的消息（/hide、幽灵图标）不发给模型，也不参与世界书扫描
+  const history = input.history.filter((message) => message.hidden !== 1);
   // 作者写在卡里的高级字段；玩家自己的覆盖（/me/cards）优先
   const cardFields = parseCardFields(character.card_fields);
   const triggered = input.trigger ?? 'normal';
@@ -302,7 +304,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   // 扫描文本：最近消息 + 角色设定 + 玩家身份（对应 ST 的 match_* 字段）
   const userName = input.userName || persona?.name || '你';
   // 玩家消息用发送时的身份名（ST：每条消息的 name；中途换身份，旧楼层还是旧名字）
-  const speakerOf = (message: DbMessage) => (message.role === 'user' ? message.persona_name || userName : character.name);
+  const speakerOf = (message: DbMessage) => (message.role === 'user' ? message.persona_name || userName : message.role === 'system' ? '旁白' : character.name);
   const recent = history.slice(-Math.max(LORE_SCAN_DEPTH, 1));
   const scanTexts = recent.map((message) => `${speakerOf(message)}：${message.content}`);
   if (character.description) scanTexts.push(character.description);
@@ -442,7 +444,6 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     const kept: ChatMessage[] = [];
     for (let index = history.length - 1; index >= 0; index -= 1) {
       const message = history[index];
-      if (message.role === 'system') continue;
       const depth = history.length - 1 - index;
       // 开场白、玩家消息里的 {{user}}/{{char}} 照 ST 换成名字（只换名字宏，不重掷骰子之类）
       const text = nameMacros(applyRegex(regexRules, message.content, {
@@ -456,7 +457,8 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
         dropped = index + 1;
         break;
       }
-      kept.unshift({ role: message.role === 'user' ? 'user' : 'assistant', content });
+      // ST 旁白（/sys）按 system 角色发送
+      kept.unshift({ role: message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'assistant', content });
       historyChars += content.length;
       historyTokens += cost;
     }

@@ -1,4 +1,4 @@
-import { setMessageReasoning } from '@/lib/db';
+import { recordMessageMeta, setMessageReasoning } from '@/lib/db';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
@@ -103,6 +103,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       };
       let full = '';
       const trace = new GenTrace();
+      const startedAt = Date.now();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
       try {
@@ -134,6 +135,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (finalText.trim()) {
           const candidate = appendCandidate(message.id, finalText);
           if (candidate) setMessageReasoning(message.id, candidate.index, thought);
+          if (candidate) recordMessageMeta(message.id, candidate.index, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now() });
           await applyReplyTemplates(finalText, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { beforeId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
           send({
@@ -156,6 +158,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (partial.trim()) {
           const candidate = appendCandidate(message.id, partial);
           if (candidate) setMessageReasoning(message.id, candidate.index, trace.result());
+          if (candidate) recordMessageMeta(message.id, candidate.index, { model: billedModel, tokens: estimateTokens(full), ms: Date.now() - startedAt, at: Date.now() });
         }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {

@@ -1,4 +1,6 @@
 import db, { touchChat, type DbChat, type DbMessage } from '@/lib/db';
+import { reasoningAt } from '@/lib/reasoning';
+import { metaAt } from '@/lib/msg-meta';
 
 // M3 长线能力：自动摘要、记忆检索（bigram 近似）、作者注释、书签与聊天内搜索、备份恢复、导出。
 // 摘要对齐 ST 的 Summarize 扩展：默认用当前模型生成（lib/memory-llm.ts），提示词/字数/注入位置/注入模板可改，
@@ -217,7 +219,7 @@ export function ragChunks(messages: DbMessage[], query: string, topK = RAG_TOPK_
   const cutoff = messages.length - RECENT_WINDOW;
   const scored: { index: number; role: string; text: string; score: number }[] = [];
   messages.forEach((message, index) => {
-    if (index >= cutoff || message.role === 'system') return;
+    if (index >= cutoff || message.role === 'system' || message.hidden === 1) return;
     const content = String(message.content || '').toLowerCase().replace(/\s+/g, '');
     if (!content) return;
     let hits = 0;
@@ -384,7 +386,35 @@ export function restoreBackup(chatId: number, userId: number, backupId: number):
 
 // ---------- 导出 ----------
 
-export function exportChat(chat: DbChat, characterName: string, messages: DbMessage[], format: 'txt' | 'jsonl'): string {
+export function exportChat(chat: DbChat, characterName: string, messages: DbMessage[], format: 'txt' | 'jsonl' | 'st', userName = '你'): string {
+  // SillyTavern 原生 .jsonl：首行元数据，之后每行一条（is_system = 隐藏，extra.type = narrator 是旁白）
+  if (format === 'st') {
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const header = JSON.stringify({ user_name: userName, character_name: characterName, create_date: iso(messages[0]?.created_at ?? Date.now()), chat_metadata: {} });
+    const lines = messages.map((message) => {
+      const swipes = messageCandidatesOf(message);
+      const isUser = message.role === 'user';
+      const narrator = message.role === 'system';
+      return JSON.stringify({
+        name: isUser ? message.persona_name || userName : narrator ? 'System' : characterName,
+        is_user: isUser,
+        is_system: message.hidden === 1,
+        send_date: iso(message.created_at),
+        mes: message.content,
+        ...(swipes.length > 1 ? { swipes, swipe_id: message.selected } : {}),
+        extra: (() => {
+          const thought = message.role === 'assistant' ? reasoningAt(message.reasoning, message.selected) : null;
+          const meta = message.role === 'assistant' ? metaAt(message.meta, message.selected) : null;
+          return {
+            ...(narrator ? { type: 'narrator' } : {}),
+            ...(thought ? { reasoning: thought.t, reasoning_duration: thought.ms } : {}),
+            ...(meta ? { model: meta.model, token_count: meta.tokens } : {}),
+          };
+        })(),
+      });
+    });
+    return [header, ...lines].join('\n');
+  }
   if (format === 'jsonl') {
     return messages
       .map((message) =>
@@ -396,6 +426,7 @@ export function exportChat(chat: DbChat, characterName: string, messages: DbMess
           candidates: messageCandidatesOf(message),
           selected: message.selected,
           bookmark: message.bookmark === 1,
+          hidden: message.hidden === 1,
           attachment: message.attachment ? JSON.parse(message.attachment) : null,
           created_at: message.created_at,
         }),

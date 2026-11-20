@@ -627,7 +627,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                 <a className="btn btn--sm" href={`/api/chats/${chatId}/export?format=txt`} download>导出 txt</a>
-                <a className="btn btn--sm" href={`/api/chats/${chatId}/export?format=jsonl`} download>导出 jsonl</a>
+                <a className="btn btn--sm" href={`/api/chats/${chatId}/export?format=st`} download>导出 ST .jsonl</a>
               </div>
             </>
           )}

@@ -1,6 +1,6 @@
 import { fail, requireUser } from '@/lib/api';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
-import { addMessage, createChat, getCharacterById } from '@/lib/db';
+import { addMessage, createChat, getCharacterById, setMessageReasoning, setMessagesHidden } from '@/lib/db';
 import { parseChatImport } from '@/lib/chat-import';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +41,9 @@ export async function POST(request: Request) {
 
   try {
     for (const message of parsed.messages) {
-      addMessage(chatId, message.role, message.content, message.candidates, message.selected);
+      const saved = addMessage(chatId, message.role, message.content, message.candidates, message.selected);
+      if (message.hidden) setMessagesHidden(chatId, [saved.id], true);
+      if (message.reasoning && message.role === 'assistant') setMessageReasoning(saved.id, saved.selected, message.reasoning);
     }
   } catch (error) {
     // 导入失败时回滚，避免留下半截会话

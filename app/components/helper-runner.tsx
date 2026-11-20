@@ -15,6 +15,8 @@ type Toast = { id: number; level: string; text: string };
 export type HelperActions = {
   send: (text: string) => void;
   setInput: (text: string) => void;
+  /** 对话页的斜杠命令执行器（lib/slash.ts）；有它就整条交给它，行为与玩家在输入框里打的一致 */
+  slash?: (text: string) => Promise<void>;
   editMessage: (id: number, content: string) => Promise<void>;
 };
 
@@ -72,7 +74,11 @@ export function HelperRunner({ chatId, names, actions }: { chatId: number; names
   }, [chatId, postAll]);
 
   const slash = useCallback((command: string): string => {
-    // 支持最常见的几条：/send 文本 | /trigger、/setinput 文本、/echo 文本；其它命令忽略并提示
+    if (actionsRef.current.slash) {
+      void actionsRef.current.slash(command);
+      return '';
+    }
+    // 旧兜底：/send 文本 | /trigger、/setinput 文本、/echo 文本
     let sendText: string | null = null;
     let trigger = false;
     for (const part of command.split(/\|(?![^{]*\})/)) {
