@@ -2,7 +2,7 @@ import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
 import { addRoomCandidate, addRoomMessage, editRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, getRoomMessage, isLatestRoomMessage, listRoomMessages, pickSpeaker } from '@/lib/rooms';
-import { loadRoomConfig } from '@/lib/resources-db';
+import { loadRoomConfig, personaSender } from '@/lib/resources-db';
 import { roomVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
@@ -64,7 +64,8 @@ export async function POST(request: Request, context: Params) {
   ensureStartingPoints(user.id);
   if (!modelConfigured()) return fail('模型未配置：请在 .env.local 设置三个 TAVERN_MODEL_* 变量', 500);
 
-  const userRoomMessage = !auto ? addRoomMessage(room.id, 'user', null, text) : null;
+  const config = loadRoomConfig(user.id, room);
+  const userRoomMessage = !auto ? addRoomMessage(room.id, 'user', null, text, personaSender(user.id, config.persona)) : null;
   const allMessages = listRoomMessages(room.id);
   // 重新生成：上下文到目标之前为止；继续：包含目标本身
   const messages = mode === 'regenerate' && target ? allMessages.filter((message) => message.id < target.id) : allMessages;
@@ -84,13 +85,13 @@ export async function POST(request: Request, context: Params) {
     .map(escapeRe);
   const namePrefix = names.length ? new RegExp(`^\\s*(?:${names.join('|')})\\s*[：:]\\s*`) : /^\s*$/;
 
-  const config = loadRoomConfig(user.id);
   const prompt = buildRoomPrompt({
     room,
     messages,
     speaker,
     preset: config.preset,
     persona: config.persona,
+    userName: config.userName,
     loreEntries: config.loreEntries,
     regexRules: config.regexRules,
     memory: roomPromptMemory(room.id, user.id),

@@ -12,6 +12,7 @@ import { HelperRunner, emitHelperEvent, type HelperActions } from '@/components/
 import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
+import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -24,6 +25,8 @@ export type ChatMessageView = {
   bookmark?: boolean;
   checkpoint?: number | null;
   attachment?: ChatAttachmentView | null;
+  personaName?: string | null;
+  personaAvatar?: string | null;
   createdAt?: number;
 };
 
@@ -36,6 +39,8 @@ type Props = {
   media?: { image: boolean; tts: boolean; imageCost: number };
   title?: string;
   personaName?: string;
+  /** 身份切换：当前生效身份、可选身份、锁定在本对话的身份 */
+  persona?: { current: PersonaCurrent; options: PersonaOption[]; lockedId: number | null };
   characterCover?: string | null;
   characterHue?: number;
   // 「仅显示」正则（玩家规则 + 角色卡自带脚本）与 {{char}}/{{user}}
@@ -92,8 +97,13 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
   const router = useRouter();
+  const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
+  const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
+  const personaName = persona.name;
+  // 显示时的 {{user}} 跟着当前身份走（ST 显示宏用当前 name1）
+  const displayMacros = useMemo(() => ({ ...(macros ?? {}), user: persona.name } as RegexMacros), [macros, persona.name]);
   const [messages, setMessages] = useState<ChatMessageView[]>(initialMessages);
   // MVU 变量是按楼层重放出来的：前面任何一楼的变量命令变了（编辑、重生、换候选、删除），
   // 后面各楼的状态栏都要重新取。这里给每楼算一个「此前所有变量命令」的累积指纹，交给状态栏当缓存版本。
@@ -386,7 +396,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     const assistantKey = `local-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0, createdAt: Date.now() },
+      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0, personaName: persona.name, personaAvatar: persona.avatar, createdAt: Date.now() },
       { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
@@ -659,11 +669,15 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                   else if (dx < 0) void (message.selected < message.candidateCount - 1 ? switchCandidate(message, message.selected + 1) : isGreeting ? undefined : regenerate(message));
                 } : undefined}
               >
-                <span className={`p-avatar${!isUser && characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : characterHue }}>
-                  {isUser ? (personaName ? Array.from(personaName)[0] : '你') : characterCover ? <img src={characterCover} alt="" /> : Array.from(characterName)[0]}
-                </span>
+                {isUser ? (
+                  <UserAvatar name={message.personaName || personaName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
+                ) : (
+                  <span className={`p-avatar${characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: characterHue }}>
+                    {characterCover ? <img src={characterCover} alt="" /> : Array.from(characterName)[0]}
+                  </span>
+                )}
                 <div>
-                  <div className="p-msg-name"><span className="p-msg-who">{isUser ? (personaName || '你') : characterName}</span><MsgTime at={message.createdAt} /></div>
+                  <div className="p-msg-name"><span className="p-msg-who">{isUser ? (message.personaName || personaName) : characterName}</span><MsgTime at={message.createdAt} /></div>
                   {isEditing ? (
                     <div>
                       <textarea
@@ -700,7 +714,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       ) : (
                         <div className="p-msg-copy p-msg-text">
                           {message.content
-                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={macros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
+                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={displayMacros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
                             : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
                         </div>
                       )}
@@ -870,6 +884,15 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void continueLast()} title="不写台词，让角色接着上一条往下写">▸ 继续</button>
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
               <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
+              {personaInit && (
+                <PersonaSwitch
+                  endpoint={`/api/chats/${chatId}/persona`}
+                  personas={personaInit.options}
+                  lockedId={personaLock}
+                  current={persona}
+                  onChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); router.refresh(); }}
+                />
+              )}
               <ModelPicker chatId={chatId} />
             </span>
             <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>

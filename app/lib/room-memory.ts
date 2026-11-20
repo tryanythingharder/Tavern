@@ -21,15 +21,15 @@ import {
 // 存在 rooms.author_note / summary / summary_prefs，格式与单聊完全一样，解析复用 lib/memory.ts。
 // 摘要只做模型模式（群聊没有旧数据要兼容）：回复落库后后台跑，新消息数 ≥ 间隔才跑，按房间模型计费。
 
-type RoomMemoryRow = { id: number; user_id: number; model: string | null; character_ids: string; author_note: string | null; summary: string | null; summary_prefs: string | null };
-type RoomMsgRow = { id: number; role: string; speaker_id: string | null; content: string };
+type RoomMemoryRow = { id: number; user_id: number; model: string | null; character_ids: string; author_note: string | null; summary: string | null; summary_prefs: string | null; persona_id?: number | null };
+type RoomMsgRow = { id: number; role: string; speaker_id: string | null; content: string; persona_name?: string | null };
 
 const MAX_CHARS = 24_000;
 const PER_MESSAGE = 2_000;
 const running = new Set<number>();
 
 function row(roomId: number, userId: number): RoomMemoryRow | undefined {
-  return db.prepare('SELECT id, user_id, model, character_ids, author_note, summary, summary_prefs FROM rooms WHERE id = ? AND user_id = ?').get(roomId, userId) as RoomMemoryRow | undefined;
+  return db.prepare('SELECT id, user_id, model, character_ids, author_note, summary, summary_prefs, persona_id FROM rooms WHERE id = ? AND user_id = ?').get(roomId, userId) as RoomMemoryRow | undefined;
 }
 
 function roomPrefs(source: RoomMemoryRow): SummaryPrefs {
@@ -38,7 +38,7 @@ function roomPrefs(source: RoomMemoryRow): SummaryPrefs {
 }
 
 function allMessages(roomId: number): RoomMsgRow[] {
-  return db.prepare('SELECT id, role, speaker_id, content FROM room_messages WHERE room_id = ? ORDER BY id').all(roomId) as RoomMsgRow[];
+  return db.prepare('SELECT id, role, speaker_id, content, persona_name FROM room_messages WHERE room_id = ? ORDER BY id').all(roomId) as RoomMsgRow[];
 }
 
 export type RoomPromptMemory = {
@@ -111,8 +111,8 @@ async function summarizeOnce(roomId: number, userId: number, upTo: number): Prom
   const prefs = roomPrefs(source);
   const state = summaryState(source);
   const messages = allMessages(roomId);
-  const config = loadRoomConfig(userId);
-  const userName = config.persona?.name || '你';
+  const config = loadRoomConfig(userId, { personaId: source.persona_id ?? null, characterIds: JSON.parse(source.character_ids || '[]') as string[] });
+  const userName = config.userName;
   const nameOf = (id: string | null) => (id ? getCharacterById(id)?.name ?? '角色' : '角色');
   const memberNames = (JSON.parse(source.character_ids || '[]') as string[]).map((id) => nameOf(id));
   const start = Math.min(state.covered, upTo);
@@ -123,7 +123,7 @@ async function summarizeOnce(roomId: number, userId: number, upTo: number): Prom
     const message = messages[index];
     reached = index + 1;
     if (!message) continue;
-    const who = message.role === 'user' ? userName : nameOf(message.speaker_id);
+    const who = message.role === 'user' ? message.persona_name || userName : nameOf(message.speaker_id);
     const depth = messages.length - 1 - index;
     const sent = applyRegex(config.regexRules, message.content, { target: message.role === 'user' ? 'user' : 'assistant', purpose: 'send', depth });
     let body = clean(sent).replace(/\{\{user\}\}/gi, userName).replace(/\{\{char\}\}/gi, who);

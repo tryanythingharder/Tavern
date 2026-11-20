@@ -6,8 +6,9 @@ import { TypingDots } from '@/components/rp-text';
 import { RichText } from '@/components/rich-text';
 import type { RegexRule } from '@/lib/resources';
 import { ModelPicker } from '@/components/model-picker';
+import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 
-type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null };
+type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
 
 type Props = {
@@ -16,6 +17,8 @@ type Props = {
   members: Member[];
   initialMessages: RoomMessageView[];
   userName: string;
+  /** 身份切换：当前生效身份、可选身份、锁定在本群聊的身份 */
+  persona?: { current: PersonaCurrent; options: PersonaOption[]; lockedId: number | null };
   autoMode?: boolean;
   defaultSpeakerId?: string | null;
   // 「仅显示」正则：玩家规则 + 成员角色卡自带脚本（按发言角色挑）
@@ -37,7 +40,10 @@ const STRATEGY_HINT: Record<string, string> = {
   pooled: '随机：每轮从成员里抽一个。',
 };
 
-export function RoomChat({ roomId, strategy, members, initialMessages, userName, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {} }: Props) {
+export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {} }: Props) {
+  const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialUserName, avatar: null });
+  const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
+  const userName = persona.name;
   const [messages, setMessages] = useState<RoomMessageView[]>(initialMessages);
   const [draft, setDraft] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -108,7 +114,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
     const streamKey: number | string = target ?? `stream-${stamp}`;
     let base = '';
     if (mode.kind === 'send') {
-      setMessages((prev) => [...prev, { id: `local-${stamp}`, role: 'user', speakerId: null, content: mode.text }]);
+      setMessages((prev) => [...prev, { id: `local-${stamp}`, role: 'user', speakerId: null, content: mode.text, personaName: persona.name, personaAvatar: persona.avatar }]);
     }
     if (target === null) {
       setMessages((prev) => [...prev, { id: streamKey, role: 'assistant', speakerId: null, content: '' }]);
@@ -394,11 +400,15 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
                   else if (dx < 0 && !isOpening) void run({ kind: 'regenerate', messageId: numericId! });
                 } : undefined}
               >
-                <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : member?.hue ?? 212 }}>
-                  {isUser ? '你' : member?.initial ?? '·'}
-                </span>
+                {isUser ? (
+                  <UserAvatar name={message.personaName || userName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
+                ) : (
+                  <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: member?.hue ?? 212 }}>
+                    {member?.initial ?? '·'}
+                  </span>
+                )}
                 <div>
-                  <div className="p-msg-name">{isUser ? userName : member?.name ?? '角色'}</div>
+                  <div className="p-msg-name">{isUser ? message.personaName || userName : member?.name ?? '角色'}</div>
                   {isEditing ? (
                     <div>
                       <textarea
@@ -538,6 +548,16 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
             <span className="p-chat-acts">
               <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={continueLast} title="不写台词，让角色接着上一条往下写；最后一条是你的话时，让下一位角色接话">▸ 继续</button>
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              {personaInit && (
+                <PersonaSwitch
+                  endpoint={`/api/rooms/${roomId}/persona`}
+                  personas={personaInit.options}
+                  lockedId={personaLock}
+                  current={persona}
+                  scopeLabel="本群聊"
+                  onChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); }}
+                />
+              )}
               <ModelPicker roomId={roomId} />
             </span>
             <span>Enter 发送 · Shift + Enter 换行 · 群聊回复由模型生成</span>

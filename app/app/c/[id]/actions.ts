@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { addMessage, createChat, getCharacterById } from '@/lib/db';
-import { updateChatSettings } from '@/lib/resources-db';
+import { resolvePersona, setChatPersona } from '@/lib/resources-db';
 import { parseOpenings } from '@/lib/characters';
 
 // 从角色页开始新故事：建会话，把开场白写成第一条角色消息，可选身份，然后跳到对话页。
@@ -24,6 +24,7 @@ export async function startStory(characterId: string, formData: FormData) {
   const chosen = Math.max(0, greetings.indexOf(opening));
   if (greetings.length > 1) addMessage(chatId, 'assistant', opening, greetings, chosen);
   else addMessage(chatId, 'assistant', opening);
-  if (personaId) updateChatSettings(user.id, chatId, { presetId: null, personaId, lorebookIds: null });
+  // ST：选的就是自动身份（绑定该角色 → 默认）时不锁定，之后改默认身份也会跟着变；选了别的才锁定到这段聊天
+  if (personaId && resolvePersona(user.id, { lockedId: null, characterIds: [character.id] })?.id !== personaId) setChatPersona(user.id, chatId, personaId);
   redirect(`/chats/${chatId}`);
 }

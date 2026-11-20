@@ -29,12 +29,13 @@ export async function GET(_request: Request, context: Params) {
   const lastUser = [...history].reverse().find((message) => message.role === 'user');
   const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
   const vars = chatVariables(chat.id, chat.character_id);
-  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const result = assemblePrompt({
     character,
     history,
     preset: config.preset,
     persona: config.persona,
+    userName: config.userName,
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     ...promptMemory(chat, user.id),
@@ -44,10 +45,10 @@ export async function GET(_request: Request, context: Params) {
     variables: vars,
   });
   // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
-  const ejs = await templatePrompt(result.messages, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
+  const ejs = await templatePrompt(result.messages, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
   result.messages = ejs.messages;
   // 预览里分块显示的也换成处理后的文本
-  const ejsBlocks = await templatePrompt(result.blocks.map((block) => ({ role: 'system' as const, content: block.text })), { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
+  const ejsBlocks = await templatePrompt(result.blocks.map((block) => ({ role: 'system' as const, content: block.text })), { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
   result.blocks = result.blocks.map((block, index) => ({ ...block, text: ejsBlocks.messages[index]?.content ?? block.text }));
 
   return json({

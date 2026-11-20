@@ -90,7 +90,7 @@ export function generateSummaryText(characterName: string, messages: DbMessage[]
   for (let index = start; index < upTo; index += 1) {
     const message = messages[index];
     if (!message || message.role === 'system') continue;
-    const who = message.role === 'user' ? '你' : characterName;
+    const who = message.role === 'user' ? message.persona_name || '你' : characterName;
     const first = String(message.content || '')
       .split('\n')
       .map((line) => line.trim())
@@ -322,7 +322,7 @@ export function searchMessages(chatId: number, query: string, bookmarksOnly = fa
 
 export type BackupRow = { id: number; message_count: number; created_at: number };
 
-type BackupPayloadRow = { role: string; content: string; candidates: string | null; selected: number; bookmark: number; attachment: string | null; created_at: number };
+type BackupPayloadRow = { role: string; content: string; candidates: string | null; selected: number; bookmark: number; attachment: string | null; created_at: number; persona_name?: string | null; persona_avatar?: string | null };
 
 export function listBackups(chatId: number, userId: number): BackupRow[] {
   return db.prepare(`
@@ -349,6 +349,8 @@ export function snapshotChat(chatId: number, userId: number, force = false): num
     selected: message.selected,
     bookmark: message.bookmark,
     attachment: message.attachment,
+    persona_name: message.persona_name ?? null,
+    persona_avatar: message.persona_avatar ?? null,
     created_at: message.created_at,
   })));
   const result = db.prepare('INSERT INTO chat_backups (chat_id, user_id, message_count, payload, created_at) VALUES (?,?,?,?,?)').run(chatId, userId, messages.length, payload, Date.now());
@@ -370,10 +372,10 @@ export function restoreBackup(chatId: number, userId: number, backupId: number):
 
   snapshotChat(chatId, userId, true); // 恢复本身也可撤销
   const remove = db.prepare('DELETE FROM messages WHERE chat_id = ?');
-  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, created_at) VALUES (?,?,?,?,?,?,?,?)');
+  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
   remove.run(chatId);
   for (const row of rows) {
-    insert.run(chatId, row.role, row.content, row.candidates ?? null, row.selected ?? 0, row.bookmark ?? 0, row.attachment ?? null, row.created_at ?? Date.now());
+    insert.run(chatId, row.role, row.content, row.candidates ?? null, row.selected ?? 0, row.bookmark ?? 0, row.attachment ?? null, row.persona_name ?? null, row.persona_avatar ?? null, row.created_at ?? Date.now());
   }
   touchChat(chatId);
   return true;
@@ -388,7 +390,7 @@ export function exportChat(chat: DbChat, characterName: string, messages: DbMess
         JSON.stringify({
           chat: chat.title,
           role: message.role,
-          name: message.role === 'user' ? '你' : characterName,
+          name: message.role === 'user' ? message.persona_name || '你' : characterName,
           content: message.content,
           candidates: messageCandidatesOf(message),
           selected: message.selected,
@@ -404,7 +406,7 @@ export function exportChat(chat: DbChat, characterName: string, messages: DbMess
     header +
     messages
       .map((message) => {
-        const who = message.role === 'user' ? '你' : message.role === 'system' ? '系统' : characterName;
+        const who = message.role === 'user' ? message.persona_name || '你' : message.role === 'system' ? '系统' : characterName;
         const attachment = message.attachment ? (JSON.parse(message.attachment) as { kind?: string; url?: string }) : null;
         const suffix = attachment?.url ? `\n[${attachment.kind === 'audio' ? '语音' : '图片'}] ${attachment.url}` : '';
         return `${who}：${message.content}${suffix}`;

@@ -61,7 +61,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
   const recentChat = user ? latestChatForCharacter(user.id, character.id) : null;
   const gated = character.nsfw && hideNsfw(user?.id ?? null);
   const lowBalance = Boolean(user && balance(user.id) <= 0);
-  const defaultPersona = personas.find((persona) => persona.boundCharacters.includes(character.id)) ?? personas[0];
+  const defaultPersona = personas.find((persona) => persona.boundCharacters.includes(character.id)) ?? personas.find((persona) => persona.isDefault);
   const openings = [
     { id: 'default', title: '默认开场', text: character.greeting },
     ...character.alternateGreetings.map((opening, index) => ({ id: `alt-${index}`, title: opening.title, text: opening.text })),

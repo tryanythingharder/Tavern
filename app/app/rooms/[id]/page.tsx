@@ -7,7 +7,7 @@ import { getCharacterById } from '@/lib/db';
 import { getRoom, insertRoomGreetings, listRoomMessages, roomFamily } from '@/lib/rooms';
 import { RoomMemoryButton } from '@/components/room-memory';
 import { ChatBranches } from '@/components/chat-branches';
-import { listPersonas, listRegexRules } from '@/lib/resources-db';
+import { listPersonas, listRegexRules, loadRoomConfig } from '@/lib/resources-db';
 import { characterRegexRules } from '@/lib/card-extras';
 import { RoomChat } from '@/components/room-chat';
 import { AppearanceButton } from '@/components/appearance-drawer';
@@ -35,7 +35,13 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
   const messages = listRoomMessages(room.id);
   const branches = roomFamily(user.id, room);
   const from = Number((await searchParams).from) || null;
-  const userName = listPersonas(user.id)[0]?.name ?? '你';
+  const config = loadRoomConfig(user.id, room);
+  const userName = config.userName;
+  const personaProp = {
+    current: { id: config.persona?.id ?? null, name: userName, avatar: config.persona?.avatar ?? null },
+    options: listPersonas(user.id).map((item) => ({ id: item.id, name: item.name, avatar: item.avatar, isDefault: item.isDefault, bound: room.characterIds.some((cid) => item.boundCharacters.includes(cid)) })),
+    lockedId: room.personaId,
+  };
   const activeCount = members.filter((member) => !room.muted.includes(member.id)).length;
   const strategyLabel = STRATEGY_LABEL[room.strategy] ?? room.strategy;
 
@@ -74,6 +80,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
             members={members}
             initialMessages={messages}
             userName={userName}
+            persona={personaProp}
             autoMode={room.autoMode}
             defaultSpeakerId={room.speakerId}
             displayRules={listRegexRules(user.id).filter((rule) => rule.enabled && rule.scope !== 'send')}

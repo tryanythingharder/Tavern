@@ -25,8 +25,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const index = visible.findIndex((item) => item.id === message.id);
   const result = await renderMessage(
     message.content,
-    { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history, model: modelName(chat.model), variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) },
-    { message_id: index, swipe_id: 0, name: message.role === 'user' ? config.persona?.name || '你' : character.name, is_last: index === visible.length - 1, is_user: message.role === 'user', is_system: false },
+    { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: modelName(chat.model), variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) },
+    { message_id: index, swipe_id: 0, name: message.role === 'user' ? config.userName : character.name, is_last: index === visible.length - 1, is_user: message.role === 'user', is_system: false },
   );
   return Response.json({ text: result.text, errors: result.errors }, { headers: { 'Cache-Control': 'no-store' } });
 }

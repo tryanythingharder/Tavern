@@ -62,12 +62,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const lastUser = [...history].reverse().find((item) => item.role === 'user');
   const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
   const vars = chatVariables(chat.id, chat.character_id, { uptoId: message.id });
-  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
     history,
     preset: config.preset,
     persona: config.persona,
+    userName: config.userName,
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
@@ -78,7 +79,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     variables: vars,
   });
   // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
-  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'continue' });
+  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'continue' });
   prompt.messages = [...ejs.messages, { role: 'system', content: CONTINUE_NUDGE }];
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, maxCost, `继续 · ${modelName(chat.model)}`, `chat:${chat.id}`);
@@ -120,7 +121,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         if (full.trim()) {
           const finalText = joinContinue(base, full);
           updateMessageContent(message.id, finalText);
-          await applyReplyTemplates(full, { userId: user.id, chatId: chat.id, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) }).catch(() => null);
+          await applyReplyTemplates(full, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
           send({ type: 'done', messageId: message.id, content: finalText, cost: settlement.cost, balance: settlement.balance });
         } else {

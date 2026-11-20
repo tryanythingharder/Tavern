@@ -34,18 +34,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const lastSpeaker = [...messages].reverse().find((message) => message.role === 'assistant')?.speakerId;
   const speaker = getCharacterById(lastSpeaker ?? room.characterIds[0] ?? '');
   if (!speaker) return fail('房间里没有角色', 400);
-  const config = loadRoomConfig(user.id);
+  const config = loadRoomConfig(user.id, room);
   const prompt = buildRoomPrompt({
     room,
     messages,
     speaker,
     preset: config.preset,
     persona: config.persona,
+    userName: config.userName,
     loreEntries: config.loreEntries,
     regexRules: config.regexRules,
     variables: roomVariables(room.id, room.characterIds),
   });
-  const who = config.persona?.name || '玩家';
+  const who = config.userName;
   prompt.push({
     role: 'system',
     content: `［代写］忽略上面「本轮发言人」的要求，现在不要扮演任何角色。请以「${who}」的身份、第一人称，写出${who}的下一句台词或动作（动作用 *星号* 包起来），60 字以内，只输出这一句本身，不要替其他角色说话。${hint ? `方向：${hint}` : ''}`,

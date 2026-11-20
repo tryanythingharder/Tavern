@@ -377,7 +377,9 @@ export function normalizeRegexRule(raw: unknown, index = 0): RegexRule {
 
 // ---------- 身份与快捷回复 ----------
 
-export type PersonaPosition = 'prompt' | 'depth' | 'none';
+// ST persona_description_positions：IN_PROMPT / TOP_AN / BOTTOM_AN / AT_DEPTH / NONE
+export type PersonaPosition = 'prompt' | 'anTop' | 'anBottom' | 'depth' | 'none';
+export const PERSONA_POSITIONS: PersonaPosition[] = ['prompt', 'anTop', 'anBottom', 'depth', 'none'];
 
 export type Persona = {
   id: number;
@@ -387,6 +389,12 @@ export type Persona = {
   depth: number;
   role: LoreRole;
   boundCharacters: string[];
+  /** 头像（/media/...），没有时显示名字首字 */
+  avatar: string | null;
+  /** ST「默认身份」：没有会话锁定、没有角色绑定时用它 */
+  isDefault: boolean;
+  /** ST 身份世界书：用这个身份时总是参与扫描 */
+  lorebookId: number | null;
 };
 
 export type QuickReply = { id: number; label: string; content: string; sort: number };

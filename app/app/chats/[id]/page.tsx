@@ -10,7 +10,7 @@ import { ChatRoom } from '@/components/chat-room';
 import { ChatSettings } from '@/components/chat-settings';
 import { ChatSearch } from '@/components/chat-search';
 import { AppearanceButton } from '@/components/appearance-drawer';
-import { chatSettings, listLorebooks, listQuickReplies, loadGenerationConfig } from '@/lib/resources-db';
+import { chatSettings, listLorebooks, listQuickReplies, listPersonas, loadGenerationConfig } from '@/lib/resources-db';
 import { summaryStatus } from '@/lib/memory';
 import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
@@ -51,7 +51,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const branches = chatBranches(chat.id, user.id);
   const contextRows = [
     { label: '角色', value: character.name, note: '开始故事时冻结的版本，之后修改角色不影响这里', href: `/c/${character.id}` },
-    { label: '你的身份', value: config.persona?.name ?? '未设置', note: '只在这段故事里生效', href: '/me/personas' },
+    { label: '你的身份', value: config.persona?.name ?? `${config.userName}（账号昵称）`, note: chat.persona_id ? '已锁定到这段故事' : '跟随默认：绑定角色的身份 → 默认身份', href: '/me/personas' },
     { label: '书签', value: bookmarks ? `${bookmarks} 条` : '还没有书签', note: '在消息操作里标记，随时跳回', href: null },
     { label: '记忆', value: memory.covered ? `摘要覆盖 ${memory.covered} 条` : '还没记下什么', note: '自动抽取式摘要 + 手动记忆', href: null },
     { label: '世界', value: lorebookCount ? `${lorebookCount} 本世界书` : '没有绑定世界书', note: '提到关键词时自动带上', href: '/me/lorebooks' },
@@ -101,11 +101,16 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             quickReplies={quickReplies}
             media={{ image: imageConfigured(), tts: ttsConfigured(), imageCost: imageCost() }}
             title={chat.title}
-            personaName={config.persona?.name}
+            personaName={config.userName}
+            persona={{
+              current: { id: config.persona?.id ?? null, name: config.userName, avatar: config.persona?.avatar ?? null },
+              options: listPersonas(user.id).map((item) => ({ id: item.id, name: item.name, avatar: item.avatar, isDefault: item.isDefault, bound: item.boundCharacters.includes(character.id) })),
+              lockedId: chat.persona_id ?? null,
+            }}
             characterCover={cover}
             characterHue={character.hue}
             displayRules={config.regexRules.filter((rule) => rule.enabled && rule.scope !== 'send')}
-            macros={{ char: character.name, user: config.persona?.name || user.nickname }}
+            macros={{ char: character.name, user: config.userName }}
           />
         </div>
 
@@ -129,7 +134,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             messageCount: messages.length,
             bookmarks,
             memoryCovered: memory.covered,
-            personaName: config.persona?.name ?? null,
+            personaName: config.userName,
             lorebookCount,
           }}
         />

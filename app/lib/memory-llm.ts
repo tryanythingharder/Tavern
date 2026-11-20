@@ -34,7 +34,7 @@ async function summarizeOnce(chat: DbChat, userId: number, messages: DbMessage[]
   const state = summaryState(chat);
   const character = getCharacterById(chat.character_id);
   const config = loadGenerationConfig(userId, chat);
-  const userName = config.persona?.name || '你';
+  const userName = config.userName;
   const charName = character?.name ?? '角色';
   const start = Math.min(state.covered, upTo);
   const lines: string[] = [];
@@ -49,7 +49,7 @@ async function summarizeOnce(chat: DbChat, userId: number, messages: DbMessage[]
     let body = cleanForSummary(sent).replace(/\{\{user\}\}/gi, userName).replace(/\{\{char\}\}/gi, charName);
     if (!body) continue;
     if (body.length > PER_MESSAGE) body = `${body.slice(0, PER_MESSAGE)}…`;
-    const line = `${message.role === 'user' ? userName : charName}：${body}`;
+    const line = `${message.role === 'user' ? message.persona_name || userName : charName}：${body}`;
     if (lines.length && used + line.length > MAX_CHARS) {
       reached = index;
       break;

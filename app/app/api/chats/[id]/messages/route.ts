@@ -16,7 +16,7 @@ import { assemblePrompt } from '@/lib/prompt';
 import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
-import { loadGenerationConfig } from '@/lib/resources-db';
+import { loadGenerationConfig, personaSender } from '@/lib/resources-db';
 import { memorySettings, ragChunks, refreshSummary, snapshotChat, promptMemory } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { autoSummarize } from '@/lib/memory-llm';
@@ -78,20 +78,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const character = getCharacterById(chat.character_id);
   if (!character) return fail('角色不存在', 404);
 
-  const userMessage = addMessage(chatId, 'user', text);
   const config = loadGenerationConfig(user.id, chat);
+  const userMessage = addMessage(chatId, 'user', text, undefined, undefined, personaSender(user.id, config.persona));
   const memory = memorySettings(chat);
   const history = listMessages(chatId);
   // 摘要按间隔自动刷新；检索只从「最近 8 条」之前的历史里挑片段
   const summary = refreshSummary(chatId, character.name, history);
   const rag = memory.ragPrefs.enabled ? ragChunks(history, text, memory.ragPrefs.topK) : [];
   const vars = chatVariables(chat.id, chat.character_id);
-  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
     history,
     preset: config.preset,
     persona: config.persona,
+    userName: config.userName,
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
@@ -102,7 +103,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     variables: vars,
   });
   // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
-  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
+  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars, generateType: 'normal' });
   prompt.messages = ejs.messages;
   // 先按最大可能成本预扣，避免余额 1 点也能跑完一次高消耗生成
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
@@ -150,7 +151,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
           // 回复里的 EJS（如 setvar）在这一步才真正写变量
-          await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
+          await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
           // 到间隔了就在后台更新模型摘要（不挡这次回复）
           void autoSummarize(chatId, user.id);

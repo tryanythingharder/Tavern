@@ -21,6 +21,8 @@ export type Room = {
   autoMode: boolean;
   speakerId: string | null;
   model: string | null;
+  /** 锁定在这个群聊的身份（ST：persona 锁定到聊天），null = 按绑定/默认 */
+  personaId: number | null;
   /** 分支/检查点来源（ST：从群聊某条消息分出） */
   parentRoomId: number | null;
   parentMessageId: number | null;
@@ -35,16 +37,20 @@ export type RoomMessage = {
   candidateCount: number; selected: number;
   /** 挂在这条消息上的检查点房间 */
   checkpoint: number | null;
+  /** 玩家消息：发送时的身份名与头像 */
+  personaName: string | null;
+  personaAvatar: string | null;
 };
 
 type RoomRow = {
   id: number; name: string; character_ids: string; muted: string; strategy: string;
   auto_mode: number | null; speaker_id: string | null; model?: string | null; created_at: number; updated_at: number;
-  parent_room_id?: number | null; parent_message_id?: number | null; is_checkpoint?: number | null;
+  parent_room_id?: number | null; parent_message_id?: number | null; is_checkpoint?: number | null; persona_id?: number | null;
 };
 type RoomMessageRow = {
   id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number;
   candidates?: string | null; selected?: number | null; checkpoint_room_id?: number | null; attachment?: string | null;
+  persona_name?: string | null; persona_avatar?: string | null;
 };
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -68,6 +74,7 @@ function fromRow(row: RoomRow): Room {
     autoMode: row.auto_mode === 1,
     speakerId: row.speaker_id && parseJson<string[]>(row.character_ids, []).includes(row.speaker_id) ? row.speaker_id : null,
     model: row.model || null,
+    personaId: row.persona_id ?? null,
     parentRoomId: row.parent_room_id ?? null,
     parentMessageId: row.parent_message_id ?? null,
     isCheckpoint: row.is_checkpoint === 1,
@@ -171,6 +178,8 @@ function messageFromRow(row: RoomMessageRow): RoomMessage {
     candidateCount: count,
     selected: Math.min(Math.max(row.selected ?? 0, 0), count - 1),
     checkpoint: row.checkpoint_room_id ?? null,
+    personaName: row.persona_name ?? null,
+    personaAvatar: row.persona_avatar ?? null,
   };
 }
 
@@ -189,11 +198,13 @@ export function isLatestRoomMessage(roomId: number, messageId: number): boolean 
   return row.id === messageId;
 }
 
-export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speakerId: string | null, content: string): RoomMessage {
+export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speakerId: string | null, content: string, sender?: { name: string; avatar: string | null } | null): RoomMessage {
   const now = Date.now();
-  const result = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, created_at) VALUES (?,?,?,?,?)').run(roomId, role, speakerId, content, now);
+  const personaName = sender?.name ?? null;
+  const personaAvatar = sender?.avatar ?? null;
+  const result = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?)').run(roomId, role, speakerId, content, personaName, personaAvatar, now);
   db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, roomId);
-  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null };
+  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar };
 }
 
 /**
@@ -270,8 +281,8 @@ export function branchRoom(userId: number, roomId: number, messageId: number, ch
   }
   const now = Date.now();
   const tx = () => {
-    const created = db.prepare(`INSERT INTO rooms (user_id, name, character_ids, muted, strategy, auto_mode, speaker_id, model, parent_room_id, parent_message_id, is_checkpoint, created_at, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    const created = db.prepare(`INSERT INTO rooms (user_id, name, character_ids, muted, strategy, auto_mode, speaker_id, model, persona_id, parent_room_id, parent_message_id, is_checkpoint, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       userId,
       `${room.name.slice(0, 30)} · ${checkpoint ? '检查点' : '分支'}`,
       JSON.stringify(room.characterIds),
@@ -280,6 +291,7 @@ export function branchRoom(userId: number, roomId: number, messageId: number, ch
       room.autoMode ? 1 : 0,
       room.speakerId,
       room.model,
+      room.personaId,
       roomId,
       messageId,
       checkpoint ? 1 : 0,
@@ -287,8 +299,8 @@ export function branchRoom(userId: number, roomId: number, messageId: number, ch
       now,
     );
     const newId = Number(created.lastInsertRowid);
-    db.prepare(`INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, attachment, created_at)
-      SELECT ?, role, speaker_id, content, candidates, selected, attachment, created_at FROM room_messages WHERE room_id = ? AND id <= ? ORDER BY id`).run(newId, roomId, messageId);
+    db.prepare(`INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, attachment, persona_name, persona_avatar, created_at)
+      SELECT ?, role, speaker_id, content, candidates, selected, attachment, persona_name, persona_avatar, created_at FROM room_messages WHERE room_id = ? AND id <= ? ORDER BY id`).run(newId, roomId, messageId);
     if (checkpoint) db.prepare('UPDATE room_messages SET checkpoint_room_id = ? WHERE id = ?').run(newId, messageId);
     // 作者注释 / 摘要设置跟着走；摘要只在没覆盖到分支点之后时才复制（同单聊分支）
     const source = db.prepare('SELECT author_note, summary, summary_prefs FROM rooms WHERE id = ?').get(roomId) as { author_note: string | null; summary: string | null; summary_prefs: string | null };
@@ -346,6 +358,8 @@ export type RoomPromptInput = {
   speaker: DbCharacter;
   preset: Preset;
   persona: Persona | null;
+  /** {{user}}：身份名，没有身份时账号昵称 */
+  userName?: string;
   loreEntries: LoreEntry[];
   regexRules: RegexRule[];
   /** 房间共享的 MVU 变量（lib/mvu-server.ts roomVariables） */
@@ -359,7 +373,10 @@ export type RoomPromptInput = {
 export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
   const { room, messages, speaker, preset, persona, regexRules, variables, memory } = input;
   const summary = (memory?.summary ?? '').trim();
-  const userName = persona?.name || '你';
+  const userName = input.userName || persona?.name || '你';
+  const personaText = (persona?.description.trim() ?? '').replace(/\{\{user\}\}/gi, userName).replace(/\{\{char\}\}/gi, speaker.name);
+  // 玩家消息用发送时的身份名（ST 每条消息的 name）
+  const userOf = (message: RoomMessage) => message.personaName || userName;
   // 成员卡自带的世界书一起扫（InitVar 这类只给变量用的条目不进提示词）
   const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title));
   const loreEntries = [...cardLore, ...input.loreEntries];
@@ -367,7 +384,8 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
     resolveVariableMacros(value, variables ?? null)
       .replace(/\{\{summary\}\}/gi, () => summary)
       .replace(/\{\{char\}\}/gi, charName)
-      .replace(/\{\{(?:user|persona)\}\}/gi, userName);
+      .replace(/\{\{user\}\}/gi, userName)
+      .replace(/\{\{persona\}\}/gi, () => personaText);
   // 每个成员卡的「发送」正则只作用于该成员自己的楼层
   const sendRules = new Map(room.characterIds.map((id) => [id, characterRegexRules(id).filter((rule) => rule.enabled)]));
   const members = room.characterIds.map((id) => getCharacterById(id)).filter((character): character is DbCharacter => Boolean(character));
@@ -389,13 +407,15 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
     blocks.push(`### 角色 · ${character.name}\n${macros(card, character.name)}`);
   }
 
-  const scanTexts = recent.map((message) => `${message.role === 'user' ? userName : nameOf(message.speakerId)}：${message.content}`);
+  const scanTexts = recent.map((message) => `${message.role === 'user' ? userOf(message) : nameOf(message.speakerId)}：${message.content}`);
   const messageCount = scanTexts.length;
   scanTexts.push(...members.map((character) => character.description));
+  if (personaText) scanTexts.push(personaText);
   const scan = scanLore(loreEntries, scanTexts, { messageCount });
   if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${macros(entry.text)}`).join('\n')}`);
   if (summary && memory?.summaryPlacement.position === 'prompt') blocks.push(`### 前情摘要\n${summaryText(memory.summaryPlacement.template, summary)}`);
-  if (persona?.description.trim()) blocks.push(`### 玩家身份\n【身份】${persona.name}\n${persona.description.trim()}`);
+  // 身份说明按 ST 的位置：提示词里 / 作者注释顶部或底部 / 聊天内按深度 / 不进入
+  if (persona) blocks.push(`### 玩家身份\n【身份】${userName}${personaText && persona.position === 'prompt' ? `\n${personaText}` : ''}`);
 
   blocks.push(
     [
@@ -413,23 +433,30 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
     const rules = [...(message.speakerId ? sendRules.get(message.speakerId) ?? [] : []), ...regexRules];
     const content = applyRegex(rules, message.content, { target, purpose: 'send', depth, macros: { char: nameOf(message.speakerId), user: userName } });
     // 开场白等原文里的 {{char}} 按这条的发言者解析（ST 群聊开场白宏按各自角色替换）
-    const who = message.role === 'user' ? userName : nameOf(message.speakerId);
+    const who = message.role === 'user' ? userOf(message) : nameOf(message.speakerId);
     return { role: target, content: `${who}：${macros(content, message.role === 'user' ? speaker.name : who)}` };
   });
 
   // 作者注释（ST 默认聊天内 @4、system、每条玩家消息都插）与 @深度 摘要：按深度插进历史
   const note = memory?.authorNote;
-  const noteText = (input.characterNoteText ?? '').trim() || note?.text.trim() || '';
+  const baseNote = (input.characterNoteText ?? '').trim() || note?.text.trim() || '';
   const userTurns = recent.filter((message) => message.role === 'user').length;
-  const noteDue = Boolean(note && noteText && note.interval > 0 && userTurns % note.interval === 0);
+  // 没有注释设置时按 ST 默认：每条都插、聊天内 @4、system
+  const notePos = note ?? { position: 'depth' as const, depth: 4, role: 'system' as const, interval: 1 };
+  const noteTurn = notePos.interval > 0 && userTurns % notePos.interval === 0;
+  // ST：身份放「作者注释顶部/底部」时，在注释该插入的轮次拼到注释外侧（注释为空也插）
+  const personaAn = persona && noteTurn && personaText && (persona.position === 'anTop' || persona.position === 'anBottom') ? personaText : '';
+  const noteText = (persona?.position === 'anTop' ? [personaAn, noteTurn ? baseNote : ''] : [noteTurn ? baseNote : '', personaAn]).filter(Boolean).join('\n');
+  const noteDue = Boolean(noteText);
   const injections: { depth: number; role: ChatMessage['role']; text: string }[] = [];
-  if (noteDue && note!.position === 'depth') injections.push({ depth: note!.depth, role: note!.role, text: noteText });
+  if (noteDue && notePos.position === 'depth') injections.push({ depth: notePos.depth, role: notePos.role, text: noteText });
+  if (persona && persona.position === 'depth' && personaText) injections.push({ depth: persona.depth, role: persona.role, text: personaText });
   if (summary && memory?.summaryPlacement.position === 'depth') injections.push({ depth: memory.summaryPlacement.depth, role: memory.summaryPlacement.role, text: summaryText(memory.summaryPlacement.template, summary) });
   for (const item of [...injections].sort((a, b) => b.depth - a.depth)) {
     history.splice(Math.max(history.length - item.depth, 0), 0, { role: item.role, content: macros(item.text) });
   }
-  if (noteDue && note!.position === 'before') blocks.unshift(`### 作者注释\n${noteText}`);
-  if (noteDue && note!.position === 'after') blocks.splice(Math.min(blocks.length, 1 + members.length), 0, `### 作者注释\n${noteText}`);
+  if (noteDue && notePos.position === 'before') blocks.unshift(`### 作者注释\n${noteText}`);
+  if (noteDue && notePos.position === 'after') blocks.splice(Math.min(blocks.length, 1 + members.length), 0, `### 作者注释\n${noteText}`);
 
   return [{ role: 'system', content: macros(blocks.join('\n\n')) }, ...history];
 }

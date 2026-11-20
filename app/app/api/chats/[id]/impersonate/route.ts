@@ -40,12 +40,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const memory = memorySettings(chat);
   const ejsHistory = listMessages(chatId);
   const vars = chatVariables(chat.id, chat.character_id);
-  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars });
+  const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({
     character,
     history: ejsHistory,
     preset: config.preset,
     persona: config.persona,
+    userName: config.userName,
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
@@ -55,9 +56,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     variables: vars,
   });
   // EJS 模板（ST-Prompt-Template 写法），在 QuickJS 沙盒里跑；生成阶段 setvar 不落库
-  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.persona?.name || '你', loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars, generateType: 'impersonate' });
+  const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars, generateType: 'impersonate' });
   prompt.messages = ejs.messages;
-  const who = config.persona?.name || '玩家';
+  const who = config.userName;
   prompt.messages.push({
     role: 'system',
     content: `［代写］现在不要扮演${character.name}。请以「${who}」的身份、第一人称，写出${who}的下一句台词或动作（动作用 *星号* 包起来），60 字以内，只输出这一句本身，不要替${character.name}说话。${hint ? `方向：${hint}` : ''}`,

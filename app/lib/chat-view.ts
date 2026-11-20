@@ -12,6 +12,9 @@ export type ChatMessageView = {
   bookmark: boolean;
   checkpoint: number | null;
   attachment: ChatAttachment | null;
+  /** 玩家消息：发送时的身份名与头像（ST 每条消息的 name / force_avatar） */
+  personaName: string | null;
+  personaAvatar: string | null;
   createdAt: number;
 };
 
@@ -41,6 +44,8 @@ export function toMessageView(message: DbMessage): ChatMessageView {
     bookmark: message.bookmark === 1,
     checkpoint: message.checkpoint_chat_id ?? null,
     attachment: parseAttachment(message.attachment),
+    personaName: message.persona_name ?? null,
+    personaAvatar: message.persona_avatar ?? null,
     createdAt: message.created_at,
   };
 }

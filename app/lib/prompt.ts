@@ -61,6 +61,8 @@ export type AssembleInput = {
   history: DbMessage[];
   preset: Preset;
   persona: Persona | null;
+  /** {{user}}：身份名，没有身份时账号昵称（loadGenerationConfig().userName） */
+  userName?: string;
   loreEntries: LoreEntry[];
   regexRules: RegexRule[];
   trigger?: 'normal' | 'regenerate';
@@ -298,8 +300,11 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   const triggered = input.trigger ?? 'normal';
 
   // 扫描文本：最近消息 + 角色设定 + 玩家身份（对应 ST 的 match_* 字段）
+  const userName = input.userName || persona?.name || '你';
+  // 玩家消息用发送时的身份名（ST：每条消息的 name；中途换身份，旧楼层还是旧名字）
+  const speakerOf = (message: DbMessage) => (message.role === 'user' ? message.persona_name || userName : character.name);
   const recent = history.slice(-Math.max(LORE_SCAN_DEPTH, 1));
-  const scanTexts = recent.map((message) => `${message.role === 'user' ? (persona?.name || '你') : character.name}：${message.content}`);
+  const scanTexts = recent.map((message) => `${speakerOf(message)}：${message.content}`);
   if (character.description) scanTexts.push(character.description);
   if (character.pace) scanTexts.push(character.pace);
   if (cardFields.personality) scanTexts.push(cardFields.personality);
@@ -311,7 +316,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     trigger: triggered,
     budget: loreBudgetFor(ctx.window),
     messageCount: recent.length,
-    history: history.map((message) => `${message.role === 'user' ? (persona?.name || '你') : character.name}：${message.content}`),
+    history: history.map((message) => `${speakerOf(message)}：${message.content}`),
   });
   const at = (position: LoreEntry['position']) => scan.entries.filter((entry) => entry.position === position);
 
@@ -364,7 +369,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
         const chunks = input.rag ?? [];
         if (!chunks.length) return '';
         const speaker = character.name;
-        return chunks.map((chunk) => `［更早的对话 · 第 ${chunk.index + 1} 条］${chunk.role === 'user' ? '你' : speaker}：${chunk.text}`).join('\n');
+        return chunks.map((chunk) => `［更早的对话 · 第 ${chunk.index + 1} 条］${chunk.role === 'user' ? userName : speaker}：${chunk.text}`).join('\n');
       }
       case 'memory':
         return input.memory ?? '';
@@ -376,7 +381,8 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     }
   };
 
-  const userName = persona?.name || '你';
+  // ST：{{user}} / {{persona}} 不同——{{persona}} 是身份说明正文
+  const personaText = (persona?.description ?? '').replace(/\{\{char\}\}/gi, character.name).replace(/\{\{user\}\}/gi, userName);
   const outlets = (value: string) =>
     value
       .replace(/\{\{summary\}\}/gi, () => (input.summary ?? '').trim())
@@ -385,16 +391,21 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     expandStMacros(resolveVariableMacros(outlets(value), input.variables ?? null))
       .replace(/\{\{char\}\}/gi, character.name)
       .replace(/\{\{user\}\}/gi, userName)
-      .replace(/\{\{persona\}\}/gi, userName);
+      .replace(/\{\{persona\}\}/gi, () => personaText);
 
   const nameMacros = (value: string) =>
-    value.replace(/\{\{char\}\}/gi, character.name).replace(/\{\{user\}\}/gi, userName).replace(/\{\{persona\}\}/gi, userName);
+    value.replace(/\{\{char\}\}/gi, character.name).replace(/\{\{user\}\}/gi, userName).replace(/\{\{persona\}\}/gi, () => personaText);
 
   // 作者注释：注释正文按插入频率（ST：每 N 条玩家消息插一次，0 = 不插），前后夹着世界书 anTop / anBottom
   const note = input.authorNote;
   const userTurns = history.filter((message) => message.role === 'user').length;
-  const noteDue = Boolean(note && note.text.trim() && note.interval > 0 && userTurns % note.interval === 0);
-  const anText = resolveMacros([loreBlock(at('anTop')), noteDue ? note!.text.trim() : '', loreBlock(at('anBottom'))].filter(Boolean).join('\n'));
+  // 没有注释设置时按 ST 默认（每条都插、聊天内 @4）
+  const noteTurn = !note || (note.interval > 0 && userTurns % note.interval === 0);
+  const noteDue = Boolean(note && note.text.trim() && noteTurn);
+  // ST addPersonaDescriptionExtensionPrompt：身份放「作者注释顶部/底部」时，在注释该插入的轮次拼到整段注释外侧（注释正文为空也照插）
+  const personaAn = persona && noteTurn && persona.description.trim() && (persona.position === 'anTop' || persona.position === 'anBottom') ? persona.description.trim() : '';
+  const anCore = [loreBlock(at('anTop')), noteDue ? note!.text.trim() : '', loreBlock(at('anBottom'))].filter(Boolean).join('\n');
+  const anText = resolveMacros((persona?.position === 'anTop' ? [personaAn, anCore] : [anCore, personaAn]).filter(Boolean).join('\n'));
   const anPosition = note?.position ?? 'depth';
 
   const blocks: PromptBlock[] = [];
@@ -460,7 +471,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     injections.push({ depth: entry.depth, role: entry.role, text: `［世界书 · ${entry.title}］${entry.text}` });
   }
   if (persona && persona.position === 'depth' && persona.description.trim()) {
-    injections.push({ depth: persona.depth, role: persona.role, text: `［玩家身份］${persona.description.trim()}` });
+    injections.push({ depth: persona.depth, role: persona.role, text: persona.description.trim() });
   }
   if (anText && anPosition === 'depth') injections.push({ depth: note?.depth ?? 4, role: note?.role ?? 'system', text: anText });
   const placement = input.summaryPlacement;

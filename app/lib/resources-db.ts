@@ -1,5 +1,6 @@
 import { characterLoreEntries, characterRegexRules, parseCardLore } from '@/lib/card-extras';
 import db from '@/lib/db';
+import { saveMedia } from '@/lib/storage';
 import type { DbChat } from '@/lib/db';
 import {
   DEFAULT_CONTEXT_TEMPLATE,
@@ -14,6 +15,7 @@ import {
   type LoreEntry,
   type Persona,
   type PersonaPosition,
+  PERSONA_POSITIONS,
   type Preset,
   type QuickReply,
   type RegexRule,
@@ -266,23 +268,27 @@ export function deleteRegexRule(userId: number, id: number): boolean {
 
 type PersonaRow = {
   id: number; name: string; description: string; position: string; depth: number; role: string; bound_characters: string;
+  avatar?: string | null; is_default?: number | null; lorebook_id?: number | null;
 };
 
 function personaFromRow(row: PersonaRow): Persona {
-  const positions: PersonaPosition[] = ['prompt', 'depth', 'none'];
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    position: positions.includes(row.position as PersonaPosition) ? (row.position as PersonaPosition) : 'prompt',
+    position: PERSONA_POSITIONS.includes(row.position as PersonaPosition) ? (row.position as PersonaPosition) : 'prompt',
     depth: row.depth,
     role: row.role === 'user' || row.role === 'assistant' ? row.role : 'system',
     boundCharacters: parseJson<string[]>(row.bound_characters, []).filter((value) => typeof value === 'string'),
+    avatar: typeof row.avatar === 'string' && row.avatar ? row.avatar : null,
+    isDefault: row.is_default === 1,
+    lorebookId: row.lorebook_id ?? null,
   };
 }
 
+// 默认身份排最前，其余按最近修改（列表顺序只用于显示，不再决定「用哪个身份」）
 export function listPersonas(userId: number): Persona[] {
-  const rows = db.prepare('SELECT * FROM personas WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as PersonaRow[];
+  const rows = db.prepare('SELECT * FROM personas WHERE user_id = ? ORDER BY is_default DESC, updated_at DESC').all(userId) as PersonaRow[];
   return rows.map(personaFromRow);
 }
 
@@ -298,42 +304,191 @@ export type PersonaInput = {
   depth?: number;
   role?: string;
   boundCharacters?: unknown;
+  avatar?: string | null;
+  /** 新头像：data:image/...;base64（≤4MB），存成本人私有媒体 */
+  avatarData?: string;
+  isDefault?: boolean;
+  lorebookId?: number | null;
 };
 
-function personaValues(input: PersonaInput, current?: Persona) {
+function avatarFromDataUrl(userId: number, data: unknown): string | null {
+  if (typeof data !== 'string') return null;
+  const match = data.match(/^data:image\/(png|jpeg|jpg|webp|gif);base64,(.+)$/);
+  if (!match) return null;
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > 4 * 1024 * 1024) return null;
+  return saveMedia(buffer, match[1] === 'jpeg' ? 'jpg' : match[1], { ownerId: userId, visibility: 'private' });
+}
+
+function personaValues(userId: number, input: PersonaInput, current?: Persona) {
+  const lorebookId = input.lorebookId === null ? null
+    : Number.isInteger(input.lorebookId) && getLorebook(userId, Number(input.lorebookId)) ? Number(input.lorebookId)
+    : current?.lorebookId ?? null;
+  // 头像只接受本站媒体地址（上传接口返回的 /media/...）
+  const uploaded = avatarFromDataUrl(userId, input.avatarData);
+  const avatar = uploaded ? uploaded
+    : input.avatar === null ? null
+    : typeof input.avatar === 'string' && /^\/media\/[a-zA-Z0-9-]+\.(png|jpe?g|webp|gif)$/.test(input.avatar) ? input.avatar
+    : current?.avatar ?? null;
   return {
     name: (input.name !== undefined ? text(input.name, current?.name ?? '') : current?.name ?? '旅人').trim().slice(0, 30) || '旅人',
-    description: input.description ?? current?.description ?? '',
-    position: input.position === 'depth' || input.position === 'none' ? input.position : input.position === 'prompt' ? 'prompt' : current?.position ?? 'prompt',
+    description: (input.description ?? current?.description ?? '').slice(0, 20000),
+    position: PERSONA_POSITIONS.includes(input.position as PersonaPosition) ? (input.position as PersonaPosition) : current?.position ?? 'prompt',
     depth: Number.isFinite(Number(input.depth)) ? Math.max(0, Math.min(999, Math.round(Number(input.depth)))) : current?.depth ?? 2,
     role: input.role === 'user' || input.role === 'assistant' ? input.role : input.role === 'system' ? 'system' : current?.role ?? 'system',
-    boundCharacters: Array.isArray(input.boundCharacters) ? input.boundCharacters.filter((value): value is string => typeof value === 'string') : current?.boundCharacters ?? [],
+    boundCharacters: Array.isArray(input.boundCharacters) ? [...new Set(input.boundCharacters.filter((value): value is string => typeof value === 'string'))].slice(0, 500) : current?.boundCharacters ?? [],
+    avatar,
+    lorebookId,
+    isDefault: typeof input.isDefault === 'boolean' ? input.isDefault : current?.isDefault ?? false,
   };
 }
 
+function applyDefault(userId: number, id: number, isDefault: boolean) {
+  // 默认身份只能有一个（ST 的 default_persona）
+  if (isDefault) db.prepare('UPDATE personas SET is_default = 0 WHERE user_id = ? AND id != ?').run(userId, id);
+  db.prepare('UPDATE personas SET is_default = ? WHERE id = ? AND user_id = ?').run(isDefault ? 1 : 0, id, userId);
+}
+
 export function createPersona(userId: number, input: PersonaInput): Persona {
-  const values = personaValues(input);
+  const values = personaValues(userId, input);
   const now = Date.now();
-  const result = db.prepare('INSERT INTO personas (user_id, name, description, position, depth, role, bound_characters, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)').run(
-    userId, values.name, values.description, values.position, values.depth, values.role, JSON.stringify(values.boundCharacters), now, now,
+  const result = db.prepare('INSERT INTO personas (user_id, name, description, position, depth, role, bound_characters, avatar, lorebook_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(
+    userId, values.name, values.description, values.position, values.depth, values.role, JSON.stringify(values.boundCharacters), values.avatar, values.lorebookId, now, now,
   );
-  return getPersona(userId, Number(result.lastInsertRowid))!;
+  const id = Number(result.lastInsertRowid);
+  // 第一个身份自动成为默认（ST 新建的第一个身份不会自动设默认；但这里没有「账号名」身份可退，默认一个更直观）
+  const first = (db.prepare('SELECT COUNT(*) AS n FROM personas WHERE user_id = ?').get(userId) as { n: number }).n === 1;
+  applyDefault(userId, id, values.isDefault || first);
+  return getPersona(userId, id)!;
 }
 
 export function updatePersona(userId: number, id: number, input: PersonaInput): Persona | undefined {
   const current = getPersona(userId, id);
   if (!current) return undefined;
-  const values = personaValues(input, current);
-  db.prepare('UPDATE personas SET name = ?, description = ?, position = ?, depth = ?, role = ?, bound_characters = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(
-    values.name, values.description, values.position, values.depth, values.role, JSON.stringify(values.boundCharacters), Date.now(), id, userId,
+  const values = personaValues(userId, input, current);
+  db.prepare('UPDATE personas SET name = ?, description = ?, position = ?, depth = ?, role = ?, bound_characters = ?, avatar = ?, lorebook_id = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(
+    values.name, values.description, values.position, values.depth, values.role, JSON.stringify(values.boundCharacters), values.avatar, values.lorebookId, Date.now(), id, userId,
   );
+  if (values.isDefault !== current.isDefault) applyDefault(userId, id, values.isDefault);
+  // ST 换头像是覆盖同一个文件，旧消息也跟着变；这里把用旧头像（或这个身份名、当时没头像）发的消息改成新头像。改名不影响旧消息（同 ST）
+  if (values.avatar !== current.avatar) {
+    const params = current.avatar ? [values.avatar, current.avatar, userId] : [values.avatar, current.name, userId];
+    const where = current.avatar ? 'persona_avatar = ?' : 'persona_avatar IS NULL AND persona_name = ?';
+    db.prepare(`UPDATE messages SET persona_avatar = ? WHERE role = 'user' AND ${where} AND chat_id IN (SELECT id FROM chats WHERE user_id = ?)`).run(...params);
+    db.prepare(`UPDATE room_messages SET persona_avatar = ? WHERE role = 'user' AND ${where} AND room_id IN (SELECT id FROM rooms WHERE user_id = ?)`).run(...params);
+  }
   return getPersona(userId, id);
 }
 
 export function deletePersona(userId: number, id: number): boolean {
   const result = db.prepare('DELETE FROM personas WHERE id = ? AND user_id = ?').run(id, userId);
-  if (Number(result.changes) > 0) db.prepare('UPDATE chats SET persona_id = NULL WHERE persona_id = ? AND user_id = ?').run(id, userId);
+  if (Number(result.changes) > 0) {
+    db.prepare('UPDATE chats SET persona_id = NULL WHERE persona_id = ? AND user_id = ?').run(id, userId);
+    db.prepare('UPDATE rooms SET persona_id = NULL WHERE persona_id = ? AND user_id = ?').run(id, userId);
+  }
   return Number(result.changes) > 0;
+}
+
+/**
+ * 当前生效的身份，按 ST 的优先级：会话锁定 → 绑定了该角色（群聊：任一成员）的身份 → 默认身份。
+ * 都没有时返回 null，玩家名退回账号昵称（ST 的 name1）。
+ */
+export function resolvePersona(userId: number, scope: { lockedId: number | null; characterIds: string[] }): Persona | null {
+  const personas = listPersonas(userId);
+  if (scope.lockedId) {
+    const locked = personas.find((item) => item.id === scope.lockedId);
+    if (locked) return locked;
+  }
+  return personas.find((item) => scope.characterIds.some((id) => item.boundCharacters.includes(id)))
+    ?? personas.find((item) => item.isDefault)
+    ?? null;
+}
+
+export function accountName(userId: number): string {
+  const row = db.prepare('SELECT nickname FROM users WHERE id = ?').get(userId) as { nickname: string } | undefined;
+  return row?.nickname?.trim() || '你';
+}
+
+/** 玩家消息记下发送时的身份（ST：每条消息的 name / force_avatar） */
+export function personaSender(userId: number, persona: Persona | null): { name: string; avatar: string | null } {
+  return { name: persona?.name || accountName(userId), avatar: persona?.avatar ?? null };
+}
+
+// ---------- ST 身份备份（Persona Management → Backup）互通 ----------
+// 格式：{ personas: {头像文件: 名字}, persona_descriptions: {头像文件: {description, position, depth, role, lorebook, connections}}, default_persona }
+// position：0 提示词里 / 1 角色之后（旧，按提示词里）/ 2 作者注释顶部 / 3 作者注释底部 / 4 聊天内 @深度 / 9 不进入；role：0 system 1 user 2 assistant
+const ST_POSITION: Record<number, PersonaPosition> = { 0: 'prompt', 1: 'prompt', 2: 'anTop', 3: 'anBottom', 4: 'depth', 9: 'none' };
+const ST_ROLE = ['system', 'user', 'assistant'] as const;
+
+// 能连上的角色：自己的卡和聊过的角色（按名字匹配 ST 的 connections / 头像文件名）
+export function linkableCharacters(userId: number): { id: string; name: string }[] {
+  return db.prepare(`SELECT DISTINCT ch.id, ch.name FROM characters ch
+    WHERE ch.owner_id = ? OR ch.id IN (SELECT character_id FROM chats WHERE user_id = ?)`).all(userId, userId) as { id: string; name: string }[];
+}
+
+export function importStPersonas(userId: number, raw: unknown): { created: number; skipped: number } {
+  const data = (raw ?? {}) as { personas?: Record<string, unknown>; persona_descriptions?: Record<string, Record<string, unknown>>; default_persona?: unknown };
+  if (!data.personas || typeof data.personas !== 'object') throw new Error('不是 SillyTavern 的身份备份（缺少 personas）');
+  const books = listLorebooks(userId);
+  const chars = linkableCharacters(userId);
+  const existing = new Set(listPersonas(userId).map((item) => `${item.name}\u0000${item.description}`));
+  let created = 0;
+  let skipped = 0;
+  for (const [file, nameValue] of Object.entries(data.personas)) {
+    const meta = data.persona_descriptions?.[file] ?? {};
+    const name = String(nameValue ?? '').trim() || file.replace(/\.[a-z]+$/i, '');
+    const description = typeof meta.description === 'string' ? meta.description : '';
+    if (existing.has(`${name.slice(0, 30)}\u0000${description}`)) { skipped += 1; continue; }
+    const connections = Array.isArray(meta.connections) ? meta.connections as { type?: string; id?: string }[] : [];
+    const bound = connections
+      .filter((item) => item?.type === 'character' && typeof item.id === 'string')
+      .map((item) => String(item.id).replace(/\.png$/i, ''))
+      .flatMap((stem) => chars.filter((character) => character.name === stem).map((character) => character.id));
+    const book = typeof meta.lorebook === 'string' && meta.lorebook ? books.find((item) => item.name === meta.lorebook) : undefined;
+    createPersona(userId, {
+      name,
+      description,
+      position: ST_POSITION[Number(meta.position)] ?? 'prompt',
+      depth: Number(meta.depth ?? 2),
+      role: ST_ROLE[Number(meta.role)] ?? 'system',
+      boundCharacters: bound,
+      lorebookId: book?.id ?? null,
+      isDefault: data.default_persona === file,
+    });
+    created += 1;
+  }
+  return { created, skipped };
+}
+
+export function exportStPersonas(userId: number): Record<string, unknown> {
+  const personas = listPersonas(userId);
+  const positionCode: Record<PersonaPosition, number> = { prompt: 0, anTop: 2, anBottom: 3, depth: 4, none: 9 };
+  const names = new Map(linkableCharacters(userId).map((character) => [character.id, character.name]));
+  const books = new Map(listLorebooks(userId).map((book) => [book.id, book.name]));
+  const key = (persona: Persona) => `tavern-${persona.id}.png`;
+  return {
+    personas: Object.fromEntries(personas.map((persona) => [key(persona), persona.name])),
+    persona_descriptions: Object.fromEntries(personas.map((persona) => [key(persona), {
+      description: persona.description,
+      position: positionCode[persona.position],
+      depth: persona.depth,
+      role: ST_ROLE.indexOf(persona.role as (typeof ST_ROLE)[number]),
+      lorebook: persona.lorebookId ? books.get(persona.lorebookId) ?? '' : '',
+      connections: persona.boundCharacters.filter((id) => names.has(id)).map((id) => ({ type: 'character', id: `${names.get(id)}.png` })),
+      title: '',
+    }])),
+    default_persona: personas.find((persona) => persona.isDefault) ? key(personas.find((persona) => persona.isDefault)!) : null,
+  };
+}
+
+export function setRoomPersona(userId: number, roomId: number, personaId: number | null): boolean {
+  const id = personaId && getPersona(userId, personaId) ? personaId : null;
+  return Number(db.prepare('UPDATE rooms SET persona_id = ? WHERE id = ? AND user_id = ?').run(id, roomId, userId).changes) > 0;
+}
+
+export function setChatPersona(userId: number, chatId: number, personaId: number | null): boolean {
+  const id = personaId && getPersona(userId, personaId) ? personaId : null;
+  return Number(db.prepare('UPDATE chats SET persona_id = ? WHERE id = ? AND user_id = ?').run(id, chatId, userId).changes) > 0;
 }
 
 // ---------- 快捷回复 ----------
@@ -381,37 +536,50 @@ export function updateChatSettings(userId: number, chatId: number, input: ChatSe
 export type GenerationConfig = {
   preset: Preset;
   persona: Persona | null;
+  /** {{user}}：身份名，没有身份时是账号昵称 */
+  userName: string;
   loreEntries: LoreEntry[];
   regexRules: RegexRule[];
 };
 
-// 生成时一次性取齐：预设（会话指定 → 默认）、身份（会话指定 → 绑定该角色的身份）、
-// 世界书（会话绑定；未绑定时用全部）、正则（该用户全部启用规则）。
-// 房间没有单独的预设/世界书绑定：用默认预设 + 全部世界书 + 全部正则，身份取第一个。
-export function loadRoomConfig(userId: number): GenerationConfig {
+// 身份世界书：用这个身份时总是参与（ST：persona lorebook 与会话/全局世界书一起扫描）；已经选中的书不重复加
+function personaLore(userId: number, persona: Persona | null, selected: Lorebook[]): LoreEntry[] {
+  if (!persona?.lorebookId || selected.some((book) => book.id === persona.lorebookId)) return [];
+  const book = getLorebook(userId, persona.lorebookId);
+  return book ? book.entries.filter((entry) => entry.enabled) : [];
+}
+
+// 生成时一次性取齐：预设（会话指定 → 默认）、身份（会话锁定 → 绑定该角色 → 默认身份）、
+// 世界书（会话绑定；未绑定时用全部；加身份世界书）、正则（该用户全部启用规则）。
+// 房间没有单独的预设/世界书绑定：用默认预设 + 全部世界书 + 全部正则；身份：房间锁定 → 绑定任一成员 → 默认。
+export function loadRoomConfig(userId: number, room?: { personaId: number | null; characterIds: string[] }): GenerationConfig {
+  const persona = resolvePersona(userId, { lockedId: room?.personaId ?? null, characterIds: room?.characterIds ?? [] });
+  const books = listLorebooks(userId);
   return {
     preset: ensureDefaultPreset(userId),
-    persona: listPersonas(userId)[0] ?? null,
-    loreEntries: listLorebooks(userId).flatMap((book) => book.entries.filter((entry) => entry.enabled)),
+    persona,
+    userName: persona?.name || accountName(userId),
+    loreEntries: books.flatMap((book) => book.entries.filter((entry) => entry.enabled)),
     regexRules: listRegexRules(userId),
   };
 }
 
 export function loadGenerationConfig(userId: number, chat: DbChat): GenerationConfig {
   const preset = (chat.preset_id ? getPreset(userId, chat.preset_id) : undefined) ?? ensureDefaultPreset(userId);
-  const personas = listPersonas(userId);
-  const persona =
-    (chat.persona_id ? personas.find((item) => item.id === chat.persona_id) : undefined) ??
-    personas.find((item) => item.boundCharacters.includes(chat.character_id)) ??
-    null;
+  const persona = resolvePersona(userId, { lockedId: chat.persona_id ?? null, characterIds: [chat.character_id] });
   const settings = chatSettings(chat);
   const books = listLorebooks(userId);
   const selected = settings.lorebookIds === null ? books : books.filter((book) => settings.lorebookIds!.includes(book.id));
   return {
     preset,
     persona,
+    userName: persona?.name || accountName(userId),
     // 角色卡自带的世界书和正则随角色生效
-    loreEntries: [...characterLoreEntries(chat.character_id, parseCardLore(chat.card_lore)), ...selected.flatMap((book) => book.entries.filter((entry) => entry.enabled))],
+    loreEntries: [
+      ...characterLoreEntries(chat.character_id, parseCardLore(chat.card_lore)),
+      ...selected.flatMap((book) => book.entries.filter((entry) => entry.enabled)),
+      ...personaLore(userId, persona, selected),
+    ],
     regexRules: [...characterRegexRules(chat.character_id), ...listRegexRules(userId)],
   };
 }
