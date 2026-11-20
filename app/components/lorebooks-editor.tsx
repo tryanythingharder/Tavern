@@ -31,8 +31,26 @@ function blankEntry(): LoreEntry {
   };
 }
 
-export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
+export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] }: { initial: Lorebook[]; initialGlobal?: number[] | null; chatBound?: number[] }) {
   const [books, setBooks] = useState<Lorebook[]>(initial);
+  // 全局世界书（ST 的 Active World(s)）：null = 全部
+  const [globalIds, setGlobalIds] = useState<number[] | null>(initialGlobal);
+  // 「全部」不含聊天世界书
+  const isGlobal = (id: number) => (globalIds === null ? !chatBound.includes(id) : globalIds.includes(id));
+  const toggleGlobal = async (id: number, on: boolean) => {
+    const base = globalIds === null ? books.map((book) => book.id).filter((item) => !chatBound.includes(item)) : globalIds;
+    const next = on ? [...new Set([...base, id])] : base.filter((item) => item !== id);
+    // 全部都勾上 = 回到「全部」（之后新建的书也自动全局）
+    const value = books.every((book) => next.includes(book.id) || chatBound.includes(book.id)) && !next.some((item) => chatBound.includes(item)) ? null : next;
+    const before = globalIds;
+    setGlobalIds(value);
+    try {
+      await api('/api/lorebooks/global', { method: 'PUT', body: JSON.stringify({ ids: value }) });
+    } catch (caught) {
+      setGlobalIds(before);
+      setError((caught as Error).message);
+    }
+  };
   const [draft, setDraft] = useState<Lorebook | null>(null);
   const [entryIndex, setEntryIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -117,10 +135,15 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
             <div className="p-room-main">
               <div className="p-room-title">{book.name}</div>
               <div className="p-room-last">
+                {chatBound.includes(book.id) && <span className="lb-tag">聊天世界书 · </span>}
                 {book.entries.length} 条条目 · {book.entries.filter((item) => item.enabled).length} 条启用 · {book.entries.filter((item) => item.constant).length} 条常驻
               </div>
             </div>
             <div className="p-library-actions">
+              <label className="check lb-global" title="对所有聊天生效（ST：全局世界书）">
+                <input type="checkbox" checked={isGlobal(book.id)} onChange={(event) => void toggleGlobal(book.id, event.target.checked)} />
+                <span>全局</span>
+              </label>
               {confirmId === book.id ? (
                 <>
                   <button className="p-btn p-btn--sm p-btn--danger" type="button" onClick={() => void remove(book.id)}>确认删除</button>

@@ -386,11 +386,24 @@ export function restoreBackup(chatId: number, userId: number, backupId: number):
 
 // ---------- 导出 ----------
 
+// ST chat_metadata：聊天变量（{{setvar}} / 酒馆助手 chat 变量）与聊天世界书（按书名，ST 里世界书靠名字关联）
+function stChatMetadata(chat: DbChat): Record<string, unknown> {
+  const meta: Record<string, unknown> = {};
+  const vars = db.prepare("SELECT data FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?").get(chat.user_id, String(chat.id)) as { data: string } | undefined;
+  const variables = parseJson<Record<string, unknown>>(vars?.data, {});
+  if (Object.keys(variables).length) meta.variables = variables;
+  if (chat.chat_lorebook_id) {
+    const book = db.prepare('SELECT name FROM lorebooks WHERE id = ? AND user_id = ?').get(chat.chat_lorebook_id, chat.user_id) as { name: string } | undefined;
+    if (book) meta.world_info = book.name;
+  }
+  return meta;
+}
+
 export function exportChat(chat: DbChat, characterName: string, messages: DbMessage[], format: 'txt' | 'jsonl' | 'st', userName = '你'): string {
   // SillyTavern 原生 .jsonl：首行元数据，之后每行一条（is_system = 隐藏，extra.type = narrator 是旁白）
   if (format === 'st') {
     const iso = (ms: number) => new Date(ms).toISOString();
-    const header = JSON.stringify({ user_name: userName, character_name: characterName, create_date: iso(messages[0]?.created_at ?? Date.now()), chat_metadata: {} });
+    const header = JSON.stringify({ user_name: userName, character_name: characterName, create_date: iso(messages[0]?.created_at ?? Date.now()), chat_metadata: stChatMetadata(chat) });
     const lines = messages.map((message) => {
       const swipes = messageCandidatesOf(message);
       const isUser = message.role === 'user';

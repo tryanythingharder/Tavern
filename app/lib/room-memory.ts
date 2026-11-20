@@ -29,7 +29,7 @@ const PER_MESSAGE = 2_000;
 const running = new Set<number>();
 
 function row(roomId: number, userId: number): RoomMemoryRow | undefined {
-  return db.prepare('SELECT id, user_id, model, character_ids, author_note, summary, summary_prefs, persona_id FROM rooms WHERE id = ? AND user_id = ?').get(roomId, userId) as RoomMemoryRow | undefined;
+  return db.prepare('SELECT id, user_id, model, character_ids, author_note, summary, summary_prefs, persona_id, chat_lorebook_id FROM rooms WHERE id = ? AND user_id = ?').get(roomId, userId) as RoomMemoryRow | undefined;
 }
 
 function roomPrefs(source: RoomMemoryRow): SummaryPrefs {
@@ -111,7 +111,7 @@ async function summarizeOnce(roomId: number, userId: number, upTo: number): Prom
   const prefs = roomPrefs(source);
   const state = summaryState(source);
   const messages = allMessages(roomId);
-  const config = loadRoomConfig(userId, { personaId: source.persona_id ?? null, characterIds: JSON.parse(source.character_ids || '[]') as string[] });
+  const config = loadRoomConfig(userId, { personaId: source.persona_id ?? null, chatLorebookId: (source as { chat_lorebook_id?: number | null }).chat_lorebook_id ?? null, characterIds: JSON.parse(source.character_ids || '[]') as string[] });
   const userName = config.userName;
   const nameOf = (id: string | null) => (id ? getCharacterById(id)?.name ?? '角色' : '角色');
   const memberNames = (JSON.parse(source.character_ids || '[]') as string[]).map((id) => nameOf(id));

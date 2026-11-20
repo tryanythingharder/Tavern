@@ -477,6 +477,18 @@ ensureColumn('room_messages', 'persona_avatar', 'TEXT');
 ensureColumn('rooms', 'persona_id', 'INTEGER');
 // ST 的生成行为设置（高级格式化 / 用户设置里的全局项）：自定义停止词、裁剪不完整句子、自动继续、思考内容
 ensureColumn('users', 'gen_prefs', 'TEXT');
+// ST 世界书绑定：全局启用的书（JSON 数组；NULL = 全部，兼容旧行为）、聊天世界书（Chat Lore，每个会话/群聊一本）、
+// 角色附加世界书（ST Character Lore 的 Additional，按玩家各自绑定，表 character_lore_links）
+ensureColumn('users', 'global_lorebooks', 'TEXT');
+ensureColumn('chats', 'chat_lorebook_id', 'INTEGER');
+ensureColumn('rooms', 'chat_lorebook_id', 'INTEGER');
+db.exec(`CREATE TABLE IF NOT EXISTS character_lore_links (
+  user_id INTEGER NOT NULL,
+  character_id TEXT NOT NULL,
+  lorebook_ids TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, character_id)
+);`);
 // 模型的思考过程，按候选序号存：{"0":{"t":"…","ms":1234}}（ST 存在 extra.reasoning / swipe_info）
 ensureColumn('messages', 'reasoning', 'TEXT');
 // ST 对齐：隐藏消息（/hide，幽灵图标，不发给模型）与每个候选的生成信息（lib/msg-meta.ts）
@@ -506,7 +518,7 @@ export type DbCharacter = {
 export type DbChat = {
   id: number; user_id: number; character_id: string; title: string;
   branch_from_chat_id: number | null; branch_from_message_id: number | null;
-  preset_id: number | null; persona_id: number | null; lorebook_ids: string | null;
+  preset_id: number | null; persona_id: number | null; lorebook_ids: string | null; chat_lorebook_id?: number | null;
   summary: string | null; summary_prefs: string | null; rag_prefs: string | null; memory: string | null;
   model?: string | null;
   card_lore?: string | null;
@@ -699,7 +711,7 @@ export function selectCandidate(messageId: number, index: number): { index: numb
 // 会话设置（预设、身份、模型、世界书、卡内世界书开关、作者注释、记忆设置、手动记忆、助手 chat 变量）一起带过去；
 // 摘要只在它没覆盖到分支点之后时保留，否则清空让新分支重新总结（不然会把原故事后面的剧情带进分支）。
 // checkpoint=true：ST 的检查点，原会话这条消息记下检查点会话 id，原会话继续用。
-const BRANCH_COPY_COLUMNS = ['preset_id', 'persona_id', 'model', 'card_lore', 'author_note', 'lorebook_ids', 'summary_prefs', 'rag_prefs', 'memory'] as const;
+const BRANCH_COPY_COLUMNS = ['preset_id', 'persona_id', 'model', 'card_lore', 'author_note', 'lorebook_ids', 'chat_lorebook_id', 'summary_prefs', 'rag_prefs', 'memory'] as const;
 
 export function branchChat(chatId: number, userId: number, messageId: number, options: { checkpoint?: boolean; name?: string } = {}): { id: number; title: string } | null {
   const source = getChat(chatId, userId) as (DbChat & Record<string, unknown>) | undefined;

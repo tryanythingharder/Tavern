@@ -13,6 +13,9 @@ export type ImportedMessage = {
 export type ParsedChatImport = {
   title: string;
   messages: ImportedMessage[];
+  /** ST chat_metadata：聊天变量、聊天世界书名 */
+  variables?: Record<string, unknown>;
+  worldInfo?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -156,5 +159,11 @@ export function parseChatImport(text: string): ParsedChatImport | null {
   }
 
   if (!messages.length) return null;
-  return { title, messages };
+  const meta = isRecord(first.chat_metadata) ? first.chat_metadata : null;
+  return {
+    title,
+    messages,
+    variables: meta && isRecord(meta.variables) ? meta.variables : undefined,
+    worldInfo: meta && typeof meta.world_info === 'string' && meta.world_info.trim() ? meta.world_info.trim() : undefined,
+  };
 }

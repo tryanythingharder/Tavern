@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 
 // 群聊的作者注释与记忆摘要（ST：群聊同样按聊天保存 Author's Note / Summarize）。字段与单聊设置一致。
@@ -22,7 +22,7 @@ function RoleSelect({ value, onChange }: { value: Role; onChange: (value: Role) 
 
 export function RoomMemoryButton({ roomId, className = 'p-chat-icon' }: { roomId: number; className?: string }) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'note' | 'summary'>('note');
+  const [tab, setTab] = useState<'note' | 'summary' | 'lore'>('note');
   const [data, setData] = useState<Data | null>(null);
   const [note, setNote] = useState<Note | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -92,16 +92,17 @@ export function RoomMemoryButton({ roomId, className = 'p-chat-icon' }: { roomId
           footer={
             <>
               {tab === 'summary' && <button className="btn btn--sm" type="button" disabled={busy || !data} onClick={() => void refresh()}>{busy ? '处理中…' : '立即更新摘要'}</button>}
-              <button className="btn btn--sm btn--primary" type="button" disabled={busy || !data} onClick={() => void save()}>{saved ? '已保存' : busy ? '保存中…' : '保存'}</button>
+              {tab !== 'lore' && <button className="btn btn--sm btn--primary" type="button" disabled={busy || !data} onClick={() => void save()}>{saved ? '已保存' : busy ? '保存中…' : '保存'}</button>}
             </>
           }
         >
           <div className="p-tabs" style={{ margin: '0 0 16px' }} role="tablist">
             <button type="button" role="tab" aria-selected={tab === 'note'} onClick={() => setTab('note')}>作者注释</button>
             <button type="button" role="tab" aria-selected={tab === 'summary'} onClick={() => setTab('summary')}>记忆摘要</button>
+            <button type="button" role="tab" aria-selected={tab === 'lore'} onClick={() => setTab('lore')}>世界书</button>
           </div>
           <ErrorLine message={error} />
-          {!note || !prefs || !data ? (
+          {tab === 'lore' ? <RoomLorePanel roomId={roomId} /> : !note || !prefs || !data ? (
             <p className="small" role="status">加载中…</p>
           ) : tab === 'note' ? (
             <>
@@ -198,6 +199,57 @@ export function RoomMemoryButton({ roomId, className = 'p-chat-icon' }: { roomId
           )}
         </Modal>
       )}
+    </>
+  );
+}
+
+type BookSource = 'global' | 'chatPick' | 'character' | 'chat' | 'persona';
+const SOURCE_LABEL: Record<BookSource, string> = { global: '全局', chatPick: '本聊天选的', character: '角色附加', chat: '群聊世界书', persona: '身份' };
+type LoreData = { chatLorebookId: number | null; lorebooks: { id: number; name: string; count: number }[]; activeLorebooks: { id: number; name: string; sources: BookSource[] }[] };
+
+// 群聊世界书（ST Chat Lore）：即时保存
+function RoomLorePanel({ roomId }: { roomId: number }) {
+  const [data, setData] = useState<LoreData | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    void api<LoreData>(`/api/rooms/${roomId}/lorebook`).then(setData).catch((err: Error) => setError(err.message));
+  }, [roomId]);
+  const put = async (body: Record<string, unknown>) => {
+    setBusy(true);
+    setError('');
+    try {
+      setData(await api<LoreData>(`/api/rooms/${roomId}/lorebook`, { method: 'PUT', body: JSON.stringify(body) }));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (!data) return <><ErrorLine message={error} /><p className="small" role="status">加载中…</p></>;
+  return (
+    <>
+      <ErrorLine message={error} />
+      <div className="field cs-books">
+        <label htmlFor="room-chat-lore">群聊世界书 <small className="pm-st">Chat Lore</small></label>
+        <div className="cs-book-row">
+          <select id="room-chat-lore" className="select" value={data.chatLorebookId ?? ''} disabled={busy} onChange={(event) => void put({ chatLorebookId: event.target.value ? Number(event.target.value) : null })}>
+            <option value="">不绑定</option>
+            {data.lorebooks.map((book) => <option key={book.id} value={book.id}>{book.name}（{book.count} 条）</option>)}
+          </select>
+          {!data.chatLorebookId && <button type="button" className="p-btn p-btn--sm" disabled={busy} onClick={() => void put({ create: true })}>新建一本</button>}
+          {!!data.chatLorebookId && <a className="p-btn p-btn--sm" href="/me/lorebooks">去编辑</a>}
+        </div>
+        <span className="hint">只属于这个群聊，总是参与扫描；分支会带上。成员的角色附加世界书在单聊设置里绑定。</span>
+      </div>
+      <div className="field cs-books">
+        <label>本次生效 <small className="pm-st">Active</small></label>
+        <div className="cs-active-books">
+          {data.activeLorebooks.length
+            ? data.activeLorebooks.map((book) => <span className="cs-book-chip" key={book.id}>{book.name}<small>{book.sources.map((source) => SOURCE_LABEL[source]).join(' · ')}</small></span>)
+            : <span className="hint">没有世界书在用（成员卡内世界书另算）。</span>}
+        </div>
+      </div>
     </>
   );
 }

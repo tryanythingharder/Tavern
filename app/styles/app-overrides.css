@@ -938,3 +938,12 @@ html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-thought { justify-
 body[data-theme="stage"] .p-msg-narrator { display: flex !important; justify-content: center; }
 body[data-theme="stage"] .p-msg-narrator > div { display: flex !important; flex-direction: column; align-items: center; width: 100%; }
 body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 4px; }
+
+/* 聊天设置 · 世界书绑定（聊天世界书 / 角色附加 / 本次生效） */
+.cs-book-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cs-book-row select { flex: 1 1 220px; min-width: 0; }
+.cs-books > .hint { display: block; margin-top: 6px; }
+.cs-active-books { display: flex; flex-wrap: wrap; gap: 6px; }
+.cs-book-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border: 1px solid var(--line, #e4ddd5); border-radius: 999px; font-size: 13px; }
+.cs-book-chip small { font-size: 11px; color: var(--muted, #6f6a64); }
+.lb-global { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; margin-right: 4px; }

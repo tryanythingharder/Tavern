@@ -27,6 +27,8 @@ export type Room = {
   model: string | null;
   /** 锁定在这个群聊的身份（ST：persona 锁定到聊天），null = 按绑定/默认 */
   personaId: number | null;
+  /** 群聊世界书（ST Chat Lore） */
+  chatLorebookId: number | null;
   /** 分支/检查点来源（ST：从群聊某条消息分出） */
   parentRoomId: number | null;
   parentMessageId: number | null;
@@ -51,7 +53,7 @@ export type RoomMessage = {
 type RoomRow = {
   id: number; name: string; character_ids: string; muted: string; strategy: string;
   auto_mode: number | null; speaker_id: string | null; model?: string | null; created_at: number; updated_at: number;
-  parent_room_id?: number | null; parent_message_id?: number | null; is_checkpoint?: number | null; persona_id?: number | null;
+  parent_room_id?: number | null; parent_message_id?: number | null; is_checkpoint?: number | null; persona_id?: number | null; chat_lorebook_id?: number | null;
 };
 type RoomMessageRow = {
   id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number;
@@ -81,6 +83,7 @@ function fromRow(row: RoomRow): Room {
     speakerId: row.speaker_id && parseJson<string[]>(row.character_ids, []).includes(row.speaker_id) ? row.speaker_id : null,
     model: row.model || null,
     personaId: row.persona_id ?? null,
+    chatLorebookId: row.chat_lorebook_id ?? null,
     parentRoomId: row.parent_room_id ?? null,
     parentMessageId: row.parent_message_id ?? null,
     isCheckpoint: row.is_checkpoint === 1,
@@ -319,7 +322,7 @@ export function branchRoom(userId: number, roomId: number, messageId: number, ch
     const source = db.prepare('SELECT author_note, summary, summary_prefs FROM rooms WHERE id = ?').get(roomId) as { author_note: string | null; summary: string | null; summary_prefs: string | null };
     const copied = (db.prepare('SELECT COUNT(*) AS n FROM room_messages WHERE room_id = ?').get(newId) as { n: number }).n;
     const covered = Number(parseJson<{ covered?: number }>(source.summary, {}).covered) || 0;
-    db.prepare('UPDATE rooms SET author_note = ?, summary_prefs = ?, summary = ? WHERE id = ?').run(source.author_note, source.summary_prefs, covered <= copied ? source.summary : null, newId);
+    db.prepare('UPDATE rooms SET author_note = ?, summary_prefs = ?, summary = ?, chat_lorebook_id = ? WHERE id = ?').run(source.author_note, source.summary_prefs, covered <= copied ? source.summary : null, room.chatLorebookId, newId);
     return newId;
   };
   db.exec('BEGIN');

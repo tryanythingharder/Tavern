@@ -13,8 +13,15 @@ type SettingsData = {
   personas: { id: number; name: string; boundCharacters: string[] }[];
   lorebooks: { id: number; name: string; count: number }[];
   cardLore?: CardLoreItem[];
+  globalLorebookIds?: number[] | null;
+  characterLorebookIds?: number[];
+  chatLorebookId?: number | null;
+  activeLorebooks?: { id: number; name: string; sources: BookSource[] }[];
   context?: { window: number; modelLimit: number; cap: number };
 };
+
+type BookSource = 'global' | 'chatPick' | 'character' | 'chat' | 'persona';
+const SOURCE_LABEL: Record<BookSource, string> = { global: '全局', chatPick: '本聊天选的', character: '角色附加', chat: '聊天世界书', persona: '身份' };
 
 type Preview = {
   preset: { id: number; name: string; params: Record<string, number>; instruct: { enabled: boolean } };
@@ -89,6 +96,25 @@ export function ChatSettings({ chatId }: { chatId: number }) {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [cardLoreBusy, setCardLoreBusy] = useState(false);
+
+  // 聊天世界书 / 角色附加世界书：即时保存（ST 里这两个也是点了就生效）
+  const [bindBusy, setBindBusy] = useState(false);
+  const saveBinding = async (body: Record<string, unknown>) => {
+    setBindBusy(true);
+    setError('');
+    try {
+      await api(`/api/chats/${chatId}/settings`, { method: 'PATCH', body: JSON.stringify(body) });
+      // 只刷新数据，不重置面板里没保存的预设/参数改动
+      const fresh = await api<SettingsData>(`/api/chats/${chatId}/settings`);
+      setData((prev) => (prev ? { ...prev, lorebooks: fresh.lorebooks, chatLorebookId: fresh.chatLorebookId, characterLorebookIds: fresh.characterLorebookIds, activeLorebooks: fresh.activeLorebooks, globalLorebookIds: fresh.globalLorebookIds } : fresh));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1600);
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBindBusy(false);
+    }
+  };
 
   // 卡内世界书开关即时保存（和预设/世界书的「保存」按钮分开）
   const saveCardLore = async (next: CardLoreItem[] | null) => {
@@ -350,14 +376,15 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                 )}
 
                 {mode !== 'newbie' && (
-                <div className="field">
+                <div className="field cs-books">
                   <label>世界书 <small className="pm-st">World Info</small></label>
                   <label className="check" style={{ marginBottom: 8 }}>
                     <input type="checkbox" checked={allBooks} onChange={(event) => setAllBooks(event.target.checked)} />
-                    <span>使用全部世界书（新加的书自动生效）</span>
+                    <span>跟随全局世界书（在「我的 → 世界书」里设定哪些对所有聊天生效）</span>
                   </label>
                   {!allBooks && (
                     <div style={{ display: 'grid', gap: 6 }}>
+                      <span className="hint">只在这个聊天里用这些书（代替全局）：</span>
                       {data.lorebooks.map((book) => (
                         <label className="check" key={book.id}>
                           <input
@@ -372,6 +399,66 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     </div>
                   )}
                 </div>
+                )}
+
+                {mode !== 'newbie' && (
+                <div className="field cs-books">
+                  <label htmlFor="cs-chat-lore">聊天世界书 <small className="pm-st">Chat Lore</small></label>
+                  <div className="cs-book-row">
+                    <select
+                      id="cs-chat-lore"
+                      className="select"
+                      value={data.chatLorebookId ?? ''}
+                      disabled={bindBusy}
+                      onChange={(event) => void saveBinding({ chatLorebookId: event.target.value ? Number(event.target.value) : null })}
+                    >
+                      <option value="">不绑定</option>
+                      {data.lorebooks.map((book) => <option key={book.id} value={book.id}>{book.name}（{book.count} 条）</option>)}
+                    </select>
+                    {!data.chatLorebookId && (
+                      <button type="button" className="p-btn p-btn--sm" disabled={bindBusy} onClick={() => void saveBinding({ createChatLorebook: true })}>新建一本</button>
+                    )}
+                    {!!data.chatLorebookId && <a className="p-btn p-btn--sm" href="/me/lorebooks">去编辑</a>}
+                  </div>
+                  <span className="hint">只属于这个聊天，总是参与扫描；分支会带上。</span>
+                </div>
+                )}
+
+                {mode !== 'newbie' && (
+                <div className="field cs-books">
+                  <label>角色附加世界书 <small className="pm-st">Additional Lore</small></label>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    {data.lorebooks.map((book) => (
+                      <label className="check" key={book.id}>
+                        <input
+                          type="checkbox"
+                          disabled={bindBusy}
+                          checked={(data.characterLorebookIds ?? []).includes(book.id)}
+                          onChange={(event) => {
+                            const current = data.characterLorebookIds ?? [];
+                            void saveBinding({ characterLorebookIds: event.target.checked ? [...current, book.id] : current.filter((id) => id !== book.id) });
+                          }}
+                        />
+                        <span>{book.name}（{book.count} 条）</span>
+                      </label>
+                    ))}
+                    {!data.lorebooks.length && <span className="hint">还没有世界书。</span>}
+                  </div>
+                  <span className="hint">绑在这个角色上：你和 TA 的所有聊天、以及有 TA 的群聊都会用。</span>
+                </div>
+                )}
+
+                {mode !== 'newbie' && !!data.activeLorebooks && (
+                  <div className="field cs-books">
+                    <label>本次生效 <small className="pm-st">Active</small></label>
+                    <div className="cs-active-books">
+                      {data.activeLorebooks.length
+                        ? data.activeLorebooks.map((book) => (
+                            <span className="cs-book-chip" key={book.id}>{book.name}<small>{book.sources.map((source) => SOURCE_LABEL[source]).join(' · ')}</small></span>
+                          ))
+                        : <span className="hint">没有世界书在用（卡内世界书另算）。</span>}
+                    </div>
+                  </div>
                 )}
 
                 {!!data.cardLore?.length && (

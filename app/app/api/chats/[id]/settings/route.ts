@@ -3,7 +3,8 @@ import db, { getChat } from '@/lib/db';
 import { availableModels, modelName } from '@/lib/model';
 import { contextWindow } from '@/lib/prompt';
 import { cardLoreList, normalizeCardLore, parseCardLore } from '@/lib/card-extras';
-import { chatSettings, ensureDefaultPreset, listLorebooks, listPersonas, listPresets, updateChatSettings } from '@/lib/resources-db';
+import { activeLorebooks, characterLoreLinks, chatSettings, createLorebook, ensureDefaultPreset, globalLorebookIds, listLorebooks, listPersonas, listPresets, resolvePersona, setCharacterLoreLinks, setChatLorebook, updateChatSettings } from '@/lib/resources-db';
+import { getCharacterById } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,16 @@ export async function GET(_request: Request, context: Params) {
     // 卡内世界书：玩家按会话开关
     cardLore: cardLoreList(chat.character_id, parseCardLore(chat.card_lore)),
     lorebooks: listLorebooks(user.id).map((book) => ({ id: book.id, name: book.name, count: book.entries.length })),
+    // ST 世界书绑定：全局（null = 全部）、角色附加、聊天世界书，以及这次实际生效的书和来源
+    globalLorebookIds: globalLorebookIds(user.id),
+    characterLorebookIds: characterLoreLinks(user.id, chat.character_id),
+    chatLorebookId: chat.chat_lorebook_id ?? null,
+    activeLorebooks: activeLorebooks(user.id, {
+      chatPick: chatSettings(chat).lorebookIds,
+      characterIds: [chat.character_id],
+      chatLorebookId: chat.chat_lorebook_id ?? null,
+      persona: resolvePersona(user.id, { lockedId: chat.persona_id ?? null, characterIds: [chat.character_id] }),
+    }).map(({ book, sources }) => ({ id: book.id, name: book.name, sources })),
   });
 }
 
@@ -45,7 +56,30 @@ export async function PATCH(request: Request, context: Params) {
     lorebookIds?: number[] | null;
     model?: string | null;
     cardLore?: Record<string, boolean> | null;
+    chatLorebookId?: number | null;
+    createChatLorebook?: boolean;
+    characterLorebookIds?: number[];
   };
+  // 世界书绑定（ST Chat Lore / 角色附加世界书）：各自即时保存，不动其它设置
+  if ('chatLorebookId' in body || body.createChatLorebook || 'characterLorebookIds' in body) {
+    const chat = getChat(id, user.id);
+    if (!chat) return fail('会话不存在', 404);
+    const out: { chatLorebookId?: number | null; characterLorebookIds?: number[]; created?: { id: number; name: string } } = {};
+    if (body.createChatLorebook) {
+      // ST：没有聊天世界书时新建一本，名字取自聊天
+      const name = `聊天 · ${(getCharacterById(chat.character_id)?.name ?? chat.title ?? '').slice(0, 30)} #${chat.id}`;
+      const book = createLorebook(user.id, name, []);
+      setChatLorebook(user.id, 'chat', chat.id, book.id);
+      out.chatLorebookId = book.id;
+      out.created = { id: book.id, name: book.name };
+    } else if ('chatLorebookId' in body) {
+      const value = Number(body.chatLorebookId) || null;
+      setChatLorebook(user.id, 'chat', chat.id, value);
+      out.chatLorebookId = getChat(id, user.id)?.chat_lorebook_id ?? null;
+    }
+    if (Array.isArray(body.characterLorebookIds)) out.characterLorebookIds = setCharacterLoreLinks(user.id, chat.character_id, body.characterLorebookIds.map(Number));
+    return json({ ok: true, ...out });
+  }
   // 卡内世界书开关：单独保存，null = 全部恢复卡默认
   if ('cardLore' in body) {
     const chat = getChat(id, user.id);

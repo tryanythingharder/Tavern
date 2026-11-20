@@ -2,6 +2,8 @@ import { fail, requireUser } from '@/lib/api';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { addMessage, createChat, getCharacterById, setMessageReasoning, setMessagesHidden } from '@/lib/db';
 import { parseChatImport } from '@/lib/chat-import';
+import { writeHelperVars } from '@/lib/helper-vars';
+import { listLorebooks, setChatLorebook } from '@/lib/resources-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,12 @@ export async function POST(request: Request) {
       const saved = addMessage(chatId, message.role, message.content, message.candidates, message.selected);
       if (message.hidden) setMessagesHidden(chatId, [saved.id], true);
       if (message.reasoning && message.role === 'assistant') setMessageReasoning(saved.id, saved.selected, message.reasoning);
+    }
+    // ST chat_metadata：聊天变量照搬；聊天世界书按书名找自己已有的那本（ST 也是按名字关联）
+    if (parsed.variables && Object.keys(parsed.variables).length) writeHelperVars(user.id, 'chat', String(chatId), parsed.variables);
+    if (parsed.worldInfo) {
+      const book = listLorebooks(user.id).find((item) => item.name === parsed.worldInfo);
+      if (book) setChatLorebook(user.id, 'chat', chatId, book.id);
     }
   } catch (error) {
     // 导入失败时回滚，避免留下半截会话

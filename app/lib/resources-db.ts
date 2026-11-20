@@ -542,24 +542,91 @@ export type GenerationConfig = {
   regexRules: RegexRule[];
 };
 
-// 身份世界书：用这个身份时总是参与（ST：persona lorebook 与会话/全局世界书一起扫描）；已经选中的书不重复加
-function personaLore(userId: number, persona: Persona | null, selected: Lorebook[]): LoreEntry[] {
-  if (!persona?.lorebookId || selected.some((book) => book.id === persona.lorebookId)) return [];
-  const book = getLorebook(userId, persona.lorebookId);
-  return book ? book.entries.filter((entry) => entry.enabled) : [];
+// ---------- 世界书绑定（对齐 ST）----------
+// 一次生成扫描的书 = 全局世界书（或会话自己选的一组）+ 角色附加世界书 + 聊天世界书 + 身份世界书，同一本只算一次。
+// 全局：users.global_lorebooks，NULL = 全部（兼容旧版「默认用全部」），[] = 一本都不用。
+
+export function globalLorebookIds(userId: number): number[] | null {
+  const row = db.prepare('SELECT global_lorebooks FROM users WHERE id = ?').get(userId) as { global_lorebooks: string | null } | undefined;
+  if (!row?.global_lorebooks) return null;
+  return parseJson<number[]>(row.global_lorebooks, []).filter((value) => Number.isInteger(value));
 }
 
-// 生成时一次性取齐：预设（会话指定 → 默认）、身份（会话锁定 → 绑定该角色 → 默认身份）、
-// 世界书（会话绑定；未绑定时用全部；加身份世界书）、正则（该用户全部启用规则）。
-// 房间没有单独的预设/世界书绑定：用默认预设 + 全部世界书 + 全部正则；身份：房间锁定 → 绑定任一成员 → 默认。
-export function loadRoomConfig(userId: number, room?: { personaId: number | null; characterIds: string[] }): GenerationConfig {
-  const persona = resolvePersona(userId, { lockedId: room?.personaId ?? null, characterIds: room?.characterIds ?? [] });
+/** 被某个聊天/群聊当作聊天世界书的书：「全部」不包括它们（ST 的聊天世界书不是全局书） */
+export function chatBoundLorebookIds(userId: number): number[] {
+  const rows = db.prepare(`SELECT chat_lorebook_id AS id FROM chats WHERE user_id = ? AND chat_lorebook_id IS NOT NULL
+    UNION SELECT chat_lorebook_id AS id FROM rooms WHERE user_id = ? AND chat_lorebook_id IS NOT NULL`).all(userId, userId) as { id: number }[];
+  return rows.map((row) => row.id);
+}
+
+export function setGlobalLorebookIds(userId: number, ids: number[] | null): void {
+  const own = new Set(listLorebooks(userId).map((book) => book.id));
+  const value = ids === null ? null : JSON.stringify([...new Set(ids)].filter((id) => own.has(id)));
+  db.prepare('UPDATE users SET global_lorebooks = ? WHERE id = ?').run(value, userId);
+}
+
+export function characterLoreLinks(userId: number, characterId: string): number[] {
+  const row = db.prepare('SELECT lorebook_ids FROM character_lore_links WHERE user_id = ? AND character_id = ?').get(userId, characterId) as { lorebook_ids: string } | undefined;
+  return row ? parseJson<number[]>(row.lorebook_ids, []).filter((value) => Number.isInteger(value)) : [];
+}
+
+export function setCharacterLoreLinks(userId: number, characterId: string, ids: number[]): number[] {
+  const own = new Set(listLorebooks(userId).map((book) => book.id));
+  const clean = [...new Set(ids)].filter((id) => own.has(id));
+  if (!clean.length) db.prepare('DELETE FROM character_lore_links WHERE user_id = ? AND character_id = ?').run(userId, characterId);
+  else db.prepare(`INSERT INTO character_lore_links (user_id, character_id, lorebook_ids, updated_at) VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, character_id) DO UPDATE SET lorebook_ids = excluded.lorebook_ids, updated_at = excluded.updated_at`).run(userId, characterId, JSON.stringify(clean), Date.now());
+  return clean;
+}
+
+/** 设定会话 / 群聊的聊天世界书；书不是自己的就清空 */
+export function setChatLorebook(userId: number, target: 'chat' | 'room', id: number, lorebookId: number | null): boolean {
+  const value = lorebookId && getLorebook(userId, lorebookId) ? lorebookId : null;
+  const table = target === 'chat' ? 'chats' : 'rooms';
+  const result = db.prepare(`UPDATE ${table} SET chat_lorebook_id = ? WHERE id = ? AND user_id = ?`).run(value, id, userId);
+  return result.changes > 0;
+}
+
+export type BookSource = 'global' | 'chatPick' | 'character' | 'chat' | 'persona';
+
+/** 这次生成要扫描哪些书，以及每本书为什么生效（设置面板展示用） */
+export function activeLorebooks(userId: number, opts: { chatPick: number[] | null; characterIds: string[]; chatLorebookId: number | null; persona: Persona | null }): { book: Lorebook; sources: BookSource[] }[] {
   const books = listLorebooks(userId);
+  const byId = new Map(books.map((book) => [book.id, book]));
+  const out = new Map<number, BookSource[]>();
+  const add = (id: number | null | undefined, source: BookSource) => {
+    if (!id || !byId.has(id)) return;
+    const list = out.get(id) ?? [];
+    if (!list.includes(source)) list.push(source);
+    out.set(id, list);
+  };
+  if (opts.chatPick !== null) opts.chatPick.forEach((id) => add(id, 'chatPick'));
+  else {
+    const global = globalLorebookIds(userId);
+    const chatBound = new Set(chatBoundLorebookIds(userId));
+    (global === null ? books.map((book) => book.id).filter((id) => !chatBound.has(id)) : global).forEach((id) => add(id, 'global'));
+  }
+  for (const characterId of opts.characterIds) characterLoreLinks(userId, characterId).forEach((id) => add(id, 'character'));
+  add(opts.chatLorebookId, 'chat');
+  add(opts.persona?.lorebookId ?? null, 'persona');
+  return [...out.entries()].map(([id, sources]) => ({ book: byId.get(id)!, sources }));
+}
+
+// 条目 id 只在本书内唯一（ST 导入的书都是 0、1、2…），多本书一起扫时加书号前缀，免得互相顶掉
+const enabledEntries = (list: { book: Lorebook }[]) =>
+  list.flatMap(({ book }) => book.entries.filter((entry) => entry.enabled).map((entry) => ({ ...entry, id: `b${book.id}:${entry.id}` })));
+
+// 生成时一次性取齐：预设（会话指定 → 默认）、身份（会话锁定 → 绑定该角色 → 默认身份）、
+// 世界书（见 activeLorebooks）、正则（该用户全部启用规则）。
+// 房间没有单独的预设：用默认预设；世界书 = 全局 + 各成员的附加世界书 + 群聊世界书 + 身份世界书。
+export function loadRoomConfig(userId: number, room?: { personaId: number | null; characterIds: string[]; chatLorebookId?: number | null }): GenerationConfig {
+  const persona = resolvePersona(userId, { lockedId: room?.personaId ?? null, characterIds: room?.characterIds ?? [] });
+  const books = activeLorebooks(userId, { chatPick: null, characterIds: room?.characterIds ?? [], chatLorebookId: room?.chatLorebookId ?? null, persona });
   return {
     preset: ensureDefaultPreset(userId),
     persona,
     userName: persona?.name || accountName(userId),
-    loreEntries: books.flatMap((book) => book.entries.filter((entry) => entry.enabled)),
+    loreEntries: enabledEntries(books),
     regexRules: listRegexRules(userId),
   };
 }
@@ -568,18 +635,13 @@ export function loadGenerationConfig(userId: number, chat: DbChat): GenerationCo
   const preset = (chat.preset_id ? getPreset(userId, chat.preset_id) : undefined) ?? ensureDefaultPreset(userId);
   const persona = resolvePersona(userId, { lockedId: chat.persona_id ?? null, characterIds: [chat.character_id] });
   const settings = chatSettings(chat);
-  const books = listLorebooks(userId);
-  const selected = settings.lorebookIds === null ? books : books.filter((book) => settings.lorebookIds!.includes(book.id));
+  const books = activeLorebooks(userId, { chatPick: settings.lorebookIds, characterIds: [chat.character_id], chatLorebookId: chat.chat_lorebook_id ?? null, persona });
   return {
     preset,
     persona,
     userName: persona?.name || accountName(userId),
     // 角色卡自带的世界书和正则随角色生效
-    loreEntries: [
-      ...characterLoreEntries(chat.character_id, parseCardLore(chat.card_lore)),
-      ...selected.flatMap((book) => book.entries.filter((entry) => entry.enabled)),
-      ...personaLore(userId, persona, selected),
-    ],
+    loreEntries: [...characterLoreEntries(chat.character_id, parseCardLore(chat.card_lore)), ...enabledEntries(books)],
     regexRules: [...characterRegexRules(chat.character_id), ...listRegexRules(userId)],
   };
 }

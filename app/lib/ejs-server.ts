@@ -57,7 +57,7 @@ function base(ctx: EjsContext, runType: string) {
       userLoreBook: undefined,
       chatLoreBook: undefined,
     },
-    lore: ctx.loreEntries.map((entry) => ({ uid: String(entry.id).replace(/^card-/, ''), title: entry.title, content: entry.text, book: String(entry.id).startsWith('card-') ? bookName : '' })),
+    lore: ctx.loreEntries.map((entry) => ({ uid: String(entry.id).replace(/^(card-|b\d+:)/, ''), title: entry.title, content: entry.text, book: String(entry.id).startsWith('card-') ? bookName : '' })),
     char: {
       name: ctx.character.name,
       description: ctx.character.description ?? '',
