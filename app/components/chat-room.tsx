@@ -154,7 +154,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [streaming, setStreaming] = useState(false);
   const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const [error, setError] = useState('');
-  const [failed, setFailed] = useState<{ type: 'send' } | { type: 'regen'; message: ChatMessageView } | null>(null);
+  const [failed, setFailed] = useState<{ type: 'send' } | { type: 'reply' } | { type: 'regen'; message: ChatMessageView } | null>(null);
+  // 本次流里收到了错误事件且没有产出（服务端已保存玩家消息）
+  const streamErrorRef = useRef(false);
   const [billing, setBilling] = useState<{ cost: number; balance: number; free?: number } | null>(null);
   const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
@@ -293,6 +295,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       let completed = false;
       let accepted = false;
       autoContinueRef.current = null;
+      streamErrorRef.current = false;
       try {
         const response = await fetch(url, {
           method: 'POST',
@@ -354,6 +357,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               );
             } else if (event.type === 'error') {
               completed = true;
+              if (!text) streamErrorRef.current = true;
               setError(event.message ?? '生成失败');
             }
           }
@@ -468,6 +472,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       setMessages((prev) => prev.filter((item) => item.id !== assistantKey && item.id !== `local-user-${stamp}`));
       if (override === undefined) setDraft((current) => (current ? current : text));
       setFailed({ type: 'send' });
+    } else if (streamErrorRef.current) {
+      // 玩家消息已保存、回复失败：重试 = 不再加玩家消息，直接让角色回复（ST 同样保留玩家消息）
+      setFailed({ type: 'reply' });
     } else {
       setFailed(null);
     }
@@ -994,7 +1001,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               <div>{friendlyError(error)}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                 {failed && (
-                  <button className="p-btn p-btn--sm" type="button" onClick={() => { const action = failed; setFailed(null); setError(''); if (action.type === 'send') void send(); else void regenerate(action.message); }}>重试</button>
+                  <button className="p-btn p-btn--sm" type="button" onClick={() => { const action = failed; setFailed(null); setError(''); if (action.type === 'send') void send(); else if (action.type === 'reply') void send(''); else void regenerate(action.message); }}>重试</button>
                 )}
                 {/点数不足|402/.test(error) && (
                   <>
