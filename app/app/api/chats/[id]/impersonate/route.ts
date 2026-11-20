@@ -29,8 +29,12 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const chatId = Number((await context.params).id);
   const chat = getChat(chatId, user.id);
   if (!chat) return fail('会话不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as { hint?: string };
+  const body = (await request.json().catch(() => ({}))) as { hint?: string; mode?: string; prompt?: string; length?: number };
   const hint = String(body.hint ?? '').trim().slice(0, 300);
+  // 斜杠命令 /gen（带聊天上下文，按提示生成）、/genraw（只发提示本身）：同样只回文字、不落库，结果交给下一条命令（{{pipe}}）
+  const mode = body.mode === 'gen' || body.mode === 'genraw' ? body.mode : 'impersonate';
+  const genPrompt = String(body.prompt ?? '').trim().slice(0, 8000);
+  if (mode !== 'impersonate' && !genPrompt) return fail('要写提示内容', 400);
 
   const quota = checkQuota(user.id);
   if (!quota.ok) return fail(quota.message, 429);
@@ -65,13 +69,17 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const ejs = await templatePrompt(prompt.messages, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars, generateType: 'impersonate' });
   prompt.messages = ejs.messages;
   const who = config.userName;
-  prompt.messages.push({
+  if (mode === 'genraw') prompt.messages = [{ role: 'user', content: genPrompt }];
+  else if (mode === 'gen') prompt.messages.push({ role: 'system', content: genPrompt });
+  else prompt.messages.push({
     role: 'system',
     content: `［代写］现在不要扮演${character.name}。请以「${who}」的身份、第一人称，写出${who}的下一句台词或动作（动作用 *星号* 包起来），60 字以内，只输出这一句本身，不要替${character.name}说话。${hint ? `方向：${hint}` : ''}`,
   });
-  const maxTokens = Math.min(prompt.params.maxTokens, 200);
+  if (mode === 'genraw') prompt.tokens = estimateTokens(genPrompt);
+  const length = Number(body.length);
+  const maxTokens = mode === 'impersonate' ? Math.min(prompt.params.maxTokens, 200) : Number.isInteger(length) && length > 0 ? Math.min(length, prompt.params.maxTokens) : prompt.params.maxTokens;
   const maxCost = pointsCost(prompt.tokens, maxTokens, modelName(chat.model));
-  const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `代写 · ${modelName(chat.model)}`, `chat:${chatId}`);
+  const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `${mode === 'impersonate' ? '代写' : '斜杠生成'} · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点）`, 402);
   const generationId = startGeneration(user.id, chatId, 'send', modelName(chat.model));
   const encoder = new TextEncoder();

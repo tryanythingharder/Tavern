@@ -18,7 +18,6 @@ import {
   type PersonaPosition,
   PERSONA_POSITIONS,
   type Preset,
-  type QuickReply,
   type RegexRule,
 } from '@/lib/resources';
 
@@ -490,26 +489,6 @@ export function setRoomPersona(userId: number, roomId: number, personaId: number
 export function setChatPersona(userId: number, chatId: number, personaId: number | null): boolean {
   const id = personaId && getPersona(userId, personaId) ? personaId : null;
   return Number(db.prepare('UPDATE chats SET persona_id = ? WHERE id = ? AND user_id = ?').run(id, chatId, userId).changes) > 0;
-}
-
-// ---------- 快捷回复 ----------
-
-type QuickReplyRow = { id: number; label: string; content: string; sort: number };
-
-export function listQuickReplies(userId: number): QuickReply[] {
-  // 转成普通对象：node:sqlite 返回的是 null 原型对象，不能直接传给客户端组件
-  const rows = db.prepare('SELECT id, label, content, sort FROM quick_replies WHERE user_id = ? ORDER BY sort, id').all(userId) as QuickReplyRow[];
-  return rows.map((row) => ({ id: row.id, label: row.label, content: row.content, sort: row.sort }));
-}
-
-export function createQuickReply(userId: number, label: string, content: string): QuickReply {
-  const sort = (db.prepare('SELECT COALESCE(MAX(sort), 0) + 1 AS next FROM quick_replies WHERE user_id = ?').get(userId) as { next: number }).next;
-  const result = db.prepare('INSERT INTO quick_replies (user_id, label, content, sort, created_at) VALUES (?,?,?,?,?)').run(userId, text(label, '快捷回复').slice(0, 30), text(content), sort, Date.now());
-  return { id: Number(result.lastInsertRowid), label: text(label, '快捷回复').slice(0, 30), content: text(content), sort };
-}
-
-export function deleteQuickReply(userId: number, id: number): boolean {
-  return Number(db.prepare('DELETE FROM quick_replies WHERE id = ? AND user_id = ?').run(id, userId).changes) > 0;
 }
 
 // ---------- 会话设定 ----------

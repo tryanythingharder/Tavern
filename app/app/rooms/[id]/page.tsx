@@ -1,4 +1,5 @@
 import { trMeta } from '@/lib/i18n/runtime';
+import { qrState } from '@/lib/quick-replies-db';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -84,6 +85,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
             autoMode={room.autoMode}
             defaultSpeakerId={room.speakerId}
             displayRules={listRegexRules(user.id).filter((rule) => rule.enabled && rule.scope !== 'send')}
+            quickReplies={qrState(user.id, { roomId: room.id })}
             memberRules={Object.fromEntries(members.map((member) => [member.id, characterRegexRules(member.id).filter((rule) => rule.enabled && rule.scope !== 'send')]))}
           />
         </div>

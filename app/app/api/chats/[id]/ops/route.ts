@@ -106,5 +106,21 @@ export async function POST(request: Request, context: Params) {
     return json({ ok: true, message: toMessageView(saved) });
   }
 
+  // { op: 'sendas', text, name? }  以角色身份插一条消息、不生成（/sendas）；{ op: 'comment', text }  注释：隐藏的旁白，不发给模型（/comment）
+  if (body.op === 'sendas' || body.op === 'comment') {
+    const text = String(body.text ?? '').trim().slice(0, 20000);
+    if (!text) return fail('内容不能为空', 400);
+    const verdict = await moderateText(text);
+    if (!verdict.ok) return fail(verdict.message, 422);
+    if (body.op === 'comment') {
+      const saved = addMessage(chat.id, 'system', text);
+      setMessagesHidden(chat.id, [saved.id], true);
+      return json({ ok: true, message: { ...toMessageView({ ...saved }), hidden: true } });
+    }
+    const name = String((body as { name?: unknown }).name ?? '').trim().slice(0, 60);
+    const saved = addMessage(chat.id, 'assistant', text, undefined, undefined, name ? { name, avatar: null } : null);
+    return json({ ok: true, message: toMessageView(saved) });
+  }
+
   return fail('未知操作', 400);
 }

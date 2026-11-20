@@ -20,6 +20,17 @@ export const SLASH_HELP: { cmd: string; desc: string }[] = [
   { cmd: '/incvar 名字', desc: '加 1（/decvar 减 1）' },
   { cmd: '/flushvar 名字', desc: '删除变量' },
   { cmd: '/listvar', desc: '列出全部聊天变量和全局变量' },
+  { cmd: '/sendas name=名字 文本', desc: '以角色身份插一条消息，不生成' },
+  { cmd: '/comment 文本', desc: '插入注释（只给你看，不发给模型）' },
+  { cmd: '/gen 提示', desc: '带聊天上下文按提示生成一段文字，结果给下一条命令（{{pipe}}），不落库' },
+  { cmd: '/genraw 提示', desc: '只用提示本身生成（不带聊天）' },
+  { cmd: '/input 提示', desc: '弹出输入框，输入的文字给下一条命令' },
+  { cmd: '/buttons labels=["是","否"] 提示', desc: '弹出按钮让你选，选中的文字给下一条命令' },
+  { cmd: '/popup 文本', desc: '弹出提示框' },
+  { cmd: '/qr 0', desc: '执行快捷回复栏的第 N 个按钮（从 0 开始；也可 label=按钮名 set=集名）' },
+  { cmd: '/qr-list', desc: '列出快捷回复集；/qr-list 集名 列出这个集的按钮' },
+  { cmd: '/qr-set 集名', desc: '全局切换这个快捷回复集（/qr-set-on、/qr-set-off）' },
+  { cmd: '/qr-chatset 集名', desc: '只在本聊天切换（/qr-chatset-on、/qr-chatset-off）' },
 ];
 
 const ALIASES: Record<string, string> = {
@@ -29,6 +40,9 @@ const ALIASES: Record<string, string> = {
   setvar: 'setvar', getvar: 'getvar', addvar: 'addvar', incvar: 'incvar', decvar: 'decvar', flushvar: 'flushvar', listvar: 'listvar',
   setglobalvar: 'setglobalvar', getglobalvar: 'getglobalvar', addglobalvar: 'addglobalvar', incglobalvar: 'incglobalvar',
   decglobalvar: 'decglobalvar', flushglobalvar: 'flushglobalvar',
+  sendas: 'sendas', comment: 'comment', gen: 'gen', genraw: 'genraw', input: 'input', buttons: 'buttons', popup: 'popup',
+  qr: 'qr', 'qr-list': 'qr-list', 'qr-set': 'qr-set', 'qr-set-on': 'qr-set-on', 'qr-set-off': 'qr-set-off',
+  'qr-chatset': 'qr-chatset', 'qr-chatset-on': 'qr-chatset-on', 'qr-chatset-off': 'qr-chatset-off',
 };
 
 /** 变量命令 → [作用域, 操作]（ST /setvar 等） */
@@ -46,15 +60,15 @@ export function isSlash(text: string): boolean {
 export function parseSlash(text: string): SlashCommand[] {
   const out: SlashCommand[] = [];
   for (const part of text.split(/\|(?![^{]*\})/)) {
-    const match = part.trim().match(/^\/([\w?]+)\s*([\s\S]*)$/);
+    const match = part.trim().match(/^\/([\w?][\w?-]*)\s*([\s\S]*)$/);
     if (!match) continue;
     const name = ALIASES[match[1].toLowerCase()] ?? `?${match[1]}`;
     const named: Record<string, string> = {};
     let rest = match[2];
     for (;;) {
-      const kv = rest.match(/^\s*(\w+)=(?:"([^"]*)"|(\S+))(?:\s+|$)/);
+      const kv = rest.match(/^\s*(\w+)=(?:"([^"]*)"|(\[[^\]]*\])|(\S+))(?:\s+|$)/);
       if (!kv) break;
-      named[kv[1].toLowerCase()] = kv[2] ?? kv[3] ?? '';
+      named[kv[1].toLowerCase()] = kv[2] ?? kv[3] ?? kv[4] ?? '';
       rest = rest.slice(kv[0].length);
     }
     out.push({ name, arg: rest.trim(), named });

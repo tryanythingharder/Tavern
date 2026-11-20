@@ -10,7 +10,8 @@ import { ChatRoom } from '@/components/chat-room';
 import { ChatSettings } from '@/components/chat-settings';
 import { ChatSearch } from '@/components/chat-search';
 import { AppearanceButton } from '@/components/appearance-drawer';
-import { chatSettings, listLorebooks, listQuickReplies, listPersonas, loadGenerationConfig } from '@/lib/resources-db';
+import { qrState } from '@/lib/quick-replies-db';
+import { chatSettings, listLorebooks, listPersonas, loadGenerationConfig } from '@/lib/resources-db';
 import { summaryStatus } from '@/lib/memory';
 import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
@@ -39,7 +40,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
 
   const messagePage = listMessagesPage(chat.id, null, 60);
   const messages = messagePage.messages.map(toMessageView);
-  const quickReplies = listQuickReplies(user.id).map((reply) => ({ label: reply.label, content: reply.content }));
+  const quickReplies = qrState(user.id, { chatId: chat.id });
   const config = loadGenerationConfig(user.id, chat);
   const hasPortrait = character.owner_id === null || Boolean(character.cover_image);
   const bookmarks = messages.filter((message) => message.bookmark).length;

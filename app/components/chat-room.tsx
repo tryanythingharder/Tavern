@@ -15,6 +15,9 @@ import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 import { SLASH_HELP, VAR_COMMANDS, isSlash, parseSlash } from '@/lib/slash';
+import { QuickReplyBar } from '@/components/quick-reply-bar';
+import { activeQrSets, findQuickReply, planQuickReply, type QrItem, type QrSet, type QrState, type QrAuto } from '@/lib/quick-replies';
+import { askChoice, askPrompt, showAlert } from '@/components/ui-dialog';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -44,7 +47,7 @@ type Props = {
   initialHasMore?: boolean;
   /** 第一条已加载消息之前还有几条（ST 楼层号 = 偏移 + 序号） */
   initialOffset?: number;
-  quickReplies?: { label: string; content: string }[];
+  quickReplies?: QrState;
   media?: { image: boolean; tts: boolean; imageCost: number };
   title?: string;
   personaName?: string;
@@ -108,7 +111,7 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies = [], media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
   const router = useRouter();
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
@@ -145,9 +148,16 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [offset, setOffset] = useState(initialOffset);
   const [notice, setNotice] = useState('');
   const [slashHelp, setSlashHelp] = useState(false);
+  const [qr, setQr] = useState<QrState>(qrInitial ?? { sets: [], globalIds: [], scopeIds: [] });
+  const qrRef = useRef(qr);
+  qrRef.current = qr;
+  // 自动执行的快捷回复（玩家发消息后 / 角色回复后…）在 runQuickReply 里定义，这里先占位，避免 send 依赖它
+  const qrAutoRef = useRef<(kind: keyof QrAuto) => Promise<void>>(async () => {});
   const [confirmingFrom, setConfirmingFrom] = useState<number | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState('');
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
   const [preview, setPreview] = useState(false);
   useEffect(() => { try { setPreview(localStorage.getItem('tavern_compose_preview') === '1'); } catch {} }, []);
   const togglePreview = () => setPreview((on) => { try { localStorage.setItem('tavern_compose_preview', on ? '0' : '1'); } catch {} return !on; });
@@ -466,6 +476,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       emitHelperEvent('character_message_rendered', { fromEnd: 0 });
       emitHelperEvent('generation_ended', { fromEnd: 0 });
       await runAutoContinue();
+      if (text) await qrAutoRef.current('user');
+      if (!streamErrorRef.current) await qrAutoRef.current('ai');
     }
     if (!accepted) {
       // 请求未被接受：撤掉本地乐观消息，避免留下空气泡
@@ -495,6 +507,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         emitHelperEvent('character_message_rendered', { dbId: message.id });
         emitHelperEvent('generation_ended', { dbId: message.id });
         await runAutoContinue();
+        if (!streamErrorRef.current) await qrAutoRef.current('ai');
       }
       if (!accepted) {
         // 重新生成没被接受：恢复原文，不把消息清空
@@ -585,6 +598,38 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView | string; ids?: number[]; hidden?: boolean; deleted?: number; text?: string; value?: unknown; current?: unknown; chat?: unknown; global?: unknown };
     if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : '操作失败');
     return data;
+  }, [chatId]);
+
+  // /gen、/genraw：只拿文字（SSE，和代写同一个接口），不落库
+  const genText = useCallback(async (mode: 'gen' | 'genraw', prompt: string, length?: number) => {
+    const response = await fetch(`/api/chats/${chatId}/impersonate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, prompt, length }) });
+    if (!response.ok || !response.body) {
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(data.message || '生成失败');
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let text = '';
+    let done: string | null = null;
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+      for (const part of parts) {
+        const line = part.split('\n').find((item) => item.startsWith('data: '));
+        if (!line) continue;
+        const event = JSON.parse(line.slice(6)) as { type: string; text?: string; message?: string; balance?: number; cost?: number; free?: number };
+        if (event.type === 'delta') text += event.text ?? '';
+        else if (event.type === 'done') {
+          done = event.text ?? text;
+          if (typeof event.balance === 'number') setBilling({ cost: event.cost ?? 0, balance: event.balance, free: event.free });
+        } else if (event.type === 'error') throw new Error(event.message || '生成失败');
+      }
+    }
+    return (done ?? text).trim();
   }, [chatId]);
 
   const toggleHidden = useCallback(async (message: ChatMessageView) => {
@@ -686,14 +731,114 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           setNotice(arg);
           pipe = arg;
         }
+        else if (name === 'sendas' || name === 'comment') {
+          if (!arg) throw new Error(`/${name} 后面要写内容`);
+          const data = await ops({ op: name, text: arg, name: named.name ?? '' });
+          if (data.message && typeof data.message === 'object') setMessages((prev) => [...prev, data.message as ChatMessageView]);
+        } else if (name === 'gen' || name === 'genraw') {
+          if (!arg) throw new Error(`/${name} 后面要写提示`);
+          setNotice('生成中…');
+          pipe = await genText(name, arg, Number(named.length) || undefined);
+          setNotice('');
+        } else if (name === 'input') {
+          const value = await askPrompt({ message: arg, defaultValue: named.default ?? '', multiline: named.rows ? Number(named.rows) > 1 : false });
+          if (value === null) break;
+          pipe = value;
+        } else if (name === 'buttons') {
+          let labels: string[] = [];
+          try { labels = JSON.parse(named.labels ?? '[]'); } catch { labels = String(named.labels ?? '').split(','); }
+          labels = labels.map((label) => String(label).trim()).filter(Boolean);
+          if (!labels.length) throw new Error('/buttons 要写 labels=["选项1","选项2"]');
+          const value = await askChoice(arg, labels);
+          if (value === null) break;
+          pipe = value;
+        } else if (name === 'popup') {
+          await showAlert(arg);
+        } else if (name === 'qr') {
+          const state = qrRef.current;
+          const pool = named.set ? state.sets : activeQrSets(state);
+          const found = findQuickReply(pool, { index: named.label ? undefined : Number(arg || named.index), label: named.label ?? (arg && !/^\d+$/.test(arg) ? arg : undefined), set: named.set });
+          if (!found) throw new Error(`找不到快捷回复 ${named.label ?? arg}`);
+          await runQuickReplyRef.current(found.set, found.item);
+        } else if (name === 'qr-list') {
+          const state = qrRef.current;
+          if (arg) {
+            const set = state.sets.find((item) => item.name === arg);
+            if (!set) throw new Error(`没有叫「${arg}」的快捷回复集`);
+            pipe = JSON.stringify(set.replies.map((item) => item.label));
+            setNotice(`${set.name}：${set.replies.map((item) => item.label).join('、') || '（空）'}`);
+          } else {
+            pipe = JSON.stringify(state.sets.map((item) => item.name));
+            setNotice(`快捷回复集：${state.sets.map((item) => `${item.name}${state.globalIds.includes(item.id) ? '（全局）' : ''}${state.scopeIds.includes(item.id) ? '（本聊天）' : ''}`).join('、') || '（无）'}`);
+          }
+        } else if (name.startsWith('qr-set') || name.startsWith('qr-chatset')) {
+          const state = qrRef.current;
+          const set = state.sets.find((item) => item.name === arg);
+          if (!set) throw new Error(`没有叫「${arg}」的快捷回复集`);
+          const scoped = name.startsWith('qr-chatset');
+          const list = scoped ? state.scopeIds : state.globalIds;
+          const on = name.endsWith('-on') ? true : name.endsWith('-off') ? false : !list.includes(set.id);
+          const nextIds = on ? [...new Set([...list, set.id])] : list.filter((id) => id !== set.id);
+          const response = await fetch('/api/quick-replies', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(scoped ? { chatId, scopeIds: nextIds } : { chatId, globalIds: nextIds }) });
+          const data = (await response.json().catch(() => ({}))) as QrState & { message?: string };
+          if (!response.ok) throw new Error(data.message || '保存失败');
+          setQr({ sets: data.sets, globalIds: data.globalIds, scopeIds: data.scopeIds });
+          setNotice(`${on ? '已启用' : '已关闭'}快捷回复集「${set.name}」${scoped ? '（本聊天）' : ''}`);
+        }
         else throw new Error(`本站暂不支持 /${name.slice(1)}，输入 /help 查看可用命令`);
       }
     } catch (caught) {
       setError((caught as Error).message);
     }
-  }, [ops, resync]);
+  }, [ops, resync, genText, chatId]);
   const slashRef = useRef(runSlash);
   slashRef.current = runSlash;
+
+  // ST 快捷回复：点按钮 / /qr / 自动执行都走这里
+  const qrDepth = useRef(0);
+  const qrMute = useRef(0);
+  const runQuickReply = useCallback(async (set: QrSet, item: QrItem) => {
+    if (qrDepth.current > 4) return;
+    qrDepth.current += 1;
+    const mute = item.preventAuto !== false;
+    if (mute) qrMute.current += 1;
+    try {
+      const plan = planQuickReply(set, item.message, draftRef.current);
+      if (plan.kind === 'input') {
+        setDraft(plan.text);
+        inputRef.current?.focus();
+        return;
+      }
+      if (plan.clearInput) setDraft('');
+      if (plan.kind === 'slash') await slashRef.current(plan.text);
+      else if (plan.text.trim()) await sendRef.current(plan.text);
+    } finally {
+      qrDepth.current -= 1;
+      if (mute) qrMute.current -= 1;
+    }
+  }, []);
+  const runQuickReplyRef = useRef(runQuickReply);
+  runQuickReplyRef.current = runQuickReply;
+  // 自动执行：自动执行触发的生成不再触发自动执行（ST 也防这种循环）
+  qrAutoRef.current = async (kind: keyof QrAuto) => {
+    if (qrMute.current > 0) return;
+    await sleep(30);
+    for (const set of activeQrSets(qrRef.current)) {
+      for (const item of set.replies) if (item.auto[kind]) await runQuickReplyRef.current(set, item);
+    }
+  };
+  useEffect(() => {
+    // 进入聊天时；打开网站时（这个标签页第一次进聊天）
+    let first = false;
+    try {
+      first = !sessionStorage.getItem('tavern:qr-startup');
+      sessionStorage.setItem('tavern:qr-startup', '1');
+    } catch { /* 无痕模式 */ }
+    void (async () => {
+      if (first) await qrAutoRef.current('startup');
+      await qrAutoRef.current('chatChange');
+    })();
+  }, [chatId]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(''), Math.min(12000, 2600 + notice.length * 60));
@@ -867,7 +1012,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                 )}
                 <div>
                   <div className="p-msg-name">
-                    <span className="p-msg-who">{isNarrator ? '旁白' : isUser ? (message.personaName || personaName) : characterName}</span>
+                    <span className="p-msg-who">{isNarrator ? '旁白' : isUser ? (message.personaName || personaName) : (message.personaName || characterName)}</span>
                     <MsgTime at={message.createdAt} />
                     {message.hidden && <span className="p-msg-ghost" title="已隐藏：这条不会发给模型"><Ico name="ghost" />已隐藏</span>}
                   </div>
@@ -1050,21 +1195,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               <button className="p-text-btn" type="button" onClick={() => setImageOpen(true)}>生图</button>
             </div>
           )}
-          {quickReplies.length > 0 && (
-            <div className="p-chat-quick">
-              {quickReplies.map((reply) => (
-                <button
-                  key={`${reply.label}-${reply.content}`}
-                  className="p-chip"
-                  type="button"
-                  title={reply.content}
-                  onClick={() => setDraft((current) => (current ? `${current}\n${reply.content}` : reply.content))}
-                >
-                  {reply.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <QuickReplyBar state={qr} scope={{ chatId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />
           <HelperRunner chatId={chatId} names={{ char: characterName, user: personaName || macros?.user || '' }} actions={helperActions} />
           <NewbieTip />
           {preview && draft.trim() && !streaming && (

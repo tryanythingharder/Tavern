@@ -9,6 +9,10 @@ import type { RegexRule } from '@/lib/resources';
 import { ModelPicker } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 import { Select } from '@/components/ui-select';
+import { QuickReplyBar } from '@/components/quick-reply-bar';
+import { activeQrSets, planQuickReply, type QrAuto, type QrItem, type QrSet, type QrState } from '@/lib/quick-replies';
+import { parseSlash } from '@/lib/slash';
+import { showAlert } from '@/components/ui-dialog';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
@@ -26,6 +30,7 @@ type Props = {
   // 「仅显示」正则：玩家规则 + 成员角色卡自带脚本（按发言角色挑）
   displayRules?: RegexRule[];
   memberRules?: Record<string, RegexRule[]>;
+  quickReplies?: QrState;
 };
 
 const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "checkpoint": "M7 4h10v16l-5-3.5L7 20z"} as const;
@@ -42,12 +47,18 @@ const STRATEGY_HINT: Record<string, string> = {
   pooled: '随机：每轮从成员里抽一个。',
 };
 
-export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {} }: Props) {
+export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {}, quickReplies: qrInitial }: Props) {
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialUserName, avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
   const userName = persona.name;
   const [messages, setMessages] = useState<RoomMessageView[]>(initialMessages);
   const [draft, setDraft] = useState('');
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const [qr, setQr] = useState<QrState>(qrInitial ?? { sets: [], globalIds: [], scopeIds: [] });
+  const qrRef = useRef(qr);
+  qrRef.current = qr;
+  const qrAutoRef = useRef<(kind: keyof QrAuto) => Promise<void>>(async () => {});
   const [streaming, setStreaming] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -227,8 +238,10 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     setError('');
     setOpenActions(null);
     setStreaming(true);
+    let ok = false;
     try {
-      let ok = await streamReply(mode);
+      if (mode.kind !== 'send') await qrAutoRef.current('groupDraft');
+      ok = await streamReply(mode);
       // ST 自动继续：回复不到目标长度就接着写，最多 5 次
       for (let round = 0; ok && round < 5 && autoContinueRef.current !== null; round += 1) {
         const id = autoContinueRef.current;
@@ -253,7 +266,65 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
       setStreaming(false);
       setTyping(null);
     }
+    if (mode.kind === 'send') await qrAutoRef.current('user');
+    if (ok) await qrAutoRef.current('ai');
   }, [streaming, streamReply, autoMode]);
+
+  // 快捷回复：群聊里斜杠命令只支持 /trigger、/send、/setinput、/echo、/popup（其余在单聊里用）
+  const runRef = useRef(run);
+  runRef.current = run;
+  const qrDepth = useRef(0);
+  const qrMute = useRef(0);
+  const runQuickReply = useCallback(async (set: QrSet, item: QrItem) => {
+    if (qrDepth.current > 4) return;
+    qrDepth.current += 1;
+    const mute = item.preventAuto !== false;
+    if (mute) qrMute.current += 1;
+    try {
+      const plan = planQuickReply(set, item.message, draftRef.current);
+      if (plan.kind === 'input') {
+        setDraft(plan.text);
+        return;
+      }
+      if (plan.clearInput) setDraft('');
+      if (plan.kind === 'send') {
+        if (plan.text.trim()) await runRef.current({ kind: 'send', text: plan.text.trim() });
+        return;
+      }
+      for (const command of parseSlash(plan.text)) {
+        if (command.name === 'trigger') await runRef.current({ kind: 'auto' });
+        else if (command.name === 'send' && command.arg) await runRef.current({ kind: 'send', text: command.arg });
+        else if (command.name === 'setinput') setDraft(command.arg);
+        else if (command.name === 'echo' || command.name === 'popup') await showAlert(command.arg);
+        else throw new Error(`群聊里暂不支持 /${command.name.replace(/^\?/, '')}，这条快捷回复请在单人聊天里用`);
+      }
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      qrDepth.current -= 1;
+      if (mute) qrMute.current -= 1;
+    }
+  }, []);
+  qrAutoRef.current = async (kind: keyof QrAuto) => {
+    if (qrMute.current > 0) return;
+    const list = activeQrSets(qrRef.current).filter((set) => set.replies.some((item) => item.auto[kind]));
+    if (!list.length) return;
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    for (const set of activeQrSets(qrRef.current)) {
+      for (const item of set.replies) if (item.auto[kind]) await runQuickReply(set, item);
+    }
+  };
+  useEffect(() => {
+    let first = false;
+    try {
+      first = !sessionStorage.getItem('tavern:qr-startup');
+      sessionStorage.setItem('tavern:qr-startup', '1');
+    } catch { /* 无痕模式 */ }
+    void (async () => {
+      if (first) await qrAutoRef.current('startup');
+      await qrAutoRef.current('chatChange');
+    })();
+  }, [roomId]);
 
   // ST 成员列表的「让 TA 发言」：无视调度和静音，指定这位成员接着说一条
   const forceTalk = useCallback((memberId: string) => {
@@ -522,6 +593,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
       <div className="p-chat-compose">
         <div className="p-chat-col">
           {error && <p role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>{error}</p>}
+          <QuickReplyBar state={qr} scope={{ roomId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />
           <div className="p-rp-compose-context">
             <span className="p-compose-persona">{STRATEGY_HINT[strategy] ?? ''}</span>
             {typing && <span className="p-small">{typing} 正在输入…</span>}

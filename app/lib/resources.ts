@@ -399,7 +399,6 @@ export type Persona = {
   lorebookId: number | null;
 };
 
-export type QuickReply = { id: number; label: string; content: string; sort: number };
 
 // ---------- SillyTavern 导入 ----------
 
