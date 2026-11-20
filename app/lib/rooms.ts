@@ -2,7 +2,7 @@ import { reasoningAt, withReasoning, type Reasoning } from '@/lib/reasoning';
 import db, { getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
 import { applyRegex, scanLore, summaryText } from '@/lib/prompt';
 import type { RoomPromptMemory } from '@/lib/room-memory';
-import { renderContextTemplate, type LoreEntry, type Persona, type Preset, type RegexRule } from '@/lib/resources';
+import { promptKey, promptTriggered, renderContextTemplate, type LoreEntry, type Persona, type Preset, type RegexRule } from '@/lib/resources';
 import type { ChatMessage } from '@/lib/model';
 import { characterLoreEntries, characterRegexRules } from '@/lib/card-extras';
 import { parseOpenings } from '@/lib/characters';
@@ -477,7 +477,29 @@ export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): 
   if (noteDue && notePos.position === 'before') blocks.unshift(`### 作者注释\n${noteText}`);
   if (noteDue && notePos.position === 'after') blocks.splice(Math.min(blocks.length, 1 + members.length), 0, `### 作者注释\n${noteText}`);
 
+  // 预设 Prompt Manager：自定义条目与后置提示（ST 群聊同样走预设顺序）
+  const historyAt = preset.order.findIndex((item) => item.key === 'history');
+  const before: ChatMessage[] = [];
+  const after: ChatMessage[] = [];
+  const depthPrompts: { depth: number; role: ChatMessage['role']; text: string; order: number }[] = [];
+  preset.order.forEach((item, index) => {
+    if (!item.enabled) return;
+    const late = historyAt >= 0 && index > historyAt;
+    if (item.key === 'jailbreak' && preset.jailbreak.trim()) {
+      (late ? after : before).push({ role: 'system', content: macros(preset.jailbreak) });
+      return;
+    }
+    const prompt = item.key.startsWith('p:') ? preset.prompts.find((entry) => promptKey(entry.id) === item.key) : undefined;
+    if (!prompt || !prompt.content.trim() || !promptTriggered(prompt, 'normal')) return;
+    if (prompt.position === 'depth') depthPrompts.push({ depth: prompt.depth, role: prompt.role, text: prompt.content, order: prompt.order });
+    else if (prompt.role === 'system' && !late) blocks.push(prompt.content);
+    else (late ? after : before).push({ role: prompt.role, content: macros(prompt.content) });
+  });
+  for (const item of depthPrompts.sort((a, b) => b.depth - a.depth || b.order - a.order)) {
+    history.splice(Math.max(history.length - item.depth, 0), 0, { role: item.role, content: macros(item.text) });
+  }
+
   const system = macros(blocks.join('\n\n'));
   if (!input.dryRun) persistVarStore(varStore, variables?.owner);
-  return [{ role: 'system', content: system }, ...history];
+  return [{ role: 'system', content: system }, ...before, ...history, ...after];
 }

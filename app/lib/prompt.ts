@@ -3,6 +3,8 @@ import type { DbCharacter, DbMessage } from '@/lib/db';
 import type { CharacterOverride } from '@/lib/cards';
 import {
   PROMPT_BLOCKS,
+  promptKey,
+  promptTriggered,
   LORE_BUDGET,
   LORE_SCAN_DEPTH,
   renderContextTemplate,
@@ -68,6 +70,8 @@ export type AssembleInput = {
   loreEntries: LoreEntry[];
   regexRules: RegexRule[];
   trigger?: 'normal' | 'regenerate';
+  /** ST 生成类型（normal/continue/impersonate/swipe/regenerate/quiet），决定预设条目的触发器 */
+  generationType?: string;
   // M3：摘要、检索片段、手动记忆
   summary?: string;
   rag?: { role: string; text: string; index: number }[];
@@ -425,7 +429,22 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   let reserved = 0;
   const noteSlot = preset.order.some((item) => item.key === 'note' && item.enabled);
   if (anText && (anPosition === 'before' || (anPosition === 'after' && !noteSlot))) reserved += estimateTokens(anText) + 4;
+  const genType = input.generationType ?? (input.trigger === 'regenerate' ? 'swipe' : 'normal');
+  const customOf = (key: string) => (key.startsWith('p:') ? preset.prompts.find((prompt) => promptKey(prompt.id) === key) : undefined);
+  const customOn = (item: { key: string; enabled: boolean }) => {
+    const prompt = customOf(item.key);
+    return prompt && item.enabled && promptTriggered(prompt, genType) ? prompt : undefined;
+  };
   for (const item of preset.order) {
+    const prompt = customOf(item.key);
+    if (prompt) {
+      const on = customOn(item);
+      const text = on ? resolveMacros(on.content) : '';
+      if (on && text && on.position === 'relative') reserved += estimateTokens(text) + 4;
+      const where = prompt.position === 'depth' ? ` · 聊天内 @${prompt.depth}` : '';
+      blocks.push({ key: item.key, label: `${prompt.name}（${prompt.role}${where}）`, text, chars: text.length, enabled: Boolean(on) });
+      continue;
+    }
     const label = BLOCK_LABELS.get(item.key);
     if (!label) continue;
     if (item.key === 'history') {
@@ -494,6 +513,12 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   if (input.card?.depthPrompt.trim()) {
     injections.push({ depth: input.card.depthDepth, role: input.card.depthRole, text: `［角色深度提示］${input.card.depthPrompt.trim()}` });
   }
+  // 预设里放「聊天内」的条目：同深度同角色按 injection_order 小的在前（ST）
+  const customDepth = preset.order
+    .map((item) => customOn(item))
+    .filter((prompt): prompt is NonNullable<typeof prompt> => Boolean(prompt && prompt.position === 'depth' && prompt.content.trim()))
+    .sort((a, b) => a.order - b.order);
+  for (const prompt of customDepth) injections.push({ depth: prompt.depth, role: prompt.role, text: prompt.content });
   for (const depth of [...new Set(injections.map((item) => item.depth))].sort((a, b) => b - a)) {
     const group = injections.filter((item) => item.depth === depth);
     const index = Math.max(historyMessages.length - depth, 0);
@@ -510,6 +535,18 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   for (const item of preset.order) {
     const block = blocks.find((candidate) => candidate.key === item.key);
     if (!block?.enabled || !block.text) continue;
+    const prompt = customOf(item.key);
+    if (prompt) {
+      // ST：自定义条目按自己的角色单独成一条；system 条目在历史前与其它系统块合并（不加标题）
+      if (prompt.position === 'depth') continue;
+      if (prompt.role === 'system' && !passedHistory) systemParts.push(block.text);
+      else {
+        if (systemParts.length) messages.push({ role: 'system', content: systemParts.join('\n\n') });
+        systemParts.length = 0;
+        messages.push({ role: prompt.role, content: block.text });
+      }
+      continue;
+    }
     if (item.key === 'history') {
       if (systemParts.length) messages.push({ role: 'system', content: systemParts.join('\n\n') });
       systemParts.length = 0;

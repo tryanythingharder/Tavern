@@ -10,6 +10,7 @@ import {
   normalizeLoreEntries,
   normalizeOrder,
   normalizeParams,
+  normalizePrompts,
   normalizeRegexRule,
   text,
   type Lorebook,
@@ -23,9 +24,14 @@ import {
 
 // ---------- 预设 ----------
 
+// ST Prompt Manager 自定义条目（JSON 数组）
+if (!(db.prepare('PRAGMA table_info(presets)').all() as { name: string }[]).some((column) => column.name === 'prompts')) {
+  db.exec("ALTER TABLE presets ADD COLUMN prompts TEXT NOT NULL DEFAULT '[]'");
+}
+
 type PresetRow = {
   id: number; name: string; system: string; jailbreak: string; params: string;
-  context_template: string; instruct: string; prompt_order: string; forbid_overrides: number;
+  context_template: string; instruct: string; prompt_order: string; forbid_overrides: number; prompts?: string | null;
 };
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -46,7 +52,10 @@ function presetFromRow(row: PresetRow): Preset {
     params: normalizeParams(parseJson(row.params, {})),
     contextTemplate: row.context_template || DEFAULT_CONTEXT_TEMPLATE,
     instruct: normalizeInstruct(parseJson(row.instruct, {})),
-    order: normalizeOrder(parseJson(row.prompt_order, [])),
+    ...(() => {
+      const prompts = normalizePrompts(parseJson(row.prompts, []));
+      return { prompts, order: normalizeOrder(parseJson(row.prompt_order, []), prompts) };
+    })(),
     forbidOverrides: row.forbid_overrides === 1,
   };
 }
@@ -81,13 +90,15 @@ export type PresetInput = {
   contextTemplate?: string;
   instruct?: unknown;
   order?: unknown;
+  prompts?: unknown;
   forbidOverrides?: boolean;
 };
 
 export function createPreset(userId: number, input: PresetInput): Preset {
   const base = defaultPreset();
   const now = Date.now();
-  const result = db.prepare(`INSERT INTO presets (user_id, name, system, jailbreak, params, context_template, instruct, prompt_order, forbid_overrides, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
+  const prompts = normalizePrompts(input.prompts ?? []);
+  const result = db.prepare(`INSERT INTO presets (user_id, name, system, jailbreak, params, context_template, instruct, prompt_order, forbid_overrides, created_at, updated_at, prompts) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     userId,
     text(input.name, base.name).slice(0, 60),
     input.system ?? base.system,
@@ -95,10 +106,11 @@ export function createPreset(userId: number, input: PresetInput): Preset {
     JSON.stringify(normalizeParams(input.params ?? base.params)),
     input.contextTemplate?.trim() || base.contextTemplate,
     JSON.stringify(normalizeInstruct(input.instruct ?? base.instruct)),
-    JSON.stringify(normalizeOrder(input.order ?? base.order)),
+    JSON.stringify(normalizeOrder(input.order ?? base.order, prompts)),
     input.forbidOverrides === true ? 1 : 0,
     now,
     now,
+    JSON.stringify(prompts),
   );
   return getPreset(userId, Number(result.lastInsertRowid))!;
 }
@@ -113,12 +125,14 @@ export function updatePreset(userId: number, id: number, input: PresetInput): Pr
     params: normalizeParams(input.params ?? current.params),
     contextTemplate: (input.contextTemplate ?? current.contextTemplate).trim() || DEFAULT_CONTEXT_TEMPLATE,
     instruct: normalizeInstruct(input.instruct ?? current.instruct),
-    order: normalizeOrder(input.order ?? current.order),
+    prompts: input.prompts !== undefined ? normalizePrompts(input.prompts) : current.prompts,
+    order: [] as ReturnType<typeof normalizeOrder>,
     forbidOverrides: input.forbidOverrides ?? current.forbidOverrides,
   };
-  db.prepare(`UPDATE presets SET name = ?, system = ?, jailbreak = ?, params = ?, context_template = ?, instruct = ?, prompt_order = ?, forbid_overrides = ?, updated_at = ? WHERE id = ? AND user_id = ?`).run(
+  next.order = normalizeOrder(input.order ?? current.order, next.prompts);
+  db.prepare(`UPDATE presets SET name = ?, system = ?, jailbreak = ?, params = ?, context_template = ?, instruct = ?, prompt_order = ?, forbid_overrides = ?, prompts = ?, updated_at = ? WHERE id = ? AND user_id = ?`).run(
     next.name, next.system, next.jailbreak, JSON.stringify(next.params), next.contextTemplate,
-    JSON.stringify(next.instruct), JSON.stringify(next.order), next.forbidOverrides ? 1 : 0, Date.now(), id, userId,
+    JSON.stringify(next.instruct), JSON.stringify(next.order), next.forbidOverrides ? 1 : 0, JSON.stringify(next.prompts), Date.now(), id, userId,
   );
   return getPreset(userId, id);
 }

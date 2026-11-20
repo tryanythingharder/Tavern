@@ -60,6 +60,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     loreEntries: ejsLore.entries,
     regexRules: config.regexRules,
     trigger: 'normal',
+    generationType: mode === 'impersonate' ? 'impersonate' : 'quiet',
     ...promptMemory(chat, user.id),
     card: getOverride(user.id, chat.character_id),
     model: modelName(chat.model),

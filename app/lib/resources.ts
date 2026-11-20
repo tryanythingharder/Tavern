@@ -112,6 +112,30 @@ export type PresetParams = {
 
 export type PresetInstruct = { enabled: boolean; input: string; output: string; system: string; stop: string };
 export type PromptOrderItem = { key: string; enabled: boolean };
+export type PromptRole = 'system' | 'user' | 'assistant';
+/** ST Prompt Manager 的自定义条目：顺序里用 key = `p:<id>` 引用 */
+export type PresetPrompt = {
+  id: string;
+  name: string;
+  role: PromptRole;
+  content: string;
+  /** relative = 按顺序放在列表里；depth = 插进聊天记录（ST「聊天内」，injection_position 1） */
+  position: 'relative' | 'depth';
+  depth: number;
+  /** 同深度同角色时的先后（ST injection_order，小的在前） */
+  order: number;
+  /** 只在这些生成类型时生效（ST injection_trigger），空 = 全部 */
+  triggers: string[];
+};
+export const PROMPT_TRIGGERS = [
+  ['normal', '普通发送'],
+  ['continue', '继续'],
+  ['impersonate', '代写'],
+  ['swipe', '换一条候选'],
+  ['regenerate', '重新生成'],
+  ['quiet', '后台生成（/gen）'],
+] as const;
+export const promptKey = (id: string) => `p:${id}`;
 
 export type Preset = {
   id: number;
@@ -122,6 +146,7 @@ export type Preset = {
   contextTemplate: string;
   instruct: PresetInstruct;
   order: PromptOrderItem[];
+  prompts: PresetPrompt[];
   forbidOverrides: boolean;
 };
 
@@ -174,9 +199,46 @@ export function normalizeInstruct(raw: unknown): PresetInstruct {
   };
 }
 
-// 块顺序：先保留调用方给的合法顺序，再把缺失的内置块补进来。
-export function normalizeOrder(raw: unknown): PromptOrderItem[] {
-  const valid = new Set<string>(PROMPT_BLOCKS.map(([key]) => key));
+const ROLES = new Set(['system', 'user', 'assistant']);
+const TRIGGER_SET = new Set<string>(PROMPT_TRIGGERS.map(([key]) => key));
+
+export function normalizePrompts(raw: unknown): PresetPrompt[] {
+  const seen = new Set<string>();
+  const out: PresetPrompt[] = [];
+  for (const item of Array.isArray(raw) ? raw.slice(0, 200) : []) {
+    if (!item || typeof item !== 'object') continue;
+    const source = item as Record<string, unknown>;
+    let id = text(source.id).trim().slice(0, 64).replace(/[^\w.-]/g, '-');
+    if (!id || seen.has(id)) id = `c${out.length + 1}-${Math.random().toString(36).slice(2, 8)}`;
+    seen.add(id);
+    const role = text(source.role);
+    const depth = Number(source.depth);
+    const order = Number(source.order);
+    out.push({
+      id,
+      name: text(source.name).trim().slice(0, 80) || '未命名条目',
+      role: (ROLES.has(role) ? role : 'system') as PromptRole,
+      content: text(source.content).slice(0, 100_000),
+      position: source.position === 'depth' ? 'depth' : 'relative',
+      depth: Number.isFinite(depth) ? Math.max(0, Math.min(999, Math.round(depth))) : 4,
+      order: Number.isFinite(order) ? Math.max(-9999, Math.min(9999, Math.round(order))) : 100,
+      triggers: Array.isArray(source.triggers) ? [...new Set(source.triggers.map(String).filter((key) => TRIGGER_SET.has(key)))] : [],
+    });
+  }
+  return out;
+}
+
+/** 生成类型是否命中条目的触发器（ST：空 = 全部；swipe 与 regenerate 互认） */
+export function promptTriggered(prompt: Pick<PresetPrompt, 'triggers'>, type = 'normal'): boolean {
+  if (!prompt.triggers.length) return true;
+  if (prompt.triggers.includes(type)) return true;
+  return (type === 'swipe' && prompt.triggers.includes('regenerate')) || (type === 'regenerate' && prompt.triggers.includes('swipe'));
+}
+
+// 块顺序：先保留调用方给的合法顺序（内置块 + 自定义条目 p:<id>），再把缺失的补进来：
+// 内置块补在「最近消息」前面（后置提示补在最后），没出现在顺序里的自定义条目补在末尾且默认关闭。
+export function normalizeOrder(raw: unknown, prompts: PresetPrompt[] = []): PromptOrderItem[] {
+  const valid = new Set<string>([...PROMPT_BLOCKS.map(([key]) => key), ...prompts.map((prompt) => promptKey(prompt.id))]);
   const seen = new Set<string>();
   const order: PromptOrderItem[] = [];
   for (const item of Array.isArray(raw) ? raw : []) {
@@ -187,7 +249,13 @@ export function normalizeOrder(raw: unknown): PromptOrderItem[] {
     seen.add(key);
     order.push({ key, enabled: source.enabled !== false });
   }
-  for (const [key] of PROMPT_BLOCKS) if (!seen.has(key)) order.push({ key, enabled: true });
+  for (const [key] of PROMPT_BLOCKS) {
+    if (seen.has(key)) continue;
+    const at = order.findIndex((item) => item.key === 'history');
+    if (key === 'jailbreak' || key === 'history' || at < 0) order.push({ key, enabled: true });
+    else order.splice(at, 0, { key, enabled: true });
+  }
+  for (const prompt of prompts) if (!seen.has(promptKey(prompt.id))) order.push({ key: promptKey(prompt.id), enabled: false });
   return order;
 }
 
@@ -200,6 +268,7 @@ export function defaultPreset(): Omit<Preset, 'id'> {
     contextTemplate: DEFAULT_CONTEXT_TEMPLATE,
     instruct: { enabled: false, input: '', output: '', system: '', stop: '' },
     order: PROMPT_BLOCKS.map(([key]) => ({ key, enabled: true })),
+    prompts: [],
     forbidOverrides: false,
   };
 }
@@ -423,6 +492,7 @@ export type ImportedPreset = {
   contextTemplate: string;
   instruct: PresetInstruct;
   order: PromptOrderItem[];
+  prompts: PresetPrompt[];
   forbidOverrides: boolean;
 };
 
@@ -431,37 +501,53 @@ export function parseStPreset(input: unknown): ImportedPreset | null {
   const raw = input && typeof input === 'object' ? (input as Record<string, unknown>) : null;
   if (!raw) return null;
   const prompts = (Array.isArray(raw.prompts) ? raw.prompts : []).filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object');
-  const systemPrompt = prompts.find((item) => item.system_prompt === true || item.identifier === 'main');
-  const jailbreak = prompts.find((item) => /jailbreak/i.test(text(item.identifier) + text(item.name)));
+  const systemPrompt = prompts.find((item) => item.identifier === 'main');
+  const jailbreak = prompts.find((item) => item.identifier === 'jailbreak');
   const builtin: Record<string, string> = {
     main: 'system',
     jailbreak: 'jailbreak',
     chatHistory: 'history',
     dialogueExamples: 'examples',
     worldInfoBefore: 'lore',
+    worldInfoAfter: 'character',
     charDescription: 'character',
     charPersonality: 'character',
     scenario: 'character',
     personaDescription: 'persona',
   };
-  const extras = ['nsfw', 'enhanceDefinitions']
-    .map((id) => prompts.find((item) => item.identifier === id))
-    .filter((item): item is Record<string, unknown> => Boolean(item))
-    .filter((item) => text(item.content).trim().length > 0);
+  // 其余条目（nsfw / enhanceDefinitions / 用户自建的）原样保留为自定义条目：角色、位置、深度、顺序、触发器都带上
+  const custom: PresetPrompt[] = normalizePrompts(
+    prompts
+      .filter((item) => !builtin[text(item.identifier)] && item.marker !== true)
+      .map((item) => ({
+        id: text(item.identifier),
+        name: text(item.name, text(item.identifier)),
+        role: text(item.role, 'system'),
+        content: text(item.content),
+        position: Number(item.injection_position) === 1 ? 'depth' : 'relative',
+        depth: item.injection_depth ?? 4,
+        order: item.injection_order ?? 100,
+        triggers: Array.isArray(item.injection_trigger) ? item.injection_trigger : [],
+      })),
+  );
+  const idOf = new Map(prompts.map((item, index) => [text(item.identifier), custom.find((prompt) => prompt.id === text(item.identifier).slice(0, 64).replace(/[^\w.-]/g, '-'))?.id ?? `#${index}`]));
   const orderSource = Array.isArray(raw.prompt_order)
     ? ((raw.prompt_order.find((item) => item && typeof item === 'object' && String((item as Record<string, unknown>).character_id) === '100001') ?? raw.prompt_order[0]) as Record<string, unknown> | undefined)
     : undefined;
-  const orderList = Array.isArray(orderSource?.order) ? (orderSource!.order as unknown[]) : [];
+  const orderList: Record<string, unknown>[] = (Array.isArray(orderSource?.order) ? (orderSource!.order as unknown[]) : prompts.map((item) => ({ identifier: item.identifier, enabled: item.enabled !== false })))
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object');
   const seen = new Set<string>();
   const order: PromptOrderItem[] = [];
-  for (const item of orderList) {
-    if (!item || typeof item !== 'object') continue;
-    const entry = item as Record<string, unknown>;
-    const key = builtin[text(entry.identifier)];
+  for (const entry of orderList) {
+    const identifier = text(entry.identifier);
+    const key = builtin[identifier] ?? (idOf.has(identifier) && custom.some((prompt) => prompt.id === idOf.get(identifier)) ? promptKey(idOf.get(identifier)!) : '');
     if (!key || seen.has(key)) continue;
     seen.add(key);
     order.push({ key, enabled: entry.enabled !== false });
   }
+  // 本站导出的预设带着完整顺序（含自动摘要、记忆等 ST 没有的块）
+  const tavern = (raw.extensions && typeof raw.extensions === 'object' ? (raw.extensions as Record<string, unknown>).tavern : null) as Record<string, unknown> | null;
+  const tavernOrder = tavern && Array.isArray(tavern.order) ? normalizeOrder(tavern.order, custom) : null;
   const params = normalizeParams({
     temperature: raw.temperature,
     topP: raw.top_p,
@@ -479,19 +565,75 @@ export function parseStPreset(input: unknown): ImportedPreset | null {
   });
   return {
     name: text(raw.name, text(raw.preset_name, '导入的预设')).slice(0, 60),
-    system: [text(systemPrompt?.content, text(raw.system_prompt)), ...extras.map((item) => text(item.content))].filter(Boolean).join('\n\n'),
+    system: text(systemPrompt?.content, text(raw.system_prompt)),
     jailbreak: text(jailbreak?.content),
     params,
-    contextTemplate: convertStoryString(raw.story_string) || DEFAULT_CONTEXT_TEMPLATE,
-    instruct: {
+    contextTemplate: convertStoryString(raw.story_string) || (tavern && typeof tavern.contextTemplate === 'string' && tavern.contextTemplate.trim() ? tavern.contextTemplate : DEFAULT_CONTEXT_TEMPLATE),
+    instruct: tavern && tavern.instruct && typeof tavern.instruct === 'object' ? normalizeInstruct(tavern.instruct) : {
       enabled: Boolean(raw.input_sequence || raw.output_sequence || raw.system_sequence),
       input: text(raw.input_sequence),
       output: text(raw.output_sequence),
       system: text(raw.system_sequence),
       stop: text(raw.stop_sequence),
     },
-    order: order.length ? normalizeOrder(order) : PROMPT_BLOCKS.map(([key]) => ({ key, enabled: key !== 'jailbreak' })),
+    order: tavernOrder ?? (order.length ? normalizeOrder(order, custom) : normalizeOrder(PROMPT_BLOCKS.map(([key]) => ({ key, enabled: key !== 'jailbreak' })), custom)),
+    prompts: custom,
     forbidOverrides: systemPrompt?.forbid_overrides === true,
+  };
+}
+
+// 导出成 ST 聊天补全预设（prompts + prompt_order），ST 能直接导入；extensions.tavern 留本站的完整顺序
+const ST_MARKERS: Record<string, [string, string][]> = {
+  history: [['chatHistory', 'Chat History']],
+  examples: [['dialogueExamples', 'Chat Examples']],
+  lore: [['worldInfoBefore', 'World Info (before)']],
+  character: [['charDescription', 'Char Description'], ['charPersonality', 'Char Personality'], ['scenario', 'Scenario'], ['worldInfoAfter', 'World Info (after)']],
+  persona: [['personaDescription', 'Persona Description']],
+};
+export function toStPreset(preset: Omit<Preset, 'id'>): Record<string, unknown> {
+  const stPrompts: Record<string, unknown>[] = [
+    { identifier: 'main', name: 'Main Prompt', system_prompt: true, role: 'system', content: preset.system, marker: false, forbid_overrides: preset.forbidOverrides },
+    { identifier: 'jailbreak', name: 'Post-History Instructions', system_prompt: true, role: 'system', content: preset.jailbreak, marker: false },
+    ...Object.values(ST_MARKERS).flat().map(([identifier, name]) => ({ identifier, name, system_prompt: true, marker: true })),
+    ...preset.prompts.map((prompt) => ({
+      identifier: prompt.id,
+      name: prompt.name,
+      system_prompt: false,
+      role: prompt.role,
+      content: prompt.content,
+      marker: false,
+      injection_position: prompt.position === 'depth' ? 1 : 0,
+      injection_depth: prompt.depth,
+      injection_order: prompt.order,
+      injection_trigger: prompt.triggers,
+      forbid_overrides: false,
+    })),
+  ];
+  const order: { identifier: string; enabled: boolean }[] = [];
+  for (const item of preset.order) {
+    if (item.key === 'system') order.push({ identifier: 'main', enabled: item.enabled });
+    else if (item.key === 'jailbreak') order.push({ identifier: 'jailbreak', enabled: item.enabled });
+    else if (item.key.startsWith('p:')) order.push({ identifier: item.key.slice(2), enabled: item.enabled });
+    else for (const [identifier] of ST_MARKERS[item.key] ?? []) order.push({ identifier, enabled: item.enabled });
+  }
+  if (order.findIndex((item) => item.identifier === 'worldInfoAfter') < 0) order.push({ identifier: 'worldInfoAfter', enabled: true });
+  const p = preset.params;
+  return {
+    name: preset.name,
+    temperature: p.temperature,
+    top_p: p.topP,
+    top_k: p.topK,
+    min_p: p.minP,
+    typical_p: p.typicalP,
+    repetition_penalty: p.repetitionPenalty,
+    presence_penalty: p.presencePenalty,
+    frequency_penalty: p.frequencyPenalty,
+    openai_max_tokens: p.maxTokens,
+    openai_max_context: p.contextSize || 32768,
+    seed: p.seed,
+    prompts: stPrompts,
+    prompt_order: [{ character_id: 100001, order }],
+    extensions: { tavern: { order: preset.order, contextTemplate: preset.contextTemplate, instruct: preset.instruct } },
   };
 }
 
