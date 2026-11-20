@@ -7,6 +7,9 @@ import type { ChatMessage } from '@/lib/model';
 import { characterLoreEntries, characterRegexRules } from '@/lib/card-extras';
 import { parseOpenings } from '@/lib/characters';
 import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
+import { applyStVarMacros, makeVarStore } from '@/lib/st-vars';
+import { persistVarStore } from '@/lib/st-vars-server';
+import { expandStMacros } from '@/lib/st-macros';
 
 // M4 房间/群聊：多个角色共享一段对话。发言者按策略挑选（自然/轮流/手动/随机池），
 // 提示词里同时给出所有成员的人设，并要求本轮只以被选中的角色回应。
@@ -380,7 +383,7 @@ export type RoomPromptInput = {
   characterNoteText?: string;
 };
 
-export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
+export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): ChatMessage[] {
   const { room, messages, speaker, preset, persona, regexRules, variables, memory } = input;
   const summary = (memory?.summary ?? '').trim();
   const userName = input.userName || persona?.name || '你';
@@ -390,8 +393,10 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
   // 成员卡自带的世界书一起扫（InitVar 这类只给变量用的条目不进提示词）
   const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title));
   const loreEntries = [...cardLore, ...input.loreEntries];
+  const varStore = makeVarStore(variables?.scoped);
+  const liveVars: MvuState | null = variables ? { ...variables, scoped: { chat: varStore.chat, global: varStore.global } } : null;
   const macros = (value: string, charName = speaker.name) =>
-    resolveVariableMacros(value, variables ?? null)
+    expandStMacros(resolveVariableMacros(applyStVarMacros(value, varStore), liveVars))
       .replace(/\{\{summary\}\}/gi, () => summary)
       .replace(/\{\{char\}\}/gi, charName)
       .replace(/\{\{user\}\}/gi, userName)
@@ -468,5 +473,7 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
   if (noteDue && notePos.position === 'before') blocks.unshift(`### 作者注释\n${noteText}`);
   if (noteDue && notePos.position === 'after') blocks.splice(Math.min(blocks.length, 1 + members.length), 0, `### 作者注释\n${noteText}`);
 
-  return [{ role: 'system', content: macros(blocks.join('\n\n')) }, ...history];
+  const system = macros(blocks.join('\n\n'));
+  if (!input.dryRun) persistVarStore(varStore, variables?.owner);
+  return [{ role: 'system', content: system }, ...history];
 }

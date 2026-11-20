@@ -1,5 +1,5 @@
 // ST 斜杠命令（STscript）的最常用子集：输入框里以 / 开头就按命令执行，| 串联多条。
-export type SlashCommand = { name: string; arg: string };
+export type SlashCommand = { name: string; arg: string; named: Record<string, string> };
 
 export const SLASH_HELP: { cmd: string; desc: string }[] = [
   { cmd: '/sys 文本', desc: '插入旁白（按 system 发给模型，不触发回复）' },
@@ -14,12 +14,28 @@ export const SLASH_HELP: { cmd: string; desc: string }[] = [
   { cmd: '/del 2', desc: '删除最后 N 条（默认 1）' },
   { cmd: '/setinput 文本', desc: '把文本放进输入框' },
   { cmd: '/echo 文本', desc: '弹一条提示' },
+  { cmd: '/setvar key=名字 值', desc: '设置聊天变量（{{getvar::名字}} 读取；全局用 /setglobalvar）' },
+  { cmd: '/getvar 名字', desc: '读取聊天变量，结果可用 | 传给下一条（{{pipe}}）' },
+  { cmd: '/addvar key=名字 值', desc: '数字相加、列表追加、文字拼接' },
+  { cmd: '/incvar 名字', desc: '加 1（/decvar 减 1）' },
+  { cmd: '/flushvar 名字', desc: '删除变量' },
+  { cmd: '/listvar', desc: '列出全部聊天变量和全局变量' },
 ];
 
 const ALIASES: Record<string, string> = {
   sys: 'sys', nar: 'sys', narrator: 'sys', send: 'send', trigger: 'trigger', continue: 'continue', cont: 'continue',
   regen: 'regen', regenerate: 'regen', impersonate: 'impersonate', imp: 'impersonate', hide: 'hide', unhide: 'unhide',
   cut: 'cut', del: 'del', delete: 'del', setinput: 'setinput', echo: 'echo', help: 'help', '?': 'help',
+  setvar: 'setvar', getvar: 'getvar', addvar: 'addvar', incvar: 'incvar', decvar: 'decvar', flushvar: 'flushvar', listvar: 'listvar',
+  setglobalvar: 'setglobalvar', getglobalvar: 'getglobalvar', addglobalvar: 'addglobalvar', incglobalvar: 'incglobalvar',
+  decglobalvar: 'decglobalvar', flushglobalvar: 'flushglobalvar',
+};
+
+/** 变量命令 → [作用域, 操作]（ST /setvar 等） */
+export const VAR_COMMANDS: Record<string, ['chat' | 'global', 'set' | 'get' | 'add' | 'inc' | 'dec' | 'flush']> = {
+  setvar: ['chat', 'set'], getvar: ['chat', 'get'], addvar: ['chat', 'add'], incvar: ['chat', 'inc'], decvar: ['chat', 'dec'], flushvar: ['chat', 'flush'],
+  setglobalvar: ['global', 'set'], getglobalvar: ['global', 'get'], addglobalvar: ['global', 'add'], incglobalvar: ['global', 'inc'],
+  decglobalvar: ['global', 'dec'], flushglobalvar: ['global', 'flush'],
 };
 
 export function isSlash(text: string): boolean {
@@ -33,8 +49,15 @@ export function parseSlash(text: string): SlashCommand[] {
     const match = part.trim().match(/^\/([\w?]+)\s*([\s\S]*)$/);
     if (!match) continue;
     const name = ALIASES[match[1].toLowerCase()] ?? `?${match[1]}`;
-    const arg = match[2].replace(/^(?:\w+=(?:"[^"]*"|\S+)\s+)+/, '').trim();
-    out.push({ name, arg });
+    const named: Record<string, string> = {};
+    let rest = match[2];
+    for (;;) {
+      const kv = rest.match(/^\s*(\w+)=(?:"([^"]*)"|(\S+))(?:\s+|$)/);
+      if (!kv) break;
+      named[kv[1].toLowerCase()] = kv[2] ?? kv[3] ?? '';
+      rest = rest.slice(kv[0].length);
+    }
+    out.push({ name, arg: rest.trim(), named });
   }
   return out;
 }

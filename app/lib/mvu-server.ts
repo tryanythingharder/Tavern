@@ -14,7 +14,7 @@ export function chatVariables(chatId: number, characterId: string, opts: { uptoI
   const state = replay(initial, floors, upto);
   const owner = db.prepare('SELECT user_id FROM chats WHERE id = ?').get(chatId) as { user_id: number } | undefined;
   const scoped = owner ? { chat: readHelperVars(owner.user_id, 'chat', String(chatId)) ?? undefined, global: readHelperVars(owner.user_id, 'global', '') ?? undefined } : undefined;
-  return { ...state, scoped };
+  return { ...state, scoped, owner: owner ? { userId: owner.user_id, chatScopeId: String(chatId) } : undefined };
 }
 
 // 群聊（房间）的 MVU 变量：所有成员卡的 InitVar 合并成初始值（同名键后面的成员覆盖前面），
@@ -25,6 +25,6 @@ export function roomVariables(roomId: number, characterIds: string[], opts: { up
   const floors = db.prepare('SELECT id, role, content FROM room_messages WHERE room_id = ? ORDER BY id').all(roomId) as Floor[];
   const state = replay(initial, floors, opts.uptoId);
   const owner = db.prepare('SELECT user_id FROM rooms WHERE id = ?').get(roomId) as { user_id: number } | undefined;
-  const scoped = owner ? { global: readHelperVars(owner.user_id, 'global', '') ?? undefined } : undefined;
-  return { ...state, scoped };
+  const scoped = owner ? { chat: readHelperVars(owner.user_id, 'chat', `room:${roomId}`) ?? undefined, global: readHelperVars(owner.user_id, 'global', '') ?? undefined } : undefined;
+  return { ...state, scoped, owner: owner ? { userId: owner.user_id, chatScopeId: `room:${roomId}` } : undefined };
 }

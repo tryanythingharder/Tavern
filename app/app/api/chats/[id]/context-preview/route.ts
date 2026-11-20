@@ -31,6 +31,7 @@ export async function GET(_request: Request, context: Params) {
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const result = assemblePrompt({
+    dryRun: true,
     character,
     history,
     preset: config.preset,

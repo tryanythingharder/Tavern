@@ -4,6 +4,10 @@ import db from '@/lib/db';
 import { toMessageView } from '@/lib/chat-view';
 import { loadGenerationConfig, personaSender } from '@/lib/resources-db';
 import { moderateText } from '@/lib/auto-moderation';
+import { readHelperVars } from '@/lib/helper-vars';
+import { applyStVarMacros, makeVarStore, varOp, type VarOp } from '@/lib/st-vars';
+import { persistVarStore } from '@/lib/st-vars-server';
+import { expandStMacros } from '@/lib/st-macros';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +63,29 @@ export async function POST(request: Request, context: Params) {
     const stmt = db.prepare('DELETE FROM messages WHERE chat_id = ? AND id = ?');
     for (const index of indexes) stmt.run(chat.id, list[index].id);
     return json({ ok: true, deleted: indexes.length });
+  }
+
+  // 变量（ST /setvar 等，和 {{setvar}} 宏、酒馆助手 chat/global 变量同一份）
+  //   { op: 'var', scope: 'chat'|'global', action: 'set'|'get'|'add'|'inc'|'dec'|'flush'|'list', name, value }
+  //   { op: 'expand', text }  斜杠命令参数里的宏（{{getvar::x}}、{{roll:1d6}}…）
+  if (body.op === 'var' || body.op === 'expand') {
+    const owner = { userId: user.id, chatScopeId: String(chat.id) };
+    const store = makeVarStore({ chat: readHelperVars(user.id, 'chat', owner.chatScopeId) ?? {}, global: readHelperVars(user.id, 'global', '') ?? {} });
+    const extra = body as { scope?: unknown; action?: unknown; name?: unknown; value?: unknown };
+    if (body.op === 'expand') {
+      const text = expandStMacros(applyStVarMacros(String(body.text ?? ''), store).replace(/\{\{getvar::[^}]*\}\}|\{\{getglobalvar::[^}]*\}\}/gi, ''));
+      persistVarStore(store, owner);
+      return json({ ok: true, text });
+    }
+    if (extra.action === 'list') return json({ ok: true, chat: store.chat, global: store.global });
+    const scope = extra.scope === 'global' ? 'global' : 'chat';
+    const action = String(extra.action ?? '') as VarOp;
+    if (!['set', 'get', 'add', 'inc', 'dec', 'flush'].includes(action)) return fail('参数不对', 400);
+    const name = String(extra.name ?? '').trim().slice(0, 200);
+    if (!name) return fail('要写变量名', 400);
+    const value = varOp(store, scope, action, name, String(extra.value ?? '').slice(0, 20000));
+    persistVarStore(store, owner);
+    return json({ ok: true, value: action === 'set' || action === 'add' ? '' : value, current: store[scope][name] ?? null });
   }
 
   if (body.op === 'delete-from') {

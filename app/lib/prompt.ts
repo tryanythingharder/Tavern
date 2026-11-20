@@ -18,6 +18,8 @@ import { getSetting } from '@/lib/settings';
 import { modelContextTokens } from '@/lib/model-catalog';
 import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
 import { expandStMacros } from '@/lib/st-macros';
+import { applyStVarMacros, makeVarStore } from '@/lib/st-vars';
+import { persistVarStore } from '@/lib/st-vars-server';
 
 // 上下文预算按 tokens 计，和 ST 一样：窗口 = 玩家预设里的「上下文长度」（0 = 跟随模型），但不超过模型自己的上限
 // （后台模型广场填的「上下文」，如 200K）。模型没填上限时用后台 prompt.defaultContext（默认 32K）；
@@ -80,6 +82,8 @@ export type AssembleInput = {
   model?: string | null;
   /** MVU 变量（lib/mvu-server.ts chatVariables），用于 {{get_message_variable::…}} 等宏 */
   variables?: MvuState | null;
+  /** 只看不生成（提示词预览）：变量宏照常求值，但不写回 */
+  dryRun?: boolean;
 };
 
 export type AssembleResult = {
@@ -389,8 +393,11 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     value
       .replace(/\{\{summary\}\}/gi, () => (input.summary ?? '').trim())
       .replace(/\{\{outlet::([^}]+)\}\}/gi, (_m, name: string) => at('outlet').filter((entry) => entry.outletName === name.trim()).map((entry) => entry.text).join('\n'));
+  // ST 变量宏：{{setvar}} 等按出现顺序执行，{{getvar}} 先读这里，没有再交给 MVU
+  const varStore = makeVarStore(input.variables?.scoped);
+  const liveVars: MvuState | null = input.variables ? { ...input.variables, scoped: { chat: varStore.chat, global: varStore.global } } : null;
   const resolveMacros = (value: string) =>
-    expandStMacros(resolveVariableMacros(outlets(value), input.variables ?? null))
+    expandStMacros(resolveVariableMacros(applyStVarMacros(outlets(value), varStore), liveVars))
       .replace(/\{\{char\}\}/gi, character.name)
       .replace(/\{\{user\}\}/gi, userName)
       .replace(/\{\{persona\}\}/gi, () => personaText);
@@ -525,6 +532,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     if (lastUser) messages.push({ role: 'user', content: nameMacros(applyRegex(regexRules, lastUser.content, { target: 'user', purpose: 'send', depth: 0 })) });
   }
 
+  if (!input.dryRun) persistVarStore(varStore, input.variables?.owner);
   const text = messages.map((message) => `${message.role}:\n${message.content}`).join('\n\n');
   return {
     messages,

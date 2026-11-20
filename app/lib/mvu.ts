@@ -11,7 +11,7 @@ type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Obj = { [key: string]: Json };
 const isObj = (value: unknown): value is Obj => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
-export type MvuState = { stat_data: Obj; display_data: Obj; delta_data: Obj; /** 酒馆助手脚本写的聊天/全局变量（lib/helper-vars.ts），宏也能读 */ scoped?: { chat?: Record<string, unknown>; global?: Record<string, unknown> } };
+export type MvuState = { stat_data: Obj; display_data: Obj; delta_data: Obj; /** 酒馆助手脚本写的聊天/全局变量（lib/helper-vars.ts），宏也能读 */ scoped?: { chat?: Record<string, unknown>; global?: Record<string, unknown> }; /** ST 变量宏写回给谁（lib/st-vars.ts） */ owner?: { userId: number; chatScopeId: string } };
 
 // ---------- JS 字面量解析（命令参数）----------
 class Reader {

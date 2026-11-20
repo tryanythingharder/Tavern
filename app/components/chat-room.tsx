@@ -14,7 +14,7 @@ import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
-import { SLASH_HELP, isSlash, parseSlash } from '@/lib/slash';
+import { SLASH_HELP, VAR_COMMANDS, isSlash, parseSlash } from '@/lib/slash';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -582,7 +582,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   // ---- ST 对齐：隐藏 / 删到最后 / 旁白 / 斜杠命令（/api/chats/[id]/ops）----
   const ops = useCallback(async (body: Record<string, unknown>) => {
     const response = await fetch(`/api/chats/${chatId}/ops`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView | string; ids?: number[]; hidden?: boolean; deleted?: number };
+    const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView | string; ids?: number[]; hidden?: boolean; deleted?: number; text?: string; value?: unknown; current?: unknown; chat?: unknown; global?: unknown };
     if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : '操作失败');
     return data;
   }, [chatId]);
@@ -621,8 +621,38 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const runSlash = useCallback(async (text: string) => {
     setError('');
     try {
+      // ST 管道：上一条命令的结果是下一条的 {{pipe}}；参数为空时直接用它
+      let pipe = '';
       for (const command of parseSlash(text)) {
-        const { name, arg } = command;
+        const { name, named } = command;
+        let arg = command.arg.replace(/\{\{pipe\}\}/gi, () => pipe);
+        if (!arg && pipe && !named.key) arg = pipe;
+        if (/\{\{/.test(arg) && name !== 'setinput') arg = String((await ops({ op: 'expand', text: arg })).text ?? arg);
+        if (name in VAR_COMMANDS) {
+          const [scope, action] = VAR_COMMANDS[name];
+          // ST：/setvar key=名字 值；也认 /setvar 名字 值 和 /getvar 名字
+          let varName = named.key ?? named.name ?? '';
+          let value = arg;
+          if (!varName) {
+            const parts = arg.split(/\s+/);
+            varName = parts.shift() ?? '';
+            value = parts.join(' ');
+          }
+          if (!varName) throw new Error(`/${name} 要写变量名，例如 /${name} key=好感度 ${action === 'set' || action === 'add' ? '10' : ''}`.trim());
+          const data = await ops({ op: 'var', scope, action, name: varName, value: named.value ?? value });
+          pipe = String(data.value ?? '');
+          if (action === 'get') setNotice(pipe === '' ? `${varName}（未设置）` : `${varName} = ${pipe}`);
+          else if (action === 'flush') setNotice(`已删除变量 ${varName}`);
+          else setNotice(`${varName} = ${typeof data.current === 'object' ? JSON.stringify(data.current) : String(data.current ?? '')}`);
+          continue;
+        }
+        if (name === 'listvar') {
+          const data = await ops({ op: 'var', action: 'list' });
+          const fmt = (obj: unknown) => Object.entries((obj ?? {}) as Record<string, unknown>).map(([k, v]) => `${k} = ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join('\n') || '（无）';
+          setNotice(`聊天变量：\n${fmt(data.chat)}\n全局变量：\n${fmt(data.global)}`);
+          continue;
+        }
+        pipe = '';
         if (name === 'help') setSlashHelp(true);
         else if (name === 'sys' || name === 'send') {
           if (!arg) throw new Error(`/${name} 后面要写内容`);
@@ -652,7 +682,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         } else if (name === 'setinput') {
           setDraft(arg);
           inputRef.current?.focus();
-        } else if (name === 'echo') setNotice(arg);
+        } else if (name === 'echo') {
+          setNotice(arg);
+          pipe = arg;
+        }
         else throw new Error(`本站暂不支持 /${name.slice(1)}，输入 /help 查看可用命令`);
       }
     } catch (caught) {
@@ -663,7 +696,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   slashRef.current = runSlash;
   useEffect(() => {
     if (!notice) return;
-    const timer = setTimeout(() => setNotice(''), 2600);
+    const timer = setTimeout(() => setNotice(''), Math.min(12000, 2600 + notice.length * 60));
     return () => clearTimeout(timer);
   }, [notice]);
 
