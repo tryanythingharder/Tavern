@@ -1,8 +1,10 @@
 import db, { getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
-import { applyRegex, scanLore } from '@/lib/prompt';
+import { applyRegex, scanLore, summaryText } from '@/lib/prompt';
+import type { RoomPromptMemory } from '@/lib/room-memory';
 import { renderContextTemplate, type LoreEntry, type Persona, type Preset, type RegexRule } from '@/lib/resources';
 import type { ChatMessage } from '@/lib/model';
 import { characterLoreEntries, characterRegexRules } from '@/lib/card-extras';
+import { parseOpenings } from '@/lib/characters';
 import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
 
 // M4 房间/群聊：多个角色共享一段对话。发言者按策略挑选（自然/轮流/手动/随机池），
@@ -105,7 +107,9 @@ export function createRoom(userId: number, input: { name?: string; characterIds?
     now,
     now,
   );
-  return getRoom(Number(result.lastInsertRowid), userId) ?? null;
+  const room = getRoom(Number(result.lastInsertRowid), userId) ?? null;
+  if (room) insertRoomGreetings(room);
+  return room;
 }
 
 export function updateRoom(
@@ -192,6 +196,30 @@ export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speak
   return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null };
 }
 
+/**
+ * ST 群聊开场：聊天为空时，按成员顺序把每位（未静音、有开场白的）成员的开场白各插一条；
+ * 备选开场白作为这条的候选，可左右切换（同单聊）。宏在显示/组装时按该成员解析。
+ * 返回插入条数；房间不空时什么都不做。
+ */
+export function insertRoomGreetings(room: Room): number {
+  const count = (db.prepare('SELECT COUNT(*) AS n FROM room_messages WHERE room_id = ?').get(room.id) as { n: number }).n;
+  if (count > 0) return 0;
+  const insert = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, created_at) VALUES (?,?,?,?,?,?,?)');
+  let inserted = 0;
+  const now = Date.now();
+  for (const id of room.characterIds) {
+    if (room.muted.includes(id)) continue;
+    const character = getCharacterById(id);
+    if (!character) continue;
+    const greetings = [character.greeting, ...parseOpenings(character.alternate_greetings).map((item) => item.text)].filter((text) => text && text.trim());
+    if (!greetings.length) continue;
+    insert.run(room.id, 'assistant', id, greetings[0], greetings.length > 1 ? JSON.stringify(greetings) : null, 0, now + inserted);
+    inserted += 1;
+  }
+  if (inserted) db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, room.id);
+  return inserted;
+}
+
 export function deleteRoomMessage(messageId: number): void {
   db.prepare('DELETE FROM room_messages WHERE id = ?').run(messageId);
 }
@@ -262,6 +290,11 @@ export function branchRoom(userId: number, roomId: number, messageId: number, ch
     db.prepare(`INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, attachment, created_at)
       SELECT ?, role, speaker_id, content, candidates, selected, attachment, created_at FROM room_messages WHERE room_id = ? AND id <= ? ORDER BY id`).run(newId, roomId, messageId);
     if (checkpoint) db.prepare('UPDATE room_messages SET checkpoint_room_id = ? WHERE id = ?').run(newId, messageId);
+    // 作者注释 / 摘要设置跟着走；摘要只在没覆盖到分支点之后时才复制（同单聊分支）
+    const source = db.prepare('SELECT author_note, summary, summary_prefs FROM rooms WHERE id = ?').get(roomId) as { author_note: string | null; summary: string | null; summary_prefs: string | null };
+    const copied = (db.prepare('SELECT COUNT(*) AS n FROM room_messages WHERE room_id = ?').get(newId) as { n: number }).n;
+    const covered = Number(parseJson<{ covered?: number }>(source.summary, {}).covered) || 0;
+    db.prepare('UPDATE rooms SET author_note = ?, summary_prefs = ?, summary = ? WHERE id = ?').run(source.author_note, source.summary_prefs, covered <= copied ? source.summary : null, newId);
     return newId;
   };
   db.exec('BEGIN');
@@ -317,16 +350,22 @@ export type RoomPromptInput = {
   regexRules: RegexRule[];
   /** 房间共享的 MVU 变量（lib/mvu-server.ts roomVariables） */
   variables?: MvuState | null;
+  /** 群聊作者注释 + 记忆摘要（lib/room-memory.ts） */
+  memory?: RoomPromptMemory | null;
+  /** 本轮发言者的角色注释（ST：角色注释替换/拼接会话注释） */
+  characterNoteText?: string;
 };
 
 export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
-  const { room, messages, speaker, preset, persona, regexRules, variables } = input;
+  const { room, messages, speaker, preset, persona, regexRules, variables, memory } = input;
+  const summary = (memory?.summary ?? '').trim();
   const userName = persona?.name || '你';
   // 成员卡自带的世界书一起扫（InitVar 这类只给变量用的条目不进提示词）
   const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title));
   const loreEntries = [...cardLore, ...input.loreEntries];
   const macros = (value: string, charName = speaker.name) =>
     resolveVariableMacros(value, variables ?? null)
+      .replace(/\{\{summary\}\}/gi, () => summary)
       .replace(/\{\{char\}\}/gi, charName)
       .replace(/\{\{(?:user|persona)\}\}/gi, userName);
   // 每个成员卡的「发送」正则只作用于该成员自己的楼层
@@ -355,6 +394,7 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
   scanTexts.push(...members.map((character) => character.description));
   const scan = scanLore(loreEntries, scanTexts, { messageCount });
   if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${macros(entry.text)}`).join('\n')}`);
+  if (summary && memory?.summaryPlacement.position === 'prompt') blocks.push(`### 前情摘要\n${summaryText(memory.summaryPlacement.template, summary)}`);
   if (persona?.description.trim()) blocks.push(`### 玩家身份\n【身份】${persona.name}\n${persona.description.trim()}`);
 
   blocks.push(
@@ -372,8 +412,24 @@ export function buildRoomPrompt(input: RoomPromptInput): ChatMessage[] {
     const depth = recent.length - 1 - index;
     const rules = [...(message.speakerId ? sendRules.get(message.speakerId) ?? [] : []), ...regexRules];
     const content = applyRegex(rules, message.content, { target, purpose: 'send', depth, macros: { char: nameOf(message.speakerId), user: userName } });
-    return { role: target, content: `${message.role === 'user' ? userName : nameOf(message.speakerId)}：${content}` };
+    // 开场白等原文里的 {{char}} 按这条的发言者解析（ST 群聊开场白宏按各自角色替换）
+    const who = message.role === 'user' ? userName : nameOf(message.speakerId);
+    return { role: target, content: `${who}：${macros(content, message.role === 'user' ? speaker.name : who)}` };
   });
+
+  // 作者注释（ST 默认聊天内 @4、system、每条玩家消息都插）与 @深度 摘要：按深度插进历史
+  const note = memory?.authorNote;
+  const noteText = (input.characterNoteText ?? '').trim() || note?.text.trim() || '';
+  const userTurns = recent.filter((message) => message.role === 'user').length;
+  const noteDue = Boolean(note && noteText && note.interval > 0 && userTurns % note.interval === 0);
+  const injections: { depth: number; role: ChatMessage['role']; text: string }[] = [];
+  if (noteDue && note!.position === 'depth') injections.push({ depth: note!.depth, role: note!.role, text: noteText });
+  if (summary && memory?.summaryPlacement.position === 'depth') injections.push({ depth: memory.summaryPlacement.depth, role: memory.summaryPlacement.role, text: summaryText(memory.summaryPlacement.template, summary) });
+  for (const item of [...injections].sort((a, b) => b.depth - a.depth)) {
+    history.splice(Math.max(history.length - item.depth, 0), 0, { role: item.role, content: macros(item.text) });
+  }
+  if (noteDue && note!.position === 'before') blocks.unshift(`### 作者注释\n${noteText}`);
+  if (noteDue && note!.position === 'after') blocks.splice(Math.min(blocks.length, 1 + members.length), 0, `### 作者注释\n${noteText}`);
 
   return [{ role: 'system', content: macros(blocks.join('\n\n')) }, ...history];
 }

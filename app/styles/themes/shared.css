@@ -526,6 +526,14 @@ html body[data-page="admin"]:not(.p-cinema) .p-aside .p-nav-item[aria-current="p
 .room-empty-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px 6px 6px; border: 1px solid var(--ca-line, #e6e6e8); border-radius: 999px; background: var(--ca-card, #fff); font: inherit; color: inherit; cursor: pointer; }
 .room-empty-chip:hover { border-color: var(--accent, #c9401f); }
 .room-empty-chip:focus-visible { outline: 2px solid var(--accent, #c9401f); outline-offset: 2px; }
+.room-empty-chip:disabled { opacity: .55; cursor: default; }
+/* 群聊输入区「让 TA 发言」头像条（ST 成员列表的 force talk） */
+.room-talk { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; flex-wrap: wrap; }
+.room-talk-btn { display: inline-flex; padding: 2px; border: 0; border-radius: 999px; background: none; cursor: pointer; }
+.room-talk-btn[data-muted] .p-avatar { opacity: .45; filter: grayscale(.6); }
+.room-talk-btn:hover:not(:disabled) .p-avatar, .room-talk-btn:focus-visible .p-avatar { box-shadow: 0 0 0 2px var(--accent, #c9401f); }
+.room-talk-btn:focus-visible { outline: none; }
+.room-talk-btn:disabled { cursor: default; opacity: .6; }
 
 @media (min-width: 1024px) {
   html body[data-theme][data-page="chat"] .p-rp-workbench[data-room] {

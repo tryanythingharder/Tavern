@@ -425,6 +425,10 @@ ensureColumn('room_messages', 'checkpoint_room_id', 'INTEGER');
 ensureColumn('rooms', 'parent_room_id', 'INTEGER');
 ensureColumn('rooms', 'parent_message_id', 'INTEGER');
 ensureColumn('rooms', 'is_checkpoint', 'INTEGER NOT NULL DEFAULT 0');
+// 群聊作者注释 / 记忆摘要（形状同 chats.author_note / summary / summary_prefs）
+ensureColumn('rooms', 'author_note', 'TEXT');
+ensureColumn('rooms', 'summary', 'TEXT');
+ensureColumn('rooms', 'summary_prefs', 'TEXT');
 ensureColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user'");
 ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
 ensureColumn('users', 'age_confirmed_at', 'INTEGER');

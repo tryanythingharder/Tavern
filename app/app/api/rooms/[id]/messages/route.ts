@@ -9,6 +9,8 @@ import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 
 import { CONTINUE_NUDGE, joinContinue } from '@/lib/continue';
+import { autoRoomSummarize, roomPromptMemory } from '@/lib/room-memory';
+import { characterNote, combinedNoteText } from '@/lib/memory';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +43,7 @@ export async function POST(request: Request, context: Params) {
   const room = getRoom(roomId, user.id);
   if (!room) return fail('房间不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean; mode?: string; messageId?: number };
+  const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean; force?: boolean; mode?: string; messageId?: number };
   const mode = body.mode === 'regenerate' || body.mode === 'continue' ? body.mode : null;
   const auto = body.auto === true || mode !== null;
   const text = mode ? '' : String(body.text ?? '').trim();
@@ -50,6 +52,7 @@ export async function POST(request: Request, context: Params) {
   if (mode) {
     if (!target || target.role !== 'assistant' || !target.speakerId) return fail(mode === 'continue' ? '只能继续角色消息' : '只能重新生成角色消息', 400);
     if (!isLatestRoomMessage(room.id, target.id)) return fail(mode === 'continue' ? '只能继续最新一条消息' : '只能重新生成最新一条消息', 400);
+    if (mode === 'regenerate' && !listRoomMessages(room.id).some((message) => message.role === 'user' && message.id < target.id)) return fail('开场白只能在备选开场白之间切换', 400);
   }
   if (text) {
     const verdict = await moderateText(text);
@@ -68,7 +71,9 @@ export async function POST(request: Request, context: Params) {
   // 自动推进时没有新的玩家输入：自然模式沿用最后一条玩家消息找名字
   const lastUserText = auto ? [...messages].reverse().find((message) => message.role === 'user')?.content ?? '' : text;
   // 换版/继续：发言者保持原来那位（ST swipe 不换角色）
-  const speakerId = target?.speakerId ?? pickSpeaker(room, messages, lastUserText, body.speakerId || room.speakerId);
+  // ST「让 TA 发言」：指定成员，无视调度与静音
+  const forced = body.force === true && typeof body.speakerId === 'string' && room.characterIds.includes(body.speakerId) ? body.speakerId : null;
+  const speakerId = target?.speakerId ?? forced ?? pickSpeaker(room, messages, lastUserText, body.speakerId || room.speakerId);
   const speaker = speakerId ? getCharacterById(speakerId) : undefined;
   if (!speaker) return fail('房间里没有可发言的角色（可能都被静音了）', 400);
 
@@ -88,6 +93,8 @@ export async function POST(request: Request, context: Params) {
     persona: config.persona,
     loreEntries: config.loreEntries,
     regexRules: config.regexRules,
+    memory: roomPromptMemory(room.id, user.id),
+    characterNoteText: combinedNoteText(roomPromptMemory(room.id, user.id)?.authorNote.text ?? '', characterNote(user.id, speaker.id)),
     variables: roomVariables(room.id, room.characterIds, mode === 'regenerate' && target ? { uptoId: target.id - 1 } : {}),
   });
   if (mode === 'continue') prompt.push({ role: 'system', content: CONTINUE_NUDGE });
@@ -175,6 +182,8 @@ export async function POST(request: Request, context: Params) {
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
       } finally {
+        // 群聊记忆摘要：到了间隔才在后台跑一段（不挡回复）
+        void autoRoomSummarize(room.id, user.id);
         try {
           controller.close();
         } catch {

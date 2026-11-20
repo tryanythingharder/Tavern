@@ -529,7 +529,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
 
 type LoreRoleLike = 'system' | 'user' | 'assistant';
 
-function summaryText(template: string, summary: string): string {
+export function summaryText(template: string, summary: string): string {
   const tpl = template.trim() || '{{summary}}';
   return /\{\{summary\}\}/i.test(tpl) ? tpl.replace(/\{\{summary\}\}/gi, () => summary) : `${tpl}\n${summary}`;
 }

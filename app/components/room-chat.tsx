@@ -28,7 +28,7 @@ function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
 
-type GenMode = { kind: 'send'; text: string } | { kind: 'auto' } | { kind: 'regenerate' | 'continue'; messageId: number };
+type GenMode = { kind: 'send'; text: string } | { kind: 'auto'; speakerId?: string } | { kind: 'regenerate' | 'continue'; messageId: number };
 
 const STRATEGY_HINT: Record<string, string> = {
   natural: '自然：你叫到谁的名字，谁就先答；否则轮流。',
@@ -85,6 +85,10 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
   }, [messages]);
 
   const memberOf = (id: string | null) => members.find((member) => member.id === id);
+  const firstUserIndex = useMemo(() => {
+    const index = messages.findIndex((message) => message.role === 'user');
+    return index < 0 ? messages.length : index - 1;
+  }, [messages]);
 
   const resync = useCallback(async () => {
     try {
@@ -125,7 +129,9 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
       const payload = mode.kind === 'send'
         ? { text: mode.text, speakerId: strategy === 'manual' ? speakerId : undefined }
         : mode.kind === 'auto'
-          ? { auto: true, speakerId: strategy === 'manual' ? speakerId : undefined }
+          ? mode.speakerId
+            ? { auto: true, speakerId: mode.speakerId, force: true }
+            : { auto: true, speakerId: strategy === 'manual' ? speakerId : undefined }
           : { mode: mode.kind, messageId: mode.messageId };
       const response = await fetch(`/api/rooms/${roomId}/messages`, {
         method: 'POST',
@@ -215,6 +221,11 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
       setTyping(null);
     }
   }, [streaming, streamReply, autoMode]);
+
+  // ST 成员列表的「让 TA 发言」：无视调度和静音，指定这位成员接着说一条
+  const forceTalk = useCallback((memberId: string) => {
+    void run({ kind: 'auto', speakerId: memberId });
+  }, [run]);
 
   // ST「继续」：最后一条是角色消息就接着写；否则让下一位角色接话（同群聊里的「推进」）
   const continueLast = useCallback(() => {
@@ -342,10 +353,10 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
             <section className="room-empty" aria-label="房间开场">
               <p className="room-empty-kicker">群像 · 第一场</p>
               <h2 className="room-empty-title">这场戏还没开始</h2>
-              <p className="room-empty-copy">先写一句开场，或者点名一位角色，让他先开口。</p>
+              <p className="room-empty-copy">先写一句开场，或者点一位角色，让 TA 先开口。</p>
               <div className="room-empty-cast">
                 {members.filter((member) => !member.muted).map((member) => (
-                  <button key={member.id} type="button" className="room-empty-chip" onClick={() => setDraft((value) => (value.includes(`@${member.name}`) ? value : `@${member.name} ${value}`))}>
+                  <button key={member.id} type="button" className="room-empty-chip" title={`让${member.name}先开口`} disabled={streaming} onClick={() => forceTalk(member.id)}>
                     <span className="p-avatar" style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.initial}</span>
                     {member.name}
                   </button>
@@ -363,6 +374,8 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
             const count = message.candidateCount ?? 1;
             const selected = message.selected ?? 0;
             const canSwipe = !isUser && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
+            // 开场白（玩家还没说过话之前的角色消息）：只在备选开场白之间切换，不生成新版（同单聊 / ST）
+            const isOpening = !isUser && index <= firstUserIndex;
             return (
               <article
                 key={message.id}
@@ -377,7 +390,8 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
                   const dx = t.clientX - start.x; const dy = t.clientY - start.y;
                   if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                   if (dx > 0 && selected > 0) void switchCandidate(message, selected - 1);
-                  else if (dx < 0) void (selected < count - 1 ? switchCandidate(message, selected + 1) : run({ kind: 'regenerate', messageId: numericId! }));
+                  else if (dx < 0 && selected < count - 1) void switchCandidate(message, selected + 1);
+                  else if (dx < 0 && !isOpening) void run({ kind: 'regenerate', messageId: numericId! });
                 } : undefined}
               >
                 <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : member?.hue ?? 212 }}>
@@ -422,12 +436,14 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
                       ) : null}
                     </>
                   )}
-                  {canSwipe && (
+                  {canSwipe && !(isOpening && count <= 1) && (
                     <div className="rp-swipe" role="group" aria-label="回复版本">
                       <button type="button" aria-label="上一版回复" disabled={selected <= 0 || switching === numericId || streaming} onClick={() => void switchCandidate(message, selected - 1)}><Ico name="prev" /></button>
                       <span className="rp-swipe-index" aria-live="polite">{selected + 1} / {count}</span>
                       {selected < count - 1 ? (
                         <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void switchCandidate(message, selected + 1)}><Ico name="next" /></button>
+                      ) : isOpening ? (
+                        <button type="button" aria-label="下一版回复" disabled><Ico name="next" /></button>
                       ) : (
                         <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void run({ kind: 'regenerate', messageId: numericId! })}><Ico name="next" /></button>
                       )}
@@ -447,7 +463,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
                         <>
                           <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
                           <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content })}><Ico name="edit" /></button>
-                          {!isUser && isLast && (
+                          {!isUser && isLast && !isOpening && (
                             <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void run({ kind: 'regenerate', messageId: numericId })}><Ico name="regen" /></button>
                           )}
                           <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void branch(message)}><Ico name="branch" /></button>
@@ -471,8 +487,24 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName,
           <div className="p-rp-compose-context">
             <span className="p-compose-persona">{STRATEGY_HINT[strategy] ?? ''}</span>
             {typing && <span className="p-small">{typing} 正在输入…</span>}
+            <span className="room-talk" role="group" aria-label="让成员发言">
+              {members.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  className="room-talk-btn"
+                  data-muted={member.muted ? '' : undefined}
+                  title={`让${member.name}发言${member.muted ? '（已静音，仍可点名）' : ''}`}
+                  aria-label={`让${member.name}发言`}
+                  disabled={streaming || impersonating}
+                  onClick={() => forceTalk(member.id)}
+                >
+                  <span className="p-avatar" style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.initial}</span>
+                </button>
+              ))}
+            </span>
             {strategy === 'manual' && (
-              <label className="p-small" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label className="p-small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 本轮由
                 <select className="p-select" style={{ width: 'auto', padding: '4px 8px' }} value={speakerId} onChange={(event) => setSpeakerId(event.target.value)}>
                   {members.filter((member) => !member.muted).map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}

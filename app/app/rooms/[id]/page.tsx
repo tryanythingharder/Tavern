@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getCharacterById } from '@/lib/db';
-import { getRoom, listRoomMessages, roomFamily } from '@/lib/rooms';
+import { getRoom, insertRoomGreetings, listRoomMessages, roomFamily } from '@/lib/rooms';
+import { RoomMemoryButton } from '@/components/room-memory';
 import { ChatBranches } from '@/components/chat-branches';
 import { listPersonas, listRegexRules } from '@/lib/resources-db';
 import { characterRegexRules } from '@/lib/card-extras';
@@ -29,6 +30,8 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
     .map((characterId) => getCharacterById(characterId))
     .filter((character): character is NonNullable<typeof character> => Boolean(character))
     .map((character) => ({ id: character.id, name: character.name, initial: character.initial, hue: character.hue, muted: room.muted.includes(character.id) }));
+  // ST：群聊为空时插入各成员的开场白
+  insertRoomGreetings(room);
   const messages = listRoomMessages(room.id);
   const branches = roomFamily(user.id, room);
   const from = Number((await searchParams).from) || null;
@@ -52,6 +55,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <RoomMemoryButton roomId={room.id} />
               <AppearanceButton className="p-chat-icon ua-trigger--icon" />
               <Link className="p-chat-icon" href="/rooms" aria-label="房间设置">
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></svg>
