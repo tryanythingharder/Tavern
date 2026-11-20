@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getCharacterById } from '@/lib/db';
-import { getRoom, listRoomMessages } from '@/lib/rooms';
+import { getRoom, listRoomMessages, roomFamily } from '@/lib/rooms';
+import { ChatBranches } from '@/components/chat-branches';
 import { listPersonas, listRegexRules } from '@/lib/resources-db';
 import { characterRegexRules } from '@/lib/card-extras';
 import { RoomChat } from '@/components/room-chat';
@@ -17,7 +18,7 @@ export const dynamic = 'force-dynamic';
 
 const STRATEGY_LABEL: Record<string, string> = { natural: '自然（叫名字优先）', roundRobin: '轮流', manual: '手动指定', pooled: '随机' };
 
-export default async function RoomPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RoomPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const { id } = await params;
@@ -29,6 +30,8 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
     .filter((character): character is NonNullable<typeof character> => Boolean(character))
     .map((character) => ({ id: character.id, name: character.name, initial: character.initial, hue: character.hue, muted: room.muted.includes(character.id) }));
   const messages = listRoomMessages(room.id);
+  const branches = roomFamily(user.id, room);
+  const from = Number((await searchParams).from) || null;
   const userName = listPersonas(user.id)[0]?.name ?? '你';
   const activeCount = members.filter((member) => !room.muted.includes(member.id)).length;
   const strategyLabel = STRATEGY_LABEL[room.strategy] ?? room.strategy;
@@ -48,12 +51,15 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
                   <div className="p-chat-sub">{activeCount}/{members.length} 位成员发言 · {strategyLabel}{room.autoMode ? ' · 自动推进' : ''}</div>
                 </div>
               </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               <AppearanceButton className="p-chat-icon ua-trigger--icon" />
               <Link className="p-chat-icon" href="/rooms" aria-label="房间设置">
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></svg>
               </Link>
+              </div>
             </div>
           </header>
+          <ChatBranches info={branches} justCreated={Boolean(from && from === branches.parent?.id)} base="/rooms" />
           <div className="p-rp-status">
             <span>多角色房间 · 回复由模型生成 · 按 token 扣点</span>
             <span>{strategyLabel}{room.autoMode ? ' · 自动推进' : ''}</span>

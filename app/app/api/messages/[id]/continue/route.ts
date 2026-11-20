@@ -18,18 +18,12 @@ import { memorySettings, ragChunks, snapshotChat, summaryState, promptMemory } f
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 
+import { CONTINUE_NUDGE, joinContinue } from '@/lib/continue';
+
 export const dynamic = 'force-dynamic';
 
-// ST 默认的继续提示：[Continue your last message without repeating its original content.]
-const CONTINUE_NUDGE = '[接着你上一条消息继续写下去，不要重复已经写过的内容。]';
 
 // ST 拼接方式：直接接上；原文末尾不是空白、续写开头也不是空白/标点时补一个换行，避免两段粘在一起
-function joinContinue(base: string, more: string): string {
-  if (!more) return base;
-  if (!base || /\s$/.test(base) || /^[\s，。！？、；：,.!?;:）)」』”]/.test(more)) return base + more;
-  return `${base}${/[。！？.!?」』”）)]$/.test(base) ? '\n' : ''}${more}`;
-}
-
 function fail(message: string, status: number, retryAfterSeconds?: number) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (retryAfterSeconds) headers['Retry-After'] = String(retryAfterSeconds);

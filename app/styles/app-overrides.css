@@ -877,3 +877,13 @@ body[data-page]:not(.p-cinema) .ca-scene-cover.p-cover:not(.has-portrait):not(.p
 .p-msg-checkpoint { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); font-size: 12px; text-decoration: none; }
 .p-msg-checkpoint:hover { color: var(--text); border-color: var(--text-3, var(--border)); }
 .p-msg-checkpoint .p-icon { width: 13px; height: 13px; }
+html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-msg-checkpoint { justify-self: start; width: auto; }
+
+/* 舞台主题窄屏：单聊的布局围绕顶部封面卡（头部绝对定位、滚动区留 322px），群聊房间没有封面卡，恢复成普通的顶栏 + 分支条 */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-head { position: relative; top: auto; right: auto; left: auto; z-index: 21; padding: 10px 14px 4px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-title { display: flex; min-width: 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-scroll { padding-top: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-branch-note { position: static; margin: 4px 14px 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-rp-status { position: static; }
+}

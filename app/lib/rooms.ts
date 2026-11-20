@@ -1,4 +1,4 @@
-import db, { getCharacterById, type DbCharacter } from '@/lib/db';
+import db, { getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
 import { applyRegex, scanLore } from '@/lib/prompt';
 import { renderContextTemplate, type LoreEntry, type Persona, type Preset, type RegexRule } from '@/lib/resources';
 import type { ChatMessage } from '@/lib/model';
@@ -19,17 +19,31 @@ export type Room = {
   autoMode: boolean;
   speakerId: string | null;
   model: string | null;
+  /** 分支/检查点来源（ST：从群聊某条消息分出） */
+  parentRoomId: number | null;
+  parentMessageId: number | null;
+  isCheckpoint: boolean;
   createdAt: number;
   updatedAt: number;
 };
 
-export type RoomMessage = { id: number; roomId: number; role: 'user' | 'assistant'; speakerId: string | null; content: string; createdAt: number };
+export type RoomMessage = {
+  id: number; roomId: number; role: 'user' | 'assistant'; speakerId: string | null; content: string; createdAt: number;
+  /** ST 滑动换版：候选数与当前选中下标（没有候选时 1 / 0） */
+  candidateCount: number; selected: number;
+  /** 挂在这条消息上的检查点房间 */
+  checkpoint: number | null;
+};
 
 type RoomRow = {
   id: number; name: string; character_ids: string; muted: string; strategy: string;
   auto_mode: number | null; speaker_id: string | null; model?: string | null; created_at: number; updated_at: number;
+  parent_room_id?: number | null; parent_message_id?: number | null; is_checkpoint?: number | null;
 };
-type RoomMessageRow = { id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number };
+type RoomMessageRow = {
+  id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number;
+  candidates?: string | null; selected?: number | null; checkpoint_room_id?: number | null; attachment?: string | null;
+};
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -52,6 +66,9 @@ function fromRow(row: RoomRow): Room {
     autoMode: row.auto_mode === 1,
     speakerId: row.speaker_id && parseJson<string[]>(row.character_ids, []).includes(row.speaker_id) ? row.speaker_id : null,
     model: row.model || null,
+    parentRoomId: row.parent_room_id ?? null,
+    parentMessageId: row.parent_message_id ?? null,
+    isCheckpoint: row.is_checkpoint === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -127,32 +144,147 @@ export function deleteRoom(userId: number, roomId: number): boolean {
   if (!room) return false;
   db.prepare('DELETE FROM room_messages WHERE room_id = ?').run(roomId);
   db.prepare('DELETE FROM rooms WHERE id = ? AND user_id = ?').run(roomId, userId);
+  // 原房间上挂的检查点入口失效；子分支保留，只断开来源
+  db.prepare('UPDATE room_messages SET checkpoint_room_id = NULL WHERE checkpoint_room_id = ?').run(roomId);
+  db.prepare('UPDATE rooms SET parent_room_id = NULL WHERE parent_room_id = ? AND user_id = ?').run(roomId, userId);
   return true;
+}
+
+function candidatesOf(row: { candidates?: string | null; content: string }): string[] {
+  const list = parseJson<unknown[]>(row.candidates ?? null, []).filter((value): value is string => typeof value === 'string');
+  return list.length ? list : [row.content];
+}
+
+function messageFromRow(row: RoomMessageRow): RoomMessage {
+  const count = candidatesOf(row).length;
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    role: row.role === 'user' ? 'user' : 'assistant',
+    speakerId: row.speaker_id,
+    content: row.content,
+    createdAt: row.created_at,
+    candidateCount: count,
+    selected: Math.min(Math.max(row.selected ?? 0, 0), count - 1),
+    checkpoint: row.checkpoint_room_id ?? null,
+  };
 }
 
 export function listRoomMessages(roomId: number, limit = 200): RoomMessage[] {
   const rows = db.prepare('SELECT * FROM room_messages WHERE room_id = ? ORDER BY id DESC LIMIT ?').all(roomId, limit) as RoomMessageRow[];
-  return rows
-    .map((row): RoomMessage => ({
-      id: row.id,
-      roomId: row.room_id,
-      role: row.role === 'user' ? 'user' : 'assistant',
-      speakerId: row.speaker_id,
-      content: row.content,
-      createdAt: row.created_at,
-    }))
-    .reverse();
+  return rows.map(messageFromRow).reverse();
+}
+
+export function getRoomMessage(roomId: number, messageId: number): RoomMessage | undefined {
+  const row = db.prepare('SELECT * FROM room_messages WHERE id = ? AND room_id = ?').get(messageId, roomId) as RoomMessageRow | undefined;
+  return row ? messageFromRow(row) : undefined;
+}
+
+export function isLatestRoomMessage(roomId: number, messageId: number): boolean {
+  const row = db.prepare('SELECT MAX(id) AS id FROM room_messages WHERE room_id = ?').get(roomId) as { id: number | null };
+  return row.id === messageId;
 }
 
 export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speakerId: string | null, content: string): RoomMessage {
   const now = Date.now();
   const result = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, created_at) VALUES (?,?,?,?,?)').run(roomId, role, speakerId, content, now);
   db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, roomId);
-  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now };
+  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null };
 }
 
 export function deleteRoomMessage(messageId: number): void {
   db.prepare('DELETE FROM room_messages WHERE id = ?').run(messageId);
+}
+
+function rawRoomMessage(messageId: number): RoomMessageRow | undefined {
+  return db.prepare('SELECT * FROM room_messages WHERE id = ?').get(messageId) as RoomMessageRow | undefined;
+}
+
+/** 编辑：改正文，同时改当前候选（ST 编辑只动当前这一版） */
+export function editRoomMessage(messageId: number, content: string): void {
+  const row = rawRoomMessage(messageId);
+  if (!row) return;
+  const list = candidatesOf(row);
+  const index = Math.min(Math.max(row.selected ?? 0, 0), list.length - 1);
+  list[index] = content;
+  db.prepare('UPDATE room_messages SET content = ?, candidates = ? WHERE id = ?').run(content, list.length > 1 ? JSON.stringify(list) : null, messageId);
+}
+
+/** 重新生成：新回复作为一个候选追加并选中（ST swipe 右滑到尽头） */
+export function addRoomCandidate(messageId: number, content: string): { index: number; count: number } {
+  const row = rawRoomMessage(messageId);
+  if (!row) return { index: 0, count: 1 };
+  const list = [...candidatesOf(row), content];
+  db.prepare('UPDATE room_messages SET content = ?, candidates = ?, selected = ? WHERE id = ?').run(content, JSON.stringify(list), list.length - 1, messageId);
+  return { index: list.length - 1, count: list.length };
+}
+
+export function selectRoomCandidate(messageId: number, index: number): RoomMessage | undefined {
+  const row = rawRoomMessage(messageId);
+  if (!row) return undefined;
+  const list = candidatesOf(row);
+  if (index < 0 || index >= list.length) return undefined;
+  db.prepare('UPDATE room_messages SET content = ?, candidates = ?, selected = ? WHERE id = ?').run(list[index], JSON.stringify(list), index, messageId);
+  return getRoomMessage(row.room_id, messageId);
+}
+
+/**
+ * ST 群聊分支/检查点：复制房间设置（成员/静音/调度/自动推进/模型）和截至该消息的楼层（含候选）。
+ * 检查点挂在原消息上，再点就直接打开。变量按楼层重放，所以不用另外复制。
+ */
+export function branchRoom(userId: number, roomId: number, messageId: number, checkpoint = false): Room | undefined {
+  const room = getRoom(roomId, userId);
+  const target = room ? rawRoomMessage(messageId) : undefined;
+  if (!room || !target || target.room_id !== roomId) return undefined;
+  if (checkpoint && target.checkpoint_room_id) {
+    const existing = getRoom(target.checkpoint_room_id, userId);
+    if (existing) return existing;
+  }
+  const now = Date.now();
+  const tx = () => {
+    const created = db.prepare(`INSERT INTO rooms (user_id, name, character_ids, muted, strategy, auto_mode, speaker_id, model, parent_room_id, parent_message_id, is_checkpoint, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      userId,
+      `${room.name.slice(0, 30)} · ${checkpoint ? '检查点' : '分支'}`,
+      JSON.stringify(room.characterIds),
+      JSON.stringify(room.muted),
+      room.strategy,
+      room.autoMode ? 1 : 0,
+      room.speakerId,
+      room.model,
+      roomId,
+      messageId,
+      checkpoint ? 1 : 0,
+      now,
+      now,
+    );
+    const newId = Number(created.lastInsertRowid);
+    db.prepare(`INSERT INTO room_messages (room_id, role, speaker_id, content, candidates, selected, attachment, created_at)
+      SELECT ?, role, speaker_id, content, candidates, selected, attachment, created_at FROM room_messages WHERE room_id = ? AND id <= ? ORDER BY id`).run(newId, roomId, messageId);
+    if (checkpoint) db.prepare('UPDATE room_messages SET checkpoint_room_id = ? WHERE id = ?').run(newId, messageId);
+    return newId;
+  };
+  db.exec('BEGIN');
+  try {
+    const newId = tx();
+    db.exec('COMMIT');
+    return getRoom(newId, userId);
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+/** 顶部分支导航：来源房间 + 从这里分出的分支/检查点（形状同单聊 ChatBranchInfo） */
+export function roomFamily(userId: number, room: Room): ChatBranchInfo {
+  const indexIn = (roomId: number, messageId: number | null) =>
+    messageId ? ((db.prepare('SELECT COUNT(*) AS n FROM room_messages WHERE room_id = ? AND id <= ?').get(roomId, messageId) as { n: number }).n) : 0;
+  const parentRow = room.parentRoomId ? (db.prepare('SELECT id, name FROM rooms WHERE id = ? AND user_id = ?').get(room.parentRoomId, userId) as { id: number; name: string } | undefined) : undefined;
+  const children = db.prepare('SELECT id, name, is_checkpoint, parent_message_id, updated_at FROM rooms WHERE parent_room_id = ? AND user_id = ? ORDER BY id').all(room.id, userId) as { id: number; name: string; is_checkpoint: number; parent_message_id: number | null; updated_at: number }[];
+  return {
+    parent: parentRow ? { id: parentRow.id, title: parentRow.name, messageIndex: indexIn(parentRow.id, room.parentMessageId), exists: true } : null,
+    children: children.map((row) => ({ id: row.id, title: row.name, checkpoint: row.is_checkpoint === 1, messageId: row.parent_message_id ?? 0, messageIndex: indexIn(room.id, row.parent_message_id), updatedAt: row.updated_at })),
+  };
 }
 
 // 发言者调度：静音成员不参与；手动模式用指定的人；自然模式优先叫到名字的人，否则轮流。

@@ -418,6 +418,13 @@ db.exec(`CREATE TABLE IF NOT EXISTS helper_vars (
     user_id INTEGER NOT NULL, scope TEXT NOT NULL, scope_id TEXT NOT NULL, data TEXT NOT NULL, updated_at INTEGER NOT NULL,
     PRIMARY KEY (user_id, scope, scope_id));`);
 ensureColumn('room_messages', 'attachment', 'TEXT');
+// 群聊对齐 ST：候选（滑动换版）、检查点；房间分支来源
+ensureColumn('room_messages', 'candidates', 'TEXT');
+ensureColumn('room_messages', 'selected', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('room_messages', 'checkpoint_room_id', 'INTEGER');
+ensureColumn('rooms', 'parent_room_id', 'INTEGER');
+ensureColumn('rooms', 'parent_message_id', 'INTEGER');
+ensureColumn('rooms', 'is_checkpoint', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user'");
 ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
 ensureColumn('users', 'age_confirmed_at', 'INTEGER');

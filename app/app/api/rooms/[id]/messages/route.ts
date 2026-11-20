@@ -1,12 +1,14 @@
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
-import { addRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, listRoomMessages, pickSpeaker } from '@/lib/rooms';
+import { addRoomCandidate, addRoomMessage, editRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, getRoomMessage, isLatestRoomMessage, listRoomMessages, pickSpeaker } from '@/lib/rooms';
 import { loadRoomConfig } from '@/lib/resources-db';
 import { roomVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
+
+import { CONTINUE_NUDGE, joinContinue } from '@/lib/continue';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +29,10 @@ export async function GET(_request: Request, context: Params) {
   return Response.json({ messages: listRoomMessages(room.id) });
 }
 
-// POST /api/rooms/[id]/messages —— { text, speakerId? }
+// POST /api/rooms/[id]/messages —— { text, speakerId?, auto?, mode?: 'regenerate' | 'continue', messageId? }
 // 选出发言者 → 组装多角色提示词 → 流式生成 → 以该角色落库。SSE 事件与单聊一致。
+// mode=regenerate：重写最新一条角色消息，新回复作为候选（ST swipe），发言者不变。
+// mode=continue：接着最新一条角色消息往下写（ST 继续），不插玩家消息。
 export async function POST(request: Request, context: Params) {
   const user = await getCurrentUser();
   if (!user) return fail('未登录', 401);
@@ -37,10 +41,16 @@ export async function POST(request: Request, context: Params) {
   const room = getRoom(roomId, user.id);
   if (!room) return fail('房间不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean };
-  const auto = body.auto === true;
-  const text = String(body.text ?? '').trim();
+  const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean; mode?: string; messageId?: number };
+  const mode = body.mode === 'regenerate' || body.mode === 'continue' ? body.mode : null;
+  const auto = body.auto === true || mode !== null;
+  const text = mode ? '' : String(body.text ?? '').trim();
   if (!auto && !text) return fail('消息不能为空', 400);
+  const target = mode ? getRoomMessage(room.id, Number(body.messageId)) : undefined;
+  if (mode) {
+    if (!target || target.role !== 'assistant' || !target.speakerId) return fail(mode === 'continue' ? '只能继续角色消息' : '只能重新生成角色消息', 400);
+    if (!isLatestRoomMessage(room.id, target.id)) return fail(mode === 'continue' ? '只能继续最新一条消息' : '只能重新生成最新一条消息', 400);
+  }
   if (text) {
     const verdict = await moderateText(text);
     if (!verdict.ok) return fail(verdict.message, 422);
@@ -52,10 +62,13 @@ export async function POST(request: Request, context: Params) {
   if (!modelConfigured()) return fail('模型未配置：请在 .env.local 设置三个 TAVERN_MODEL_* 变量', 500);
 
   const userRoomMessage = !auto ? addRoomMessage(room.id, 'user', null, text) : null;
-  const messages = listRoomMessages(room.id);
+  const allMessages = listRoomMessages(room.id);
+  // 重新生成：上下文到目标之前为止；继续：包含目标本身
+  const messages = mode === 'regenerate' && target ? allMessages.filter((message) => message.id < target.id) : allMessages;
   // 自动推进时没有新的玩家输入：自然模式沿用最后一条玩家消息找名字
   const lastUserText = auto ? [...messages].reverse().find((message) => message.role === 'user')?.content ?? '' : text;
-  const speakerId = pickSpeaker(room, messages, lastUserText, body.speakerId || room.speakerId);
+  // 换版/继续：发言者保持原来那位（ST swipe 不换角色）
+  const speakerId = target?.speakerId ?? pickSpeaker(room, messages, lastUserText, body.speakerId || room.speakerId);
   const speaker = speakerId ? getCharacterById(speakerId) : undefined;
   if (!speaker) return fail('房间里没有可发言的角色（可能都被静音了）', 400);
 
@@ -75,11 +88,12 @@ export async function POST(request: Request, context: Params) {
     persona: config.persona,
     loreEntries: config.loreEntries,
     regexRules: config.regexRules,
-    variables: roomVariables(room.id, room.characterIds),
+    variables: roomVariables(room.id, room.characterIds, mode === 'regenerate' && target ? { uptoId: target.id - 1 } : {}),
   });
+  if (mode === 'continue') prompt.push({ role: 'system', content: CONTINUE_NUDGE });
   const promptTokens = estimatePromptTokens(prompt);
   const maxCost = pointsCost(promptTokens, config.preset.params.maxTokens, modelName(room.model));
-  const reservation = reservePoints(user.id, maxCost, `房间生成 · ${modelName(room.model)}`, `room:${room.id}`);
+  const reservation = reservePoints(user.id, maxCost, `${mode === 'continue' ? '房间继续' : mode === 'regenerate' ? '房间重新生成' : '房间生成'} · ${modelName(room.model)}`, `room:${room.id}`);
   if (!reservation.ok) {
     if (userRoomMessage) deleteRoomMessage(userRoomMessage.id);
     return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
@@ -123,16 +137,29 @@ export async function POST(request: Request, context: Params) {
 
         // 模型偶尔会在开头自己加「白露：」，去掉以免和气泡上的名字重复
         const stripSpeaker = (value: string) => value.replace(namePrefix, '');
-        const finalText = stripSpeaker(full);
+        const finalText = mode === 'continue' ? full : stripSpeaker(full);
         if (finalText.trim()) {
-          const saved = addRoomMessage(room.id, 'assistant', speaker.id, finalText);
-          send({ type: 'done', messageId: saved.id, speakerId: speaker.id, content: finalText, cost: settlement.cost, balance: settlement.balance });
+          if (mode === 'continue' && target) {
+            const content = joinContinue(target.content, finalText);
+            editRoomMessage(target.id, content);
+            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content, cost: settlement.cost, balance: settlement.balance });
+          } else if (mode === 'regenerate' && target) {
+            const candidate = addRoomCandidate(target.id, finalText);
+            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content: finalText, candidateIndex: candidate.index, candidateCount: candidate.count, cost: settlement.cost, balance: settlement.balance });
+          } else {
+            const saved = addRoomMessage(room.id, 'assistant', speaker.id, finalText);
+            send({ type: 'done', messageId: saved.id, speakerId: speaker.id, content: finalText, cost: settlement.cost, balance: settlement.balance });
+          }
         } else {
           send({ type: 'error', message: '模型没有返回内容，请重试' });
         }
       } catch (error) {
-        const partial = full.replace(namePrefix, '');
-        if (partial.trim()) addRoomMessage(room.id, 'assistant', speaker.id, partial);
+        const partial = mode === 'continue' ? full : full.replace(namePrefix, '');
+        if (partial.trim()) {
+          if (mode === 'continue' && target) editRoomMessage(target.id, joinContinue(target.content, partial));
+          else if (mode === 'regenerate' && target) addRoomCandidate(target.id, partial);
+          else addRoomMessage(room.id, 'assistant', speaker.id, partial);
+        }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
         finishGeneration(generationId, {
           model: billedModel,

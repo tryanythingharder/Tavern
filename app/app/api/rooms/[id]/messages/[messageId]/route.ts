@@ -1,0 +1,51 @@
+import { fail, idParam, json, requireUser } from '@/lib/api';
+import { moderateText } from '@/lib/auto-moderation';
+import { deleteRoomMessage, editRoomMessage, getRoom, getRoomMessage, selectRoomCandidate } from '@/lib/rooms';
+
+export const dynamic = 'force-dynamic';
+
+type Params = { params: Promise<{ id: string; messageId: string }> };
+
+async function load(context: Params) {
+  const user = await requireUser();
+  if (!user) return { error: fail('未登录', 401) };
+  const { id, messageId } = await context.params;
+  const roomId = idParam(id);
+  const mid = idParam(messageId);
+  if (!roomId || !mid) return { error: fail('参数不对', 400) };
+  const room = getRoom(roomId, user.id);
+  if (!room) return { error: fail('房间不存在', 404) };
+  const message = getRoomMessage(room.id, mid);
+  if (!message) return { error: fail('消息不存在', 404) };
+  return { room, message };
+}
+
+// PATCH /api/rooms/[id]/messages/[messageId] —— { content } 编辑当前版本 | { selected } 切换候选（ST swipe）
+export async function PATCH(request: Request, context: Params) {
+  const loaded = await load(context);
+  if ('error' in loaded) return loaded.error;
+  const body = (await request.json().catch(() => ({}))) as { content?: unknown; selected?: unknown };
+  if (typeof body.selected === 'number') {
+    const updated = selectRoomCandidate(loaded.message.id, Math.floor(body.selected));
+    return updated ? json({ message: updated }) : fail('没有这个版本', 400);
+  }
+  if (typeof body.content === 'string') {
+    const content = body.content.trim();
+    if (!content) return fail('内容不能为空', 400);
+    if (loaded.message.role === 'user') {
+      const verdict = await moderateText(content);
+      if (!verdict.ok) return fail(verdict.message, 422);
+    }
+    editRoomMessage(loaded.message.id, content.slice(0, 20000));
+    return json({ message: getRoomMessage(loaded.room.id, loaded.message.id) });
+  }
+  return fail('没有要改的内容', 400);
+}
+
+// DELETE /api/rooms/[id]/messages/[messageId] —— 删除这一条（ST 删除消息，不动后面的楼层）
+export async function DELETE(_request: Request, context: Params) {
+  const loaded = await load(context);
+  if ('error' in loaded) return loaded.error;
+  deleteRoomMessage(loaded.message.id);
+  return json({ ok: true });
+}
