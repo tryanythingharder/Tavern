@@ -159,7 +159,9 @@ export type StreamEvent =
   | { type: 'content'; text: string }
   | { type: 'usage'; promptTokens: number; completionTokens: number; totalTokens: number }
   // 实际接通的线路模型（failover 后可能不是选中的那个），计费以它为准
-  | { type: 'route'; model: string };
+  | { type: 'route'; model: string }
+  // 结束原因：stop / length（被 max_tokens 截断）/ content_filter / stop_string（命中停止词，本地截断）
+  | { type: 'finish'; reason: string };
 
 export type StreamOptions = {
   signal?: AbortSignal;
@@ -168,10 +170,128 @@ export type StreamOptions = {
   model?: string | null;
 };
 
+// 上游可重试的状态：限流、超时、网关故障（含 Cloudflare 52x、Anthropic 529 过载）
+const RETRYABLE = new Set([408, 409, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 529]);
+// OpenAI 官方等网关不认识的采样字段会直接 400；遇到就去掉这些字段重试一次（ST 也只按来源下发）
+const EXTRA_PARAMS = ['top_k', 'min_p', 'typical_p', 'repetition_penalty', 'seed', 'presence_penalty', 'frequency_penalty'];
+// OpenAI 兼容接口最多接受 4 个停止词，多的只在本地截断
+const MAX_API_STOPS = 4;
+
+export class UpstreamError extends Error {
+  constructor(message: string, readonly code: 'empty' | 'upstream' | 'timeout' | 'unavailable' = 'upstream') {
+    super(message);
+    this.name = 'UpstreamError';
+  }
+}
+
+function envMs(name: string, fallback: number, min: number): number {
+  const value = Number(process.env[name] ?? fallback);
+  return Math.max(min, Number.isFinite(value) ? value : fallback);
+}
+
+function retryAfterMs(response: Response): number {
+  const raw = response.headers.get('retry-after');
+  if (!raw) return 0;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds)) return Math.min(3000, Math.max(0, seconds * 1000));
+  const at = Date.parse(raw);
+  return Number.isFinite(at) ? Math.min(3000, Math.max(0, at - Date.now())) : 0;
+}
+
+function upstreamMessage(detail: string): string {
+  try {
+    const json = JSON.parse(detail);
+    const message = json?.error?.message ?? json?.message ?? json?.error;
+    if (typeof message === 'string' && message.trim()) return message.trim().slice(0, 200);
+  } catch {
+    // 不是 JSON
+  }
+  return detail.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+}
+
+// 停止词本地截断：网关忽略 stop 或停止词超过 4 个时，流里出现停止词就在那里截断，后面的不再输出。
+// 末尾留一段可能是停止词开头的文字先不发，确认不是再放出去。
+export class StopTrimmer {
+  private held = '';
+  private readonly stops: string[];
+  private readonly keep: number;
+  stopped = false;
+  constructor(stops: string[] = []) {
+    this.stops = stops.filter((item) => item.length > 0);
+    this.keep = this.stops.reduce((max, item) => Math.max(max, item.length - 1), 0);
+  }
+  push(text: string): string {
+    if (this.stopped) return '';
+    if (!this.stops.length) return text;
+    this.held += text;
+    let cut = -1;
+    for (const stop of this.stops) {
+      const at = this.held.indexOf(stop);
+      if (at >= 0 && (cut < 0 || at < cut)) cut = at;
+    }
+    if (cut >= 0) {
+      this.stopped = true;
+      const out = this.held.slice(0, cut);
+      this.held = '';
+      return out;
+    }
+    // 只扣住末尾确实可能是某个停止词前缀的部分
+    let hold = 0;
+    for (let size = Math.min(this.keep, this.held.length); size > 0; size -= 1) {
+      const tail = this.held.slice(-size);
+      if (this.stops.some((stop) => stop.startsWith(tail))) { hold = size; break; }
+    }
+    const out = this.held.slice(0, this.held.length - hold);
+    this.held = this.held.slice(this.held.length - hold);
+    return out;
+  }
+  flush(): string {
+    const out = this.stopped ? '' : this.held;
+    this.held = '';
+    return out;
+  }
+}
+
+type Parsed = { content: string[]; reasoning: string[]; usage?: { promptTokens: number; completionTokens: number; totalTokens: number }; finish?: string; error?: string };
+
+// 解析一个 SSE data 负载或整段 JSON（网关不支持流式时会直接回完整 JSON）
+function parseChunk(json: any): Parsed {
+  const out: Parsed = { content: [], reasoning: [] };
+  if (json?.error) {
+    const message = typeof json.error === 'string' ? json.error : json.error?.message ?? JSON.stringify(json.error);
+    out.error = String(message).slice(0, 200);
+    return out;
+  }
+  const choice = json?.choices?.[0];
+  const delta = choice?.delta ?? choice?.message;
+  if (delta) {
+    const reasoning = delta.reasoning_content ?? delta.reasoning;
+    if (typeof reasoning === 'string' && reasoning) out.reasoning.push(reasoning);
+    const content = delta.content;
+    if (typeof content === 'string' && content) out.content.push(content);
+    else if (Array.isArray(content)) {
+      for (const part of content) if (typeof part?.text === 'string' && part.text) out.content.push(part.text);
+    }
+  } else if (typeof choice?.text === 'string' && choice.text) {
+    out.content.push(choice.text);
+  }
+  if (choice?.finish_reason) out.finish = String(choice.finish_reason);
+  if (json?.usage) {
+    const promptTokens = Number(json.usage.prompt_tokens ?? json.usage.input_tokens ?? 0);
+    const completionTokens = Number(json.usage.completion_tokens ?? json.usage.output_tokens ?? 0);
+    const totalTokens = Number(json.usage.total_tokens ?? promptTokens + completionTokens);
+    if (promptTokens || completionTokens) out.usage = { promptTokens, completionTokens, totalTokens };
+  }
+  return out;
+}
+
 // 逐块产出：reasoning_content（模型的思考）与 content（正文）分开，UI 只展示正文。
 // stream_options.include_usage 让网关在最后一个分片带 usage（实测 cjms.cc 支持）；不支持时会走估算兜底。
+// 稳定性：等响应头有连接超时；流开始后按「两块之间的空闲时间」判超时（长回复不会被总时长误杀），另有总时长上限；
+// 限流/网关故障按 Retry-After 退避重试；400 且是采样字段不认识就去掉这些字段再试；
+// 只在还没输出任何内容时切线路，不会重复扣费；流里的 error 负载、空回复都会报错而不是静默结束。
 export async function* streamChat(messages: ChatMessage[], options: StreamOptions = {}): AsyncGenerator<StreamEvent> {
-  if (!modelConfigured()) throw new Error('模型未配置：请在后台「模型与网关」或 .env.local 配置');
+  if (!modelConfigured()) throw new UpstreamError('模型未配置：请在后台「模型与网关」或 .env.local 配置', 'unavailable');
   const params = options.params;
   const body: Record<string, unknown> = {
     messages,
@@ -191,85 +311,202 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
     if (params.frequencyPenalty !== 0) body.frequency_penalty = params.frequencyPenalty;
     if (params.seed >= 0) body.seed = params.seed;
   }
-  if (options.stop?.length) body.stop = options.stop;
+  const stops = [...new Set((options.stop ?? []).filter((item) => typeof item === 'string' && item.length > 0))];
+  if (stops.length) body.stop = stops.slice(0, MAX_API_STOPS);
 
   // 上游必须有超时；否则一个挂起的网关会一直占着连接和内存。
-  const timeoutMs = Math.max(1000, Number(process.env.TAVERN_UPSTREAM_TIMEOUT_MS ?? 120_000));
+  const connectMs = envMs('TAVERN_UPSTREAM_TIMEOUT_MS', 120_000, 1000);
+  const idleMs = envMs('TAVERN_UPSTREAM_IDLE_MS', 90_000, 1000);
+  const totalMs = envMs('TAVERN_UPSTREAM_MAX_MS', 600_000, 5000);
   const routes = modelRoutes(options.model);
-  if (!routes.length) throw new Error('模型未配置：请在后台「模型与网关」或 .env.local 配置');
+  if (!routes.length) throw new UpstreamError('模型未配置：请在后台「模型与网关」或 .env.local 配置', 'unavailable');
 
-  const request = (route: ModelRoute) => {
-    const timeout = AbortSignal.timeout(timeoutMs);
-    const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
-    return fetch(`${route.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${route.apiKey}` },
-      body: JSON.stringify({ ...body, model: route.model }),
-      signal,
-    });
+  // 每次请求一个控制器：连接超时只废掉这一次，还能换下一条线路；玩家停止 / 总时长到了就整体停
+  let local = new AbortController();
+  let timedOut = '';
+  let expired = false;
+  const abortWith = (why: string) => { if (!local.signal.aborted) { timedOut = why; local.abort(); } };
+  const onOuter = () => local.abort();
+  options.signal?.addEventListener('abort', onOuter, { once: true });
+  if (options.signal?.aborted) local.abort();
+  const totalTimer = setTimeout(() => { expired = true; abortWith(`生成超过 ${Math.round(totalMs / 1000)} 秒，已停止`); }, totalMs);
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  const armIdle = (ms: number, why: string) => {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => abortWith(why), ms);
   };
+  const disarm = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = null; };
+  const userAborted = () => Boolean(options.signal?.aborted);
+  const abortError = () => {
+    if (userAborted()) { const error = new Error('生成已中断'); error.name = 'AbortError'; return error; }
+    return new UpstreamError(timedOut || '上游连接超时', 'timeout');
+  };
+  const wait = (ms: number) => new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    local.signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
 
-  // 先主线路，再按顺序尝试备用线路；只在还没开始流式输出时切换，不会重复扣用户费用。
-  let response: Response | null = null;
-  let usedModel = '';
-  let lastError = '';
-  for (let routeIndex = 0; routeIndex < routes.length; routeIndex += 1) {
-    const route = routes[routeIndex];
-    const attempts = routes.length === 1 ? 2 : 1;
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      try {
-        const candidate = await request(route);
-        if (candidate.ok && candidate.body) {
-          response = candidate;
-          usedModel = route.model;
-          break;
+  try {
+    // 先主线路，再按顺序尝试备用线路
+    let response: Response | null = null;
+    let usedModel = '';
+    let lastError = '';
+    for (let routeIndex = 0; routeIndex < routes.length && !response; routeIndex += 1) {
+      const route = routes[routeIndex];
+      let payload: Record<string, unknown> = { ...body, model: route.model };
+      let strippedExtras = false;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        let retry = false;
+        let delay = 400 * (attempt + 1);
+        if (local.signal.aborted && !userAborted() && !expired) { local = new AbortController(); timedOut = ''; }
+        try {
+          armIdle(connectMs, `上游 ${Math.round(connectMs / 1000)} 秒没有响应`);
+          const candidate = await fetch(`${route.baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json', Authorization: `Bearer ${route.apiKey}` },
+            body: JSON.stringify(payload),
+            signal: local.signal,
+          });
+          if (candidate.ok && candidate.body) {
+            response = candidate;
+            usedModel = route.model;
+            break;
+          }
+          const detail = await candidate.text().catch(() => '');
+          lastError = `${route.model} 返回 ${candidate.status}${detail ? `：${upstreamMessage(detail)}` : ''}`;
+          if (candidate.status === 400 && !strippedExtras && EXTRA_PARAMS.some((key) => key in payload && detail.includes(key))) {
+            payload = Object.fromEntries(Object.entries(payload).filter(([key]) => !EXTRA_PARAMS.includes(key)));
+            strippedExtras = true;
+            retry = true;
+            delay = 0;
+          } else if (candidate.status === 400 && 'stream_options' in payload && /stream_options/.test(detail)) {
+            // 老网关不认识 stream_options
+            const { stream_options: _ignored, ...rest } = payload;
+            payload = rest;
+            retry = true;
+            delay = 0;
+          } else if (RETRYABLE.has(candidate.status)) {
+            retry = attempt < 1;
+            delay = Math.max(delay, retryAfterMs(candidate));
+          }
+        } catch (error) {
+          if (userAborted()) throw abortError();
+          lastError = `${route.model}：${timedOut || (error instanceof Error ? error.message : String(error))}`;
+          if (expired) throw abortError();
+          // 连接超时：同一条线路不再等，直接换下一条
+          if (local.signal.aborted) break;
+          retry = attempt < 1;
         }
-        const detail = await candidate.text().catch(() => '');
-        lastError = `${route.model} 返回 ${candidate.status}${detail ? `：${detail.slice(0, 160)}` : ''}`;
-      } catch (error) {
-        if (options.signal?.aborted) throw error;
-        lastError = `${route.model}：${error instanceof Error ? error.message : String(error)}`;
+        if (!retry) break;
+        disarm();
+        await wait(delay);
+        if (userAborted()) throw abortError();
       }
-      if (options.signal?.aborted) throw new Error('生成已中断');
-      if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 400));
+      if (!response && routeIndex < routes.length - 1) { disarm(); await wait(250); }
     }
-    if (response) break;
-    if (routeIndex < routes.length - 1) await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  if (!response?.ok || !response.body) {
-    throw new Error(`模型线路均不可用${lastError ? `：${lastError}` : ''}`);
-  }
-  yield { type: 'route', model: usedModel };
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith('data:')) continue;
-      const payload = trimmed.slice(5).trim();
-      if (!payload || payload === '[DONE]') continue;
+    if (!response?.ok || !response.body) {
+      throw new UpstreamError(`模型线路均不可用${lastError ? `：${lastError}` : ''}`, 'unavailable');
+    }
+    yield { type: 'route', model: usedModel };
+
+    const trimmer = new StopTrimmer(stops);
+    let produced = false;
+    let reasoned = false;
+    let finish = '';
+    const handle = function* (parsed: Parsed): Generator<StreamEvent> {
+      if (parsed.error) {
+        throw new UpstreamError(`上游中途报错：${parsed.error}`);
+      }
+      for (const text of parsed.reasoning) { reasoned = true; yield { type: 'reasoning', text }; }
+      for (const text of parsed.content) {
+        const out = trimmer.push(text);
+        if (out) { produced = true; yield { type: 'content', text: out }; }
+      }
+      if (parsed.finish) finish = parsed.finish;
+      if (parsed.usage) yield { type: 'usage', ...parsed.usage };
+    };
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (/application\/json/i.test(contentType) && !/event-stream/i.test(contentType)) {
+      // 网关忽略了 stream:true，直接回了完整 JSON
+      armIdle(idleMs, `上游 ${Math.round(idleMs / 1000)} 秒没有新内容`);
+      const raw = await response.text();
+      let json: unknown;
+      try { json = JSON.parse(raw); } catch { throw new UpstreamError('上游返回的内容无法解析'); }
+      yield* handle(parseChunk(json));
+    } else {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let dataLines: string[] = [];
+      const dispatch = function* (): Generator<StreamEvent> {
+        if (!dataLines.length) return;
+        const payload = dataLines.join('\n').trim();
+        dataLines = [];
+        if (!payload || payload === '[DONE]') return;
+        let json: unknown;
+        try { json = JSON.parse(payload); } catch { return; } // 单个分片解析失败不打断整条流
+        yield* handle(parseChunk(json));
+      };
       try {
-        const json = JSON.parse(payload);
-        const delta = json.choices?.[0]?.delta;
-        if (delta) {
-          if (delta.reasoning_content) yield { type: 'reasoning', text: String(delta.reasoning_content) };
-          if (delta.content) yield { type: 'content', text: String(delta.content) };
+        while (!trimmer.stopped) {
+          armIdle(idleMs, `上游 ${Math.round(idleMs / 1000)} 秒没有新内容`);
+          let chunk: ReadableStreamReadResult<Uint8Array>;
+          try {
+            chunk = await reader.read();
+          } catch (error) {
+            if (local.signal.aborted) throw abortError();
+            throw new UpstreamError(`上游连接中断：${error instanceof Error ? error.message : String(error)}`);
+          }
+          if (chunk.done) break;
+          buffer += decoder.decode(chunk.value, { stream: true });
+          const lines = buffer.split(/\r\n|\r|\n/);
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.trim()) { yield* dispatch(); continue; }
+            if (line.startsWith(':')) continue; // 心跳注释
+            if (line.startsWith('data:')) {
+              // 有的网关每行一个事件、不发空行：遇到新 data 行先把上一个派发掉（能单独解析的话）
+              if (dataLines.length) {
+                const prev = dataLines.join('\n').trim();
+                if (prev === '[DONE]' || (() => { try { JSON.parse(prev); return true; } catch { return false; } })()) yield* dispatch();
+              }
+              dataLines.push(line.slice(5).replace(/^ /, ''));
+            } else if (!line.includes(':') && line.trim().startsWith('{')) {
+              // 非标准：裸 JSON 行
+              dataLines.push(line.trim());
+              yield* dispatch();
+            }
+            if (trimmer.stopped) break;
+          }
         }
-        if (json.usage) {
-          const promptTokens = Number(json.usage.prompt_tokens ?? 0);
-          const completionTokens = Number(json.usage.completion_tokens ?? 0);
-          const totalTokens = Number(json.usage.total_tokens ?? promptTokens + completionTokens);
-          if (promptTokens || completionTokens) yield { type: 'usage', promptTokens, completionTokens, totalTokens };
+        if (!trimmer.stopped) {
+          buffer += decoder.decode();
+          if (buffer.trim()) {
+            if (buffer.startsWith('data:')) dataLines.push(buffer.slice(5).replace(/^ /, ''));
+            else if (buffer.trim().startsWith('{')) dataLines.push(buffer.trim());
+          }
+          yield* dispatch();
         }
-      } catch {
-        // 单个分片解析失败不打断整条流
+      } finally {
+        if (trimmer.stopped) await reader.cancel().catch(() => undefined);
       }
     }
+    const rest = trimmer.flush();
+    if (rest) { produced = true; yield { type: 'content', text: rest }; }
+    if (trimmer.stopped) finish = 'stop_string';
+    if (!produced) {
+      if (finish === 'content_filter') throw new UpstreamError('回复被上游内容过滤拦下了，换个说法或换个模型试试', 'empty');
+      if (reasoned) throw new UpstreamError('模型只输出了思考过程、没有正文（可能是回复长度上限太小），可以调大回复长度后重试', 'empty');
+      throw new UpstreamError('模型返回了空回复，可以重试或换个模型', 'empty');
+    }
+    if (finish) yield { type: 'finish', reason: finish };
+  } catch (error) {
+    if (local.signal.aborted && !(error instanceof UpstreamError)) throw abortError();
+    throw error;
+  } finally {
+    clearTimeout(totalTimer);
+    disarm();
+    options.signal?.removeEventListener('abort', onOuter);
   }
 }

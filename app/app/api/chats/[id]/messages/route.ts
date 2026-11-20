@@ -1,3 +1,4 @@
+import { withGenerationLock } from '@/lib/gen-lock';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
@@ -51,7 +52,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 //   data: {"type":"delta","text":"…"}      正文增量
 //   data: {"type":"done","messageId":12}   完成（content 是应用展示正则后的最终文本）
 //   data: {"type":"error","message":"…"}   失败（已保存的玩家消息保留）
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePost(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return fail('未登录', 401);
   if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
@@ -117,6 +118,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）
   let billedModel = modelName(chat.model);
+  // 一条线路都没接通（全部失败）就不扣点；接通后失败且没产出任何正文也不扣
+  let connected = false;
   const stream = new ReadableStream({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -132,6 +135,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       try {
         for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, stop: prompt.stop, model: chat.model })) {
           if (event.type === 'route') {
+            connected = true;
             billedModel = event.model;
           } else if (event.type === 'content') {
             full += event.text;
@@ -174,7 +178,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens, estimateTokens(full), billedModel), `chat:${chatId}`);
+          settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(prompt.tokens, estimateTokens(full), billedModel) : 0), `chat:${chatId}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
@@ -195,4 +199,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       Connection: 'keep-alive',
     },
   });
+}
+
+// 同一会话同时只跑一条生成；流期间发心跳防代理断连
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  return withGenerationLock(`chat:${(await context.params).id}`, () => handlePost(request, context));
 }

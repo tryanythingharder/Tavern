@@ -1,3 +1,4 @@
+import { withGenerationLock } from '@/lib/gen-lock';
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
@@ -35,7 +36,7 @@ export async function GET(_request: Request, context: Params) {
 // 选出发言者 → 组装多角色提示词 → 流式生成 → 以该角色落库。SSE 事件与单聊一致。
 // mode=regenerate：重写最新一条角色消息，新回复作为候选（ST swipe），发言者不变。
 // mode=continue：接着最新一条角色消息往下写（ST 继续），不插玩家消息。
-export async function POST(request: Request, context: Params) {
+async function handlePost(request: Request, context: Params) {
   const user = await getCurrentUser();
   if (!user) return fail('未登录', 401);
   if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
@@ -111,6 +112,8 @@ export async function POST(request: Request, context: Params) {
 
   // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）
   let billedModel = modelName(room.model);
+  // 一条线路都没接通（全部失败）就不扣点；接通后失败且没产出任何正文也不扣
+  let connected = false;
   const stream = new ReadableStream({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -128,6 +131,7 @@ export async function POST(request: Request, context: Params) {
       try {
         for await (const event of streamChat(prompt, { signal: request.signal, params: config.preset.params, model: room.model })) {
           if (event.type === 'route') {
+            connected = true;
             billedModel = event.model;
           } else if (event.type === 'content') {
             full += event.text;
@@ -178,7 +182,7 @@ export async function POST(request: Request, context: Params) {
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, estimateTokens(full), billedModel), `room:${room.id}`);
+          settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(promptTokens, estimateTokens(full), billedModel) : 0), `room:${room.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
@@ -201,4 +205,9 @@ export async function POST(request: Request, context: Params) {
       Connection: 'keep-alive',
     },
   });
+}
+
+// 同一会话同时只跑一条生成；流期间发心跳防代理断连
+export async function POST(request: Request, context: Params) {
+  return withGenerationLock(`room:${(await context.params).id}`, () => handlePost(request, context));
 }

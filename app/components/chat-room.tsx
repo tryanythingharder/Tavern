@@ -327,6 +327,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             }
           }
         }
+        // 流断了却没收到结束事件（网络掉线 / 代理断开）：提示一下，已生成的部分下面会和服务端对齐
+        if (!completed && !controller.signal.aborted) setError('连接中断了，已和服务器同步');
       } catch (caught) {
         if ((caught as Error).name !== 'AbortError') setError((caught as Error).message);
         // 中断时保留已生成的部分（服务端也会保存），下面统一和数据库对齐
