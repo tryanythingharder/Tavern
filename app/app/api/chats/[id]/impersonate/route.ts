@@ -1,4 +1,5 @@
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
+import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { templateLore, templatePrompt } from '@/lib/ejs-server';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
@@ -37,6 +38,8 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!modelConfigured()) return fail('模型未配置', 500);
   const character = getCharacterById(chat.character_id);
   if (!character) return fail('角色不存在', 404);
+  const blocked18 = await nsfwBlock(user.id, character);
+  if (blocked18) return fail(blocked18, 403);
 
   const config = loadGenerationConfig(user.id, chat);
   const genPrefs = getGenPrefs(user.id);

@@ -1,4 +1,5 @@
 import { fail } from '@/lib/api';
+import { nsfwBlock } from '@/lib/age-gate';
 import { getCharacterView } from '@/lib/characters';
 import { getCurrentUser } from '@/lib/auth';
 import { loadExtras } from '@/lib/card-extras';
@@ -18,6 +19,8 @@ export async function GET(request: Request, context: Params) {
   const character = getCharacterView(id);
   if (!character) return fail('角色不存在', 404);
   if (character.status !== 'published' && (!user || character.ownerId !== user.id)) return fail('没有权限', 403);
+  const blocked18 = await nsfwBlock(user?.id ?? null, character);
+  if (blocked18) return fail(blocked18, 403);
 
   const extras = loadExtras(id);
   const raw = extras.raw ?? {};

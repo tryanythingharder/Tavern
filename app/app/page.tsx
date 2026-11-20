@@ -2,7 +2,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { listCharacterViews, CATEGORIES } from '@/lib/characters';
 import { listChats } from '@/lib/db';
 import { listRooms } from '@/lib/rooms';
-import { hideNsfw } from '@/lib/prefs';
+import { nsfwAccess } from '@/lib/age-gate';
 import { getTheme } from '@/lib/theme';
 import type { HomeData } from '@/components/themes/types';
 import { FolioHome } from '@/components/themes/folio/home';
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage() {
   const user = await getCurrentUser();
   const theme = await getTheme();
-  const all = listCharacterViews(undefined, { hideNsfw: hideNsfw(user?.id ?? null) });
+  const all = listCharacterViews(undefined, { hideNsfw: !(await nsfwAccess(user?.id ?? null)).show });
   // 与原型一致：推荐/场景/全部角色默认排除 18+（主角位单独放 featured）
   const featured = all.find((character) => character.id === 'shen-yanzhi') ?? all.find((character) => !character.nsfw) ?? all[0];
   const safe = all.filter((character) => !character.nsfw && character.id !== featured?.id);

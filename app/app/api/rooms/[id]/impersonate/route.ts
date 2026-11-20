@@ -1,4 +1,5 @@
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
+import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getCharacterById, startGeneration } from '@/lib/db';
@@ -23,6 +24,8 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
   const room = getRoom(Number((await context.params).id), user.id);
   if (!room) return fail('房间不存在', 404);
+  const blocked18 = await roomNsfwBlock(user.id, room.characterIds);
+  if (blocked18) return fail(blocked18, 403);
   const body = (await request.json().catch(() => ({}))) as { hint?: string };
   const hint = String(body.hint ?? '').trim().slice(0, 300);
 

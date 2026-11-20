@@ -78,6 +78,7 @@ export default async function AdminPage() {
             <Link className="p-admin-module" href="/admin/orders"><strong>订单</strong><span>充值订单与到账确认</span></Link>
             <Link className="p-admin-module" href="/admin/codes"><strong>卡密</strong><span>批量生成兑换码</span></Link>
             <Link className="p-admin-module" href="/admin/invites"><strong>邀请码</strong><span>生成邀请码，注册可填</span></Link>
+            <Link className="p-admin-module" href="/admin/content"><strong>内容分级</strong><span>18+ 总开关、地区规则、年龄验证</span></Link>
             <Link className="p-admin-module" href="/admin/announcement"><strong>公告</strong><span>编辑玩家端顶部公告</span></Link>
             <Link className="p-admin-module" href="/admin/channels"><strong>渠道</strong><span>多线路、优先级、从上游拉取模型</span></Link>
             <Link className="p-admin-module" href="/admin/settings"><strong>接口配置</strong><span>生图 / TTS / 支付 / 邮件</span></Link>

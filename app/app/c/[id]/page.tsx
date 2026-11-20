@@ -15,7 +15,8 @@ import {
 } from '@/lib/characters';
 import { listPersonas } from '@/lib/resources-db';
 import { balance } from '@/lib/points';
-import { hideNsfw } from '@/lib/prefs';
+import { STATE_MESSAGE, nsfwAccess } from '@/lib/age-gate';
+import { AgeGateButton } from '@/components/age-gate-dialog';
 import { getViewMode } from '@/lib/view';
 import { startStory } from './actions';
 import { ReportButton } from '@/components/report-button';
@@ -59,7 +60,29 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
   const added = user ? isAdded(user.id, character.id) : false;
   const myChats = user ? countChatsForCharacter(user.id, character.id) : 0;
   const recentChat = user ? latestChatForCharacter(user.id, character.id) : null;
-  const gated = character.nsfw && hideNsfw(user?.id ?? null);
+  const access = await nsfwAccess(user?.id ?? null);
+  // restricted：不能看（地区/年龄/未登录…）→ 只给名字和说明，不展示封面、开场白和设定，也不能开聊；作者本人不受限
+  // gated：能看但自己隐藏了 → 封面打码，其余照常
+  const restricted = character.nsfw && !owned && !access.allowed;
+  const gated = character.nsfw && !restricted && access.hidden;
+  if (restricted) {
+    return (
+      <main className="page rd-character">
+        <div className="p-character-top">
+          <Link className="small" href="/plaza">← 返回</Link>
+        </div>
+        <section className="p-card p-card--pad p-age-wall" style={{ marginTop: 18 }}>
+          <span className="p-pill p-pill--sm">18+</span>
+          <h1>{character.name}</h1>
+          <p className="p-detail-by">@{character.author} · 成人向角色</p>
+          <p>{STATE_MESSAGE[access.state]}。</p>
+          {(access.state === 'guest' || access.state === 'needs_age' || access.state === 'needs_verification') && (
+            <AgeGateButton state={access.state} minAge={access.minAge} className="p-btn p-btn--primary" label={access.state === 'guest' ? '登录并确认年龄' : access.state === 'needs_age' ? '确认年龄' : '去做年龄验证'} />
+          )}
+        </section>
+      </main>
+    );
+  }
   const lowBalance = Boolean(user && balance(user.id) <= 0);
   const defaultPersona = personas.find((persona) => persona.boundCharacters.includes(character.id)) ?? personas.find((persona) => persona.isDefault);
   const openings = [
@@ -78,8 +101,8 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
       {gated && (
         <div className="ca-notice" style={{ marginTop: 12 }}>
           <strong>这是一个成人向角色</strong>
-          <span>开启「显示 18+」后可查看封面；公开设定仍可阅读，也可以直接开始对话。</span>
-          <Link className="btn btn--sm" href="/plaza">去开启</Link>
+          <span>你设置了隐藏 18+，封面已遮住；公开设定仍可阅读，也可以直接开始对话。</span>
+          <AgeGateButton state={access.state} minAge={access.minAge} label="显示 18+" />
         </div>
       )}
 

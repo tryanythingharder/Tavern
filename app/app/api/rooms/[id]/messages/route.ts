@@ -1,4 +1,5 @@
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
+import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { setRoomMessageReasoning } from '@/lib/rooms';
 import type { Reasoning } from '@/lib/reasoning';
 import { withGenerationLock } from '@/lib/gen-lock';
@@ -46,6 +47,8 @@ async function handlePost(request: Request, context: Params) {
   const roomId = Number((await context.params).id);
   const room = getRoom(roomId, user.id);
   if (!room) return fail('房间不存在', 404);
+  const blocked18 = await roomNsfwBlock(user.id, room.characterIds);
+  if (blocked18) return fail(blocked18, 403);
 
   const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean; force?: boolean; mode?: string; messageId?: number };
   const mode = body.mode === 'regenerate' || body.mode === 'continue' ? body.mode : null;

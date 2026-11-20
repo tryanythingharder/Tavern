@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { listCharacterViews } from '@/lib/characters';
+import { nsfwAccess } from '@/lib/age-gate';
 import { getBlockedAuthors } from '@/lib/blocked';
 import { authorBio } from '@/lib/authors';
 import { AuthorActions } from '@/components/author-actions';
@@ -24,7 +25,8 @@ function heat(value: string): number {
 export default async function AuthorPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
   const author = decodeURIComponent(name);
-  const works = listCharacterViews().filter((character) => character.author === author);
+  const viewerAccess = await nsfwAccess((await getCurrentUser())?.id ?? null);
+  const works = listCharacterViews(undefined, { hideNsfw: !viewerAccess.allowed }).filter((character) => character.author === author);
   if (!works.length) notFound();
   const blocked = (await getBlockedAuthors()).includes(author);
   const totalChats = works.reduce((sum, character) => sum + heat(character.chats), 0);

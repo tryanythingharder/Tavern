@@ -5,7 +5,7 @@ import { searchCharacterViews } from '@/lib/characters';
 import { searchAuthors } from '@/lib/authors';
 import { getCurrentUser } from '@/lib/auth';
 import { getBlockedAuthors } from '@/lib/blocked';
-import { hideNsfw } from '@/lib/prefs';
+import { nsfwAccess } from '@/lib/age-gate';
 import { ProtoWorkCard } from '@/components/proto-work-card';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,7 +36,7 @@ export default async function SearchPage({
   const sort = SORTS.some((item) => item.value === params.sort) ? (params.sort as 'relevance' | 'hot' | 'new') : 'relevance';
   const view = params.view === 'list' ? 'list' : 'grid';
   const user = await getCurrentUser();
-  const hide = hideNsfw(user?.id ?? null);
+  const hide = !(await nsfwAccess(user?.id ?? null)).show;
   const blocked = await getBlockedAuthors();
 
   const characters = query

@@ -1,4 +1,5 @@
 import { fail, requireUser } from '@/lib/api';
+import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { addMessage, createChat, getCharacterById } from '@/lib/db';
 import { parseChatImport } from '@/lib/chat-import';
 
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
   const characterId = String(body.characterId ?? '');
   const character = characterId ? getCharacterById(characterId) : undefined;
   if (!character) return fail('先选择一个角色，再导入聊天记录', 400);
+  const blocked18 = await nsfwBlock(user.id, character);
+  if (blocked18) return fail(blocked18, 403);
   if (character.owner_id !== null && character.owner_id !== user.id && character.status !== 'published') {
     return fail('这个角色还没有公开', 403);
   }

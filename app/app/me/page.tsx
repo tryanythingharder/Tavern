@@ -3,6 +3,7 @@ import { getAuthorBio, getCurrentUser, isEmailVerified } from '@/lib/auth';
 import { usageSummary } from '@/lib/db';
 import { DAILY_TOKEN_CAP, RATE_PER_MIN } from '@/lib/usage';
 import { hideNsfw } from '@/lib/prefs';
+import { getAgeRecord, nsfwAccess } from '@/lib/age-gate';
 import { ProfileForm } from '@/components/profile-form';
 import { EmailStatus } from '@/components/email-status';
 import { NsfwToggle } from '@/components/nsfw-toggle';
@@ -15,6 +16,8 @@ export default async function MePage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const usage = usageSummary(user.id);
+  const access = await nsfwAccess(user.id);
+  const ageRecord = getAgeRecord(user.id);
   const cap = DAILY_TOKEN_CAP > 0 ? formatNumber(DAILY_TOKEN_CAP) : '不限';
 
   return (
@@ -26,7 +29,7 @@ export default async function MePage() {
         <h2 className="p-form-section-title">邮箱验证</h2>
         <EmailStatus email={user.email} verified={isEmailVerified(user.id)} />
       </section>
-      <div style={{ marginTop: 16 }}><NsfwToggle initial={hideNsfw(user.id)} /></div>
+      <div style={{ marginTop: 16 }}><NsfwToggle initial={hideNsfw(user.id)} state={access.state} minAge={access.minAge} hasBirthDate={Boolean(ageRecord.birthDate)} verified={Boolean(ageRecord.verifiedAt)} /></div>
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">生成用量</h2>
         <p className="p-small">按网关返回的 usage 记账；网关没回时按字数估算（标注为估算，不计费）。</p>

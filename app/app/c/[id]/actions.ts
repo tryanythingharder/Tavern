@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { addMessage, createChat, getCharacterById } from '@/lib/db';
 import { resolvePersona, setChatPersona } from '@/lib/resources-db';
 import { parseOpenings } from '@/lib/characters';
+import { nsfwBlock } from '@/lib/age-gate';
 
 // 从角色页开始新故事：建会话，把开场白写成第一条角色消息，可选身份，然后跳到对话页。
 export async function startStory(characterId: string, formData: FormData) {
@@ -12,6 +13,7 @@ export async function startStory(characterId: string, formData: FormData) {
   if (!user) redirect('/login');
   const character = getCharacterById(characterId);
   if (!character) redirect('/plaza');
+  if (await nsfwBlock(user.id, character)) redirect(`/c/${characterId}`);
   const personaId = Number(formData.get('personaId')) || null;
   const openingId = String(formData.get('openingId') ?? 'default');
   const alternates = parseOpenings(character.alternate_greetings);

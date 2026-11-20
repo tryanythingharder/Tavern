@@ -11,6 +11,7 @@ import { inviteRequired, inviteValid, redeemInvite } from '@/lib/invite';
 import { isReferralCode, recordReferral, referrerFor } from '@/lib/growth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { transaction } from '@/lib/db';
+import { ageFrom, applyDefaultHide, setBirthDate } from '@/lib/age-gate';
 
 export async function register(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
@@ -19,6 +20,10 @@ export async function register(formData: FormData) {
   const invite = String(formData.get('invite') ?? '').trim().toUpperCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/login?error=' + encodeURIComponent('邮箱格式不对'));
   if (password.length < 8) redirect('/login?error=' + encodeURIComponent('密码至少 8 位'));
+  const birthDate = String(formData.get('birth') ?? '').trim();
+  const age = ageFrom(birthDate);
+  if (age === null || age > 120) redirect('/login?error=' + encodeURIComponent('请填写正确的出生日期'));
+  if (age < 18) redirect('/login?error=' + encodeURIComponent('需要年满 18 岁才能注册'));
   if (formData.get('age') !== 'on') redirect('/login?error=' + encodeURIComponent('请确认已年满 18 岁并同意服务条款'));
 
   const ip = await clientIp();
@@ -51,6 +56,9 @@ export async function register(formData: FormData) {
     }
   })();
   confirmAge(user.id);
+  setBirthDate(user.id, birthDate);
+  // 广场默认过滤 18+（后台可改），想看的人在广场或「我的」里打开
+  applyDefaultHide(user.id);
   ensureStartingPoints(user.id);
   const welcomeBonus = referral ? recordReferral(user.id, referral) : 0;
   notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS + welcomeBonus} 点${welcomeBonus ? `（含好友邀请见面礼 ${welcomeBonus} 点）` : ''}。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/', push: false });

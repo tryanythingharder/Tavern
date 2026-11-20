@@ -47,6 +47,7 @@ const ADMIN_NAV: { label: string; items: { href: string; label: string; path: st
       { href: '/admin', label: '概览', path: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 8h6V4h-6z' },
       { href: '/admin/review', label: '广场审核', path: 'M4 5h16v14H4zM8 9h8M8 13h5' },
       { href: '/admin/reports', label: '举报处理', path: 'M12 3 2 21h20zM12 9v5M12 17v.01' },
+      { href: '/admin/content', label: '内容分级', path: 'M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3Z' },
       { href: '/admin/announcement', label: '公告', path: 'M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1Zm12-5 4-2v16l-4-2' },
     ],
   },

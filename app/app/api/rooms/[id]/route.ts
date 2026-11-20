@@ -1,4 +1,5 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
+import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { deleteRoom, getRoom, updateRoom } from '@/lib/rooms';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,8 @@ export async function PATCH(request: Request, context: Params) {
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const blocked18 = await roomNsfwBlock(user.id, body.characterIds);
+  if (blocked18) return fail(blocked18, 403);
   const room = updateRoom(user.id, id, body);
   return room ? json({ room }) : fail('房间不存在或成员为空', 404);
 }

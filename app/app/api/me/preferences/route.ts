@@ -1,4 +1,5 @@
 import { fail, json, requireUser } from '@/lib/api';
+import { STATE_MESSAGE, nsfwAccess } from '@/lib/age-gate';
 import { getAppearance, setAppearance, setHideNsfw, type ChatBackground } from '@/lib/prefs';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,11 @@ export async function PATCH(request: Request) {
 
   let touched = false;
   if (typeof body.hideNsfw === 'boolean') {
+    // 打开显示 18+ 前先过年龄/地区检查（关掉随时可以）
+    if (!body.hideNsfw) {
+      const access = await nsfwAccess(user.id);
+      if (!access.allowed) return Response.json({ message: STATE_MESSAGE[access.state], state: access.state }, { status: 403 });
+    }
     setHideNsfw(user.id, body.hideNsfw);
     touched = true;
   }

@@ -434,6 +434,10 @@ ensureColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user'");
 ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
 ensureColumn('users', 'age_confirmed_at', 'INTEGER');
 ensureColumn('users', 'hide_nsfw', 'INTEGER NOT NULL DEFAULT 0');
+// 年龄（lib/age-gate.ts）：出生日期 YYYY-MM-DD、年龄验证服务通过时间与方式
+ensureColumn('users', 'birth_date', 'TEXT');
+ensureColumn('users', 'age_verified_at', 'INTEGER');
+ensureColumn('users', 'age_verify_method', 'TEXT');
 ensureColumn('users', 'chat_font', 'INTEGER NOT NULL DEFAULT 100');
 ensureColumn('users', 'chat_bg', "TEXT NOT NULL DEFAULT 'default'");
 ensureColumn('users', 'author_bio', 'TEXT');

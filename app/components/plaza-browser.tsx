@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { ProtoWorkCard, type WorkCharacter } from '@/components/proto-work-card';
+import { AgeGateDialog, type NsfwStateName } from '@/components/age-gate-dialog';
 
 type Item = WorkCharacter & { tags: string[]; nsfw: boolean; createdAt: number };
 
@@ -16,7 +17,7 @@ function heat(value: string): number {
   return String(value).includes('万') ? number * 10000 : number;
 }
 
-export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[] }) {
+export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfwState = 'allowed', minAge = 18 }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[]; nsfwState?: NsfwStateName; minAge?: number }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'hot' | 'new'>('hot');
@@ -25,8 +26,6 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
   const [visible, setVisible] = useState(6);
   const [blocked, setBlocked] = useState<string[]>(initialBlocked);
   const [ageOpen, setAgeOpen] = useState(false);
-  const [ageChecked, setAgeChecked] = useState(false);
-  const [ageError, setAgeError] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -60,18 +59,12 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
       void setNsfwPref(true);
       return;
     }
-    setAgeChecked(false);
-    setAgeError('');
-    setAgeOpen(true);
-  };
-
-  const confirmAge = async () => {
-    if (!ageChecked) {
-      setAgeError('请先确认年龄');
+    // 已确认过年龄：直接打开；否则走年龄流程（填出生日期 / 验证 / 说明）
+    if (nsfwState === 'allowed') {
+      void setNsfwPref(false);
       return;
     }
-    setAgeOpen(false);
-    await setNsfwPref(false);
+    setAgeOpen(true);
   };
 
   const unblockAll = async () => {
@@ -145,9 +138,12 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
             <option value="hot">最热</option>
             <option value="new">最新</option>
           </select>
-          <button className="p-chip" type="button" aria-pressed={!hideNsfw} onClick={toggleNsfw}>
-            {hideNsfw ? '显示 NSFW' : '已显示 NSFW'}
-          </button>
+          {/* 全站关闭 / 地区不提供 / 未满年龄时不放这个开关 */}
+          {!['site_off', 'region_blocked', 'underage'].includes(nsfwState) && (
+            <button className="p-chip" type="button" aria-pressed={!hideNsfw} onClick={toggleNsfw}>
+              {hideNsfw ? '显示 18+' : '已显示 18+'}
+            </button>
+          )}
           <span className="p-filterbar-count">{list.length} 个作品</span>
         </div>
         <div className="p-chips" aria-label="角色题材">
@@ -184,23 +180,12 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
       </div>
 
       {ageOpen && (
-        <Modal
-          title="显示成人向作品"
+        <AgeGateDialog
+          state={nsfwState}
+          minAge={minAge}
           onClose={() => setAgeOpen(false)}
-          footer={
-            <>
-              <button className="btn btn--sm" type="button" onClick={() => setAgeOpen(false)}>取消</button>
-              <button className="btn btn--sm btn--primary" type="button" onClick={() => void confirmAge()}>确认并开启</button>
-            </>
-          }
-        >
-          <p className="small" style={{ marginTop: 0 }}>这些作品可能包含成人内容。请确认你已年满 18 周岁，并愿意浏览相关角色。</p>
-          <label className="check">
-            <input type="checkbox" checked={ageChecked} onChange={(event) => { setAgeChecked(event.target.checked); setAgeError(''); }} />
-            <span>我已年满 18 周岁</span>
-          </label>
-          <ErrorLine message={ageError} />
-        </Modal>
+          onAllowed={() => { setAgeOpen(false); setHideNsfw(false); router.refresh(); }}
+        />
       )}
 
       {importOpen && (

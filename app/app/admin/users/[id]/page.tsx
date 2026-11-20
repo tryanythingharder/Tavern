@@ -5,6 +5,8 @@ import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import { adminUserDetail } from '@/lib/admin';
 import { AdminUserActions } from '@/components/admin-user-actions';
+import { AdminUserAge } from '@/components/admin-user-age';
+import { getAgeRecord } from '@/lib/age-gate';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
         </div>
 
         <AdminUserActions id={user.id} nickname={user.nickname} status={user.status} role={user.role} />
+        {(() => { const age = getAgeRecord(user.id); return <AdminUserAge id={user.id} birthDate={age.birthDate} verifiedAt={age.verifiedAt} method={age.verifyMethod} />; })()}
 
         <section className="p-card" style={{ marginTop: 16 }}>
           <div className="p-block-head"><h2>最近订单</h2><Link className="p-btn p-btn--sm" href="/admin/orders">全部订单</Link></div>

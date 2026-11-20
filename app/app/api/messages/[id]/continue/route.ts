@@ -1,4 +1,5 @@
 import { setMessageReasoning } from '@/lib/db';
+import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { reasoningAt } from '@/lib/reasoning';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { withGenerationLock } from '@/lib/gen-lock';
@@ -54,6 +55,8 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!chat) return fail('会话不存在', 404);
   const character = getCharacterById(chat.character_id);
   if (!character) return fail('角色不存在', 404);
+  const blocked18 = await nsfwBlock(user.id, character);
+  if (blocked18) return fail(blocked18, 403);
 
   const quota = checkQuota(user.id);
   if (!quota.ok) return fail(quota.message, 429, quota.retryAfterSeconds);

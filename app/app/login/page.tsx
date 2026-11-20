@@ -88,11 +88,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                   {field('register-nickname', '昵称（选填）', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
                   {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                  {field('register-birth', '出生日期', 'date', { required: 'required', max: new Date().toISOString().slice(0, 10), min: '1900-01-01' })}
                   {field('register-password', '密码', 'password', { required: 'required', minLength: '8', autoComplete: 'new-password' })}
                   <span className="p-auth-hint">密码至少 8 位；用 scrypt 哈希保存，不会以明文存储。</span>
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>
                     <input id="register-age" name="age" type="checkbox" required style={{ marginTop: 2 }} />
-                    <span>我已年满 18 岁，并同意服务条款、隐私政策与社区准则</span>
+                    <span>我确认以上出生日期真实，已年满 18 岁，并同意服务条款、隐私政策与社区准则</span>
                   </label>
                   <p className="p-auth-hint">
                     <Link href="/terms">服务条款</Link> · <Link href="/privacy">隐私政策</Link> · <Link href="/guidelines">社区准则</Link>
