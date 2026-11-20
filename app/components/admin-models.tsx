@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type Meta = { name: string; summary: string; tags: string[]; context: string; featured: boolean; hidden: boolean; sort: number };
 type Rule = { mode: 'token' | 'call'; price: number; tiers: { above: number; price: number }[] };
@@ -112,11 +113,11 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
               <tr key={row.id}>
                 <td className="am-id">{row.id}<div className="p-small">{row.source}{row.isDefault ? ' · 默认' : ''}</div></td>
                 <td>
-                  <select className="p-input am-mode" aria-label={`${row.id} 计费方式`} value={row.mode} onChange={(event) => patch(row.id, { mode: event.target.value as Mode, price: row.price || (event.target.value === 'inherit' ? '' : String(basePrice)) })}>
+                  <Select className="p-input am-mode" aria-label={`${row.id} 计费方式`} value={row.mode} onChange={(event) => patch(row.id, { mode: event.target.value as Mode, price: row.price || (event.target.value === 'inherit' ? '' : String(basePrice)) })}>
                     <option value="inherit">跟随全局</option>
                     <option value="token">按量</option>
                     <option value="call">按次</option>
-                  </select>
+                  </Select>
                 </td>
                 <td><input className="p-input am-num" inputMode="decimal" aria-label={`${row.id} 价格`} value={row.mode === 'inherit' ? '' : row.price} disabled={row.mode === 'inherit'} placeholder={String(basePrice)} onChange={(event) => patch(row.id, { price: event.target.value })} /></td>
                 <td className="am-tiers">

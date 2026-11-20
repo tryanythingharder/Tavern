@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CharacterOverride } from '@/lib/cards';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type CharacterItem = { id: string; name: string; hook: string };
 
@@ -116,11 +117,11 @@ export function CardsEditor({ characters, initial }: { characters: CharacterItem
             </div>
             <div className="p-field">
               <label>身份</label>
-              <select className="p-select" value={draft.depthRole} onChange={(event) => setDraft({ ...draft, depthRole: event.target.value as CharacterOverride['depthRole'] })}>
+              <Select className="p-select" value={draft.depthRole} onChange={(event) => setDraft({ ...draft, depthRole: event.target.value as CharacterOverride['depthRole'] })}>
                 <option value="system">系统</option>
                 <option value="user">玩家</option>
                 <option value="assistant">角色</option>
-              </select>
+              </Select>
             </div>
           </div>
         </Modal>

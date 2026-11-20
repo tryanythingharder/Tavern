@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CATEGORIES } from '@/lib/catalog';
 import type { CharacterView } from '@/lib/characters';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 export function CharacterForm({ initial }: { initial?: CharacterView }) {
   const router = useRouter();
@@ -323,9 +324,9 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
               </div>
               <div className="p-field">
                 <label className="p-label" htmlFor="create-category">题材</label>
-                <select id="create-category" className="p-select" value={category} onChange={(event) => setCategory(event.target.value)}>
+                <Select id="create-category" className="p-select" value={category} onChange={(event) => setCategory(event.target.value)}>
                   {CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
+                </Select>
               </div>
             </div>
 

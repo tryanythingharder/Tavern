@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { RegexRule } from '@/lib/resources';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 const SCOPE_LABEL: Record<string, string> = { both: '发送 + 展示', send: '仅发送', display: '仅展示' };
 const TARGET_LABEL: Record<string, string> = { all: '全部消息', assistant: '角色消息', user: '玩家消息' };
@@ -150,19 +151,19 @@ export function RegexEditor({ initial }: { initial: RegexRule[] }) {
           <div className="p-field-row">
             <div className="p-field">
               <label>作用范围</label>
-              <select className="p-select" value={draft.scope} onChange={(event) => setDraft({ ...draft, scope: event.target.value as RegexRule['scope'] })}>
+              <Select className="p-select" value={draft.scope} onChange={(event) => setDraft({ ...draft, scope: event.target.value as RegexRule['scope'] })}>
                 <option value="both">发送 + 展示</option>
                 <option value="send">仅发送（进入上下文前）</option>
                 <option value="display">仅展示（生成结果落库前）</option>
-              </select>
+              </Select>
             </div>
             <div className="p-field">
               <label>作用对象</label>
-              <select className="p-select" value={draft.target} onChange={(event) => setDraft({ ...draft, target: event.target.value as RegexRule['target'] })}>
+              <Select className="p-select" value={draft.target} onChange={(event) => setDraft({ ...draft, target: event.target.value as RegexRule['target'] })}>
                 <option value="all">全部消息</option>
                 <option value="assistant">角色消息</option>
                 <option value="user">玩家消息</option>
-              </select>
+              </Select>
             </div>
             <div className="p-field">
               <label>深度从</label>

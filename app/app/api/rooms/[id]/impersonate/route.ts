@@ -49,6 +49,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     persona: config.persona,
     userName: config.userName,
     loreEntries: config.loreEntries,
+    cardLoreLane: config.cardLoreLane,
     regexRules: config.regexRules,
     variables: roomVariables(room.id, room.characterIds),
   });

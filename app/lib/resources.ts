@@ -258,6 +258,8 @@ export type LoreEntry = {
   useGroupScoring?: boolean;
   ignoreBudget?: boolean;
   delayUntilRecursion?: boolean;
+  // 扫描/占预算的先后档（ST 插入策略）：数字小的先排；同档按优先级（order）高的先。由 resources-db 按来源填
+  lane?: number;
 };
 
 export type Lorebook = { id: number; name: string; entries: LoreEntry[]; updated_at: number };

@@ -12,7 +12,12 @@ export type GenPrefs = {
   trimSentences: boolean;
   autoContinue: { enabled: boolean; target: number };
   reasoning: { autoParse: boolean; prefix: string; suffix: string; autoExpand: boolean; addToPrompts: boolean; maxAdditions: number };
+  // ST 世界书「插入策略」world_info_character_strategy：均匀排序 / 角色优先（ST 默认）/ 全局优先
+  loreStrategy: LoreStrategy;
 };
+
+export type LoreStrategy = 'evenly' | 'character_first' | 'global_first';
+export const LORE_STRATEGIES: LoreStrategy[] = ['evenly', 'character_first', 'global_first'];
 
 // 和 ST 默认一致，唯一不同：自动解析 <think> 默认开（不开的话很多模型的思考会直接混进正文，新手看着像乱码）
 export const DEFAULT_GEN_PREFS: GenPrefs = {
@@ -21,6 +26,7 @@ export const DEFAULT_GEN_PREFS: GenPrefs = {
   trimSentences: false,
   autoContinue: { enabled: false, target: 400 },
   reasoning: { autoParse: true, prefix: '<think>', suffix: '</think>', autoExpand: false, addToPrompts: false, maxAdditions: 1 },
+  loreStrategy: 'character_first',
 };
 
 const clampInt = (value: unknown, min: number, max: number, fallback: number) => {
@@ -64,6 +70,7 @@ export function normalizeGenPrefs(raw: unknown): GenPrefs {
       addToPrompts: typeof rs.addToPrompts === 'boolean' ? rs.addToPrompts : d.reasoning.addToPrompts,
       maxAdditions: clampInt(rs.maxAdditions, 0, 50, d.reasoning.maxAdditions),
     },
+    loreStrategy: LORE_STRATEGIES.includes(input.loreStrategy) ? input.loreStrategy : d.loreStrategy,
   };
 }
 

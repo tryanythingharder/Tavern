@@ -2,6 +2,7 @@
 // light-dark() 交给浏览器原生处理（此版本 preset-env 不认识它，不会降级）。
 const config = {
   plugins: [
+    './scripts/postcss-select.cjs',
     './scripts/postcss-dark.cjs',
     'next/dist/compiled/postcss-flexbugs-fixes',
     [

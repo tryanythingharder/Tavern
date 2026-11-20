@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { coverSrc } from '@/components/proto-cover';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type ChatItem = {
   id: number;
@@ -216,11 +217,11 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
             <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
             <input className="p-input" type="search" value={query} placeholder="搜索角色或对话内容" aria-label="搜索会话" onChange={(event) => setQuery(event.target.value)} />
           </label>
-          <select className="p-select" aria-label="按角色筛选" value={character} onChange={(event) => setCharacter(event.target.value)}>
+          <Select className="p-select" aria-label="按角色筛选" value={character} onChange={(event) => setCharacter(event.target.value)}>
             <option value="all">全部角色</option>
             {charactersInChats.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             <option value="rooms">多角色房间</option>
-          </select>
+          </Select>
           <span className="p-filterbar-count">{total} 个故事 · 最近更新优先</span>
         </div>
       </div>
@@ -346,9 +347,9 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
           <ErrorLine message={importError} />
           <div className="field">
             <label htmlFor="chat-import-character">属于哪个角色</label>
-            <select id="chat-import-character" className="select" value={importCharacter} onChange={(event) => setImportCharacter(event.target.value)}>
+            <Select id="chat-import-character" className="select" value={importCharacter} onChange={(event) => setImportCharacter(event.target.value)}>
               {characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            </Select>
           </div>
           <div className="field">
             <label htmlFor="chat-import-file">选择文件</label>

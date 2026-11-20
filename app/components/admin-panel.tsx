@@ -4,6 +4,7 @@ import { LocalTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type AdminUser = {
   id: number; email: string; nickname: string; role: string; status: string;
@@ -85,11 +86,11 @@ export function AdminPanel({ users }: { users: AdminUser[] }) {
           <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
           <input className="p-input" type="search" value={query} placeholder="搜索昵称、邮箱" aria-label="搜索玩家" onChange={(event) => setQuery(event.target.value)} />
         </label>
-        <select className="p-select" value={status} aria-label="按状态筛选" onChange={(event) => setStatus(event.target.value)}>
+        <Select className="p-select" value={status} aria-label="按状态筛选" onChange={(event) => setStatus(event.target.value)}>
           <option value="all">全部状态</option>
           <option value="active">正常</option>
           <option value="banned">已封禁</option>
-        </select>
+        </Select>
         <span className="p-small" style={{ marginLeft: 'auto' }}>{visible.length} / {rows.length} 个账号</span>
         <button className="p-btn p-btn--sm" type="button" onClick={exportCsv}>导出玩家</button>
       </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { LORE_LOGICS, LORE_POSITIONS, type LoreEntry, type Lorebook } from '@/lib/resources';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 const positionLabel = (key: string) => LORE_POSITIONS.find(([value]) => value === key)?.[1] ?? key;
 
@@ -31,7 +32,42 @@ function blankEntry(): LoreEntry {
   };
 }
 
-export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] }: { initial: Lorebook[]; initialGlobal?: number[] | null; chatBound?: number[] }) {
+const STRATEGY_HINT: Record<string, string> = {
+  evenly: '角色和全局世界书的条目混在一起，只按「顺序」排。',
+  character_first: '先排角色附加的世界书和卡内世界书，再排全局世界书（ST 默认）。',
+  global_first: '先排全局世界书，再排角色附加的世界书和卡内世界书。',
+};
+
+// ST「插入策略」：决定预算不够时谁先进上下文；聊天世界书、身份世界书总是排在最前。写进提示词的顺序仍只看条目的「顺序」
+function LoreStrategyField({ initial }: { initial: string }) {
+  const [value, setValue] = useState(initial);
+  const [error, setError] = useState('');
+  const save = async (next: string) => {
+    const before = value;
+    setValue(next);
+    setError('');
+    try {
+      await api('/api/me/gen-prefs', { method: 'PATCH', body: JSON.stringify({ loreStrategy: next }) });
+    } catch (caught) {
+      setValue(before);
+      setError((caught as Error).message);
+    }
+  };
+  return (
+    <div className="lb-strategy">
+      <label htmlFor="lb-strategy">插入策略</label>
+      <Select id="lb-strategy" className="p-input" value={value} onChange={(event) => void save(event.target.value)}>
+        <option value="evenly">均匀排序</option>
+        <option value="character_first">角色优先</option>
+        <option value="global_first">全局优先</option>
+      </Select>
+      <span className="hint">{STRATEGY_HINT[value]} 预算不够时排在前面的先进；聊天世界书和身份世界书永远最先。</span>
+      <ErrorLine message={error} />
+    </div>
+  );
+}
+
+export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [], initialStrategy = 'character_first' }: { initial: Lorebook[]; initialGlobal?: number[] | null; chatBound?: number[]; initialStrategy?: string }) {
   const [books, setBooks] = useState<Lorebook[]>(initial);
   // 全局世界书（ST 的 Active World(s)）：null = 全部
   const [globalIds, setGlobalIds] = useState<number[] | null>(initialGlobal);
@@ -127,6 +163,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
         <button className="btn btn--primary btn--sm" type="button" onClick={() => void create()}>新建世界书</button>
         <button className="p-btn p-btn--sm" type="button" onClick={() => setImportOpen(true)}>导入 ST 世界书</button>
       </div>
+      <LoreStrategyField initial={initialStrategy} />
       <ErrorLine message={error} />
 
       <div className="p-rows">
@@ -214,9 +251,9 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
                   </div>
                   <div className="p-field">
                     <label>逻辑</label>
-                    <select className="p-select" value={entry.logic} onChange={(event) => updateEntry(entryIndex, { logic: event.target.value as LoreEntry['logic'] })}>
+                    <Select className="p-select" value={entry.logic} onChange={(event) => updateEntry(entryIndex, { logic: event.target.value as LoreEntry['logic'] })}>
                       {LORE_LOGICS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                    </select>
+                    </Select>
                   </div>
                 </div>
               )}
@@ -227,9 +264,9 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
               <div className="p-field-row">
                 <div className="p-field">
                   <label>插入位置</label>
-                  <select className="p-select" value={entry.position} onChange={(event) => updateEntry(entryIndex, { position: event.target.value as LoreEntry['position'] })}>
+                  <Select className="p-select" value={entry.position} onChange={(event) => updateEntry(entryIndex, { position: event.target.value as LoreEntry['position'] })}>
                     {LORE_POSITIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                  </select>
+                  </Select>
                 </div>
                 {entry.position === 'depth' && (
                   <>
@@ -239,11 +276,11 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
                     </div>
                     <div className="p-field">
                       <label>身份</label>
-                      <select className="p-select" value={entry.role} onChange={(event) => updateEntry(entryIndex, { role: event.target.value as LoreEntry['role'] })}>
+                      <Select className="p-select" value={entry.role} onChange={(event) => updateEntry(entryIndex, { role: event.target.value as LoreEntry['role'] })}>
                         <option value="system">系统</option>
                         <option value="user">玩家</option>
                         <option value="assistant">角色</option>
-                      </select>
+                      </Select>
                     </div>
                   </>
                 )}
@@ -259,7 +296,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
               <div className="p-field-row">
                 <div className="p-field">
                   <label>大小写</label>
-                  <select
+                  <Select
                     className="p-select"
                     value={entry.caseSensitive === null ? '' : entry.caseSensitive ? 'yes' : 'no'}
                     onChange={(event) => updateEntry(entryIndex, { caseSensitive: event.target.value === '' ? null : event.target.value === 'yes' })}
@@ -267,11 +304,11 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
                     <option value="">跟随全局</option>
                     <option value="yes">区分</option>
                     <option value="no">不区分</option>
-                  </select>
+                  </Select>
                 </div>
                 <div className="p-field">
                   <label>整词匹配</label>
-                  <select
+                  <Select
                     className="p-select"
                     value={entry.matchWholeWords === null ? '' : entry.matchWholeWords ? 'yes' : 'no'}
                     onChange={(event) => updateEntry(entryIndex, { matchWholeWords: event.target.value === '' ? null : event.target.value === 'yes' })}
@@ -279,7 +316,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [] 
                     <option value="">跟随全局</option>
                     <option value="yes">是</option>
                     <option value="no">否</option>
-                  </select>
+                  </Select>
                 </div>
                 <label className="p-check" style={{ alignSelf: 'end', marginBottom: 14 }}>
                   <input type="checkbox" checked={entry.enabled} onChange={(event) => updateEntry(entryIndex, { enabled: event.target.checked })} />

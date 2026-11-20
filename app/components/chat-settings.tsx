@@ -6,6 +6,7 @@ import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { usePlayMode } from '@/components/play-mode';
 import { PARAM_FIELDS } from '@/lib/param-fields';
 import type { PresetParams } from '@/lib/resources';
+import { Select } from '@/components/ui-select';
 
 type SettingsData = {
   settings: { presetId: number | null; personaId: number | null; lorebookIds: number[] | null };
@@ -334,22 +335,22 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                   {mode !== 'newbie' && (
                   <div className="field">
                     <label>预设 <small className="pm-st">Preset</small></label>
-                    <select className="select" value={presetId ?? ''} onChange={(event) => {
+                    <Select className="select" value={presetId ?? ''} onChange={(event) => {
                       const next = event.target.value ? Number(event.target.value) : null;
                       setPresetId(next);
                       setParams(data.presets.find((preset) => preset.id === next)?.params ?? null);
                       setParamsDirty(false);
                     }}>
                       {data.presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
-                    </select>
+                    </Select>
                   </div>
                   )}
                   <div className="field">
                     <label>身份</label>
-                    <select className="select" value={personaId ?? ''} onChange={(event) => setPersonaId(event.target.value ? Number(event.target.value) : null)}>
+                    <Select className="select" value={personaId ?? ''} onChange={(event) => setPersonaId(event.target.value ? Number(event.target.value) : null)}>
                       <option value="">不使用身份</option>
                       {data.personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.name}</option>)}
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
@@ -405,7 +406,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                 <div className="field cs-books">
                   <label htmlFor="cs-chat-lore">聊天世界书 <small className="pm-st">Chat Lore</small></label>
                   <div className="cs-book-row">
-                    <select
+                    <Select
                       id="cs-chat-lore"
                       className="select"
                       value={data.chatLorebookId ?? ''}
@@ -414,7 +415,7 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     >
                       <option value="">不绑定</option>
                       {data.lorebooks.map((book) => <option key={book.id} value={book.id}>{book.name}（{book.count} 条）</option>)}
-                    </select>
+                    </Select>
                     {!data.chatLorebookId && (
                       <button type="button" className="p-btn p-btn--sm" disabled={bindBusy} onClick={() => void saveBinding({ createChatLorebook: true })}>新建一本</button>
                     )}
@@ -548,10 +549,10 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     <div className="field-row">
                       <div className="field">
                         <label>摘要方式</label>
-                        <select className="select" value={sp.mode} onChange={(event) => setPref('mode', event.target.value as SummaryPrefs['mode'])}>
+                        <Select className="select" value={sp.mode} onChange={(event) => setPref('mode', event.target.value as SummaryPrefs['mode'])}>
                           <option value="llm">模型生成（扣点数）</option>
                           <option value="extract">抽取式（免费）</option>
-                        </select>
+                        </Select>
                       </div>
                       <div className="field">
                         <label>每多少条更新一次</label>
@@ -567,11 +568,11 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                     <div className="field-row">
                       <div className="field">
                         <label>插入位置</label>
-                        <select className="select" value={sp.position} onChange={(event) => setPref('position', event.target.value as SummaryPrefs['position'])}>
+                        <Select className="select" value={sp.position} onChange={(event) => setPref('position', event.target.value as SummaryPrefs['position'])}>
                           <option value="prompt">按预设顺序（「自动摘要」块）</option>
                           <option value="depth">聊天内 @深度</option>
                           <option value="none">不自动插入（只用 {'{{summary}}'} 宏）</option>
-                        </select>
+                        </Select>
                       </div>
                       {sp.position === 'depth' && (
                         <>
@@ -643,11 +644,11 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                 <div className="field-row">
                   <div className="field">
                     <label>插入位置</label>
-                    <select className="select" value={note.position} onChange={(event) => setNoteField('position', event.target.value as NoteData['position'])}>
+                    <Select className="select" value={note.position} onChange={(event) => setNoteField('position', event.target.value as NoteData['position'])}>
                       <option value="depth">聊天内 @深度</option>
                       <option value="after">主提示之后（预设里的作者注释位置）</option>
                       <option value="before">主提示之前</option>
-                    </select>
+                    </Select>
                   </div>
                   {note.position === 'depth' && (
                     <>
@@ -673,11 +674,11 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                 </div>
                 <div className="field">
                   <label>和会话注释怎么合并</label>
-                  <select className="select" value={charNote.mode} onChange={(event) => setCharNote({ ...charNote, mode: event.target.value as MemoryData['characterNote']['mode'] })}>
+                  <Select className="select" value={charNote.mode} onChange={(event) => setCharNote({ ...charNote, mode: event.target.value as MemoryData['characterNote']['mode'] })}>
                     <option value="replace">有角色注释时代替会话注释</option>
                     <option value="before">放在会话注释前面</option>
                     <option value="after">放在会话注释后面</option>
-                  </select>
+                  </Select>
                 </div>
                 <p className="small">世界书里「作者注释之前 / 之后」的条目会跟着作者注释的位置插入。</p>
               </>
@@ -748,11 +749,11 @@ function pickPrefs(status: MemoryData['status']): SummaryPrefs {
 
 function RoleSelect({ value, onChange }: { value: Role; onChange: (value: Role) => void }) {
   return (
-    <select className="select" value={value} onChange={(event) => onChange(event.target.value as Role)}>
+    <Select className="select" value={value} onChange={(event) => onChange(event.target.value as Role)}>
       <option value="system">系统</option>
       <option value="user">玩家</option>
       <option value="assistant">角色</option>
-    </select>
+    </Select>
   );
 }
 

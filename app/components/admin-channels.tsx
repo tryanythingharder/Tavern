@@ -4,6 +4,7 @@ import { LocalTime, formatTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 export type ChannelView = {
   id: number;
@@ -184,10 +185,10 @@ function ChannelForm({
           </div>
           <div className="p-field" style={{ marginTop: 12 }}>
             <label htmlFor="channel-default">默认模型（生成时使用）</label>
-            <select id="channel-default" className="p-select" value={defaultModel} onChange={(event) => setDefaultModel(event.target.value)}>
+            <Select id="channel-default" className="p-select" value={defaultModel} onChange={(event) => setDefaultModel(event.target.value)}>
               {!selectedList.length && <option value="">先勾选模型</option>}
               {selectedList.map((model) => <option key={model} value={model}>{model}</option>)}
-            </select>
+            </Select>
           </div>
         </>
       )}

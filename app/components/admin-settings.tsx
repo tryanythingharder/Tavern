@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
 type Status = {
@@ -147,9 +148,9 @@ export function AdminSettings() {
           <div className="p-field">
             <label>模型</label>
             {models.image.length ? (
-              <select className="p-select" value={form.image.model} onChange={(event) => setForm({ ...form, image: { ...form.image, model: event.target.value } })}>
+              <Select className="p-select" value={form.image.model} onChange={(event) => setForm({ ...form, image: { ...form.image, model: event.target.value } })}>
                 {[...(form.image.model && !models.image.includes(form.image.model) ? [form.image.model] : []), ...models.image].map((model) => <option key={model} value={model}>{model}</option>)}
-              </select>
+              </Select>
             ) : (
               <input aria-label="模型" className="p-input" value={form.image.model} placeholder="例如：gpt-image-1" onChange={(event) => setForm({ ...form, image: { ...form.image, model: event.target.value } })} />
             )}
@@ -185,9 +186,9 @@ export function AdminSettings() {
           <div className="p-field">
             <label>模型</label>
             {models.tts.length ? (
-              <select className="p-select" value={form.tts.model} onChange={(event) => setForm({ ...form, tts: { ...form.tts, model: event.target.value } })}>
+              <Select className="p-select" value={form.tts.model} onChange={(event) => setForm({ ...form, tts: { ...form.tts, model: event.target.value } })}>
                 {[...(form.tts.model && !models.tts.includes(form.tts.model) ? [form.tts.model] : []), ...models.tts].map((model) => <option key={model} value={model}>{model}</option>)}
-              </select>
+              </Select>
             ) : (
               <input aria-label="模型" className="p-input" value={form.tts.model} placeholder="例如：tts-1" onChange={(event) => setForm({ ...form, tts: { ...form.tts, model: event.target.value } })} />
             )}
@@ -278,7 +279,7 @@ export function AdminSettings() {
         <PluginList items={status?.payment.providers ?? []} />
         <div className="p-field-row">
           <div className="p-field"><label>每点价格（分）</label><input aria-label="每点价格（分）" className="p-input" type="number" min={1} value={form.payment.pricePerPointCents} onChange={(event) => setForm({ ...form, payment: { ...form.payment, pricePerPointCents: event.target.value } })} /></div>
-          <div className="p-field"><label>收款渠道</label><select aria-label="收款渠道" className="p-input" value={form.payment.provider} onChange={(event) => setForm({ ...form, payment: { ...form.payment, provider: event.target.value } })}><option value="">自动（第一个已配置的）</option>{(status?.payment.providers ?? []).map((item) => <option key={item.id} value={item.id}>{item.label}{item.configured ? '' : '（未配置）'}</option>)}</select></div>
+          <div className="p-field"><label>收款渠道</label><Select aria-label="收款渠道" className="p-input" value={form.payment.provider} onChange={(event) => setForm({ ...form, payment: { ...form.payment, provider: event.target.value } })}><option value="">自动（第一个已配置的）</option>{(status?.payment.providers ?? []).map((item) => <option key={item.id} value={item.id}>{item.label}{item.configured ? '' : '（未配置）'}</option>)}</Select></div>
           <div className="p-field"><label>通用结算页回调密钥（留空不改）</label><input aria-label="回调密钥（留空不改）" className="p-input" type="password" value={form.payment.secret} placeholder={status?.payment.hasSecret ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, payment: { ...form.payment, secret: event.target.value } })} /></div>
           <div className="p-field"><label>通用结算页 URL</label><input aria-label="结算页 URL（选填）" className="p-input" value={form.payment.checkoutUrl} placeholder="https://pay.example.com/checkout" onChange={(event) => setForm({ ...form, payment: { ...form.payment, checkoutUrl: event.target.value } })} /></div>
         </div>

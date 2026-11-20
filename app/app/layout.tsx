@@ -45,6 +45,8 @@ import '../styles/themes/stage.css';
 import '../styles/themes/custom.css';
 import '../styles/themes/dark.css';
 import '../styles/chat-focus.css';
+import '../styles/ui-select.css';
+import '../styles/ui-dialog.css';
 // 英文界面下替换 CSS 伪元素里的中文
 import '../styles/i18n-en.css';
 

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 export function AdminUserActions({ id, nickname, status, role }: { id: number; nickname: string; status: string; role: string }) {
   const router = useRouter();
@@ -62,10 +63,10 @@ export function AdminUserActions({ id, nickname, status, role }: { id: number; n
         </button>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-        <select className="p-select" aria-label="账号角色" value={nextRole} onChange={(event) => setNextRole(event.target.value)} style={{ width: 130 }}>
+        <Select className="p-select" aria-label="账号角色" value={nextRole} onChange={(event) => setNextRole(event.target.value)} style={{ width: 130 }}>
           <option value="user">普通用户</option>
           <option value="admin">管理员</option>
-        </select>
+        </Select>
         <button className="p-btn p-btn--sm" type="button" disabled={busy === 'role' || nextRole === role} onClick={() => void changeRole()}>
           {busy === 'role' ? '更新中…' : '更新角色'}
         </button>

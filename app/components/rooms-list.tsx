@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type RoomItem = {
   id: number; name: string; characterIds: string[]; muted: string[]; strategy: string;
@@ -234,9 +235,9 @@ export function RoomsList({ rooms, characters }: { rooms: RoomItem[]; characters
           </div>
           <div className="field">
             <label>发言顺序</label>
-            <select className="select" value={strategy} onChange={(event) => setStrategy(event.target.value)}>
+            <Select className="select" value={strategy} onChange={(event) => setStrategy(event.target.value)}>
               {Object.entries(STRATEGY_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </select>
+            </Select>
             <span className="hint">自然模式会在你的话里找角色名；轮流模式按发言次数最少的人先答；随机模式从成员池里抽。</span>
           </div>
         </Modal>
@@ -293,19 +294,19 @@ export function RoomsList({ rooms, characters }: { rooms: RoomItem[]; characters
           </div>
           <div className="field">
             <label>发言顺序</label>
-            <select className="select" value={editStrategy} onChange={(event) => setEditStrategy(event.target.value)}>
+            <Select className="select" value={editStrategy} onChange={(event) => setEditStrategy(event.target.value)}>
               {Object.entries(STRATEGY_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </select>
+            </Select>
             <span className="hint">成员变化只影响后续回复，历史消息不会被删除。</span>
           </div>
           <div className="field">
             <label>指定模式的默认角色</label>
-            <select className="select" value={editSpeakerId} onChange={(event) => setEditSpeakerId(event.target.value)}>
+            <Select className="select" value={editSpeakerId} onChange={(event) => setEditSpeakerId(event.target.value)}>
               <option value="">自动选择</option>
               {characters.filter((character) => editMembers.includes(character.id) && !editMuted.includes(character.id)).map((character) => (
                 <option key={character.id} value={character.id}>{character.name}</option>
               ))}
-            </select>
+            </Select>
             <span className="hint">手动模式下默认由这个角色回应；被静音的成员不会出现在这里。</span>
           </div>
           <div className="field">

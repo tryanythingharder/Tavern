@@ -8,6 +8,7 @@ import { RichText } from '@/components/rich-text';
 import type { RegexRule } from '@/lib/resources';
 import { ModelPicker } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
+import { Select } from '@/components/ui-select';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
@@ -543,9 +544,9 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
             {strategy === 'manual' && (
               <label className="p-small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 本轮由
-                <select className="p-select" style={{ width: 'auto', padding: '4px 8px' }} value={speakerId} onChange={(event) => setSpeakerId(event.target.value)}>
+                <Select className="p-select" style={{ width: 'auto', padding: '4px 8px' }} value={speakerId} onChange={(event) => setSpeakerId(event.target.value)}>
                   {members.filter((member) => !member.muted).map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
-                </select>
+                </Select>
                 回应
               </label>
             )}

@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { inviteRequired } from '@/lib/invite';
 import { login, register } from './actions';
 import { PasswordInput } from '@/components/password-input';
+import { DateFormField } from '@/components/ui-date';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '登录' });
@@ -88,7 +89,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                   {field('register-nickname', '昵称（选填）', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
                   {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
-                  {field('register-birth', '出生日期', 'date', { required: 'required', max: new Date().toISOString().slice(0, 10), min: '1900-01-01' })}
+                  <div className="p-auth-field">
+                    <label className="p-auth-label" htmlFor="register-birth">出生日期</label>
+                    <DateFormField id="register-birth" name="birth" className="p-auth-input" min="1900-01-01" />
+                  </div>
                   {field('register-password', '密码', 'password', { required: 'required', minLength: '8', autoComplete: 'new-password' })}
                   <span className="p-auth-hint">密码至少 8 位；用 scrypt 哈希保存，不会以明文存储。</span>
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>

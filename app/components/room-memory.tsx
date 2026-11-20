@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 // 群聊的作者注释与记忆摘要（ST：群聊同样按聊天保存 Author's Note / Summarize）。字段与单聊设置一致。
 
@@ -12,11 +13,11 @@ type Data = { note: Note; prefs: Prefs; summary: { text: string; covered: number
 
 function RoleSelect({ value, onChange }: { value: Role; onChange: (value: Role) => void }) {
   return (
-    <select className="select" value={value} onChange={(event) => onChange(event.target.value as Role)}>
+    <Select className="select" value={value} onChange={(event) => onChange(event.target.value as Role)}>
       <option value="system">系统</option>
       <option value="user">玩家</option>
       <option value="assistant">角色</option>
-    </select>
+    </Select>
   );
 }
 
@@ -114,11 +115,11 @@ export function RoomMemoryButton({ roomId, className = 'p-chat-icon' }: { roomId
               <div className="field-row">
                 <div className="field">
                   <label>插入位置</label>
-                  <select className="select" value={note.position} onChange={(event) => setNoteField('position', event.target.value as Note['position'])}>
+                  <Select className="select" value={note.position} onChange={(event) => setNoteField('position', event.target.value as Note['position'])}>
                     <option value="depth">聊天内 @深度</option>
                     <option value="after">主提示之后</option>
                     <option value="before">主提示之前</option>
-                  </select>
+                  </Select>
                 </div>
                 {note.position === 'depth' && (
                   <>
@@ -161,11 +162,11 @@ export function RoomMemoryButton({ roomId, className = 'p-chat-icon' }: { roomId
               <div className="field-row">
                 <div className="field">
                   <label>插入位置</label>
-                  <select className="select" value={prefs.position} onChange={(event) => setPref('position', event.target.value as Prefs['position'])}>
+                  <Select className="select" value={prefs.position} onChange={(event) => setPref('position', event.target.value as Prefs['position'])}>
                     <option value="prompt">系统提示里（角色设定之后）</option>
                     <option value="depth">聊天内 @深度</option>
                     <option value="none">不自动插入（只用 {'{{summary}}'} 宏）</option>
-                  </select>
+                  </Select>
                 </div>
                 {prefs.position === 'depth' && (
                   <>
@@ -233,10 +234,10 @@ function RoomLorePanel({ roomId }: { roomId: number }) {
       <div className="field cs-books">
         <label htmlFor="room-chat-lore">群聊世界书 <small className="pm-st">Chat Lore</small></label>
         <div className="cs-book-row">
-          <select id="room-chat-lore" className="select" value={data.chatLorebookId ?? ''} disabled={busy} onChange={(event) => void put({ chatLorebookId: event.target.value ? Number(event.target.value) : null })}>
+          <Select id="room-chat-lore" className="select" value={data.chatLorebookId ?? ''} disabled={busy} onChange={(event) => void put({ chatLorebookId: event.target.value ? Number(event.target.value) : null })}>
             <option value="">不绑定</option>
             {data.lorebooks.map((book) => <option key={book.id} value={book.id}>{book.name}（{book.count} 条）</option>)}
-          </select>
+          </Select>
           {!data.chatLorebookId && <button type="button" className="p-btn p-btn--sm" disabled={busy} onClick={() => void put({ create: true })}>新建一本</button>}
           {!!data.chatLorebookId && <a className="p-btn p-btn--sm" href="/me/lorebooks">去编辑</a>}
         </div>

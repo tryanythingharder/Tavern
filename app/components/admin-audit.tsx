@@ -2,6 +2,7 @@
 
 import { LocalTime } from '@/components/local-time';
 import { useState } from 'react';
+import { Select } from '@/components/ui-select';
 
 type Entry = { id: number; adminName: string; action: string; detail: string; createdAt: number };
 
@@ -38,10 +39,10 @@ export function AdminAudit({ initial }: { initial: Entry[] }) {
           <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
           <input className="p-input" type="search" value={query} placeholder="搜索管理员、动作或对象" aria-label="搜索审计日志" onChange={(event) => setQuery(event.target.value)} />
         </label>
-        <select className="p-select" value={action} aria-label="按动作筛选" onChange={(event) => setAction(event.target.value)}>
+        <Select className="p-select" value={action} aria-label="按动作筛选" onChange={(event) => setAction(event.target.value)}>
           <option value="all">全部动作</option>
           {actions.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
+        </Select>
         <button className="p-btn p-btn--sm" type="button" onClick={exportCsv}>导出日志</button>
       </div>
       <div className="admin-table-wrap">

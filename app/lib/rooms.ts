@@ -377,6 +377,7 @@ export type RoomPromptInput = {
   /** {{user}}：身份名，没有身份时账号昵称 */
   userName?: string;
   loreEntries: LoreEntry[];
+  cardLoreLane?: number;
   regexRules: RegexRule[];
   /** 房间共享的 MVU 变量（lib/mvu-server.ts roomVariables） */
   variables?: MvuState | null;
@@ -394,7 +395,7 @@ export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): 
   // 玩家消息用发送时的身份名（ST 每条消息的 name）
   const userOf = (message: RoomMessage) => message.personaName || userName;
   // 成员卡自带的世界书一起扫（InitVar 这类只给变量用的条目不进提示词）
-  const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title));
+  const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title)).map((entry) => ({ ...entry, lane: input.cardLoreLane ?? 2 }));
   const loreEntries = [...cardLore, ...input.loreEntries];
   const varStore = makeVarStore(variables?.scoped);
   const liveVars: MvuState | null = variables ? { ...variables, scoped: { chat: varStore.chat, global: varStore.global } } : null;

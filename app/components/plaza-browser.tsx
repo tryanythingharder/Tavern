@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { ProtoWorkCard, type WorkCharacter } from '@/components/proto-work-card';
 import { AgeGateDialog, type NsfwStateName } from '@/components/age-gate-dialog';
+import { Select } from '@/components/ui-select';
 
 type Item = WorkCharacter & { tags: string[]; nsfw: boolean; createdAt: number };
 
@@ -134,10 +135,10 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
               onChange={(event) => { setQuery(event.target.value); setVisible(6); }}
             />
           </label>
-          <select className="p-select" aria-label="排序方式" value={sort} onChange={(event) => setSort(event.target.value as 'hot' | 'new')}>
+          <Select className="p-select" aria-label="排序方式" value={sort} onChange={(event) => setSort(event.target.value as 'hot' | 'new')}>
             <option value="hot">最热</option>
             <option value="new">最新</option>
-          </select>
+          </Select>
           {/* 全站关闭 / 地区不提供 / 未满年龄时不放这个开关 */}
           {!['site_off', 'region_blocked', 'underage'].includes(nsfwState) && (
             <button className="p-chip" type="button" aria-pressed={!hideNsfw} onClick={toggleNsfw}>

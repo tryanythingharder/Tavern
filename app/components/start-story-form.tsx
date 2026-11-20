@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { startStory } from '@/app/c/[id]/actions';
+import { Select } from '@/components/ui-select';
 
 type Persona = { id: number; name: string };
 type Opening = { id: string; title: string; text: string };
@@ -29,10 +30,10 @@ export function StartStoryForm({
       {personas.length > 0 && (
         <label className="small" style={{ display: 'grid', gap: 6 }}>
           以谁的身份进入
-          <select className="select" name="personaId" defaultValue={defaultPersonaId ?? ''}>
+          <Select className="select" name="personaId" defaultValue={defaultPersonaId ?? ''}>
             {!defaultPersonaId && <option value="">不用身份（用账号昵称）</option>}
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.name}</option>)}
-          </select>
+          </Select>
         </label>
       )}
 

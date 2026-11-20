@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import type { Persona } from '@/lib/resources';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { UserAvatar } from '@/components/persona-switch';
+import { Select } from '@/components/ui-select';
 
 // ST 的身份说明位置（persona_description_positions）
 const POSITIONS: [Persona['position'], string][] = [
@@ -244,9 +245,9 @@ export function PersonasEditor({ initial, characters, lorebooks }: { initial: Pe
           <div className="p-field-row">
             <div className="p-field">
               <label>说明放在哪</label>
-              <select className="p-select" value={draft.position} onChange={(event) => setDraft({ ...draft, position: event.target.value as Persona['position'] })}>
+              <Select className="p-select" value={draft.position} onChange={(event) => setDraft({ ...draft, position: event.target.value as Persona['position'] })}>
                 {POSITIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-              </select>
+              </Select>
             </div>
             {draft.position === 'depth' && (
               <>
@@ -256,11 +257,11 @@ export function PersonasEditor({ initial, characters, lorebooks }: { initial: Pe
                 </div>
                 <div className="p-field">
                   <label>以谁的口吻</label>
-                  <select className="p-select" value={draft.role} onChange={(event) => setDraft({ ...draft, role: event.target.value as Persona['role'] })}>
+                  <Select className="p-select" value={draft.role} onChange={(event) => setDraft({ ...draft, role: event.target.value as Persona['role'] })}>
                     <option value="system">系统</option>
                     <option value="user">玩家</option>
                     <option value="assistant">角色</option>
-                  </select>
+                  </Select>
                 </div>
               </>
             )}
@@ -271,10 +272,10 @@ export function PersonasEditor({ initial, characters, lorebooks }: { initial: Pe
           <div className="p-field-row">
             <div className="p-field">
               <label>身份世界书</label>
-              <select className="p-select" value={draft.lorebookId ?? ''} onChange={(event) => setDraft({ ...draft, lorebookId: event.target.value ? Number(event.target.value) : null })}>
+              <Select className="p-select" value={draft.lorebookId ?? ''} onChange={(event) => setDraft({ ...draft, lorebookId: event.target.value ? Number(event.target.value) : null })}>
                 <option value="">不绑定</option>
                 {lorebooks.map((book) => <option key={book.id} value={book.id}>{book.name}</option>)}
-              </select>
+              </Select>
             </div>
             <label className="p-check" style={{ alignSelf: 'end', paddingBottom: 8 }}>
               <input type="checkbox" checked={draft.isDefault} onChange={(event) => setDraft({ ...draft, isDefault: event.target.checked })} />

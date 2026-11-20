@@ -941,9 +941,15 @@ body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 
 
 /* 聊天设置 · 世界书绑定（聊天世界书 / 角色附加 / 本次生效） */
 .cs-book-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.cs-book-row select { flex: 1 1 220px; min-width: 0; }
+.cs-book-row .ui-select { flex: 1 1 220px; min-width: 0; }
 .cs-books > .hint { display: block; margin-top: 6px; }
 .cs-active-books { display: flex; flex-wrap: wrap; gap: 6px; }
 .cs-book-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border: 1px solid var(--line, #e4ddd5); border-radius: 999px; font-size: 13px; }
 .cs-book-chip small { font-size: 11px; color: var(--muted, #6f6a64); }
 .lb-global { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; margin-right: 4px; }
+/* 世界书「插入策略」 */
+.lb-strategy { display: grid; grid-template-columns: auto minmax(160px, 220px) 1fr; align-items: center; gap: 6px 12px; margin: 0 0 16px; }
+.lb-strategy > label { font-size: var(--f-xs, 12px); font-weight: 600; color: var(--text-2); }
+.lb-strategy > .hint { line-height: 1.5; }
+.lb-strategy > .p-error, .lb-strategy > [role="alert"] { grid-column: 1 / -1; }
+@media (max-width: 640px) { .lb-strategy { grid-template-columns: 1fr; } }

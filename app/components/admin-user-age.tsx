@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { DateField } from '@/components/ui-date';
 import { useRouter } from 'next/navigation';
 import { ErrorLine, api } from '@/components/settings-ui';
 
@@ -29,7 +30,7 @@ export function AdminUserAge({ id, birthDate, verifiedAt, method }: { id: number
       <div className="p-field-row" style={{ alignItems: 'flex-end' }}>
         <div className="p-field">
           <label htmlFor="admin-user-birth">出生日期</label>
-          <input id="admin-user-birth" className="p-input" type="date" value={birth} onChange={(event) => setBirth(event.target.value)} />
+          <DateField id="admin-user-birth" value={birth} aria-label="出生日期" onChange={setBirth} />
         </div>
         <button className="p-btn p-btn--sm" type="button" disabled={busy} onClick={() => void send({ birthDate: birth || null })}>保存</button>
       </div>

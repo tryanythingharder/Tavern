@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { DateField } from '@/components/ui-date';
 import Link from 'next/link';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 
@@ -62,7 +63,7 @@ export function AgeGateDialog({ state, minAge = 18, onClose, onAllowed }: { stat
         <p className="small" style={{ marginTop: 0 }}>成人向角色仅向年满 {minAge} 周岁的用户开放。出生日期只需填一次，之后不能自己修改。</p>
         <label className="p-age-field">
           <span>出生日期</span>
-          <input className="p-input" type="date" min="1900-01-01" max={today} value={birth} onChange={(event) => { setBirth(event.target.value); setError(''); }} />
+          <DateField min="1900-01-01" max={today} value={birth} aria-label="出生日期" onChange={(next) => { setBirth(next); setError(''); }} />
         </label>
         <label className="check" style={{ marginTop: 10 }}>
           <input type="checkbox" checked={confirmed} onChange={(event) => { setConfirmed(event.target.checked); setError(''); }} />

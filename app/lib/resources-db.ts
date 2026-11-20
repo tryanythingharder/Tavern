@@ -1,3 +1,4 @@
+import { getGenPrefs, type LoreStrategy } from '@/lib/gen-prefs';
 import { characterLoreEntries, characterRegexRules, parseCardLore } from '@/lib/card-extras';
 import db from '@/lib/db';
 import { saveMedia } from '@/lib/storage';
@@ -539,6 +540,8 @@ export type GenerationConfig = {
   /** {{user}}：身份名，没有身份时是账号昵称 */
   userName: string;
   loreEntries: LoreEntry[];
+  /** 角色卡自带世界书的扫描档（ST 插入策略，见 laneRanks） */
+  cardLoreLane: number;
   regexRules: RegexRule[];
 };
 
@@ -613,8 +616,19 @@ export function activeLorebooks(userId: number, opts: { chatPick: number[] | nul
 }
 
 // 条目 id 只在本书内唯一（ST 导入的书都是 0、1、2…），多本书一起扫时加书号前缀，免得互相顶掉
-const enabledEntries = (list: { book: Lorebook }[]) =>
-  list.flatMap(({ book }) => book.entries.filter((entry) => entry.enabled).map((entry) => ({ ...entry, id: `b${book.id}:${entry.id}` })));
+// lane 按 ST getSortedEntries：聊天世界书 0 → 身份世界书 1 → 角色/全局按插入策略（一本书有多个来源时取最靠前的）
+export function laneRanks(strategy: LoreStrategy): Record<BookSource, number> {
+  const character = strategy === 'global_first' ? 3 : 2;
+  const global = strategy === 'character_first' ? 3 : 2;
+  return { chat: 0, persona: 1, character, global, chatPick: global };
+}
+const enabledEntries = (list: { book: Lorebook; sources: BookSource[] }[], strategy: LoreStrategy) => {
+  const ranks = laneRanks(strategy);
+  return list.flatMap(({ book, sources }) => {
+    const lane = Math.min(...sources.map((source) => ranks[source]));
+    return book.entries.filter((entry) => entry.enabled).map((entry) => ({ ...entry, id: `b${book.id}:${entry.id}`, lane }));
+  });
+};
 
 // 生成时一次性取齐：预设（会话指定 → 默认）、身份（会话锁定 → 绑定该角色 → 默认身份）、
 // 世界书（见 activeLorebooks）、正则（该用户全部启用规则）。
@@ -622,11 +636,13 @@ const enabledEntries = (list: { book: Lorebook }[]) =>
 export function loadRoomConfig(userId: number, room?: { personaId: number | null; characterIds: string[]; chatLorebookId?: number | null }): GenerationConfig {
   const persona = resolvePersona(userId, { lockedId: room?.personaId ?? null, characterIds: room?.characterIds ?? [] });
   const books = activeLorebooks(userId, { chatPick: null, characterIds: room?.characterIds ?? [], chatLorebookId: room?.chatLorebookId ?? null, persona });
+  const strategy = getGenPrefs(userId).loreStrategy;
   return {
     preset: ensureDefaultPreset(userId),
     persona,
     userName: persona?.name || accountName(userId),
-    loreEntries: enabledEntries(books),
+    loreEntries: enabledEntries(books, strategy),
+    cardLoreLane: laneRanks(strategy).character,
     regexRules: listRegexRules(userId),
   };
 }
@@ -636,12 +652,15 @@ export function loadGenerationConfig(userId: number, chat: DbChat): GenerationCo
   const persona = resolvePersona(userId, { lockedId: chat.persona_id ?? null, characterIds: [chat.character_id] });
   const settings = chatSettings(chat);
   const books = activeLorebooks(userId, { chatPick: settings.lorebookIds, characterIds: [chat.character_id], chatLorebookId: chat.chat_lorebook_id ?? null, persona });
+  const strategy = getGenPrefs(userId).loreStrategy;
+  const ranks = laneRanks(strategy);
   return {
     preset,
     persona,
     userName: persona?.name || accountName(userId),
     // 角色卡自带的世界书和正则随角色生效
-    loreEntries: [...characterLoreEntries(chat.character_id, parseCardLore(chat.card_lore)), ...enabledEntries(books)],
+    loreEntries: [...characterLoreEntries(chat.character_id, parseCardLore(chat.card_lore)).map((entry) => ({ ...entry, lane: ranks.character })), ...enabledEntries(books, strategy)],
+    cardLoreLane: ranks.character,
     regexRules: [...characterRegexRules(chat.character_id), ...listRegexRules(userId)],
   };
 }

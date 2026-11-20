@@ -101,6 +101,7 @@ async function handlePost(request: Request, context: Params) {
     persona: config.persona,
     userName: config.userName,
     loreEntries: config.loreEntries,
+    cardLoreLane: config.cardLoreLane,
     regexRules: config.regexRules,
     memory: roomPromptMemory(room.id, user.id),
     characterNoteText: combinedNoteText(roomPromptMemory(room.id, user.id)?.authorNote.text ?? '', characterNote(user.id, speaker.id)),

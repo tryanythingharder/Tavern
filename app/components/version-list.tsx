@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { askConfirm } from '@/components/ui-dialog';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { tr } from '@/lib/i18n/runtime';
 
@@ -47,7 +48,7 @@ export function VersionList({ characterId, versions, current }: { characterId: s
     : '');
 
   const restore = async (version: Version) => {
-    if (!window.confirm(tr('用 v{n} 覆盖当前内容？当前内容会先留成新的一版。', { n: version.revision }))) return;
+    if (!(await askConfirm({ message: tr('用 v{n} 覆盖当前内容？当前内容会先留成新的一版。', { n: version.revision }), confirmLabel: tr('恢复这一版') }))) return;
     setBusyId(version.id);
     setError('');
     try {

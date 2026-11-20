@@ -199,7 +199,8 @@ export function scanLore(
   const base = windowFor(settings.scanDepth);
   const history = settings.history ?? messages;
 
-  const active = entries.filter((entry) => entry.enabled).sort((a, b) => b.priority - a.priority);
+  // ST getSortedEntries：先按来源档（聊天世界书 → 身份世界书 → 按插入策略排的角色/全局），同档按 order 从高到低
+  const active = entries.filter((entry) => entry.enabled).sort((a, b) => (a.lane ?? 0) - (b.lane ?? 0) || b.priority - a.priority);
   const states = new Map<string, TimedState>();
   for (const entry of active) {
     if (entry.sticky || entry.cooldown || entry.delay) states.set(entry.id, timedState(entry, history, entry.scanDepth ?? settings.scanDepth, extras, settings));
@@ -276,9 +277,12 @@ export function scanLore(
     for (const entry of live) if (entry.id !== winner.id) losers.add(entry.id);
   }
   const kept = activated.filter((entry) => !losers.has(entry.id));
+  // 写进提示词的顺序和 ST 一致：只看 order，越大越靠后（离聊天越近、分量越重）；同 order 时后激活的在前。
+  // 来源档（插入策略）只决定谁先占预算，不影响最终排列。
+  const ordered = [...kept].sort((a, b) => b.priority - a.priority).reverse();
 
   return {
-    entries: kept,
+    entries: ordered,
     hits: kept.map((entry) => ({ title: entry.title, keys: hitKeys.get(entry.id) ?? [] })),
   };
 }

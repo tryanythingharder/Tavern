@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type Policy = { enabled: boolean; defaultHidden: boolean; blockedRegions: string[]; verifyRegions: string[]; minAge: number };
 type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
@@ -76,9 +77,9 @@ export function AdminContent() {
         </label>
         <div className="p-field" style={{ marginTop: 12, maxWidth: 220 }}>
           <label htmlFor="nsfw-min-age">成人内容年龄线</label>
-          <select id="nsfw-min-age" className="p-select" value={form.minAge} onChange={(event) => setForm({ ...form, minAge: event.target.value })}>
+          <Select id="nsfw-min-age" className="p-select" value={form.minAge} onChange={(event) => setForm({ ...form, minAge: event.target.value })}>
             {[18, 19, 20, 21].map((age) => <option key={age} value={age}>{age} 周岁</option>)}
-          </select>
+          </Select>
         </div>
       </section>
 
