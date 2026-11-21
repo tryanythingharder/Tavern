@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasMvuCommands } from '@/lib/mvu';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { runBgCommand, runExpressionCommand } from '@/lib/slash-media';
 import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
 import { RpText, TypingDots } from '@/components/rp-text';
@@ -852,12 +853,22 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           setQr({ sets: data.sets, globalIds: data.globalIds, scopeIds: data.scopeIds });
           setNotice(`${on ? '已启用' : '已关闭'}快捷回复集「${set.name}」${scoped ? '（本聊天）' : ''}`);
         }
+        else if (name === 'bg' || name === 'lockbg' || name === 'unlockbg') {
+          const result = await runBgCommand('chat', chatId, name, arg);
+          setNotice(result.notice);
+          pipe = result.pipe;
+          if (result.changed) router.refresh();
+        } else if (name === 'expression-set' || name === 'expression-list') {
+          const result = runExpressionCommand(name, arg);
+          setNotice(result.notice);
+          pipe = result.pipe;
+        }
         else throw new Error(`本站暂不支持 /${name.slice(1)}，输入 /help 查看可用命令`);
       }
     } catch (caught) {
       setError((caught as Error).message);
     }
-  }, [ops, resync, genText, chatId]);
+  }, [ops, resync, genText, chatId, router]);
   const slashRef = useRef(runSlash);
   slashRef.current = runSlash;
 

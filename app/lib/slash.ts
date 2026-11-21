@@ -31,6 +31,9 @@ export const SLASH_HELP: { cmd: string; desc: string }[] = [
   { cmd: '/qr-list', desc: '列出快捷回复集；/qr-list 集名 列出这个集的按钮' },
   { cmd: '/qr-set 集名', desc: '全局切换这个快捷回复集（/qr-set-on、/qr-set-off）' },
   { cmd: '/qr-chatset 集名', desc: '只在本聊天切换（/qr-chatset-on、/qr-chatset-off）' },
+  { cmd: '/bg 名字', desc: '换背景（按名字匹配背景库；锁定了就换这段故事的，否则换默认；不带参数看当前；/bg none 无背景）' },
+  { cmd: '/lockbg', desc: '把当前背景锁定到这段故事（/unlockbg 解锁）' },
+  { cmd: '/expression-set 表情', desc: '手动切换立绘表情，如 joy 或「开心」（/expression-list 列出全部）' },
 ];
 
 const ALIASES: Record<string, string> = {
@@ -43,6 +46,8 @@ const ALIASES: Record<string, string> = {
   sendas: 'sendas', comment: 'comment', gen: 'gen', genraw: 'genraw', input: 'input', buttons: 'buttons', popup: 'popup',
   qr: 'qr', 'qr-list': 'qr-list', 'qr-set': 'qr-set', 'qr-set-on': 'qr-set-on', 'qr-set-off': 'qr-set-off',
   'qr-chatset': 'qr-chatset', 'qr-chatset-on': 'qr-chatset-on', 'qr-chatset-off': 'qr-chatset-off',
+  bg: 'bg', background: 'bg', lockbg: 'lockbg', bglock: 'lockbg', unlockbg: 'unlockbg', bgunlock: 'unlockbg',
+  'expression-set': 'expression-set', sprite: 'expression-set', emote: 'expression-set', 'expression-list': 'expression-list', expressions: 'expression-list',
 };
 
 /** 变量命令 → [作用域, 操作]（ST /setvar 等） */

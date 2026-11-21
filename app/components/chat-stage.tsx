@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { CHAT_STAGE_KEY, CHAT_STAGE_W_KEY, STAGE_MIN_W } from '@/lib/chat-focus';
 import { EXPRESSION_ZH, classifyExpression, pickSprite, type ExpressionLabel, type SpriteMap } from '@/lib/expressions';
 import { SpriteManager } from '@/components/sprite-manager';
+import { EXPRESSION_EVENT } from '@/lib/slash-media';
 
 // 沉浸模式左侧的「画廊」（只在沉浸、≥1200px 时显示）：
 // 按出现顺序收集这段故事里的插图（卡里 HTML 的大图、生成的图片、单行 Markdown 图片），同一张只收一次；
@@ -40,6 +41,18 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
   const spritesRef = useRef(sprites);
   spritesRef.current = sprites;
   const exprCache = useRef(new Map<string, ExpressionLabel>());
+  // /expression-set 手动表情：保持到下一条（或被改写的）角色回复为止
+  const exprOverride = useRef<{ label: ExpressionLabel; key: string | null } | null>(null);
+  useEffect(() => {
+    const onSet = (event: Event) => {
+      const label = (event as CustomEvent<{ label?: ExpressionLabel }>).detail?.label;
+      if (!label) return;
+      exprOverride.current = { label, key: null };
+      window.dispatchEvent(new Event('tavern:images'));
+    };
+    window.addEventListener(EXPRESSION_EVENT, onSet);
+    return () => window.removeEventListener(EXPRESSION_EVENT, onSet);
+  }, []);
   const [state, setState] = useState<'open' | 'rail'>('open');
   const [items, setItems] = useState<Item[]>([{ src: cover, msgId: null }]);
   const [current, setCurrent] = useState<string>(key(cover));
@@ -97,6 +110,12 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
         const cacheKey = `${last.id}:${text.length}:${text.slice(-40)}`;
         let label = exprCache.current.get(cacheKey);
         if (!label) { label = classifyExpression(text); exprCache.current.set(cacheKey, label); }
+        const manual = exprOverride.current;
+        if (manual) {
+          if (manual.key === null) manual.key = cacheKey;
+          if (manual.key === cacheKey) label = manual.label;
+          else exprOverride.current = null;
+        }
         const seed = Number(last.id.replace(/\D/g, '')) || 0;
         const pick = pickSprite(map, label, seed);
         setExpr((prev) => (prev?.src === pick?.src && prev?.label === pick?.label ? prev : pick));

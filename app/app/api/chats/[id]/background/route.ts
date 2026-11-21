@@ -1,8 +1,19 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { ownsBackground, resolveBackground, setThreadBackground } from '@/lib/backgrounds';
 
+import { getChat } from '@/lib/db';
+
 export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ id: string }> };
+
+// GET —— 当前生效的背景（斜杠命令 /bg 用）
+export async function GET(_request: Request, context: Params) {
+  const user = await requireUser();
+  if (!user) return fail('未登录', 401);
+  const id = Number((await context.params).id);
+  if (!getChat(id, user.id)) return fail('不存在', 404);
+  return json(resolveBackground('chat', id, user.id));
+}
 
 // PUT { value } —— null 跟随默认，'' 这段不要背景，其它为背景库里的图片地址
 export async function PUT(request: Request, context: Params) {

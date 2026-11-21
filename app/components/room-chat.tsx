@@ -13,6 +13,8 @@ import { Select } from '@/components/ui-select';
 import { QuickReplyBar } from '@/components/quick-reply-bar';
 import { activeQrSets, planQuickReply, type QrAuto, type QrItem, type QrSet, type QrState } from '@/lib/quick-replies';
 import { parseSlash } from '@/lib/slash';
+import { runBgCommand } from '@/lib/slash-media';
+import { useRouter } from 'next/navigation';
 import { showAlert } from '@/components/ui-dialog';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null };
@@ -49,6 +51,11 @@ const STRATEGY_HINT: Record<string, string> = {
 };
 
 export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {}, quickReplies: qrInitial }: Props) {
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  const roomIdRef = useRef(roomId);
+  roomIdRef.current = roomId;
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialUserName, avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
   const userName = persona.name;
@@ -298,6 +305,10 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
         else if (command.name === 'send' && command.arg) await runRef.current({ kind: 'send', text: command.arg });
         else if (command.name === 'setinput') setDraft(command.arg);
         else if (command.name === 'echo' || command.name === 'popup') await showAlert(command.arg);
+        else if (command.name === 'bg' || command.name === 'lockbg' || command.name === 'unlockbg') {
+          const result = await runBgCommand('room', roomIdRef.current, command.name, command.arg);
+          if (result.changed) routerRef.current.refresh();
+        }
         else throw new Error(`群聊里暂不支持 /${command.name.replace(/^\?/, '')}，这条快捷回复请在单人聊天里用`);
       }
     } catch (caught) {
