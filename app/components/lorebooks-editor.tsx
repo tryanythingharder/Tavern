@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { LORE_LOGICS, LORE_POSITIONS, type LoreEntry, type Lorebook } from '@/lib/resources';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
+import type { LoreVectorPrefs } from '@/lib/gen-prefs';
 
 const positionLabel = (key: string) => LORE_POSITIONS.find(([value]) => value === key)?.[1] ?? key;
 
@@ -67,7 +68,60 @@ function LoreStrategyField({ initial }: { initial: string }) {
   );
 }
 
-export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [], initialStrategy = 'character_first' }: { initial: Lorebook[]; initialGlobal?: number[] | null; chatBound?: number[]; initialStrategy?: string }) {
+// ST Vector Storage 的世界书部分：开了之后标「向量匹配」的条目（或全部条目）按语义相似度激活，关键词照常生效
+function LoreVectorField({ initial, ready }: { initial: LoreVectorPrefs; ready: boolean }) {
+  const [value, setValue] = useState(initial);
+  const [error, setError] = useState('');
+  const save = async (patch: Partial<LoreVectorPrefs>) => {
+    const before = value;
+    const next = { ...value, ...patch };
+    setValue(next);
+    setError('');
+    try {
+      const result = await api<{ prefs: { loreVectors: LoreVectorPrefs } }>('/api/me/gen-prefs', { method: 'PATCH', body: JSON.stringify({ loreVectors: patch }) });
+      setValue(result.prefs.loreVectors);
+    } catch (caught) {
+      setValue(before);
+      setError((caught as Error).message);
+    }
+  };
+  return (
+    <div className="lb-vectors">
+      <label className="p-check">
+        <input type="checkbox" checked={value.enabled} onChange={(event) => void save({ enabled: event.target.checked })} />
+        <span>世界书向量匹配</span>
+      </label>
+      <span className="hint">
+        {ready ? '标了「向量匹配」的条目按和最近对话的语义相似度激活，不必写中关键词（关键词照常有效）。' : '站点还没配置向量接口，开了也暂时只按关键词匹配。'}
+      </span>
+      {value.enabled && (
+        <div className="lb-vectors-row">
+          <label className="p-check">
+            <input type="checkbox" checked={value.allEntries} onChange={(event) => void save({ allEntries: event.target.checked })} />
+            <span>对所有条目生效</span>
+          </label>
+          <label className="lb-vectors-num">
+            <span>最多激活</span>
+            <input className="p-input" type="number" min={1} max={50} value={value.maxEntries} onChange={(event) => setValue({ ...value, maxEntries: Number(event.target.value) || 1 })} onBlur={() => void save({ maxEntries: value.maxEntries })} />
+            <span>条</span>
+          </label>
+          <label className="lb-vectors-num">
+            <span>相似度阈值</span>
+            <input className="p-input" type="number" min={0} max={1} step={0.05} value={value.threshold} onChange={(event) => setValue({ ...value, threshold: Number(event.target.value) })} onBlur={() => void save({ threshold: value.threshold })} />
+          </label>
+          <label className="lb-vectors-num">
+            <span>查询最近</span>
+            <input className="p-input" type="number" min={1} max={10} value={value.queryMessages} onChange={(event) => setValue({ ...value, queryMessages: Number(event.target.value) || 1 })} onBlur={() => void save({ queryMessages: value.queryMessages })} />
+            <span>条消息</span>
+          </label>
+        </div>
+      )}
+      <ErrorLine message={error} />
+    </div>
+  );
+}
+
+export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [], initialStrategy = 'character_first', initialVectors, vectorsReady = false }: { initial: Lorebook[]; initialGlobal?: number[] | null; chatBound?: number[]; initialStrategy?: string; initialVectors?: LoreVectorPrefs; vectorsReady?: boolean }) {
   const [books, setBooks] = useState<Lorebook[]>(initial);
   // 全局世界书（ST 的 Active World(s)）：null = 全部
   const [globalIds, setGlobalIds] = useState<number[] | null>(initialGlobal);
@@ -164,6 +218,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
         <button className="p-btn p-btn--sm" type="button" onClick={() => setImportOpen(true)}>导入 ST 世界书</button>
       </div>
       <LoreStrategyField initial={initialStrategy} />
+      {initialVectors && <LoreVectorField initial={initialVectors} ready={vectorsReady} />}
       <ErrorLine message={error} />
 
       <div className="p-rows">
@@ -234,6 +289,10 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
               <label className="p-check" style={{ marginBottom: 10 }}>
                 <input type="checkbox" checked={entry.constant} onChange={(event) => updateEntry(entryIndex, { constant: event.target.checked })} />
                 <span>常驻（不需要关键词，每轮都进入上下文）</span>
+              </label>
+              <label className="p-check" style={{ marginBottom: 10 }}>
+                <input type="checkbox" checked={entry.vectorized === true} disabled={entry.constant} onChange={(event) => updateEntry(entryIndex, { vectorized: event.target.checked || undefined })} />
+                <span>向量匹配（按语义相似度激活，需开启「世界书向量匹配」，即 ST 的 Vectorized）</span>
               </label>
               <label className="p-check" style={{ marginBottom: 10 }}>
                 <input type="checkbox" checked={entry.selective} onChange={(event) => updateEntry(entryIndex, { selective: event.target.checked })} />
@@ -379,7 +438,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
                     <div className="p-room-main">
                       <div className="p-room-title" style={{ fontSize: 13.5 }}>{item.title || '未命名'}</div>
                       <div className="p-room-last">
-                        {item.constant ? '常驻' : item.keywords.join('、') || '没有关键词'} · {positionLabel(item.position)}
+                        {item.constant ? '常驻' : `${item.vectorized ? '向量 · ' : ''}${item.keywords.join('、') || (item.vectorized ? '只靠向量匹配' : '没有关键词')}`} · {positionLabel(item.position)}
                         {item.position === 'depth' ? ` · 深度 ${item.depth}` : ''} · {item.enabled ? '启用' : '停用'}
                       </div>
                     </div>

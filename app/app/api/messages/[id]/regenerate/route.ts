@@ -20,7 +20,7 @@ import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { memorySettings, snapshotChat, summaryState, promptMemory } from '@/lib/memory';
-import { retrieveMemories } from '@/lib/vectors';
+import { retrieveMemories, vectorLoreHits } from '@/lib/vectors';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 
@@ -65,6 +65,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const rag = (await retrieveMemories(chat.id, history, lastUser?.content ?? '', memory.ragPrefs)).chunks;
   const vars = chatVariables(chat.id, chat.character_id, { beforeId: message.id });
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
+  const vectorLore = await vectorLoreHits(user.id, ejsLore.entries, history);
   const prompt = assemblePrompt({
     character,
     history: addReasoningToHistory(history, genPrefs),
@@ -72,6 +73,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     persona: config.persona,
     userName: config.userName,
     loreEntries: ejsLore.entries,
+    vectorLore,
     regexRules: config.regexRules,
     trigger: 'regenerate',
     ...promptMemory(chat, user.id),

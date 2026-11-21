@@ -68,6 +68,8 @@ export type AssembleInput = {
   /** {{user}}：身份名，没有身份时账号昵称（loadGenerationConfig().userName） */
   userName?: string;
   loreEntries: LoreEntry[];
+  /** 向量匹配命中的世界书条目 id（lib/vectors.ts vectorLoreHits） */
+  vectorLore?: string[];
   regexRules: RegexRule[];
   trigger?: 'normal' | 'regenerate';
   /** ST 生成类型（normal/continue/impersonate/swipe/regenerate/quiet），决定预设条目的触发器 */
@@ -117,6 +119,8 @@ type LoreScanOptions = {
   messageCount?: number;
   // 整段聊天（旧→新，带说话人前缀），给黏性/冷却/延迟推算历史状态用
   history?: string[];
+  // 向量匹配命中的条目 id
+  vectorHits?: string[];
 };
 
 const CJK = /[\u3400-\u9fff\u3000-\u303f\uff00-\uffef]/;
@@ -196,6 +200,7 @@ export function scanLore(
     budget: loreBudgetFor(DEFAULT_CONTEXT),
     ...options,
   };
+  const vectorHits = new Set(options.vectorHits ?? []);
   const messageCount = Math.min(settings.messageCount ?? scanTexts.length, scanTexts.length);
   const messages = scanTexts.slice(0, messageCount);
   const extras = scanTexts.slice(messageCount).join('\n');
@@ -237,6 +242,8 @@ export function scanLore(
   // 黏性中的条目直接生效，常驻条目再按优先级占预算
   for (const entry of active) if (states.get(entry.id) === 'sticky') activate(entry, ['黏性']);
   for (const entry of active) if (entry.constant && !blocked(entry)) activate(entry, ['常驻']);
+  // ST 向量匹配：语义相近的条目强制激活（不看关键词和概率，但仍受冷却/延迟和预算限制）
+  for (const entry of active) if (vectorHits.has(entry.id) && !blocked(entry)) activate(entry, ['向量']);
 
   const maxPasses = settings.recursive ? 4 : 1;
   for (let pass = 0; pass < maxPasses; pass += 1) {
@@ -332,6 +339,7 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
     budget: loreBudgetFor(ctx.window),
     messageCount: recent.length,
     history: history.map((message) => `${speakerOf(message)}：${message.content}`),
+    vectorHits: input.vectorLore,
   });
   const at = (position: LoreEntry['position']) => scan.entries.filter((entry) => entry.position === position);
 

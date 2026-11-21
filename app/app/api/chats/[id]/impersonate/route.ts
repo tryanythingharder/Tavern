@@ -1,3 +1,4 @@
+import { vectorLoreHits } from '@/lib/vectors';
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { withGenerationLock } from '@/lib/gen-lock';
@@ -51,6 +52,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const ejsHistory = listMessages(chatId);
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars });
+  const vectorLore = await vectorLoreHits(user.id, ejsLore.entries, ejsHistory);
   const prompt = assemblePrompt({
     character,
     history: ejsHistory,
@@ -58,6 +60,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     persona: config.persona,
     userName: config.userName,
     loreEntries: ejsLore.entries,
+    vectorLore,
     regexRules: config.regexRules,
     trigger: 'normal',
     generationType: mode === 'impersonate' ? 'impersonate' : 'quiet',

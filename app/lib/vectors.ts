@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import db, { type DbMessage } from '@/lib/db';
 import { getSetting, hasSetting } from '@/lib/settings';
 import { RECENT_WINDOW, ragChunks, type RagPrefs } from '@/lib/memory';
+import { getGenPrefs } from '@/lib/gen-prefs';
+import type { LoreEntry } from '@/lib/resources';
 
 // 向量记忆：对齐 ST 的 Vector Storage（聊天消息向量化）。
 // - 后台配置 OpenAI 兼容的 /embeddings（embed.baseUrl / embed.apiKey / embed.model）后启用；没配时退回字符 bigram 关键词检索。
@@ -19,6 +21,14 @@ db.exec(`CREATE TABLE IF NOT EXISTS message_vectors (
   created_at INTEGER NOT NULL
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS idx_message_vectors_chat ON message_vectors(chat_id)');
+// 世界书条目向量：按「正文哈希 + 模型」缓存，条目改了正文自动重算；不同书/卡里一样的正文共用一份
+db.exec(`CREATE TABLE IF NOT EXISTS lore_vectors (
+  hash TEXT NOT NULL,
+  model TEXT NOT NULL,
+  vec BLOB NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (hash, model)
+)`);
 
 const EMBED_PER_TURN = 128;
 const BATCH = 32;
@@ -97,7 +107,9 @@ function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
 }
 
 /** 消息里真正要向量化的文本：去掉 <think>、HTML 标签和多余空白 */
-function vectorText(message: DbMessage): string {
+type TextMessage = Pick<DbMessage, 'role' | 'content'> & { hidden?: number | null };
+
+function vectorText(message: TextMessage): string {
   return String(message.content || '')
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
     .replace(/<[^>]+>/g, ' ')
@@ -105,7 +117,7 @@ function vectorText(message: DbMessage): string {
     .trim();
 }
 
-function queryText(history: DbMessage[], queryMessages: number, fallback: string): string {
+function queryText(history: TextMessage[], queryMessages: number, fallback: string): string {
   const tail = history.filter((message) => message.role !== 'system' && message.hidden !== 1).slice(-Math.max(1, queryMessages));
   const text = tail.map(vectorText).filter(Boolean).join('\n');
   return text || fallback;
@@ -186,4 +198,60 @@ export function purgeChatVectors(chatId: number): number {
 
 export function chatVectorCount(chatId: number): number {
   return (db.prepare('SELECT COUNT(*) AS n FROM message_vectors WHERE chat_id = ?').get(chatId) as { n: number }).n;
+}
+
+const LORE_EMBED_PER_TURN = 256;
+
+function loreText(entry: LoreEntry): string {
+  return String(entry.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * ST Vector Storage「世界书」：用最近 queryMessages 条消息做查询，
+ * 在标了向量匹配的条目（或开了「对所有条目」时的全部非常驻条目）里取相似度 ≥ 阈值的前 maxEntries 条。
+ * 没配向量接口、没开、出错时返回空数组（关键词匹配照常）。
+ */
+export async function vectorLoreHits(userId: number, entries: LoreEntry[], history: TextMessage[]): Promise<string[]> {
+  const prefs = getGenPrefs(userId).loreVectors;
+  if (!prefs.enabled) return [];
+  const config = embedConfig();
+  if (!config) return [];
+  const candidates = entries
+    .filter((entry) => entry.enabled && !entry.constant && (prefs.allEntries || entry.vectorized))
+    .map((entry) => ({ entry, text: loreText(entry) }))
+    .filter((item) => item.text);
+  if (!candidates.length) return [];
+  const query = queryText(history, prefs.queryMessages, '');
+  if (!query) return [];
+  try {
+    const hashes = candidates.map((item) => hashOf(item.text));
+    const stored = new Map<string, Uint8Array>();
+    const select = db.prepare('SELECT vec FROM lore_vectors WHERE hash = ? AND model = ?');
+    for (const hash of new Set(hashes)) {
+      const row = select.get(hash, config.model) as { vec: Uint8Array } | undefined;
+      if (row) stored.set(hash, row.vec);
+    }
+    const missing = [...new Map(candidates.map((item, at) => [hashes[at], item.text])).entries()].filter(([hash]) => !stored.has(hash)).slice(0, LORE_EMBED_PER_TURN);
+    const [queryVec, ...vecs] = await embedTexts([query, ...missing.map(([, text]) => text)], config);
+    if (missing.length) {
+      const upsert = db.prepare('INSERT OR REPLACE INTO lore_vectors (hash, model, vec, created_at) VALUES (?, ?, ?, ?)');
+      const now = Date.now();
+      db.exec('BEGIN');
+      try {
+        missing.forEach(([hash], at) => { const blob = toBlob(vecs[at]); upsert.run(hash, config.model, blob, now); stored.set(hash, blob); });
+        db.exec('COMMIT');
+      } catch (error) { db.exec('ROLLBACK'); throw error; }
+    }
+    return candidates
+      .map((item, at) => ({ id: item.entry.id, vec: stored.get(hashes[at]) }))
+      .filter((item): item is { id: string; vec: Uint8Array } => Boolean(item.vec))
+      .map((item) => ({ id: item.id, score: cosine(queryVec, fromBlob(item.vec)) }))
+      .filter((item) => item.score >= prefs.threshold)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, prefs.maxEntries)
+      .map((item) => item.id);
+  } catch (error) {
+    console.warn('[vectors] 世界书向量匹配失败，只用关键词：', error instanceof Error ? error.message : String(error));
+    return [];
+  }
 }

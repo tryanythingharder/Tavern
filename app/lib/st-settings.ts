@@ -1,6 +1,6 @@
 // 从 SillyTavern 的 settings.json 读出「生成行为」里我们支持的项（纯函数，前端直接用）。
 // ST 的位置：power_user.custom_stopping_strings / custom_stopping_strings_macro / trim_sentences /
-// auto_continue / reasoning；world_info_settings.world_info_character_strategy；extension_settings.translate。
+// auto_continue / reasoning；world_info_settings.world_info_character_strategy；extension_settings.translate / vectors。
 import type { GenPrefs, LoreStrategy } from '@/lib/gen-prefs';
 import { TRANSLATE_LANGS, type TranslateAuto } from '@/lib/translation';
 
@@ -19,6 +19,7 @@ export function genPrefsFromStSettings(raw: unknown, base: GenPrefs): StSettings
   const pu = obj(root.power_user) ?? (root.custom_stopping_strings !== undefined || root.reasoning || root.auto_continue ? root : null);
   const wi = obj(root.world_info_settings) ?? root;
   const tr = obj(obj(root.extension_settings)?.translate);
+  const vs = obj(obj(root.extension_settings)?.vectors);
   const patch: Partial<GenPrefs> = {};
   const found: string[] = [];
 
@@ -70,6 +71,22 @@ export function genPrefsFromStSettings(raw: unknown, base: GenPrefs): StSettings
     const auto = autos.includes(tr.auto_mode) ? (tr.auto_mode as TranslateAuto) : base.translate.auto;
     patch.translate = { ...base.translate, target, auto };
     found.push('消息翻译');
+  }
+
+  // ST Vector Storage：enabled_world_info / enabled_for_all / max_entries / score_threshold / query
+  if (vs && (vs.enabled_world_info !== undefined || vs.enabled_for_all !== undefined)) {
+    const max = Number(vs.max_entries);
+    const threshold = Number(vs.score_threshold);
+    const query = Number(vs.query);
+    const lv = base.loreVectors;
+    patch.loreVectors = {
+      enabled: bool(vs.enabled_world_info) ?? lv.enabled,
+      allEntries: bool(vs.enabled_for_all) ?? lv.allEntries,
+      maxEntries: Number.isFinite(max) && max > 0 ? Math.min(50, Math.round(max)) : lv.maxEntries,
+      threshold: Number.isFinite(threshold) && threshold >= 0 && threshold <= 1 ? threshold : lv.threshold,
+      queryMessages: Number.isFinite(query) && query > 0 ? Math.min(10, Math.round(query)) : lv.queryMessages,
+    };
+    found.push('世界书向量匹配');
   }
 
   return found.length ? { patch, found } : null;

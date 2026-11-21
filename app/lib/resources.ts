@@ -327,6 +327,8 @@ export type LoreEntry = {
   useGroupScoring?: boolean;
   ignoreBudget?: boolean;
   delayUntilRecursion?: boolean;
+  // ST 向量匹配（🔗 Vectorized）：开了「世界书向量匹配」后按语义相似度激活，关键词照常生效
+  vectorized?: boolean;
   // 扫描/占预算的先后档（ST 插入策略）：数字小的先排；同档按优先级（order）高的先。由 resources-db 按来源填
   lane?: number;
 };
@@ -370,6 +372,7 @@ function timedAndGroup(entry: Record<string, unknown>, extensions: Record<string
   }
   if (pick(entry.ignoreBudget, extensions.ignore_budget) === true) out.ignoreBudget = true;
   if (pick(entry.delayUntilRecursion, extensions.delay_until_recursion)) out.delayUntilRecursion = true;
+  if (pick(entry.vectorized, extensions.vectorized) === true) out.vectorized = true;
   return out;
 }
 

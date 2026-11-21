@@ -1,9 +1,10 @@
+import { vectorLoreHits } from '@/lib/vectors';
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { withGenerationLock } from '@/lib/gen-lock';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getCharacterById, startGeneration } from '@/lib/db';
-import { buildRoomPrompt, getRoom, listRoomMessages } from '@/lib/rooms';
+import { roomLoreEntries, buildRoomPrompt, getRoom, listRoomMessages } from '@/lib/rooms';
 import { loadRoomConfig } from '@/lib/resources-db';
 import { roomVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
@@ -41,6 +42,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!speaker) return fail('房间里没有角色', 400);
   const config = loadRoomConfig(user.id, room);
   const genPrefs = getGenPrefs(user.id);
+  const vectorLore = await vectorLoreHits(user.id, roomLoreEntries(room, config.loreEntries, config.cardLoreLane), messages);
   const prompt = buildRoomPrompt({
     room,
     messages,
@@ -50,6 +52,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     userName: config.userName,
     loreEntries: config.loreEntries,
     cardLoreLane: config.cardLoreLane,
+    vectorLore,
     regexRules: config.regexRules,
     variables: roomVariables(room.id, room.characterIds),
   });

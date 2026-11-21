@@ -15,9 +15,14 @@ export type GenPrefs = {
   reasoning: { autoParse: boolean; prefix: string; suffix: string; autoExpand: boolean; addToPrompts: boolean; maxAdditions: number };
   // ST 世界书「插入策略」world_info_character_strategy：均匀排序 / 角色优先（ST 默认）/ 全局优先
   loreStrategy: LoreStrategy;
+  // ST Vector Storage 的世界书部分：enabled_world_info / enabled_for_all / max_entries / score_threshold / depth
+  loreVectors: LoreVectorPrefs;
   // ST Translate 扩展：目标语言、自动翻译（回复/输入）、发给模型的语言
   translate: TranslatePrefs;
 };
+
+export type LoreVectorPrefs = { enabled: boolean; allEntries: boolean; maxEntries: number; threshold: number; queryMessages: number };
+export const DEFAULT_LORE_VECTORS: LoreVectorPrefs = { enabled: false, allEntries: false, maxEntries: 5, threshold: 0.25, queryMessages: 2 };
 
 export type LoreStrategy = 'evenly' | 'character_first' | 'global_first';
 export const LORE_STRATEGIES: LoreStrategy[] = ['evenly', 'character_first', 'global_first'];
@@ -30,6 +35,7 @@ export const DEFAULT_GEN_PREFS: GenPrefs = {
   autoContinue: { enabled: false, target: 400 },
   reasoning: { autoParse: true, prefix: '<think>', suffix: '</think>', autoExpand: false, addToPrompts: false, maxAdditions: 1 },
   loreStrategy: 'character_first',
+  loreVectors: DEFAULT_LORE_VECTORS,
   translate: DEFAULT_TRANSLATE_PREFS,
 };
 
@@ -75,7 +81,21 @@ export function normalizeGenPrefs(raw: unknown): GenPrefs {
       maxAdditions: clampInt(rs.maxAdditions, 0, 50, d.reasoning.maxAdditions),
     },
     loreStrategy: LORE_STRATEGIES.includes(input.loreStrategy) ? input.loreStrategy : d.loreStrategy,
+    loreVectors: normalizeLoreVectors(input.loreVectors),
     translate: normalizeTranslatePrefs(input.translate),
+  };
+}
+
+function normalizeLoreVectors(raw: unknown): LoreVectorPrefs {
+  const v = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const d = DEFAULT_LORE_VECTORS;
+  const threshold = Number(v.threshold);
+  return {
+    enabled: typeof v.enabled === 'boolean' ? v.enabled : d.enabled,
+    allEntries: typeof v.allEntries === 'boolean' ? v.allEntries : d.allEntries,
+    maxEntries: clampInt(v.maxEntries, 1, 50, d.maxEntries),
+    threshold: Number.isFinite(threshold) && threshold >= 0 && threshold <= 1 ? Math.round(threshold * 100) / 100 : d.threshold,
+    queryMessages: clampInt(v.queryMessages, 1, 10, d.queryMessages),
   };
 }
 
@@ -98,6 +118,7 @@ export function setGenPrefs(userId: number, patch: unknown): GenPrefs {
     autoContinue: { ...current.autoContinue, ...(input.autoContinue ?? {}) },
     reasoning: { ...current.reasoning, ...(input.reasoning ?? {}) },
     translate: { ...current.translate, ...(input.translate ?? {}) },
+    loreVectors: { ...current.loreVectors, ...(input.loreVectors ?? {}) },
   });
   db.prepare('UPDATE users SET gen_prefs = ? WHERE id = ?').run(JSON.stringify(next), userId);
   return next;

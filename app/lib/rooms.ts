@@ -385,7 +385,15 @@ export type RoomPromptInput = {
   memory?: RoomPromptMemory | null;
   /** 本轮发言者的角色注释（ST：角色注释替换/拼接会话注释） */
   characterNoteText?: string;
+  /** 向量匹配命中的世界书条目 id（lib/vectors.ts vectorLoreHits，条目来自 roomLoreEntries） */
+  vectorLore?: string[];
 };
+
+/** 群聊要扫描的世界书：成员卡自带的（InitVar 这类只给变量用的不进提示词）+ 房间/全局/身份世界书 */
+export function roomLoreEntries(room: Room, loreEntries: LoreEntry[], cardLoreLane = 2): LoreEntry[] {
+  const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title)).map((entry) => ({ ...entry, lane: cardLoreLane }));
+  return [...cardLore, ...loreEntries];
+}
 
 export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): ChatMessage[] {
   const { room, messages, speaker, preset, persona, regexRules, variables, memory } = input;
@@ -394,9 +402,7 @@ export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): 
   const personaText = (persona?.description.trim() ?? '').replace(/\{\{user\}\}/gi, userName).replace(/\{\{char\}\}/gi, speaker.name);
   // 玩家消息用发送时的身份名（ST 每条消息的 name）
   const userOf = (message: RoomMessage) => message.personaName || userName;
-  // 成员卡自带的世界书一起扫（InitVar 这类只给变量用的条目不进提示词）
-  const cardLore = room.characterIds.flatMap((id) => characterLoreEntries(id)).filter((entry) => !/init_?var/i.test(entry.title)).map((entry) => ({ ...entry, lane: input.cardLoreLane ?? 2 }));
-  const loreEntries = [...cardLore, ...input.loreEntries];
+  const loreEntries = roomLoreEntries(room, input.loreEntries, input.cardLoreLane ?? 2);
   const varStore = makeVarStore(variables?.scoped);
   const liveVars: MvuState | null = variables ? { ...variables, scoped: { chat: varStore.chat, global: varStore.global } } : null;
   const macros = (value: string, charName = speaker.name) =>
@@ -430,7 +436,7 @@ export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): 
   const messageCount = scanTexts.length;
   scanTexts.push(...members.map((character) => character.description));
   if (personaText) scanTexts.push(personaText);
-  const scan = scanLore(loreEntries, scanTexts, { messageCount });
+  const scan = scanLore(loreEntries, scanTexts, { messageCount, vectorHits: input.vectorLore });
   if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${macros(entry.text)}`).join('\n')}`);
   if (summary && memory?.summaryPlacement.position === 'prompt') blocks.push(`### 前情摘要\n${summaryText(memory.summaryPlacement.template, summary)}`);
   // 身份说明按 ST 的位置：提示词里 / 作者注释顶部或底部 / 聊天内按深度 / 不进入

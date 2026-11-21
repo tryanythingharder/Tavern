@@ -1,3 +1,4 @@
+import { vectorLoreHits } from '@/lib/vectors';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { setRoomMessageReasoning } from '@/lib/rooms';
@@ -6,7 +7,7 @@ import { withGenerationLock } from '@/lib/gen-lock';
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
-import { addRoomCandidate, addRoomMessage, editRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, getRoomMessage, isLatestRoomMessage, listRoomMessages, pickSpeaker } from '@/lib/rooms';
+import { roomLoreEntries, addRoomCandidate, addRoomMessage, editRoomMessage, buildRoomPrompt, deleteRoomMessage, getRoom, getRoomMessage, isLatestRoomMessage, listRoomMessages, pickSpeaker } from '@/lib/rooms';
 import { loadRoomConfig, personaSender } from '@/lib/resources-db';
 import { roomVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
@@ -93,6 +94,7 @@ async function handlePost(request: Request, context: Params) {
     .map(escapeRe);
   const namePrefix = names.length ? new RegExp(`^\\s*(?:${names.join('|')})\\s*[：:]\\s*`) : /^\s*$/;
 
+  const vectorLore = await vectorLoreHits(user.id, roomLoreEntries(room, config.loreEntries, config.cardLoreLane), messages);
   const prompt = buildRoomPrompt({
     room,
     messages: addReasoningToHistory(messages, genPrefs),
@@ -102,6 +104,7 @@ async function handlePost(request: Request, context: Params) {
     userName: config.userName,
     loreEntries: config.loreEntries,
     cardLoreLane: config.cardLoreLane,
+    vectorLore,
     regexRules: config.regexRules,
     memory: roomPromptMemory(room.id, user.id),
     characterNoteText: combinedNoteText(roomPromptMemory(room.id, user.id)?.authorNote.text ?? '', characterNote(user.id, speaker.id)),

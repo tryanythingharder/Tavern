@@ -963,3 +963,10 @@ body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 
 .lb-strategy > .hint { line-height: 1.5; }
 .lb-strategy > .p-error, .lb-strategy > [role="alert"] { grid-column: 1 / -1; }
 @media (max-width: 640px) { .lb-strategy { grid-template-columns: 1fr; } }
+.lb-vectors { display: grid; gap: 6px; margin: -6px 0 16px; }
+.lb-vectors > .p-check { margin: 0; font-weight: 600; }
+.lb-vectors > .hint { line-height: 1.5; }
+.lb-vectors-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.lb-vectors-row > .p-check { margin: 0; }
+.lb-vectors-num { display: inline-flex; align-items: center; gap: 6px; font-size: var(--f-xs, 12px); color: var(--text-2); }
+.lb-vectors-num > .p-input { width: 88px; padding-block: 4px; }

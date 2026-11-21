@@ -7,7 +7,7 @@ import { chatVariables } from '@/lib/mvu-server';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { getOverride } from '@/lib/cards';
 import { memorySettings, summaryState, promptMemory } from '@/lib/memory';
-import { retrieveMemories } from '@/lib/vectors';
+import { retrieveMemories, vectorLoreHits } from '@/lib/vectors';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +31,7 @@ export async function GET(_request: Request, context: Params) {
   const rag = (await retrieveMemories(chat.id, history, lastUser?.content ?? '', memory.ragPrefs)).chunks;
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
+  const vectorLore = await vectorLoreHits(user.id, ejsLore.entries, history);
   const result = assemblePrompt({
     dryRun: true,
     character,
@@ -39,6 +40,7 @@ export async function GET(_request: Request, context: Params) {
     persona: config.persona,
     userName: config.userName,
     loreEntries: ejsLore.entries,
+    vectorLore,
     regexRules: config.regexRules,
     ...promptMemory(chat, user.id),
     rag,
