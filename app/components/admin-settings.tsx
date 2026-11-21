@@ -279,7 +279,7 @@ export function AdminSettings() {
           <Badge ok text={`当前：${status?.payment.providers.find((item) => item.active)?.label ?? '手动确认'}`} />
         </div>
         <p className="small" style={{ marginTop: 0 }}>
-          插件式：每个渠道在 <code>lib/payments/</code> 一个文件，回调地址 <code>/api/payments/&lt;渠道 id&gt;</code>。选中的渠道没配好时自动退到下一个已配置的，最后是手动确认。币种 {status?.payment.currency}。
+          插件式：每个渠道在 <code>lib/payments/</code> 一个文件，回调地址 <code>/api/payments/&lt;id&gt;</code>。选中的渠道没配好时自动退到下一个已配置的，最后是手动确认。币种 {status?.payment.currency}。
         </p>
         <PluginList items={status?.payment.providers ?? []} />
         <div className="p-field-row">
