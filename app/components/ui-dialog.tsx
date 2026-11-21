@@ -65,7 +65,7 @@ export function showAlert(message: string, title?: string): Promise<void> {
 }
 
 // 站内输入框 / 按钮选择：斜杠命令 /input、/buttons 用（替代 window.prompt）
-type PromptOptions = { title?: string; message: string; defaultValue?: string; multiline?: boolean; okLabel?: string };
+type PromptOptions = { title?: string; message: string; defaultValue?: string; multiline?: boolean; okLabel?: string; placeholder?: string };
 
 function PromptDialog({ options, done }: { options: PromptOptions; done: (value: string | null) => void }) {
   const [value, setValue] = useState(options.defaultValue ?? '');
@@ -89,10 +89,11 @@ function PromptDialog({ options, done }: { options: PromptOptions; done: (value:
     >
       {options.message && <p className="ui-dialog-msg">{options.message}</p>}
       {options.multiline ? (
-        <textarea className="p-input ui-dialog-input" rows={4} value={value} autoFocus onChange={(event) => setValue(event.target.value)} />
+        <textarea className="p-input ui-dialog-input" rows={4} value={value} placeholder={options.placeholder} autoFocus onChange={(event) => setValue(event.target.value)} />
       ) : (
         <input
           className="p-input ui-dialog-input"
+          placeholder={options.placeholder}
           value={value}
           autoFocus
           onChange={(event) => setValue(event.target.value)}

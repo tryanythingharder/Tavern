@@ -140,8 +140,11 @@ export function Select({ value, defaultValue, onChange, children, id, name, clas
       if (triggerRef.current?.contains(target) || listRef.current?.contains(target)) return;
       close(false);
     };
+    const openedAt = performance.now();
     const onScroll = (event: Event) => {
       if (listRef.current?.contains(event.target as Node)) return;
+      // 刚打开时页面可能还在把触发器滚进视野（吸顶工具栏、键盘聚焦），那一下不算用户滚动
+      if (performance.now() - openedAt < 150) return;
       close(false);
     };
     const onResize = () => close(false);
