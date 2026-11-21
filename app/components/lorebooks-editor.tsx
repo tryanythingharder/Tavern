@@ -334,7 +334,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
                       <input className="p-input" type="number" min={0} max={999} value={entry.depth} onChange={(event) => updateEntry(entryIndex, { depth: Number(event.target.value) })} />
                     </div>
                     <div className="p-field">
-                      <label>身份</label>
+                      <label>发言身份</label>
                       <Select className="p-select" value={entry.role} onChange={(event) => updateEntry(entryIndex, { role: event.target.value as LoreEntry['role'] })}>
                         <option value="system">系统</option>
                         <option value="user">玩家</option>

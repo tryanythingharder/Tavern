@@ -116,7 +116,7 @@ export function CardsEditor({ characters, initial }: { characters: CharacterItem
               <input className="p-input" type="number" min={0} max={999} value={draft.depthDepth} onChange={(event) => setDraft({ ...draft, depthDepth: Number(event.target.value) })} />
             </div>
             <div className="p-field">
-              <label>身份</label>
+              <label>发言身份</label>
               <Select className="p-select" value={draft.depthRole} onChange={(event) => setDraft({ ...draft, depthRole: event.target.value as CharacterOverride['depthRole'] })}>
                 <option value="system">系统</option>
                 <option value="user">玩家</option>
