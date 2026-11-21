@@ -26,7 +26,7 @@ export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
         </div>
         <div className="fo-plate-body">
           <Link className="fo-ph" href={`/c/${character.id}`} aria-label={`查看 ${character.name} 的角色卡`}>
-            {character.cover ? <LiveCover src={character.cover} /> : <span className="fo-ph-initial" aria-hidden="true">{Array.from(character.name)[0]}</span>}
+            <LiveCover src={character.cover || null} fallback={<span className="fo-ph-initial" aria-hidden="true">{Array.from(character.name)[0]}</span>} />
             <span className="fo-no">Vol. {pad(chrome.chatId)}</span>
           </Link>
           <h1 className="fo-plate-name">{character.name}{latin && <span className="fo-it">{latin}</span>}</h1>

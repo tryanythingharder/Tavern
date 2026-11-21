@@ -129,9 +129,7 @@ export function StageChatChrome({ chrome }: { chrome: ChatChromeData }) {
     <>
       <aside className="stg-char" ref={cardRef} aria-label={`${character.name} 的角色卡`} style={{ ['--name' as string]: `${nameSize}px` } as CSSProperties}>
         <div className="stg-char-ph">
-          {character.cover
-            ? <LiveCover src={character.cover} draggable={false} />
-            : <span className="stg-art stg-art--none" aria-hidden="true"><b>{Array.from(character.name)[0]}</b></span>}
+          <LiveCover src={character.cover || null} draggable={false} fallback={<span className="stg-art stg-art--none" aria-hidden="true"><b>{Array.from(character.name)[0]}</b></span>} />
           <div className="stg-char-top">
             <Link className="stg-back" href="/">← 卡册</Link>
             <span>{tags[0] ?? 'ON STAGE'}{chrome.lorebookCount > 0 && <> · 世界书 {chrome.lorebookCount}</>}</span>

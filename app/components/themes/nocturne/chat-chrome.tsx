@@ -71,8 +71,9 @@ export function NocturneChatChrome({ chrome }: { chrome: ChatChromeData }) {
       {/* 「他记得」卡 */}
       <aside className="noc-dossier" aria-label={`${character.name}记得的事`}>
         <Link className="noc-dossier-ph" href={`/c/${character.id}`} style={character.cover ? { backgroundImage: `url(${character.cover})` } : undefined}>
-          {!character.cover && <span className="noc-dossier-initial">{Array.from(character.name)[0]}</span>}
-          {character.cover && <LiveCover src={character.cover} className="noc-dossier-live" />}
+          {character.cover
+            ? <LiveCover src={character.cover} className="noc-dossier-live" />
+            : <LiveCover src={null} className="noc-dossier-live" fallback={<span className="noc-dossier-initial">{Array.from(character.name)[0]}</span>} />}
           <span className="noc-latin">Cast · {character.name}</span>
         </Link>
         <h5>{character.name} 记得</h5>
