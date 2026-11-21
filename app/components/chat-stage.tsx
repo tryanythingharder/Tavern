@@ -77,6 +77,8 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
   // 收集插图 + 标出读到的那张
   useEffect(() => {
     let raf = 0;
+    // 每条消息的插图缓存；消息内部有变动（流式、iframe 上报）时作废
+    let imgCache = new WeakMap<Element, string[]>();
     const compute = () => {
       raf = 0;
       const scroller = document.querySelector<HTMLElement>('.p-chat-scroll');
@@ -86,19 +88,30 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
       const list: Item[] = [{ src: cover, msgId: null }];
       let reading = key(cover);
       let speaking: HTMLElement | null = null;
-      scroller.querySelectorAll<HTMLElement>('.p-msg').forEach((msg) => {
-        if (!msg.classList.contains('p-msg-user') && !msg.classList.contains('p-msg-narrator') && msg.getBoundingClientRect().top < line) speaking = msg;
-        const images = messageImages(msg);
-        if (!images.length) return;
-        const above = msg.getBoundingClientRect().top < line;
+      const msgs = scroller.getElementsByClassName('p-msg') as HTMLCollectionOf<HTMLElement>;
+      // 消息从上到下排列：二分找到阅读线以上的最后一条，不对每条都量位置（长会话 1000+ 楼）
+      let lo = 0; let hi = msgs.length - 1; let above = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (msgs[mid].getBoundingClientRect().top < line) { above = mid; lo = mid + 1; } else hi = mid - 1;
+      }
+      for (let i = above; i >= 0; i -= 1) {
+        const msg = msgs[i];
+        if (!msg.classList.contains('p-msg-user') && !msg.classList.contains('p-msg-narrator')) { speaking = msg; break; }
+      }
+      for (let i = 0; i < msgs.length; i += 1) {
+        const msg = msgs[i];
+        let images = imgCache.get(msg);
+        if (!images) { images = messageImages(msg); imgCache.set(msg, images); }
+        if (!images.length) continue;
         for (const src of images) {
           const k = key(src);
-          if (above) reading = k;
+          if (i <= above) reading = k;
           if (seen.has(k)) continue;
           seen.add(k);
           list.push({ src, msgId: msg.id || null });
         }
-      });
+      }
       const prev = itemsRef.current;
       if (prev.length !== list.length || prev.some((item, i) => item.src !== list[i].src || item.msgId !== list[i].msgId)) setItems(list);
       setCurrent(reading);
@@ -124,16 +137,24 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
     const schedule = () => { if (!raf) raf = requestAnimationFrame(compute); };
     window.addEventListener('scroll', schedule, true);
     window.addEventListener('resize', schedule);
-    window.addEventListener('tavern:images', schedule);
+    const onImages = () => { imgCache = new WeakMap(); schedule(); };
+    window.addEventListener('tavern:images', onImages);
     const scroller = document.querySelector('.p-chat-scroll');
-    const mo = scroller ? new MutationObserver(schedule) : null;
+    const mo = scroller ? new MutationObserver((records) => {
+      for (const r of records) {
+        const node = r.target instanceof Element ? r.target : r.target.parentElement;
+        const msg = node?.closest('.p-msg');
+        if (msg) imgCache.delete(msg);
+      }
+      schedule();
+    }) : null;
     if (scroller && mo) mo.observe(scroller, { childList: true, subtree: true });
     schedule();
     return () => {
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener('scroll', schedule, true);
       window.removeEventListener('resize', schedule);
-      window.removeEventListener('tavern:images', schedule);
+      window.removeEventListener('tavern:images', onImages);
       mo?.disconnect();
     };
   }, [cover]);

@@ -26,15 +26,27 @@ export function StageChatChrome({ chrome }: { chrome: ChatChromeData }) {
     setHead(document.querySelector<HTMLElement>('.p-chat-title-text'));
     if (!scroller) return;
     // 长动作描写在行内会折成两块，标记后由 CSS 改成独立的舞台提示块
-    const markActs = () => {
-      scroller.querySelectorAll<HTMLElement>('.p-msg-copy .rp-act').forEach((el) => {
+    const markActs = (root: ParentNode = scroller) => {
+      root.querySelectorAll<HTMLElement>('.p-msg-copy .rp-act').forEach((el) => {
         const long = (el.textContent ?? '').trim().length > 14;
         if (el.classList.contains('stg-act-long') !== long) el.classList.toggle('stg-act-long', long);
       });
     };
-    const recount = () => { setCount(scroller.querySelectorAll('article.p-msg').length); markActs(); };
+    const articles = scroller.getElementsByTagName('article');
+    const recount = () => { setCount(articles.length); markActs(); };
     recount();
-    const observer = new MutationObserver(recount);
+    // 只重标有变动的那几条消息（长会话每次流式更新都扫全部会很慢）
+    const observer = new MutationObserver((records) => {
+      const touched = new Set<Element>();
+      for (const r of records) {
+        const node = r.target instanceof Element ? r.target : r.target.parentElement;
+        const msg = node?.closest('article.p-msg');
+        if (msg) touched.add(msg);
+        r.addedNodes.forEach((n) => { if (n instanceof Element) touched.add(n); });
+      }
+      setCount(articles.length);
+      touched.forEach((el) => markActs(el));
+    });
     observer.observe(scroller, { childList: true, subtree: true });
 
     const mq = window.matchMedia('(max-width: 1023px)');

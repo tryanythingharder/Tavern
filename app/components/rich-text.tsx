@@ -98,7 +98,7 @@ function RichTextInner({
 type RichTextProps = Parameters<typeof RichTextInner>[0];
 
 // 只有正则规则限定了深度时，深度才影响显示；否则新消息进来时老消息不必重画（长会话发送卡顿的主因）
-function usesDepth(rules?: RegexRule[]): boolean {
+export function usesDepth(rules?: RegexRule[]): boolean {
   return Boolean(rules?.some((rule) => (rule.depthFrom !== null && rule.depthFrom >= -1) || (rule.depthTo !== null && rule.depthTo >= 0)));
 }
 

@@ -524,6 +524,189 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     void run({ kind: 'send', text });
   }, [draft, streaming, run]);
 
+  const renderRow = (message: (typeof messages)[number], index: number) => {
+            const member = memberOf(message.speakerId);
+        const isUser = message.role === 'user';
+        const isLast = index === messages.length - 1;
+        const numericId = typeof message.id === 'number' ? message.id : null;
+        const isStreamingThis = streamingId === message.id || (isLast && streaming && !isUser && streamingId === null);
+        const isEditing = editing !== null && editing.id === message.id;
+        const count = message.candidateCount ?? 1;
+        const selected = message.selected ?? 0;
+        const canSwipe = !isUser && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
+        // 开场白（玩家还没说过话之前的角色消息）：只在备选开场白之间切换，不生成新版（同单聊 / ST）
+        const isOpening = !isUser && index <= firstUserIndex;
+        const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
+        return (
+          <article
+            key={message.id}
+            id={`msg-${message.id}`}
+            className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLast ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
+            onTouchStart={canSwipe ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
+            onTouchEnd={canSwipe ? (event) => {
+              // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版（同单聊）
+              const start = swipeStart.current; swipeStart.current = null;
+              if (!start || streaming) return;
+              const t = event.changedTouches[0];
+              const dx = t.clientX - start.x; const dy = t.clientY - start.y;
+              if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+              if (dx > 0 && selected > 0) void L.switchCandidate(message, selected - 1);
+              else if (dx < 0 && selected < count - 1) void L.switchCandidate(message, selected + 1);
+              else if (dx < 0 && !isOpening) void L.run({ kind: 'regenerate', messageId: numericId! });
+            } : undefined}
+          >
+            {isUser ? (
+              <UserAvatar name={message.personaName || userName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
+            ) : (
+              <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: member?.hue ?? 212 }}>
+                {member?.initial ?? '·'}
+              </span>
+            )}
+            <div>
+              <div className="p-msg-name">{isUser ? message.personaName || userName : member?.name ?? '角色'}</div>
+              {isEditing ? (
+                <div>
+                  {!isUser && editing.thought != null ? (
+                    <div className="p-thought-edit">
+                      <label className="p-small" htmlFor={`thought-${message.id}`}>思考内容</label>
+                      <textarea
+                        id={`thought-${message.id}`}
+                        className="p-textarea"
+                        value={editing.thought}
+                        rows={Math.min(10, Math.max(2, editing.thought.split('\n').length + 1))}
+                        placeholder="留空保存 = 删除思考内容"
+                        onChange={(event) => setEditing({ ...editing, thought: event.target.value })}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') setEditing(null);
+                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void L.saveEdit(); }
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  <textarea
+                    className="p-textarea"
+                    value={editing.draft}
+                    rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
+                    autoFocus
+                    onChange={(event) => setEditing({ ...editing, draft: event.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') setEditing(null);
+                      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                        event.preventDefault();
+                        void L.saveEdit();
+                      }
+                    }}
+                    aria-label="编辑消息"
+                  />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void L.saveEdit()}>保存</button>
+                    <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
+                    {!isUser && editing.thought == null ? (
+                      <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>加思考内容</button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
+                  <div className="p-msg-copy p-msg-text">
+                    {message.content
+                      ? <RichText text={showTr && message.translation ? message.translation.text : message.content} streaming={isStreamingThis} rules={rulesFor(message.speakerId)} macros={macrosFor(member?.name ?? '')} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
+                      : isStreamingThis ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
+                  </div>
+                  {message.translation && numericId !== null && !isStreamingThis && (
+                    <div className="p-msg-tr" role="group" aria-label="翻译">
+                      <span className="p-msg-tr-tag">{showTr ? `译文 · ${langLabel(message.translation.lang)}` : '原文'}</span>
+                      <button type="button" onClick={() => setFlipped((prev) => { const next = new Set(prev); if (next.has(message.id)) next.delete(message.id); else next.add(message.id); return next; })}>{showTr ? '看原文' : '看译文'}</button>
+                      <button type="button" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}>{translating === numericId ? '翻译中…' : '重新翻译'}</button>
+                      <button type="button" onClick={() => void L.removeTranslation(numericId)}>移除</button>
+                    </div>
+                  )}
+                  {translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
+                  {message.checkpoint ? (
+                    <a className="p-msg-checkpoint" href={`/rooms/${message.checkpoint}`}>
+                      <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS.checkpoint} /></svg>
+                      <span>检查点</span>
+                    </a>
+                  ) : null}
+                </>
+              )}
+              {canSwipe && !(isOpening && count <= 1) && (
+                <div className="rp-swipe" role="group" aria-label="回复版本">
+                  <button type="button" aria-label="上一版回复" disabled={selected <= 0 || switching === numericId || streaming} onClick={() => void L.switchCandidate(message, selected - 1)}><Ico name="prev" /></button>
+                  <span className="rp-swipe-index" aria-live="polite">{selected + 1} / {count}</span>
+                  {selected < count - 1 ? (
+                    <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void L.switchCandidate(message, selected + 1)}><Ico name="next" /></button>
+                  ) : isOpening ? (
+                    <button type="button" aria-label="下一版回复" disabled><Ico name="next" /></button>
+                  ) : (
+                    <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void L.run({ kind: 'regenerate', messageId: numericId! })}><Ico name="next" /></button>
+                  )}
+                </div>
+              )}
+              {!isEditing && numericId !== null && !isStreamingThis && (
+                <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>
+              )}
+              {!isEditing && numericId !== null && !isStreamingThis && (
+                <div className="p-msg-tools">
+                  {confirming === numericId ? (
+                    <>
+                      <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void L.remove(numericId)}><Ico name="check" /></button>
+                      <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void L.copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
+                      <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
+                      {!isUser && isLast && !isOpening && (
+                        <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void L.run({ kind: 'regenerate', messageId: numericId })}><Ico name="regen" /></button>
+                      )}
+                      {!message.translation && message.content && (
+                        <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}><Ico name="translate" /></button>
+                      )}
+                      <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void L.branch(message)}><Ico name="branch" /></button>
+                      <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} disabled={streaming} onClick={() => void L.branch(message, true)}><Ico name="checkpoint" /></button>
+                      <button type="button" aria-label="删除消息" title="删除" disabled={streaming} onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </article>
+        );
+  };
+
+  // 长会话性能（同单聊）：每楼渲染结果按影响它的值缓存，流式时只重画正在写的那一楼；处理函数经 L 取最新的。
+  const live = useRef<Record<string, unknown>>({});
+  live.current = { switchCandidate, run, saveEdit, translateMessage, removeTranslation, remove, copy, branch };
+  const L = useMemo(() => new Proxy({}, { get: (_t, k: string) => live.current[k] }) as {
+    switchCandidate: typeof switchCandidate; run: typeof run; saveEdit: typeof saveEdit; translateMessage: typeof translateMessage;
+    removeTranslation: typeof removeTranslation; remove: typeof remove; copy: typeof copy; branch: typeof branch;
+  }, []);
+  const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
+  const rowEnv = [members, rulesFor, macrosFor, userName, persona.avatar, thoughtsOpen, roomId, streaming, streamingId === null];
+  const rowEnvRef = useRef<unknown[]>(rowEnv);
+  if (rowEnv.some((v, i) => v !== rowEnvRef.current[i])) { rowEnvRef.current = rowEnv; rowCache.current.clear(); }
+  const cachedRow = (message: (typeof messages)[number], index: number) => {
+    const id = message.id;
+    const isLast = index === messages.length - 1;
+    const deps: unknown[] = [
+      message, isLast, !message.role || message.role === 'user' ? 0 : index <= firstUserIndex, messages.length - index,
+      editing !== null && editing.id === id ? editing : null,
+      streamingId === id, openActions === id, flipped.has(id), translating === id, switching === id, copied === id, confirming === id,
+      typeof id === 'number' ? mvuRev.get(id) : undefined,
+    ];
+    const hit = rowCache.current.get(id);
+    if (hit && hit.deps.every((v, k) => v === deps[k])) return hit.el;
+    const el = renderRow(message, index);
+    rowCache.current.set(id, { deps, el });
+    return el;
+  };
+  if (rowCache.current.size > messages.length * 2 + 50) {
+    const ids = new Set(messages.map((m) => m.id));
+    for (const k of rowCache.current.keys()) if (!ids.has(k)) rowCache.current.delete(k);
+  }
+
   return (
     <>
       <div className="p-chat-scroll">
@@ -543,157 +726,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
               </div>
             </section>
           )}
-          {messages.map((message, index) => {
-            const member = memberOf(message.speakerId);
-            const isUser = message.role === 'user';
-            const isLast = index === messages.length - 1;
-            const numericId = typeof message.id === 'number' ? message.id : null;
-            const isStreamingThis = streamingId === message.id || (isLast && streaming && !isUser && streamingId === null);
-            const isEditing = editing !== null && editing.id === message.id;
-            const count = message.candidateCount ?? 1;
-            const selected = message.selected ?? 0;
-            const canSwipe = !isUser && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
-            // 开场白（玩家还没说过话之前的角色消息）：只在备选开场白之间切换，不生成新版（同单聊 / ST）
-            const isOpening = !isUser && index <= firstUserIndex;
-            const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
-            return (
-              <article
-                key={message.id}
-                id={`msg-${message.id}`}
-                className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLast ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
-                onTouchStart={canSwipe ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
-                onTouchEnd={canSwipe ? (event) => {
-                  // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版（同单聊）
-                  const start = swipeStart.current; swipeStart.current = null;
-                  if (!start || streaming) return;
-                  const t = event.changedTouches[0];
-                  const dx = t.clientX - start.x; const dy = t.clientY - start.y;
-                  if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
-                  if (dx > 0 && selected > 0) void switchCandidate(message, selected - 1);
-                  else if (dx < 0 && selected < count - 1) void switchCandidate(message, selected + 1);
-                  else if (dx < 0 && !isOpening) void run({ kind: 'regenerate', messageId: numericId! });
-                } : undefined}
-              >
-                {isUser ? (
-                  <UserAvatar name={message.personaName || userName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
-                ) : (
-                  <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: member?.hue ?? 212 }}>
-                    {member?.initial ?? '·'}
-                  </span>
-                )}
-                <div>
-                  <div className="p-msg-name">{isUser ? message.personaName || userName : member?.name ?? '角色'}</div>
-                  {isEditing ? (
-                    <div>
-                      {!isUser && editing.thought != null ? (
-                        <div className="p-thought-edit">
-                          <label className="p-small" htmlFor={`thought-${message.id}`}>思考内容</label>
-                          <textarea
-                            id={`thought-${message.id}`}
-                            className="p-textarea"
-                            value={editing.thought}
-                            rows={Math.min(10, Math.max(2, editing.thought.split('\n').length + 1))}
-                            placeholder="留空保存 = 删除思考内容"
-                            onChange={(event) => setEditing({ ...editing, thought: event.target.value })}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Escape') setEditing(null);
-                              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void saveEdit(); }
-                            }}
-                          />
-                        </div>
-                      ) : null}
-                      <textarea
-                        className="p-textarea"
-                        value={editing.draft}
-                        rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
-                        autoFocus
-                        onChange={(event) => setEditing({ ...editing, draft: event.target.value })}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Escape') setEditing(null);
-                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                            event.preventDefault();
-                            void saveEdit();
-                          }
-                        }}
-                        aria-label="编辑消息"
-                      />
-                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void saveEdit()}>保存</button>
-                        <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
-                        {!isUser && editing.thought == null ? (
-                          <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>加思考内容</button>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
-                      <div className="p-msg-copy p-msg-text">
-                        {message.content
-                          ? <RichText text={showTr && message.translation ? message.translation.text : message.content} streaming={isStreamingThis} rules={rulesFor(message.speakerId)} macros={macrosFor(member?.name ?? '')} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
-                          : isStreamingThis ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
-                      </div>
-                      {message.translation && numericId !== null && !isStreamingThis && (
-                        <div className="p-msg-tr" role="group" aria-label="翻译">
-                          <span className="p-msg-tr-tag">{showTr ? `译文 · ${langLabel(message.translation.lang)}` : '原文'}</span>
-                          <button type="button" onClick={() => setFlipped((prev) => { const next = new Set(prev); if (next.has(message.id)) next.delete(message.id); else next.add(message.id); return next; })}>{showTr ? '看原文' : '看译文'}</button>
-                          <button type="button" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}>{translating === numericId ? '翻译中…' : '重新翻译'}</button>
-                          <button type="button" onClick={() => void removeTranslation(numericId)}>移除</button>
-                        </div>
-                      )}
-                      {translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
-                      {message.checkpoint ? (
-                        <a className="p-msg-checkpoint" href={`/rooms/${message.checkpoint}`}>
-                          <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS.checkpoint} /></svg>
-                          <span>检查点</span>
-                        </a>
-                      ) : null}
-                    </>
-                  )}
-                  {canSwipe && !(isOpening && count <= 1) && (
-                    <div className="rp-swipe" role="group" aria-label="回复版本">
-                      <button type="button" aria-label="上一版回复" disabled={selected <= 0 || switching === numericId || streaming} onClick={() => void switchCandidate(message, selected - 1)}><Ico name="prev" /></button>
-                      <span className="rp-swipe-index" aria-live="polite">{selected + 1} / {count}</span>
-                      {selected < count - 1 ? (
-                        <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void switchCandidate(message, selected + 1)}><Ico name="next" /></button>
-                      ) : isOpening ? (
-                        <button type="button" aria-label="下一版回复" disabled><Ico name="next" /></button>
-                      ) : (
-                        <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void run({ kind: 'regenerate', messageId: numericId! })}><Ico name="next" /></button>
-                      )}
-                    </div>
-                  )}
-                  {!isEditing && numericId !== null && !isStreamingThis && (
-                    <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>
-                  )}
-                  {!isEditing && numericId !== null && !isStreamingThis && (
-                    <div className="p-msg-tools">
-                      {confirming === numericId ? (
-                        <>
-                          <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void remove(numericId)}><Ico name="check" /></button>
-                          <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
-                          <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
-                          {!isUser && isLast && !isOpening && (
-                            <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void run({ kind: 'regenerate', messageId: numericId })}><Ico name="regen" /></button>
-                          )}
-                          {!message.translation && message.content && (
-                            <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}><Ico name="translate" /></button>
-                          )}
-                          <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void branch(message)}><Ico name="branch" /></button>
-                          <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} disabled={streaming} onClick={() => void branch(message, true)}><Ico name="checkpoint" /></button>
-                          <button type="button" aria-label="删除消息" title="删除" disabled={streaming} onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </article>
-            );
-          })}
+          {messages.map(cachedRow)}
           <div ref={bottomRef} className="chat-bottom" />
         </div>
       </div>

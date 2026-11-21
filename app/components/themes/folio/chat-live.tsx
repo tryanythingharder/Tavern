@@ -16,12 +16,18 @@ const pad = (n: number) => String(n).padStart(2, '0');
 function read(): DomState {
   const articles = Array.from(document.querySelectorAll<HTMLElement>('.p-chat-scroll article.p-msg'));
   const marks: Mark[] = [];
-  articles.forEach((article, i) => {
-    if (article.querySelector('button[data-act="bookmark"][aria-pressed="true"]')) {
+  // 只查一次已夹书签的按钮，再定位所属消息（长会话不对每条消息各查一遍）
+  const pressed = document.querySelectorAll<HTMLElement>('.p-chat-scroll article.p-msg button[data-act="bookmark"][aria-pressed="true"]');
+  if (pressed.length) {
+    const index = new Map(articles.map((a, i) => [a, i] as const));
+    pressed.forEach((btn) => {
+      const article = btn.closest<HTMLElement>('article.p-msg');
+      const i = article ? index.get(article) : undefined;
+      if (!article || i === undefined) return;
       const text = (article.querySelector('.p-msg-copy')?.textContent ?? '').replace(/\s+/g, ' ').trim();
       marks.push({ id: article.id, page: i + 1, text: text.slice(0, 40) || '（图片）' });
-    }
-  });
+    });
+  }
   return { count: articles.length, ids: articles.map((a) => a.id), marks };
 }
 
