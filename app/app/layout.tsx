@@ -16,6 +16,7 @@ import { appearanceBodyProps } from '@/lib/appearance';
 import { getAppearance } from '@/lib/prefs';
 import { announcementText } from '@/lib/announcement';
 import { checkinStatus } from '@/lib/checkin';
+import { dailyFreeRemaining, firstTopupEligible, growthConfig } from '@/lib/growth';
 import Script from 'next/script';
 import { LocaleGuard } from '@/components/locale-guard';
 import { getLocale, dictVersion } from '@/lib/i18n/server';
@@ -49,6 +50,9 @@ import '../styles/ui-select.css';
 import '../styles/quick-replies.css';
 import '../styles/ui-dialog.css';
 import '../styles/auth.css';
+import '../styles/me-shell.css';
+import '../styles/wallet.css';
+import '../styles/models.css';
 // 英文界面下替换 CSS 伪元素里的中文
 import '../styles/i18n-en.css';
 
@@ -82,6 +86,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   let unread = 0;
   let recents: { id: number; characterId: string; name: string; initial: string; hue: number; owner: number | null; title: string }[] = [];
   let costs = { text: 2, image: 20, tts: 5 };
+  let wallet: { low: boolean; dailyFree: number; dailyLeft: number; firstTopupPct: number; rebatePct: number } | null = null;
   if (user) {
     ensureStartingPoints(user.id);
     points = balance(user.id);
@@ -95,7 +100,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       owner: chat.character_owner,
       title: chat.title,
     }));
-    costs = { text: pointsSummary(user.id).perThousand, image: imageCost(), tts: ttsCost() };
+    const summary = pointsSummary(user.id);
+    costs = { text: summary.perThousand, image: imageCost(), tts: ttsCost() };
+    const growth = growthConfig();
+    wallet = { low: summary.low, dailyFree: growth.dailyFree, dailyLeft: growth.dailyFree ? dailyFreeRemaining(user.id) : 0, firstTopupPct: growth.firstTopupPct && firstTopupEligible(user.id) ? growth.firstTopupPct : 0, rebatePct: growth.rebatePct || (growth.inviteReward > 0 ? -1 : 0) };
   }
   return (
     <html lang={locale === 'en' ? 'en' : 'zh-CN'} data-lang={locale} data-scheme-pref={scheme} data-scheme={scheme === 'dark' ? 'dark' : scheme === 'light' ? 'light' : undefined} suppressHydrationWarning>
@@ -125,7 +133,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             __html: `(function(){var p=location.pathname;var k=p==='/'?'home':p.indexOf('/c/')===0?'character':p.indexOf('/chats/')===0?'chat':p.indexOf('/chats')===0?'chats':p.indexOf('/a/')===0?'author':p.indexOf('/rooms/')===0?'chat':p.indexOf('/rooms')===0?'rooms':p.indexOf('/create')===0?'create':p.indexOf('/library')===0?'library':p.indexOf('/notifications')===0?'notifications':p.indexOf('/me')===0?'settings':p.indexOf('/admin')===0?'admin':(p.split('/')[1]||'home');var cinema=${JSON.stringify(view)}==='cinema'&&['home','plaza','character','author'].indexOf(k)>=0;document.body.dataset.page=k;document.body.dataset.view=cinema?'cinema':'classic';document.body.classList.toggle('p-cinema',cinema);try{var at=${JSON.stringify(announcement.trim()).replace(/</g, '\\u003c')};var ah=5381;for(var i=0;i<at.length;i++)ah=((ah<<5)+ah+at.charCodeAt(i))|0;if(localStorage.getItem('tavern-announcement-dismissed')===(ah>>>0).toString(36))document.body.classList.add('announcement-off')}catch(e){}})();`,
           }}
         />
-        <SiteShell userName={user?.nickname} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} appearance={custom} announcement={announcement} checkin={checkin}>
+        <SiteShell userName={user?.nickname} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} appearance={custom} announcement={announcement} checkin={checkin} wallet={wallet}>
           {children}
         </SiteShell>
         {user && !playMode ? <PlayModeChooser /> : null}

@@ -1,67 +1,47 @@
 import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import db from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { modelCatalog } from '@/lib/model';
-import { ModelDefaultButton } from '@/components/model-default-button';
+import { parseContextTokens } from '@/lib/model-catalog';
+import { priceRule } from '@/lib/points';
+import { modelTraits, modelVendor } from '@/lib/model-vendor';
+import { ModelSquare, type SquareModel } from '@/components/model-square';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '模型广场' });
 }
 export const dynamic = 'force-dynamic';
 
-// 模型广场：站内能用的模型、每千 tokens 扣多少点、适合什么玩法。价格由后台「模型广场」单独设置。
+// 模型广场（参考 new-api）：厂商 / 计费方式 / 标签筛选、搜索、排序、卡片与列表、详情抽屉。价格由后台「模型广场」设置。
 export default async function ModelsPage() {
   const user = await getCurrentUser();
-  const models = modelCatalog();
   const mine = user ? ((db.prepare('SELECT default_model FROM users WHERE id = ?').get(user.id) as { default_model: string | null } | undefined)?.default_model ?? '') : '';
-  // 「最省」只在同一种计费方式里比（按次和按量没法直接比）
-  const cheapestMode = models.some((item) => item.mode === 'call') && !models.some((item) => item.mode === 'token') ? 'call' : 'token';
-  const cheapest = models.filter((item) => item.mode === cheapestMode).reduce((min, item) => Math.min(min, item.price), Infinity);
-
+  const models: SquareModel[] = modelCatalog().map((item, index) => {
+    const rule = priceRule(item.id);
+    const contextTokens = parseContextTokens(item.meta.context);
+    return {
+      id: item.id,
+      name: item.meta.name || item.id,
+      summary: item.meta.summary,
+      tags: item.meta.tags,
+      traits: modelTraits(item.id, contextTokens),
+      context: item.meta.context,
+      contextTokens,
+      featured: item.meta.featured,
+      siteDefault: item.isDefault,
+      mine: mine === item.id,
+      mode: rule.mode,
+      price: rule.price,
+      tiers: rule.tiers,
+      priceLabel: item.priceLabel,
+      vendor: modelVendor(item.id),
+      order: index,
+    };
+  });
   return (
-    <div className="p-inner">
-      <header className="p-page-title">
-        <div>
-          <h1>模型广场</h1>
-          <p>每个模型的文风和价格都不一样。设为默认后，新开的对话会用它；对话里也能随时切换。有的按用掉的 tokens 扣点，有的每次固定扣点，上下文特别长时可能另有价格。</p>
-        </div>
-      </header>
-      {!models.length ? (
-        <div className="p-empty">
-          <div className="p-empty-title">还没有上架的模型</div>
-          <p className="p-empty-text">管理员在后台接入渠道后，这里会列出可用的模型。</p>
-        </div>
-      ) : (
-        <div className="mg-grid">
-          {models.map((item) => {
-            const isMine = mine ? mine === item.id : false;
-            return (
-              <article key={item.id} className={`p-card p-card--pad mg-card${item.meta.featured ? ' is-featured' : ''}${isMine ? ' is-mine' : ''}`}>
-                <div className="mg-head">
-                  <h2 className="mg-name">{item.meta.name || item.id}</h2>
-                  {item.meta.featured && <span className="p-pill p-pill--sm">推荐</span>}
-                  {!mine && item.isDefault && <span className="p-pill p-pill--sm p-pill--outline">站点默认</span>}
-                </div>
-                {item.meta.name && <code className="mg-id">{item.id}</code>}
-                {item.meta.summary && <p className="mg-summary">{item.meta.summary}</p>}
-                {(item.meta.tags.length > 0 || item.meta.context) && (
-                  <div className="mg-tags">
-                    {item.meta.context && <span className="p-pill p-pill--sm p-pill--outline">上下文 {item.meta.context}</span>}
-                    {item.meta.tags.map((tag) => <span key={tag} className="p-pill p-pill--sm p-pill--outline">{tag}</span>)}
-                  </div>
-                )}
-                <div className="mg-foot">
-                  <span className="mg-price"><b>{item.priceLabel}</b>{item.price === cheapest && item.mode === cheapestMode && models.length > 1 ? <span className="p-small"> · 最省</span> : null}</span>
-                  {user ? <ModelDefaultButton model={item.id} active={isMine} /> : <Link className="p-btn p-btn--sm" href="/login">登录后选择</Link>}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-      <p className="p-small mg-note">按量计费的模型，一次回复大约 1–3 千 tokens（设定越长、聊得越久，每条越多）。点数余额和明细在「我的 → 点数」。</p>
+    <div className="p-inner ms-page">
+      <ModelSquare models={models} signedIn={Boolean(user)} hasMine={Boolean(mine)} />
     </div>
   );
 }

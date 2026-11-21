@@ -1,0 +1,73 @@
+/* 顶栏点数钱包：触发钮（点币 + 余额）与弹出面板 */
+html body:not(#w) .p-wallet-trigger { position: relative; gap: 7px; padding: 0 12px 0 5px; font-variant-numeric: tabular-nums; }
+html body:not(#w) .p-wallet-coin {
+  display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--ca-accent, #c9401f); color: #fff; font-size: 12px; font-weight: 700; line-height: 1;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .14), inset 0 0 0 2px rgba(255, 255, 255, .22);
+}
+html body:not(#w) .p-wallet-num { font-size: 14px; font-weight: 650; color: var(--ca-ink, #1b1b1d); letter-spacing: .01em; }
+html body:not(#w) .p-wallet-trigger.is-low .p-wallet-num { color: var(--ca-danger, #c0392b); }
+html body:not(#w) .p-wallet-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--ca-accent, #c9401f); box-shadow: 0 0 0 2px var(--ca-card, #fff); }
+
+html body:not(#w) .p-points-panel.p-wallet { width: 320px; padding: 0; overflow: hidden; display: grid; gap: 0; }
+html body:not(#w) .p-wallet-hero { display: grid; gap: 2px; padding: 18px 18px 16px; background: var(--ca-accent-soft, #f9e8e4); }
+html body:not(#w) .p-wallet-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--ca-accent, #c9401f); }
+html body:not(#w) .p-wallet-balance { font-size: 34px; line-height: 1.1; font-weight: 750; letter-spacing: -.02em; color: var(--ca-ink, #1b1b1d); font-variant-numeric: tabular-nums; }
+html body:not(#w) .p-wallet-sub { font-size: 12.5px; color: var(--ca-copy, #55555c); }
+html body:not(#w) .p-wallet-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--ca-line, #ebe8e3); color: inherit; text-decoration: none; }
+html body:not(#w) .p-wallet-row > div { display: grid; gap: 2px; min-width: 0; }
+html body:not(#w) .p-wallet-row b { font-size: 13.5px; color: var(--ca-ink, #1b1b1d); }
+html body:not(#w) .p-wallet-row span { font-size: 12px; color: var(--ca-muted, #77777e); }
+html body:not(#w) .p-wallet-link:hover { background: var(--ca-sunken, #f6f4f1); }
+html body:not(#w) .p-wallet-row em { flex: none; font-style: normal; font-size: 12px; font-weight: 650; padding: 4px 10px; border-radius: 999px; background: var(--ca-accent, #c9401f); color: #fff; }
+html body:not(#w) .p-wallet-row em.is-done { background: var(--ca-sunken, #f1efec); color: var(--ca-muted, #77777e); }
+html body:not(#w) .p-wallet-meter { flex: none; display: block; width: 84px; height: 6px; border-radius: 999px; background: var(--ca-line, #e6e3de); overflow: hidden; }
+html body:not(#w) .p-wallet-meter > i { display: block; height: 100%; border-radius: inherit; background: var(--ca-accent, #c9401f); }
+html body:not(#w) .p-wallet-promo { margin: 0 18px; padding: 9px 12px; border-radius: 10px; border: 1px dashed var(--ca-accent, #c9401f); font-size: 12.5px; color: var(--ca-copy, #55555c); }
+html body:not(#w) .p-wallet-row + .p-wallet-promo { margin-top: 4px; }
+html body:not(#w) .p-wallet-promo b { color: var(--ca-accent, #c9401f); }
+html body:not(#w) .p-wallet-actions { display: flex; gap: 8px; padding: 14px 18px; }
+html body:not(#w) .p-wallet-actions .p-btn { flex: 1; justify-content: center; height: 36px; font-size: 13.5px; padding: 0 10px; white-space: nowrap; }
+html body:not(#w) .p-wallet-foot { display: grid; gap: 4px; padding: 11px 18px 13px; border-top: 1px solid var(--ca-line, #ebe8e3); font-size: 11.5px; color: var(--ca-muted, #77777e); text-decoration: none; }
+html body:not(#w) .p-wallet-foot span:last-child { color: var(--ca-accent, #c9401f); font-weight: 600; }
+html body:not(#w) .p-wallet-foot:hover span:last-child { text-decoration: underline; }
+
+/* folio：方角、墨色点币、衬线大数字 */
+html body[data-theme="folio"]:not(#w) .p-wallet-coin { border-radius: 0; background: var(--fo-ink, #1b1b1d); box-shadow: none; }
+html body[data-theme="folio"]:not(#w) .p-points-panel.p-wallet { padding: 0; }
+html body[data-theme="folio"]:not(#w) .p-wallet-hero { background: transparent; border-bottom: 1px solid var(--fo-ink, #1b1b1d); }
+html body[data-theme="folio"]:not(#w) .p-wallet-label { color: var(--fo-muted, #77777e); }
+html body[data-theme="folio"]:not(#w) .p-wallet-balance { font-family: var(--fo-italic, serif); font-style: italic; font-weight: 400; font-size: 40px; }
+html body[data-theme="folio"]:not(#w) :is(.p-wallet-row em, .p-wallet-promo, .p-wallet-meter, .p-wallet-meter > i) { border-radius: 0; }
+html body[data-theme="folio"]:not(#w) .p-wallet-row:first-of-type { border-top: 0; }
+
+/* nocturne：玻璃深底，点币微光 */
+html body[data-theme="nocturne"]:not(#w) .p-wallet-coin { box-shadow: 0 0 12px rgba(240, 113, 79, .45), inset 0 0 0 2px rgba(255, 255, 255, .2); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-num { color: var(--noc-text, #f3efe8); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-hero { background: linear-gradient(135deg, rgba(240, 113, 79, .22), rgba(240, 113, 79, .04)); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-balance,
+html body[data-theme="nocturne"]:not(#w) .p-wallet-row b { color: var(--noc-text, #f3efe8); }
+html body[data-theme="nocturne"]:not(#w) :is(.p-wallet-row, .p-wallet-foot) { border-color: var(--noc-line, rgba(255, 255, 255, .1)); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-link:hover { background: rgba(255, 255, 255, .04); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-meter { background: rgba(255, 255, 255, .1); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-row em.is-done { background: rgba(255, 255, 255, .08); color: var(--noc-muted, #a8a29a); }
+html body[data-theme="nocturne"]:not(#w) .p-wallet-dot { box-shadow: 0 0 0 2px #141418; }
+
+/* stage：大圆角、粗数字 */
+html body[data-theme="stage"]:not(#w) .p-points-panel.p-wallet { padding: 0; border-radius: 22px; }
+html body[data-theme="stage"]:not(#w) .p-wallet-hero { margin: 8px 8px 0; border-radius: 16px; }
+html body[data-theme="stage"]:not(#w) .p-wallet-balance { font-weight: 800; letter-spacing: -.05em; }
+html body[data-theme="stage"]:not(#w) .p-wallet-row:first-of-type { border-top: 0; }
+
+@media (max-width: 640px) {
+  html body:not(#w) .p-topbar .p-wallet-trigger { padding: 0 8px 0 3px; gap: 4px; }
+  html body:not(#w) .p-wallet-coin { width: 20px; height: 20px; font-size: 10.5px; }
+  html body:not(#w) .p-wallet-num { font-size: 13px; }
+  html body:not(#w) .p-points-panel.p-wallet { width: min(320px, calc(100vw - 24px)); }
+}
+
+/* 窄屏顶栏：钱包按钮加了点币后略宽，收紧间距避免把头像挤出屏幕 */
+@media (max-width: 420px) {
+  html body[data-page]:not(#w) .p-topbar { gap: 4px; }
+  html body[data-theme="folio"][data-page]:not(#w) .p-topbar :is(.p-topbar-icon, .sc-toggle, .ua-trigger) { width: 36px; min-width: 36px; }
+}

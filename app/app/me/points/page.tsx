@@ -102,7 +102,7 @@ export default async function PointsPage() {
         </Link>
       )}
       <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} currency={__cur()} /></div>
-      <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
+      <section id="ledger" className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">点数记录</h2>
         <p className="p-small">每次生成结束后按网关返回的 usage 扣费，账本逐笔可对。</p>
         {ledger.length ? (

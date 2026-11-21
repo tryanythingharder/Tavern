@@ -92,6 +92,7 @@ export function SiteShell({
   theme = 'folio',
   announcement = '',
   checkin = null,
+  wallet = null,
   appearance,
 }: {
   children: ReactNode;
@@ -106,6 +107,7 @@ export function SiteShell({
   appearance?: AppearancePrefs;
   announcement?: string;
   checkin?: { todayDone: boolean; streak: number; amount: number; day: string } | null;
+  wallet?: { low: boolean; dailyFree: number; dailyLeft: number; firstTopupPct: number; rebatePct: number } | null;
 }) {
   const pathname = usePathname();
   const isActive = (href: string) => {
@@ -134,6 +136,21 @@ export function SiteShell({
   })();
   // 原型的影院模式只作用于叙事页：home / plaza / character / author
   const narrative = ['home', 'plaza', 'character', 'author'].includes(page);
+  // 「我的」：主导航换成返回 + 我的菜单（菜单就是页内的设置目录）
+  const meMode = pathname.startsWith('/me');
+  const [backHref, setBackHref] = useState('/');
+  useEffect(() => {
+    try {
+      if (!pathname.startsWith('/me')) sessionStorage.setItem('tavern:before-me', pathname + window.location.search);
+      else setBackHref(sessionStorage.getItem('tavern:before-me') || '/');
+    } catch { /* 无痕模式等 */ }
+  }, [pathname]);
+  const backLink = (className: string) => (
+    <Link className={className} href={backHref} aria-label="返回">
+      {icon('M15 18l-6-6 6-6')}
+      <span>返回</span>
+    </Link>
+  );
   const [pointsOpen, setPointsOpen] = useState(false);
   const pointsRef = useRef<HTMLDivElement | null>(null);
   const pointsTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -192,26 +209,47 @@ export function SiteShell({
     return () => pointsTriggerRef.current?.focus();
   }, [pointsOpen]);
 
+  const fmt = (value: number) => value.toLocaleString('zh-CN');
+  // 一次回复大约 2 千 tokens：粗略换算还能聊多少条，给余额一个直观的尺度
+  const replies = costs.text > 0 ? Math.floor(points / (costs.text * 2)) : 0;
   const pointsMenu = userName ? (
     <div className="p-points" ref={pointsRef}>
-      <button ref={pointsTriggerRef} className="p-points-trigger" type="button" aria-expanded={pointsOpen} aria-haspopup="dialog" aria-controls="points-panel" onClick={() => setPointsOpen((value) => !value)}>
-        {icon('M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 3 5 3 5 1.1 5 3-2.2 3-5 3-5-1.1-5-3')}
-        <span>{points}</span>
-        <small>点</small>
+      <button ref={pointsTriggerRef} className={`p-points-trigger p-wallet-trigger${wallet?.low ? ' is-low' : ''}`} type="button" aria-expanded={pointsOpen} aria-haspopup="dialog" aria-controls="points-panel" aria-label={`点数余额 ${points}${wallet?.low ? '，余额不足' : ''}`} onClick={() => setPointsOpen((value) => !value)}>
+        <span className="p-wallet-coin" aria-hidden="true">点</span>
+        <span className="p-wallet-num">{fmt(points)}</span>
+        {checkin && !checkin.todayDone && <span className="p-wallet-dot" aria-hidden="true" />}
       </button>
       {pointsOpen && (
-        <div className="p-points-panel" id="points-panel" role="dialog" aria-label="点数与消耗">
-          <div className="p-points-head"><span>余额</span><strong>{points}</strong></div>
-          <p className="p-points-sub">每 1000 tokens 扣 {costs.text} 点</p>
-          <ul className="p-points-list">
-            <li><span>文本</span><b>{costs.text} 点 / 千 tokens</b></li>
-            <li><span>生图</span><b>{costs.image} 点 / 张</b></li>
-            <li><span>语音</span><b>{costs.tts} 点 / 条</b></li>
-          </ul>
-          <div className="p-points-actions">
-            <Link className="p-btn p-btn--primary p-btn--sm" href="/me/points">充值</Link>
-            <Link className="p-btn p-btn--sm" href="/me/points">点数记录</Link>
+        <div className="p-points-panel p-wallet" id="points-panel" role="dialog" aria-label="点数钱包">
+          <div className="p-wallet-hero">
+            <span className="p-wallet-label">点数余额</span>
+            <strong className="p-wallet-balance">{fmt(points)}</strong>
+            <span className="p-wallet-sub">{wallet?.low ? '余额不多了，生成可能会被暂停' : replies > 0 ? `按默认模型，约够聊 ${fmt(replies)} 条` : '充值后就能继续聊'}</span>
           </div>
+          {wallet && wallet.dailyFree > 0 && (
+            <div className="p-wallet-row">
+              <div><b>今日免费</b><span>{wallet.dailyLeft} / {wallet.dailyFree} 点 · 零点刷新</span></div>
+              <i className="p-wallet-meter" aria-hidden="true"><i style={{ width: `${Math.round((wallet.dailyLeft / wallet.dailyFree) * 100)}%` }} /></i>
+            </div>
+          )}
+          {checkin && (
+            <Link className="p-wallet-row p-wallet-link" href="/me/points" onClick={() => setPointsOpen(false)}>
+              <div><b>每日签到</b><span>{checkin.todayDone ? `今天已签 · 连续 ${checkin.streak} 天` : `今天还没签，可领 ${checkin.amount} 点`}</span></div>
+              <em className={checkin.todayDone ? 'is-done' : undefined}>{checkin.todayDone ? '已签到' : '去签到'}</em>
+            </Link>
+          )}
+          {wallet && wallet.firstTopupPct > 0 && (
+            <div className="p-wallet-promo">首充多送 <b>{wallet.firstTopupPct}%</b>，第一笔充值到账自动加赠</div>
+          )}
+          <div className="p-wallet-actions">
+            <Link className="p-btn p-btn--primary" href="/me/points" onClick={() => setPointsOpen(false)}>充值</Link>
+            <Link className="p-btn" href="/me/points#ledger" onClick={() => setPointsOpen(false)}>明细</Link>
+            {wallet && wallet.rebatePct !== 0 && <Link className="p-btn" href="/me/invite" onClick={() => setPointsOpen(false)}>{wallet.rebatePct > 0 ? `邀请返 ${wallet.rebatePct}%` : '邀请好友'}</Link>}
+          </div>
+          <Link className="p-wallet-foot" href="/models" onClick={() => setPointsOpen(false)}>
+            <span>文本 {costs.text} 点/千 tokens · 生图 {costs.image} 点/张 · 语音 {costs.tts} 点/条</span>
+            <span aria-hidden="true">各模型价格 →</span>
+          </Link>
         </div>
       )}
     </div>
@@ -328,14 +366,19 @@ export function SiteShell({
 
 
   return (
-    <div className="p-shell">
+    <div className="p-shell" data-section={meMode ? 'me' : undefined}>
       <aside className="p-side">
         <Link className="p-brand" href="/">
           <div className="p-mark">夜</div>
           <div className="p-brand-name">夜话</div>
         </Link>
 
-        <>
+        {meMode ? (
+          <div className="p-side-me">
+            {backLink('p-side-back')}
+            <span className="p-side-me-title">我的</span>
+          </div>
+        ) : <>
           <nav className="p-nav" aria-label="主导航">
               {NAV.map((item) => (
                 <Link key={item.href} className="p-nav-item" href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
@@ -366,7 +409,7 @@ export function SiteShell({
                 {admin && <Link className="p-side-recent" href="/admin">{icon('M12 3 4 7v6c0 4 3.4 7.4 8 8 4.6-.6 8-4 8-8V7z')}<span>后台</span></Link>}
               </>
             )}
-        </>
+        </>}
 
         <div className="p-side-foot">
           <Link className="p-user-row" href={userName ? '/me' : '/login'}>
@@ -378,6 +421,7 @@ export function SiteShell({
 
       <div className="p-main">
         <header className="p-topbar">
+          {meMode && backLink('p-topbar-back')}
           <Link className="p-topbar-brand" href="/" aria-label="夜话首页">
             <span className="p-topbar-mark" aria-hidden="true">夜</span>
             <span className="p-topbar-word">夜话</span>
