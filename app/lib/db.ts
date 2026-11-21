@@ -896,3 +896,13 @@ export function recordMessageMeta(messageId: number, index: number, meta: GenMet
   if (!row) return;
   db.prepare('UPDATE messages SET meta = ? WHERE id = ?').run(accumulate ? _addMeta(row.meta, index, meta) : _withMeta(row.meta, index, meta), messageId);
 }
+
+// 一次性迁移：旧版预设默认回复长度 400 tokens 太短（中文长回复会被截断），只把还停在旧默认 400 的预设改成新默认 1024；
+// 玩家自己改过的其它值不动。用 app_settings 记已执行，避免玩家之后故意设回 400 又被改掉。
+{
+  const done = db.prepare("SELECT 1 FROM app_settings WHERE key = 'migrate.preset_max_tokens_1024'").get();
+  if (!done) {
+    db.prepare("UPDATE presets SET params = json_set(params, '$.maxTokens', 1024) WHERE json_valid(params) AND json_extract(params, '$.maxTokens') = 400").run();
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value, updated_at) VALUES ('migrate.preset_max_tokens_1024', '1', ?)").run(Date.now());
+  }
+}
