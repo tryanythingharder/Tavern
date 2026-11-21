@@ -2098,7 +2098,7 @@
  "OpenAI 兼容地址，末尾带 /v1；模型列表会请求": "OpenAI-compatible URL ending in /v1; the model list requests",
  "（留空不改）": "(leave empty to keep)",
  "已保存，留空不变": "Saved; leave empty to keep",
- "模型": "Model",
+ "模型": "Models",
  "从上游拉取，不用手填模型名。": "Fetched from upstream, no manual model names.",
  "获取中…": "Fetching…",
  "重新获取模型": "Refetch models",
@@ -3974,5 +3974,14 @@
  "无法连接向量接口：{0}": "Couldn't reach the embedding API: {0}",
  "向量接口返回 {0}{1}": "Embedding API returned {0}{1}",
  "向量接口返回了 {0} 条，期望 {1} 条": "Embedding API returned {0} items, expected {1}",
- "还没有接入。接入方式：在 lib/age-verify/ 下实现一个服务商（Yoti、Veriff、Persona 等），在 index.ts 登记；回调地址为 /api/age-verify/<id>。": "Not connected. To connect: implement a provider (Yoti, Veriff, Persona, etc.) under lib/age-verify/ and register it in index.ts; the callback URL is /api/age-verify/<id>."
+ "还没有接入。接入方式：在 lib/age-verify/ 下实现一个服务商（Yoti、Veriff、Persona 等），在 index.ts 登记；回调地址为 /api/age-verify/<id>。": "Not connected. To connect: implement a provider (Yoti, Veriff, Persona, etc.) under lib/age-verify/ and register it in index.ts; the callback URL is /api/age-verify/<id>.",
+ "{0} tokens（未标注，按站点默认窗口）": "{0} tokens (not listed, site default window)",
+ "管理员未标注，按站点默认窗口": "Not listed by the admin; uses the site default window",
+ "模型名": "Model name",
+ "翻译 · 群聊消息 #{n}": "Translation · group message #{n}",
+ "翻译 · 消息 #{n}": "Translation · message #{n}",
+ "对话 #{n}": "Chat #{n}",
+ "群聊 #{n}": "Group chat #{n}",
+ "用量补扣 · ": "Usage top-up charge · ",
+ "多扣退回 · ": "Overcharge refund · "
 }

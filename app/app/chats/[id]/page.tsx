@@ -69,7 +69,8 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const cover = character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null);
   const sprites = spriteMap(character.id, user.id, character.owner_id ?? null);
   const bg = resolveBackground('chat', chat.id, user.id);
-  const hasStage = Boolean(cover) || Object.keys(sprites).length > 0;
+  // 画面栏所有卡都有：没有封面时立绘格显示首字占位（可点开添加表情立绘），插图照常收进画廊
+  const hasStage = true;
 
   return (
     <main className="p-inner">

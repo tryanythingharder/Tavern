@@ -154,3 +154,9 @@ html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .
 .chat-lightbox-bar button:disabled { opacity: .35; cursor: default; }
 .chat-lightbox-bar button:not(:disabled):hover { background: rgba(255,255,255,.2); }
 .chat-lightbox-bar .chat-lightbox-jump { background: #c9401f; border-color: #c9401f; }
+/* 没有封面的角色：立绘格显示首字占位（点开添加表情立绘），不留空白 */
+.chat-stage .chat-gallery-tile.is-empty:not(#_) { aspect-ratio: 3 / 4; display: grid; place-items: center; align-content: center; gap: 10px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.chat-gallery-ph { font-size: 56px; line-height: 1; color: rgba(243,236,229,.78); font-family: var(--fo-display, serif); }
+.chat-gallery-ph-tip { font-size: 12px; color: rgba(243,236,229,.55); }
+.chat-stage .chat-gallery-tile.is-empty:not(#_):hover .chat-gallery-ph-tip { color: #f0714f; }

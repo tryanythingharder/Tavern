@@ -147,3 +147,4 @@ html body[data-theme="stage"]:not(#m) .ms-page { --ms-r: 22px; }
 html body[data-theme="stage"]:not(#m) .ms-hero h1 { font-size: 40px; font-weight: 800; letter-spacing: -.04em; }
 html body[data-theme="stage"]:not(#m) .ms-card { box-shadow: 0 1px 0 rgba(0, 0, 0, .02); }
 html body[data-theme="stage"]:not(#m) .ms-drawer { border-radius: 26px 0 0 26px; }
+html body:not(#a) .ms-ctx-def { margin-left: 4px; font-style: normal; opacity: .7; }

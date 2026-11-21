@@ -82,7 +82,7 @@ export function AdminModel({ initial }: { initial: ModelStatus }) {
         <p className="small" style={{ marginTop: 0 }}>OpenAI 兼容的 `/chat/completions`。保存后立即生效，不需要重启；密钥只写不读。</p>
         <div className="p-field-row">
           <div className="p-field"><label>Base URL</label><input aria-label="Base URL" className="p-input" value={baseUrl} placeholder="https://…/v1" onChange={(event) => setBaseUrl(event.target.value)} /></div>
-          <div className="p-field"><label>模型</label><input aria-label="模型" className="p-input" value={name} placeholder="例如：deepseek-v4.1-flash" onChange={(event) => setName(event.target.value)} /></div>
+          <div className="p-field"><label>模型名</label><input aria-label="模型名" className="p-input" value={name} placeholder="例如：deepseek-v4.1-flash" onChange={(event) => setName(event.target.value)} /></div>
           <div className="p-field"><label>API Key（留空不改）</label><input aria-label="API Key（留空不改）" className="p-input" type="password" value={apiKey} placeholder={hasKey ? '已保存，留空不变' : '未设置'} onChange={(event) => setApiKey(event.target.value)} /></div>
         </div>
         <details style={{ margin: '12px 0' }}>

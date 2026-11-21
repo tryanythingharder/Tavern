@@ -25,8 +25,10 @@ function humanNote(raw: string | null | undefined): { text: string; chatId?: num
     .replace(/^结算退回\s*·\s*/, '多扣退回 · ')
     .replace(/^补扣\s*·\s*/, '用量补扣 · ')
     .replace(/^预扣\s*·\s*/, '')
-    .replace(/chat:(\d+)/g, '对话 #$1')
-    .replace(/room:(\d+)/g, '房间 #$1')
+    .replace(/translate:room:(\d+)/g, (_m, n) => tr('翻译 · 群聊消息 #{n}', { n }))
+    .replace(/translate:(\d+)/g, (_m, n) => tr('翻译 · 消息 #{n}', { n }))
+    .replace(/chat:(\d+)/g, (_m, n) => tr('对话 #{n}', { n }))
+    .replace(/room:(\d+)/g, (_m, n) => tr('群聊 #{n}', { n }))
     .replace(/\s*·\s*$/, '')
     .replace(/^代写(?=\s|·|$)/, () => tr('代写'));
   return { text, chatId: chat ? Number(chat[1]) : undefined };

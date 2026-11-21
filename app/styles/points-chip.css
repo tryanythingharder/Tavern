@@ -65,8 +65,49 @@ html body[data-theme="folio"]:not(#a) .p-chat-head-in > .p-chat-title { grid-col
 html body[data-theme="folio"]:not(#a) .p-chat-head-in > div:last-child { grid-column: 3; grid-row: 1; }
 /* nocturne：标题行左侧是头像+标题，小标放在这一行右端 */
 html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .pc-chip { grid-row: 1; grid-column: 2; justify-self: end; align-self: center; margin: 0 4px 0 0; }
+/* 标题与小标同在第 2 栏、按钮固定第 3 栏；不写明的话标题会被自动排到第 3 栏，按钮掉到第二行盖住下面的状态条 */
+html body[data-theme="nocturne"]:not(#a) .p-chat-head-in:has(> .pc-chip) > .p-chat-title { grid-row: 1; grid-column: 2; min-width: 0; }
+html body[data-theme="nocturne"]:not(#a) .p-chat-head-in:has(> .pc-chip) > div:last-child { grid-row: 1; grid-column: 3; }
 /* stage 手机：标题叠在左侧，小标挪到操作按钮前 */
 @media (max-width: 640px) {
-  html body[data-theme="stage"]:not(#a) .p-chat-head-in { position: relative; }
-  html body[data-theme="stage"]:not(#a) .p-chat-head-in > .pc-chip { position: absolute; right: 10px; top: calc(100% + 8px); margin: 0; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in,
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in,
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in { position: relative; }
+  /* folio 手机：标题居中占满中间一栏，小标和标题挤在一起会盖住字，同样挪到标题栏下方右侧 */
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > .pc-chip,
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in > .pc-chip,
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .pc-chip { position: absolute; right: 10px; top: calc(100% + 8px); margin: 0; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
 }
+/* folio 手机：标题和副标题限制在中间一栏内，超出用省略号（群聊副标题较长，之前会向两侧溢出盖住按钮） */
+@media (max-width: 640px) {
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in > .p-chat-title { min-width: 0; overflow: hidden; }
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in .p-chat-title-text { min-width: 0; max-width: 100%; }
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in .p-chat-name,
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in .p-chat-sub { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* nocturne 手机：小标挪出标题行后，标题和按钮各占一栏，按钮不再挤到第二行盖住下面的状态条 */
+@media (max-width: 640px) {
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in:has(> .pc-chip) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .p-chat-title { grid-column: 2; grid-row: 1; min-width: 0; overflow: hidden; }
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > div:last-child { grid-column: 3; grid-row: 1; }
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in .p-chat-name,
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in .p-chat-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 640px) {
+  /* nocturne 对话页标题下方有一条固定的进度条（.noc-strip），小标放到它下面 */
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .pc-chip { top: calc(100% + 30px); }
+  html body[data-theme="nocturne"]:not(#a):has(.p-rp-status) .p-chat-head-in > .pc-chip { top: calc(100% + 8px); }
+}
+@media (max-width: 640px) {
+  /* stage 手机（群聊等无封面的页面）：标题吃满剩余宽度，超长省略 */
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > .p-chat-title { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in .p-chat-name,
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in .p-chat-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 640px) {
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > div:last-child { gap: 2px; }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > div:last-child > :is(.p-chat-icon, .ua-trigger) { width: 36px; min-width: 36px; height: 36px; }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > div:last-child > .btn { padding: 0 10px; }
+}
+/* 手机上没有实体键盘，快捷键提示没意义，统一隐藏（对话页和群聊） */
+@media (max-width: 640px) { html body:not(#a) :is(.p-chat-meta, .p-compose-meta) > .p-chat-hint { display: none; } }

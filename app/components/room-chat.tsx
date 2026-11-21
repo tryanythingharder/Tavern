@@ -747,7 +747,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
               )}
               <ModelPicker roomId={roomId} />
             </span>
-            <span>Enter 发送 · Shift + Enter 换行 · 群聊回复由模型生成</span>
+            <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 群聊回复由模型生成</span>
           </div>
         </div>
       </div>

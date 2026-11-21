@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { modelCatalog } from '@/lib/model';
 import { parseContextTokens } from '@/lib/model-catalog';
 import { priceRule } from '@/lib/points';
+import { contextWindow } from '@/lib/prompt';
 import { modelTraits, modelVendor } from '@/lib/model-vendor';
 import { ModelSquare, type SquareModel } from '@/components/model-square';
 
@@ -19,14 +20,18 @@ export default async function ModelsPage() {
   const mine = user ? ((db.prepare('SELECT default_model FROM users WHERE id = ?').get(user.id) as { default_model: string | null } | undefined)?.default_model ?? '') : '';
   const models: SquareModel[] = modelCatalog().map((item, index) => {
     const rule = priceRule(item.id);
-    const contextTokens = parseContextTokens(item.meta.context);
+    const listed = parseContextTokens(item.meta.context);
+    // 后台没填上下文时，按实际生效的窗口（站点默认，受全站封顶限制）显示，标成「默认」，和真实裁剪历史时一致
+    const contextTokens = listed || contextWindow(item.id, 0).window;
+    const context = listed ? item.meta.context : `${Math.round(contextTokens / 1000)}K`;
     return {
       id: item.id,
       name: item.meta.name || item.id,
       summary: item.meta.summary,
       tags: item.meta.tags,
-      traits: modelTraits(item.id, contextTokens),
-      context: item.meta.context,
+      traits: modelTraits(item.id, listed),
+      context,
+      contextDefault: !listed,
       contextTokens,
       featured: item.meta.featured,
       siteDefault: item.isDefault,

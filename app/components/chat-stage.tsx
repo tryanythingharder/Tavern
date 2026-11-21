@@ -203,7 +203,13 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
             </button>
           </div>
           <div className="chat-gallery-grid">
-            {items.map((item, index) => (
+            {items.map((item, index) => index === 0 && !item.src && !expr ? (
+              // 没有封面也没有表情立绘：显示首字占位，点开去上传表情立绘，不留一块空白
+              <button key="__no-cover" type="button" className="chat-gallery-tile is-cover is-empty" onClick={() => setManaging(true)} aria-label="还没有立绘，点此添加表情立绘">
+                <span className="chat-gallery-ph" aria-hidden="true">{Array.from(name.trim())[0] || '?'}</span>
+                <span className="chat-gallery-ph-tip">还没有立绘 · 点此添加</span>
+              </button>
+            ) : (
               <button key={key(item.src)} type="button" className={`chat-gallery-tile${key(item.src) === current ? ' is-current' : ''}${index === 0 ? ' is-cover' : ''}`}
                 onClick={() => setView(index)} aria-label={index === 0 ? '查看立绘' : `查看第 ${index} 张插图`}>
                 <img src={index === 0 && expr ? expr.src : item.src} alt="" loading={index === 0 ? undefined : "lazy"} className={index === 0 && expr ? 'is-sprite' : undefined} key={index === 0 && expr ? expr.src : undefined} />
@@ -224,14 +230,14 @@ export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }:
       )}
       {managing && <SpriteManager characterId={characterId} onClose={() => setManaging(false)} onChange={() => router.refresh()} />}
       {view !== null && items[view] && (
-        <Lightbox items={items} index={view} onIndex={setView} onClose={() => setView(null)} onJump={jump} />
+        <Lightbox items={items} min={items[0]?.src ? 0 : 1} index={view} onIndex={setView} onClose={() => setView(null)} onJump={jump} />
       )}
     </aside>
   );
 }
 
-function Lightbox({ items, index, onIndex, onClose, onJump }: {
-  items: Item[]; index: number; onIndex: (i: number) => void; onClose: () => void; onJump: (item: Item) => void;
+function Lightbox({ items, min = 0, index, onIndex, onClose, onJump }: {
+  items: Item[]; min?: number; index: number; onIndex: (i: number) => void; onClose: () => void; onJump: (item: Item) => void;
 }) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
@@ -239,18 +245,18 @@ function Lightbox({ items, index, onIndex, onClose, onJump }: {
     closeRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
-      else if (event.key === 'ArrowLeft' && index > 0) onIndex(index - 1);
+      else if (event.key === 'ArrowLeft' && index > min) onIndex(index - 1);
       else if (event.key === 'ArrowRight' && index < items.length - 1) onIndex(index + 1);
     };
     window.addEventListener('keydown', onKey);
     return () => { window.removeEventListener('keydown', onKey); back?.focus?.(); };
-  }, [index, items.length, onClose, onIndex]);
+  }, [index, min, items.length, onClose, onIndex]);
   const item = items[index];
   return createPortal(
     <div className="chat-lightbox" role="dialog" aria-modal="true" aria-label="查看插图" onClick={onClose}>
       <img src={item.src} alt={index === 0 ? '角色立绘' : `第 ${index} 张插图`} onClick={(e) => e.stopPropagation()} />
       <div className="chat-lightbox-bar" onClick={(e) => e.stopPropagation()}>
-        <button type="button" disabled={index === 0} onClick={() => onIndex(index - 1)} aria-label="上一张">‹</button>
+        <button type="button" disabled={index <= min} onClick={() => onIndex(index - 1)} aria-label="上一张">‹</button>
         <span>{index === 0 ? '立绘' : `${index} / ${items.length - 1}`}</span>
         <button type="button" disabled={index >= items.length - 1} onClick={() => onIndex(index + 1)} aria-label="下一张">›</button>
         {item.msgId && <button type="button" className="chat-lightbox-jump" onClick={() => onJump(item)}>跳到原文</button>}

@@ -147,13 +147,13 @@ export function AdminSettings() {
           <div className="p-field"><label>Base URL</label><input aria-label="Base URL" className="p-input" value={form.image.baseUrl} placeholder="https://…/v1" onChange={(event) => setForm({ ...form, image: { ...form.image, baseUrl: event.target.value } })} /></div>
           <div className="p-field"><label>API Key（留空不改）</label><input aria-label="API Key（留空不改）" className="p-input" type="password" value={form.image.apiKey} placeholder={keyPlaceholder(status?.image.keySource)} onChange={(event) => setForm({ ...form, image: { ...form.image, apiKey: event.target.value } })} /></div>
           <div className="p-field">
-            <label>模型</label>
+            <label>模型名</label>
             {models.image.length ? (
               <Select className="p-select" value={form.image.model} onChange={(event) => setForm({ ...form, image: { ...form.image, model: event.target.value } })}>
                 {[...(form.image.model && !models.image.includes(form.image.model) ? [form.image.model] : []), ...models.image].map((model) => <option key={model} value={model}>{model}</option>)}
               </Select>
             ) : (
-              <input aria-label="模型" className="p-input" value={form.image.model} placeholder="例如：gpt-image-1" onChange={(event) => setForm({ ...form, image: { ...form.image, model: event.target.value } })} />
+              <input aria-label="模型名" className="p-input" value={form.image.model} placeholder="例如：gpt-image-1" onChange={(event) => setForm({ ...form, image: { ...form.image, model: event.target.value } })} />
             )}
             <span style={{ display: 'flex', gap: 10, marginTop: 2 }}>
               <button className="p-text-btn" type="button" style={{ fontSize: 12 }} disabled={fetching === 'image' || !form.image.baseUrl} onClick={() => void fetchModels('image')}>{fetching === 'image' ? '获取中…' : models.image.length ? '重新获取模型' : '获取模型'}</button>
@@ -185,13 +185,13 @@ export function AdminSettings() {
           <div className="p-field"><label>Base URL</label><input aria-label="Base URL" className="p-input" value={form.tts.baseUrl} placeholder="https://…/v1" onChange={(event) => setForm({ ...form, tts: { ...form.tts, baseUrl: event.target.value } })} /></div>
           <div className="p-field"><label>API Key（留空不改）</label><input aria-label="API Key（留空不改）" className="p-input" type="password" value={form.tts.apiKey} placeholder={keyPlaceholder(status?.tts.keySource)} onChange={(event) => setForm({ ...form, tts: { ...form.tts, apiKey: event.target.value } })} /></div>
           <div className="p-field">
-            <label>模型</label>
+            <label>模型名</label>
             {models.tts.length ? (
               <Select className="p-select" value={form.tts.model} onChange={(event) => setForm({ ...form, tts: { ...form.tts, model: event.target.value } })}>
                 {[...(form.tts.model && !models.tts.includes(form.tts.model) ? [form.tts.model] : []), ...models.tts].map((model) => <option key={model} value={model}>{model}</option>)}
               </Select>
             ) : (
-              <input aria-label="模型" className="p-input" value={form.tts.model} placeholder="例如：tts-1" onChange={(event) => setForm({ ...form, tts: { ...form.tts, model: event.target.value } })} />
+              <input aria-label="模型名" className="p-input" value={form.tts.model} placeholder="例如：tts-1" onChange={(event) => setForm({ ...form, tts: { ...form.tts, model: event.target.value } })} />
             )}
             <span style={{ display: 'flex', gap: 10, marginTop: 2 }}>
               <button className="p-text-btn" type="button" style={{ fontSize: 12 }} disabled={fetching === 'tts' || !form.tts.baseUrl} onClick={() => void fetchModels('tts')}>{fetching === 'tts' ? '获取中…' : models.tts.length ? '重新获取模型' : '获取模型'}</button>

@@ -9,7 +9,7 @@ import type { Vendor } from '@/lib/model-vendor';
 
 export type SquareModel = {
   id: string; name: string; summary: string; tags: string[]; traits: string[];
-  context: string; contextTokens: number; featured: boolean; siteDefault: boolean; mine: boolean;
+  context: string; contextDefault?: boolean; contextTokens: number; featured: boolean; siteDefault: boolean; mine: boolean;
   mode: 'token' | 'call'; price: number; tiers: { above: number; price: number }[]; priceLabel: string;
   vendor: Vendor; order: number;
 };
@@ -205,7 +205,7 @@ export function ModelSquare({ models, signedIn, hasMine }: { models: SquareModel
                   {copyBtn(item)}
                   <p className={`ms-summary${item.summary ? '' : ' is-auto'}`}>{item.summary || autoSummary(item)}</p>
                   <div className="ms-tags">
-                    {item.context && <span className="ms-tag ms-tag--ctx">上下文 {item.context}</span>}
+                    {item.context && <span className="ms-tag ms-tag--ctx" title={item.contextDefault ? '管理员未标注，按站点默认窗口' : undefined}>上下文 {item.context}{item.contextDefault && <em className="ms-ctx-def">默认</em>}</span>}
                     {[...item.traits, ...item.tags].slice(0, 4).map((value) => <span key={value} className="ms-tag">{value}</span>)}
                   </div>
                   <div className="ms-card-foot">
@@ -277,7 +277,7 @@ function ModelDrawer({ item, onClose, action, copyBtn, badges }: { item: SquareM
           {item.tiers.map((tier) => (
             <div key={tier.above}><dt>长上下文</dt><dd>输入超过 {kTokens(tier.above)} tokens 时 {fmt(tier.price)} {unit}</dd></div>
           ))}
-          <div><dt>上下文</dt><dd>{item.context ? `${item.context} tokens` : '未标注（按站点默认窗口）'}</dd></div>
+          <div><dt>上下文</dt><dd>{item.contextDefault ? `${item.context} tokens（未标注，按站点默认窗口）` : `${item.context} tokens`}</dd></div>
           {(item.traits.length > 0 || item.tags.length > 0) && <div><dt>特点</dt><dd className="ms-tags">{[...item.traits, ...item.tags].map((value) => <span key={value} className="ms-tag">{value}</span>)}</dd></div>}
         </dl>
         <div className="ms-drawer-act">{action}<Link className="p-btn p-btn--sm" href="/">去找角色开聊</Link></div>

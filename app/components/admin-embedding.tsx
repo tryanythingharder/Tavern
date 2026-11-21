@@ -58,7 +58,7 @@ export function AdminEmbedding() {
       <div className="p-field-row">
         <div className="p-field"><label>Base URL</label><input aria-label="Base URL" className="p-input" value={form.baseUrl} placeholder="https://…/v1" onChange={(event) => setForm({ ...form, baseUrl: event.target.value })} /></div>
         <div className="p-field"><label>API Key（留空不改）</label><input aria-label="API Key（留空不改）" className="p-input" type="password" value={form.apiKey} placeholder={status?.hasKey ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, apiKey: event.target.value })} /></div>
-        <div className="p-field"><label>模型</label><input aria-label="模型" className="p-input" value={form.model} placeholder="例如：text-embedding-3-small" onChange={(event) => setForm({ ...form, model: event.target.value })} /></div>
+        <div className="p-field"><label>模型名</label><input aria-label="模型名" className="p-input" value={form.model} placeholder="例如：text-embedding-3-small" onChange={(event) => setForm({ ...form, model: event.target.value })} /></div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy !== ''} onClick={() => void save()}>{busy === 'save' ? '保存中…' : '保存向量配置'}</button>
