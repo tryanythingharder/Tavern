@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { CHAT_STAGE_KEY, CHAT_STAGE_W_KEY, STAGE_MIN_W } from '@/lib/chat-focus';
 import { EXPRESSION_ZH, classifyExpression, pickSprite, type ExpressionLabel, type SpriteMap } from '@/lib/expressions';
-import { SpriteManager } from '@/components/sprite-manager';
+import dynamic from 'next/dynamic';
 import { EXPRESSION_EVENT } from '@/lib/slash-media';
 
 // 沉浸模式左侧的「画廊」（只在沉浸、≥1200px 时显示）：
@@ -13,6 +13,9 @@ import { EXPRESSION_EVENT } from '@/lib/slash-media';
 // 第一格是角色立绘。插图本身仍在消息里正常显示，画廊只是汇总。
 // 读到哪张，哪张加一圈强调色；点开看大图，可前后翻、跳回原文。
 // 右边缘可拖动调宽（双击恢复默认、方向键微调），可收成窄条，选择记在 localStorage。
+
+// 表情立绘管理只在点开时才加载
+const SpriteManager = dynamic(() => import('@/components/sprite-manager').then((m) => m.SpriteManager), { ssr: false });
 
 type Item = { src: string; msgId: string | null };
 

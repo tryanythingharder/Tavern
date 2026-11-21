@@ -298,9 +298,6 @@ function removePath(root: Obj, parts: string[], arg?: Json): Change | null {
 const CALL_RE = /_\.(set|add|insert|assign|remove|unset|delete)\s*\(/g;
 const BLOCK_RE = /<(UpdateVariable|update_variable|JSONPatch|json_patch)>([\s\S]*?)<\/\1>/gi;
 
-export function hasMvuCommands(text: string): boolean {
-  return /_\.(set|add|insert|assign|remove|unset|delete)\s*\(|<JSONPatch>|<json_patch>/i.test(text);
-}
 
 function applyText(stat: Obj, text: string, changes: Change[]) {
   // 只认 <UpdateVariable>/<JSONPatch> 块里的命令；没有块时整条回复里找（老卡常不包块）
@@ -466,11 +463,6 @@ function toPathRaw(path: string): string[] {
 }
 
 // 展示时藏掉变量命令块（生成中块还没闭合也藏）
-export function stripMvuBlocks(text: string): string {
-  if (!/<(UpdateVariable|update_variable|JSONPatch|json_patch)>/i.test(text)) return text;
-  return text
-    .replace(/<(UpdateVariable|update_variable|JSONPatch|json_patch)>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<(UpdateVariable|update_variable|JSONPatch|json_patch)>[\s\S]*$/i, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trimEnd();
-}
+
+import { hasMvuCommands, stripMvuBlocks } from '@/lib/mvu-text';
+export { hasMvuCommands, stripMvuBlocks };

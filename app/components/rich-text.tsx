@@ -5,7 +5,7 @@ import { RpText } from '@/components/rp-text';
 import { HtmlFrame } from '@/components/html-frame';
 import { applyRegex, type RegexMacros } from '@/lib/regex-apply';
 import { splitRich } from '@/lib/rich-segments';
-import { stripMvuBlocks } from '@/lib/mvu';
+import { stripMvuBlocks } from '@/lib/mvu-text';
 import type { RegexRule } from '@/lib/resources';
 
 function hash(value: string): string {

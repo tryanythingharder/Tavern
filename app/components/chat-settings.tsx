@@ -72,9 +72,9 @@ const fmtK = (tokens: number) => (tokens >= 1_000_000 ? `${+(tokens / 1_000_000)
 
 type CardLoreItem = { id: string; title: string; preview: string; trigger: 'constant' | 'keyword'; keywords: string[]; defaultOn: boolean; on: boolean };
 
-export function ChatSettings({ chatId }: { chatId: number }) {
+export function ChatSettings({ chatId, initialOpen = false }: { chatId: number; initialOpen?: boolean }) {
   const mode = usePlayMode();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [params, setParams] = useState<PresetParams | null>(null);
   const [paramsDirty, setParamsDirty] = useState(false);
   const [tab, setTab] = useState<Tab>('gen');

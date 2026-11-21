@@ -5,7 +5,7 @@ import { langLabel as langName } from '@/lib/translation';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { hasMvuCommands } from '@/lib/mvu';
+import { hasMvuCommands } from '@/lib/mvu-text';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { runBgCommand, runExpressionCommand } from '@/lib/slash-media';

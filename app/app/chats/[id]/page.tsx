@@ -7,7 +7,7 @@ import { chatBranches, getChat, getCharacterById, listMessagesPage, messageOffse
 import { ChatBranches } from '@/components/chat-branches';
 import { toMessageView } from '@/lib/chat-view';
 import { ChatRoom } from '@/components/chat-room';
-import { ChatSettings } from '@/components/chat-settings';
+import { ChatSettingsLazy as ChatSettings } from '@/components/chat-settings-lazy';
 import { ChatSearch } from '@/components/chat-search';
 import { AppearanceButton } from '@/components/appearance-drawer';
 import { qrState } from '@/lib/quick-replies-db';

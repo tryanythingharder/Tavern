@@ -3,7 +3,7 @@ import { emitPoints } from '@/lib/points-bus';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { hasMvuCommands } from '@/lib/mvu';
+import { hasMvuCommands } from '@/lib/mvu-text';
 import { TypingDots } from '@/components/rp-text';
 import { RichText } from '@/components/rich-text';
 import type { RegexRule } from '@/lib/resources';
