@@ -65,7 +65,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
   const [error, setError] = useState('');
   const [speakerId, setSpeakerId] = useState(defaultSpeakerId && members.some((member) => member.id === defaultSpeakerId) ? defaultSpeakerId : members[0]?.id ?? '');
   const [openActions, setOpenActions] = useState<number | string | null>(null);
-  const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: number; draft: string; thought?: string | null } | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
   const [switching, setSwitching] = useState<number | null>(null);
@@ -361,13 +361,15 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     if (!editing) return;
     const content = editing.draft.trim();
     if (!content) return;
-    const response = await fetch(`/api/rooms/${roomId}/messages/${editing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+    const response = await fetch(`/api/rooms/${roomId}/messages/${editing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editing.thought === undefined ? { content } : { content, reasoning: editing.thought ?? '' }) });
     const data = (await response.json().catch(() => ({}))) as { message?: string | RoomMessageView };
     if (!response.ok) {
       setError(typeof data.message === 'string' ? data.message : '保存失败');
       return;
     }
-    setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content } : item)));
+    const saved = typeof data.message === 'object' ? data.message : null;
+    const touchedThought = editing.thought !== undefined;
+    setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content, ...(touchedThought ? { thought: saved?.thought ?? null } : {}) } : item)));
     setEditing(null);
   }, [editing, roomId]);
 
@@ -511,12 +513,29 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                   <div className="p-msg-name">{isUser ? message.personaName || userName : member?.name ?? '角色'}</div>
                   {isEditing ? (
                     <div>
+                      {!isUser && editing.thought != null ? (
+                        <div className="p-thought-edit">
+                          <label className="p-small" htmlFor={`thought-${message.id}`}>思考内容</label>
+                          <textarea
+                            id={`thought-${message.id}`}
+                            className="p-textarea"
+                            value={editing.thought}
+                            rows={Math.min(10, Math.max(2, editing.thought.split('\n').length + 1))}
+                            placeholder="留空保存 = 删除思考内容"
+                            onChange={(event) => setEditing({ ...editing, thought: event.target.value })}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Escape') setEditing(null);
+                              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void saveEdit(); }
+                            }}
+                          />
+                        </div>
+                      ) : null}
                       <textarea
                         className="p-textarea"
                         value={editing.draft}
                         rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
                         autoFocus
-                        onChange={(event) => setEditing({ id: editing.id, draft: event.target.value })}
+                        onChange={(event) => setEditing({ ...editing, draft: event.target.value })}
                         onKeyDown={(event) => {
                           if (event.key === 'Escape') setEditing(null);
                           if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
@@ -529,11 +548,14 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                         <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void saveEdit()}>保存</button>
                         <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
+                        {!isUser && editing.thought == null ? (
+                          <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>加思考内容</button>
+                        ) : null}
                       </div>
                     </div>
                   ) : (
                     <>
-                      {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} /> : null}
+                      {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
                       <div className="p-msg-copy p-msg-text">
                         {message.content
                           ? <RichText text={message.content} streaming={isStreamingThis} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
@@ -573,7 +595,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                       ) : (
                         <>
                           <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
-                          <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content })}><Ico name="edit" /></button>
+                          <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
                           {!isUser && isLast && !isOpening && (
                             <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void run({ kind: 'regenerate', messageId: numericId })}><Ico name="regen" /></button>
                           )}

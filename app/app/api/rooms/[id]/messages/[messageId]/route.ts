@@ -1,6 +1,6 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { moderateText } from '@/lib/auto-moderation';
-import { deleteRoomMessage, editRoomMessage, getRoom, getRoomMessage, selectRoomCandidate } from '@/lib/rooms';
+import { deleteRoomMessage, editRoomMessage, getRoom, getRoomMessage, selectRoomCandidate, setRoomMessageReasoning } from '@/lib/rooms';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +24,7 @@ async function load(context: Params) {
 export async function PATCH(request: Request, context: Params) {
   const loaded = await load(context);
   if ('error' in loaded) return loaded.error;
-  const body = (await request.json().catch(() => ({}))) as { content?: unknown; selected?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { content?: unknown; selected?: unknown; reasoning?: unknown };
   if (typeof body.selected === 'number') {
     const updated = selectRoomCandidate(loaded.message.id, Math.floor(body.selected));
     return updated ? json({ message: updated }) : fail('没有这个版本', 400);
@@ -37,6 +37,12 @@ export async function PATCH(request: Request, context: Params) {
       if (!verdict.ok) return fail(verdict.message, 422);
     }
     editRoomMessage(loaded.message.id, content.slice(0, 20000));
+    // 思考内容：只改当前候选；空串 = 删除；不传 = 不动
+    if (loaded.message.role !== 'user' && (typeof body.reasoning === 'string' || body.reasoning === null)) {
+      const text = String(body.reasoning ?? '').replace(/\s+$/, '');
+      const prev = loaded.message.thought;
+      setRoomMessageReasoning(loaded.message.id, loaded.message.selected ?? 0, text.trim() ? { t: text, ms: prev?.ms ?? 0 } : null);
+    }
     return json({ message: getRoomMessage(loaded.room.id, loaded.message.id) });
   }
   return fail('没有要改的内容', 400);

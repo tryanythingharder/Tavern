@@ -176,7 +176,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   // 本次流里收到了错误事件且没有产出（服务端已保存玩家消息）
   const streamErrorRef = useRef(false);
   const [billing, setBilling] = useState<{ cost: number; balance: number; free?: number } | null>(null);
-  const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: number; draft: string; thought?: string | null } | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
   const [switching, setSwitching] = useState<number | null>(null);
@@ -612,12 +612,13 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       const response = await fetch(`/api/messages/${editing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(editing.thought === undefined ? { content } : { content, reasoning: editing.thought ?? '' }),
       });
-      const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView; messageText?: string };
+      const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView & { thought?: ThoughtView | null }; messageText?: string };
       if (!response.ok || !data.message) throw new Error('保存失败');
       const saved = data.message;
-      setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content: saved.content } : item)));
+      const touchedThought = editing.thought !== undefined;
+      setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content: saved.content, ...(touchedThought ? { thought: saved.thought ?? null } : {}) } : item)));
       setEditing(null);
       emitHelperEvent('message_edited', { dbId: editing.id });
       emitHelperEvent('message_updated', { dbId: editing.id });
@@ -1087,12 +1088,29 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                   </div>
                   {isEditing ? (
                     <div>
+                      {!isUser && editing.thought != null ? (
+                        <div className="p-thought-edit">
+                          <label className="p-small" htmlFor={`thought-${message.id}`}>思考内容</label>
+                          <textarea
+                            id={`thought-${message.id}`}
+                            className="p-textarea"
+                            value={editing.thought}
+                            rows={Math.min(10, Math.max(2, editing.thought.split('\n').length + 1))}
+                            placeholder="留空保存 = 删除思考内容"
+                            onChange={(event) => setEditing({ ...editing, thought: event.target.value })}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Escape') setEditing(null);
+                              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void saveEdit(); }
+                            }}
+                          />
+                        </div>
+                      ) : null}
                       <textarea
                         className="p-textarea"
                         value={editing.draft}
                         rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
                         autoFocus
-                        onChange={(event) => setEditing({ id: editing.id, draft: event.target.value })}
+                        onChange={(event) => setEditing({ ...editing, draft: event.target.value })}
                         onKeyDown={(event) => {
                           if (event.key === 'Escape') setEditing(null);
                           if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
@@ -1105,6 +1123,12 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                         <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void saveEdit()}>保存</button>
                         <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
+                        {!isUser && editing.thought == null ? (
+                          <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>加思考内容</button>
+                        ) : null}
+                        {!isUser && editing.thought != null && message.thought?.t ? (
+                          <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>清空思考</button>
+                        ) : null}
                       </div>
                     </div>
                   ) : (
@@ -1120,7 +1144,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                         </figure>
                       ) : (
                         <>
-                        {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} /> : null}
+                        {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || numericId === null ? undefined : () => setEditing({ id: numericId, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
                         <div className="p-msg-copy p-msg-text">
                           {message.content
                             ? <RichText text={shownText} streaming={isStreamingThis} rules={displayRules} macros={displayMacros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
@@ -1199,7 +1223,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                             <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}><Ico name="translate" /></button>
                           )}
                           {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content })}><Ico name="edit" /></button>
+                            <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
                           )}
                           {!isUser && numericId !== null && !isStreamingThis && media?.tts && (
                             <button type="button" aria-label="朗读" title="朗读" onClick={() => void speak(message)}><Ico name="play" /></button>

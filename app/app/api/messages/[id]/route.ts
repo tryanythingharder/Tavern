@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
-import { deleteMessage, getMessage, getOwnedMessage, updateMessageContent } from '@/lib/db';
+import { deleteMessage, getMessage, getOwnedMessage, setMessageReasoning, updateMessageContent } from '@/lib/db';
+import { reasoningAt } from '@/lib/reasoning';
 import { setBookmark, snapshotChat } from '@/lib/memory';
 import { toMessageView } from '@/lib/chat-view';
 
@@ -18,7 +19,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const message = getOwnedMessage(Number(id), user.id);
   if (!message) return fail('消息不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { content?: string; bookmark?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { content?: string; bookmark?: boolean; reasoning?: string | null };
 
   // 书签只改标记，不动正文
   if (typeof body.bookmark === 'boolean') {
@@ -30,8 +31,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const content = String(body.content ?? '').trim();
   if (!content) return fail('内容不能为空', 400);
 
-  const updated = updateMessageContent(message.id, content);
-  if (!updated) return fail('消息不存在', 404);
+  const updated0 = updateMessageContent(message.id, content);
+  if (!updated0) return fail('消息不存在', 404);
+  // 思考内容（ST 的 reasoning 编辑）：只改当前候选；空串 = 删除；不传 = 不动
+  let updated = updated0;
+  if (message.role === 'assistant' && body.reasoning !== undefined) {
+    const text = String(body.reasoning ?? '').replace(/\s+$/, '');
+    const prev = reasoningAt(updated0.reasoning, updated0.selected);
+    setMessageReasoning(message.id, updated0.selected, text.trim() ? { t: text, ms: prev?.ms ?? 0 } : null);
+    updated = getMessage(message.id) ?? updated0;
+  }
   return Response.json({ message: toMessageView(updated) });
 }
 

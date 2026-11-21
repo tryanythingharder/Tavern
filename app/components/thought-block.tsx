@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 export type ThoughtView = { t: string; ms: number };
 
 // ST 的推理折叠块：「思考中…」/「思考了 N 秒」，点开看模型的思考过程（纯文本）
-export function ThoughtBlock({ thought, live, defaultOpen }: { thought: ThoughtView; live?: boolean; defaultOpen?: boolean }) {
+export function ThoughtBlock({ thought, live, defaultOpen, onEdit }: { thought: ThoughtView; live?: boolean; defaultOpen?: boolean; onEdit?: () => void }) {
   const [open, setOpen] = useState(Boolean(defaultOpen));
   useEffect(() => { setOpen(Boolean(defaultOpen)); }, [defaultOpen]);
   const seconds = thought.ms > 0 ? Math.max(1, Math.round(thought.ms / 1000)) : 0;
@@ -17,6 +17,11 @@ export function ThoughtBlock({ thought, live, defaultOpen }: { thought: ThoughtV
         <span>{label}</span>
       </summary>
       <div className="p-thought-body">{thought.t}</div>
+      {onEdit && !live ? (
+        <div className="p-thought-foot">
+          <button type="button" className="p-thought-edit-btn" onClick={onEdit}>编辑思考</button>
+        </div>
+      ) : null}
     </details>
   );
 }

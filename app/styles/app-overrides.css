@@ -899,6 +899,12 @@ html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-msg-checkpoint { j
 @keyframes p-thought-pulse { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .p-thought.is-live .p-thought-summary span { animation: none; } }
 .p-thought-body { margin-top: 8px; padding: 8px 12px; border-left: 2px solid var(--border); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; max-height: 320px; overflow: auto; }
+.p-thought-foot { margin-top: 4px; padding-left: 12px; }
+.p-thought-edit-btn { border: 0; background: none; padding: 2px 0; font: inherit; font-size: 12px; color: var(--muted, #8a8178); cursor: pointer; }
+.p-thought-edit-btn:hover, .p-thought-edit-btn:focus-visible { color: var(--accent, #c9401f); text-decoration: underline; }
+.p-thought-edit { margin-bottom: 8px; }
+.p-thought-edit label { display: block; margin-bottom: 4px; }
+.p-thought-edit .p-textarea { font-size: 13px; opacity: .92; }
 html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-thought { justify-self: start; width: auto; max-width: 100%; }
 
 /* 生成行为（全局）设置 */
