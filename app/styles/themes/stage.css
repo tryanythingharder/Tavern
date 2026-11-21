@@ -1168,3 +1168,13 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar-main { alig
 html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-filterbar-main > :is(.p-search, .p-select, .p-chip) { height: 44px; min-height: 44px; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page] .p-chips { gap: 8px; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-tools { gap: 6px; }
+
+/* 英文导航更宽（Discover / Models…）：顶栏左侧让出更多，窄一些的桌面宽度把搜索框收成图标 */
+@media (min-width: 1280px) {
+  html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .p-topbar { padding-left: 660px; }
+  html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search { flex: 0 1 300px; min-width: 0; }
+}
+@media (min-width: 1280px) and (max-width: 1439px) {
+  html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search { display: none; }
+  html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-topbar-search { display: grid; }
+}

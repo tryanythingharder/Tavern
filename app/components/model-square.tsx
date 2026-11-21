@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { currentLocale, tr } from '@/lib/i18n/runtime';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Select } from '@/components/ui-select';
 import { ModelDefaultButton } from '@/components/model-default-button';
@@ -43,8 +44,8 @@ function autoSummary(item: { id: string; traits: string[] }): string {
   if (item.traits.includes('长上下文')) parts.push('能记住更长的对话');
   if (item.traits.includes('识图')) parts.push('可以看图');
   if (!parts.length) parts.push('通用对话模型，适合日常角色扮演');
-  const text = parts.join('，');
-  return `${text.charAt(0)}${text.slice(1)}。`;
+  if (currentLocale() === 'en') return `${parts.map((part) => tr(part)).join(', ')}.`;
+  return `${parts.join('，')}。`;
 }
 
 export function ModelSquare({ models, signedIn, hasMine }: { models: SquareModel[]; signedIn: boolean; hasMine: boolean }) {

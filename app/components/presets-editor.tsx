@@ -171,7 +171,7 @@ export function PresetsEditor({ initial }: { initial: Preset[] }) {
               <div className="p-room-last">
                 温度 {preset.params.temperature} · top_p {preset.params.topP} · 上限 {preset.params.maxTokens} tokens
                 {preset.instruct.enabled ? ' · Instruct 已开启' : ''}
-                {preset.prompts.length ? ` · ${preset.prompts.length} 个自定义条目（开 ${preset.prompts.filter((prompt) => preset.order.some((item) => item.key === promptKey(prompt.id) && item.enabled)).length}）` : ''}
+                {preset.prompts.length ? <span>{` · ${preset.prompts.length} 个自定义条目（开 ${preset.prompts.filter((prompt) => preset.order.some((item) => item.key === promptKey(prompt.id) && item.enabled)).length}）`}</span> : null}
               </div>
             </div>
             <div className="p-library-actions">
