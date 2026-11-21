@@ -1,34 +1,59 @@
-import { getTheme } from '@/lib/theme';
+import Link from 'next/link';
 
-// 登录 / 注册右侧场景图：按主题换图和文案（书页用角色立绘，戏台保留雨夜霓虹房间）
-const SCENES = {
-  folio: {
-    src: '/characters/lin-wanzhao.jpg',
-    alt: '画廊昏暗灯下的女子，一段尚未写完的故事',
-    label: '第一章 · 三年后的雨夜 · 新的读者',
-    title: <>每一册书，<br />都等你写下第一句。</>,
-    lead: '翻开扉页，故事从你开口那一刻才开始。',
-  },
-  stage: {
-    src: '/auth-scene.jpg',
-    alt: '窗外霓虹映进雨夜房间，新的故事等待开启',
-    label: '雨夜 · 2077 · 新的身份',
-    title: <>有些故事，<br />等你推门才开始。</>,
-    lead: '城市还未入睡。今晚，你想成为谁？',
-  },
-} as const;
+// 登录 / 注册右侧场景：夜色里缓缓流动的角色立绘拼贴，三套主题共用（只换字体与强调色）
+const COLS = [
+  ['lin-wanzhao', 'a-heng', 'lu-shiyan'],
+  ['bai-lu', 'xie-wujiu', 'shen-yanzhi'],
+  ['lu-shiyan', 'bai-lu', 'a-heng'],
+  ['xie-wujiu', 'lin-wanzhao', 'shen-yanzhi'],
+  ['a-heng', 'shen-yanzhi', 'lu-shiyan'],
+];
 
-export async function AuthScene() {
-  const theme = await getTheme();
-  const scene = theme === 'stage' || theme === 'nocturne' ? SCENES.stage : SCENES.folio;
+export function AuthScene() {
   return (
-    <aside className="p-auth-scene" data-scene={theme} aria-label={scene.alt}>
-      <img className="p-auth-art" src={scene.src} alt={scene.alt} />
+    <aside className="p-auth-scene" aria-hidden="true">
+      <div className="p-auth-wall">
+        {COLS.map((col, i) => (
+          <div className="p-auth-col" data-col={i} key={i}>
+            {[...col, ...col].map((name, j) => (
+              <img key={j} src={`/characters/${name}.jpg`} alt="" loading={j < 3 ? 'eager' : 'lazy'} decoding="async" />
+            ))}
+          </div>
+        ))}
+      </div>
       <div className="p-auth-scene-copy">
-        <div className="p-auth-scene-label">{scene.label}</div>
-        <h2>{scene.title}</h2>
-        <p>{scene.lead}</p>
+        <div className="p-auth-scene-label">夜话 · YEHUA</div>
+        <h2>夜深了，<br />故事才刚开始。</h2>
+        <p>今晚，想和谁说说话？</p>
       </div>
     </aside>
+  );
+}
+
+// 登录页顶栏：品牌 + 一个切换链接
+export function AuthHeader({ mode }: { mode: 'login' | 'register' | 'other' }) {
+  return (
+    <header className="p-auth-header">
+      <Link className="p-auth-wordmark" href="/" aria-label="夜话首页">
+        <span className="p-auth-seal" aria-hidden="true">夜</span>
+        <span>夜话</span>
+      </Link>
+      <nav className="p-auth-nav" aria-label="账号操作">
+        {mode === 'login'
+          ? <><span className="p-auth-nav-note">还没有账号？</span><Link className="p-btn p-btn--sm" href="/login">注册</Link></>
+          : mode === 'register'
+            ? <><span className="p-auth-nav-note">已有账号？</span><Link className="p-btn p-btn--sm" href="/login?mode=login">登录</Link></>
+            : <Link className="p-btn p-btn--sm" href="/login?mode=login">登录</Link>}
+      </nav>
+    </header>
+  );
+}
+
+export function AuthTabs({ mode }: { mode: 'login' | 'register' }) {
+  return (
+    <nav className="p-auth-tabs" aria-label="登录或注册">
+      <Link href="/login?mode=login" aria-current={mode === 'login' ? 'page' : undefined}>登录</Link>
+      <Link href="/login" aria-current={mode === 'register' ? 'page' : undefined}>注册</Link>
+    </nav>
   );
 }

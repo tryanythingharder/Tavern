@@ -2,7 +2,7 @@ import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LanguageSwitch } from '@/components/language-switch';
 import Link from 'next/link';
-import { AuthScene } from '@/components/auth-scene';
+import { AuthScene, AuthHeader, AuthTabs } from '@/components/auth-scene';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { referralInviter } from '@/lib/growth';
@@ -36,20 +36,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const inviter = refCode ? referralInviter(refCode) : null;
   const isLogin = mode === 'login';
   const needInvite = inviteRequired();
+  const showInvite = needInvite || !!refCode;
 
   return (
     <div className="p-auth">
-      <header className="p-auth-header">
-        <Link className="p-auth-wordmark" href="/" aria-label="夜话首页">(夜话)</Link>
-        <nav className="p-auth-nav" aria-label="账号操作">
-          <Link className={`p-btn p-btn--sm${isLogin ? '' : ' p-btn--primary'}`} href="/login" aria-current={isLogin ? undefined : 'page'}>注册开聊</Link>
-          <Link className={`p-btn p-btn--sm${isLogin ? ' p-btn--primary' : ''}`} href="/login?mode=login" aria-current={isLogin ? 'page' : undefined}>登录</Link>
-        </nav>
-      </header>
+      <AuthHeader mode={isLogin ? 'login' : 'register'} />
 
       <main className="p-auth-stage">
         <section className="p-auth-panel" aria-label="账号登录与注册">
           <div className="p-auth-card">
+            <AuthTabs mode={isLogin ? 'login' : 'register'} />
             {isLogin ? (
               <section aria-labelledby="login-title">
                 <p className="p-auth-kicker">欢迎回来</p>
@@ -68,7 +64,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 </form>
 
                 <p className="p-auth-hint">
-                  还没有账号？<Link href="/login">注册开聊</Link> · <Link href="/forgot">忘记密码？</Link>
+                  <Link href="/forgot">忘记密码？</Link>
                 </p>
               </section>
             ) : (
@@ -86,31 +82,29 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 {error && <p className="p-form-error" role="alert">{error}</p>}
 
                 <form action={register} className="p-auth-form">
-                  {field('register-nickname', '昵称（选填）', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
-                  {field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                  {showInvite && field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                  <details className="p-auth-more">
+                    <summary>{showInvite ? '填写昵称' : '填写昵称或邀请码'}<span>选填</span></summary>
+                    <div className="p-auth-more-body">
+                      {field('register-nickname', '昵称', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
+                      {!showInvite && field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                    </div>
+                  </details>
                   <div className="p-auth-field">
                     <label className="p-auth-label" htmlFor="register-birth">出生日期</label>
                     <DateFormField id="register-birth" name="birth" className="p-auth-input" min="1900-01-01" />
                   </div>
-                  {field('register-password', '密码', 'password', { required: 'required', minLength: '8', autoComplete: 'new-password' })}
-                  <span className="p-auth-hint">密码至少 8 位；用 scrypt 哈希保存，不会以明文存储。</span>
+                  {field('register-password', '密码', 'password', { required: 'required', minLength: '8', placeholder: '至少 8 位', autoComplete: 'new-password' })}
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>
                     <input id="register-age" name="age" type="checkbox" required style={{ marginTop: 2 }} />
-                    <span>我确认以上出生日期真实，已年满 18 岁，并同意服务条款、隐私政策与社区准则</span>
+                    <span>已年满 18 岁、出生日期属实，并同意<Link href="/terms">服务条款</Link>、<Link href="/privacy">隐私政策</Link>与<Link href="/guidelines">社区准则</Link></span>
                   </label>
-                  <p className="p-auth-hint">
-                    <Link href="/terms">服务条款</Link> · <Link href="/privacy">隐私政策</Link> · <Link href="/guidelines">社区准则</Link>
-                  </p>
                   <button className="p-btn p-btn--primary p-auth-button" type="submit">
                     创建账号并进入
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
                   </button>
                 </form>
-
-                <p className="p-auth-hint">
-                  已有账号？<Link href="/login?mode=login">直接登录</Link>
-                </p>
               </section>
             )}
           </div>

@@ -1,0 +1,115 @@
+/* 登录 / 注册（夜话）：左表单、右夜色立绘拼贴；三套主题共用骨架，主题只换字体与圆角 */
+html body[data-theme]:not(#a) .p-auth-header { height: 68px; padding: 0 32px; }
+html body[data-theme]:not(#a) .p-auth-wordmark { gap: 10px; font-size: 20px; font-weight: 650; letter-spacing: .04em; }
+html body[data-theme]:not(#a) .p-auth-seal {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 9px;
+  background: var(--ca-accent, #c9401f); color: #fff;
+  font-family: "Noto Serif SC", "Songti SC", serif; font-size: 18px; font-weight: 700; letter-spacing: 0;
+}
+html body[data-theme="folio"]:not(#a) .p-auth-seal { border-radius: 0; }
+html body[data-theme]:not(#a) .p-auth-nav { gap: 10px; }
+html body[data-theme]:not(#a) .p-auth-nav-note { color: var(--cai-text-2); font-size: 13px; }
+
+html body[data-theme]:not(#a) .p-auth-stage {
+  display: grid; grid-template-columns: minmax(400px, 1fr) minmax(0, 1.3fr);
+  gap: 0; min-height: calc(100dvh - 68px - 64px); padding: 0;
+}
+html body[data-theme]:not(#a) .p-auth-panel { justify-content: center; padding: 40px 48px; }
+html body[data-theme]:not(#a) .p-auth-card {
+  max-width: 380px; padding: 0; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; backdrop-filter: none; text-align: left;
+}
+html body[data-theme]:not(#a) .p-auth-card h1 { font-size: 30px; line-height: 1.35; text-align: left; }
+html body[data-theme]:not(#a) .p-auth-lead { margin-top: 8px; font-size: 15px; text-align: left; }
+html body[data-theme]:not(#a) .p-auth-form { margin-top: 24px; gap: 16px; }
+html body[data-theme]:not(#a) .p-auth-form + .p-auth-hint { text-align: left; }
+
+html body[data-theme]:not(#a) .p-auth-tabs { display: flex; gap: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--cai-border); }
+html body[data-theme]:not(#a) .p-auth-tabs a {
+  display: inline-flex; align-items: center; min-height: 44px; margin-bottom: -1px;
+  border-bottom: 2px solid transparent; color: var(--cai-text-2); font-size: 15px; font-weight: 500; text-decoration: none;
+}
+html body[data-theme]:not(#a) .p-auth-tabs a:hover { color: var(--cai-text); }
+html body[data-theme]:not(#a) .p-auth-tabs a[aria-current="page"] { border-bottom-color: var(--ca-accent, #c9401f); color: var(--cai-text); font-weight: 650; }
+
+html body[data-theme]:not(#a) .p-auth-more { border: 1px dashed var(--cai-border-strong); border-radius: 12px; }
+html body[data-theme="folio"]:not(#a) .p-auth-more { border-radius: 0; }
+html body[data-theme]:not(#a) .p-auth-more > summary {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+  color: var(--cai-text-2); font-size: 14px; cursor: pointer; list-style: none;
+}
+html body[data-theme]:not(#a) .p-auth-more > summary::-webkit-details-marker { display: none; }
+html body[data-theme]:not(#a) .p-auth-more > summary::before { content: '+'; width: 14px; color: var(--ca-accent, #c9401f); font-weight: 700; }
+html body[data-theme]:not(#a) .p-auth-more[open] > summary::before { content: '−'; }
+html body[data-theme]:not(#a) .p-auth-more > summary span { margin-left: auto; color: var(--cai-muted); font-size: 12px; }
+html body[data-theme]:not(#a) .p-auth-more-body { display: flex; flex-direction: column; gap: 14px; padding: 2px 14px 14px; }
+html body[data-theme]:not(#a) .p-auth-form .p-check span { color: var(--cai-text-2); font-size: 13px; line-height: 1.6; }
+html body[data-theme]:not(#a) .p-auth-form .p-check a { color: var(--cai-text); text-decoration: underline; text-underline-offset: 2px; }
+
+/* 场景：永远是夜色（规则带 data-scheme，深色插件不改写） */
+html[data-scheme] body[data-theme]:not(#a) .p-auth-scene {
+  position: relative; z-index: 0; inset: auto; min-height: 0; margin: 16px 16px 16px 0;
+  overflow: hidden; border-radius: 24px; background: #0c0b0f; opacity: 1; pointer-events: none;
+}
+html[data-scheme] body[data-theme="folio"]:not(#a) .p-auth-scene { border-radius: 0; }
+html[data-scheme] body[data-theme="stage"]:not(#a) .p-auth-scene { border-radius: var(--stg-r, 24px); }
+html[data-scheme] body[data-theme]:not(#a) .p-auth-wall {
+  position: absolute; inset: -18% -8%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  transform: rotate(-6deg);
+}
+html[data-scheme] body[data-theme]:not(#a) .p-auth-col { display: flex; flex-direction: column; animation: auth-drift 70s linear infinite; }
+html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="1"] { animation-duration: 90s; animation-direction: reverse; margin-top: -30%; }
+html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="2"] { animation-duration: 80s; margin-top: -12%; }
+html[data-scheme] body[data-theme]:not(#a) .p-auth-col img {
+  display: block; width: 100%; aspect-ratio: 2 / 3; height: auto; object-fit: cover; margin-bottom: 14px;
+  border-radius: 14px; filter: saturate(.85) brightness(.82);
+}
+html[data-scheme] body[data-theme="folio"]:not(#a) .p-auth-col img { border-radius: 0; filter: grayscale(.2) brightness(.8); }
+@keyframes auth-drift { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+html[data-scheme] body[data-theme]:not(#a) .p-auth-scene::after {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background:
+    radial-gradient(120% 80% at 50% 40%, transparent 30%, rgba(8, 7, 10, .55) 100%),
+    linear-gradient(0deg, rgba(8, 7, 10, .94) 0%, rgba(8, 7, 10, .55) 30%, transparent 58%);
+}
+html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy {
+  position: absolute; z-index: 2; left: 44px; right: 44px; bottom: 40px; max-width: none; color: #f6f1ea; text-align: left;
+}
+html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy h2 {
+  max-width: none; margin: 12px 0 0; color: #f6f1ea;
+  font-family: "Noto Serif SC", "Songti SC", serif; font-size: clamp(30px, 3vw, 44px); font-weight: 600; line-height: 1.3; letter-spacing: .01em;
+}
+html[data-scheme] body[data-theme="stage"]:not(#a) .p-auth-scene-copy h2 { font-family: var(--stg-sans, inherit); font-weight: 700; letter-spacing: -.04em; }
+html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-label {
+  display: inline-block; padding: 0; border-radius: 0; background: none;
+  color: #f0714f; font-size: 12px; font-weight: 600; letter-spacing: .24em;
+}
+html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy p { margin-top: 10px; color: rgba(246, 241, 234, .72); font-size: 15px; }
+
+@media (max-width: 1199px) and (min-width: 960px) {
+  html body[data-theme]:not(#a) .p-auth-stage { grid-template-columns: 420px minmax(0, 1fr); }
+  html body[data-theme]:not(#a) .p-auth-panel { padding: 32px; }
+}
+@media (max-width: 959px) {
+  html body[data-theme]:not(#a) .p-auth-header { padding: 0 20px; }
+  html body[data-theme]:not(#a) .p-auth-nav-note { display: none; }
+  html body[data-theme]:not(#a) .p-auth-stage { display: flex; flex-direction: column; min-height: 0; padding: 0; }
+  html body[data-theme]:not(#a) .p-auth-panel { width: 100%; padding: 28px 20px 32px; align-items: center; }
+  html body[data-theme]:not(#a) .p-auth-card { max-width: 440px; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene { order: -1; flex: none; height: 188px; margin: 0; border-radius: 0; left: auto; right: auto; top: auto; bottom: auto; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-wall { inset: -60% -10%; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-col img { margin-bottom: 10px; border-radius: 10px; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy { display: block; left: 20px; right: 20px; bottom: 18px; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy h2 { font-size: 24px; margin-top: 6px; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy p { display: none; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy h2 br { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-col { animation: none; }
+}
+/* 桌面只显示前三列 */
+@media (min-width: 960px) { html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="3"], html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="4"] { display: none; } }
+@media (max-width: 959px) {
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="3"] { animation-duration: 85s; animation-direction: reverse; margin-top: -20%; }
+  html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="4"] { animation-duration: 75s; margin-top: -40%; }
+}

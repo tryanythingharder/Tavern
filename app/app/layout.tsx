@@ -48,6 +48,7 @@ import '../styles/chat-focus.css';
 import '../styles/ui-select.css';
 import '../styles/quick-replies.css';
 import '../styles/ui-dialog.css';
+import '../styles/auth.css';
 // 英文界面下替换 CSS 伪元素里的中文
 import '../styles/i18n-en.css';
 
