@@ -9,6 +9,7 @@ type Item = { id: string; label: string; hint?: string; href: string; group: str
 const PAGES: Item[] = [
   { id: 'home', label: '发现', hint: '推荐与场景', href: '/', group: '页面', keywords: 'home discover faxian' },
   { id: 'plaza', label: '广场', hint: '社区作品', href: '/plaza', group: '页面', keywords: 'plaza guangchang' },
+  { id: 'models', label: '模型广场', hint: '选模型、看价格', href: '/models', group: '页面', keywords: 'model moxing guangchang' },
   { id: 'chats', label: '对话', hint: '全部故事', href: '/chats', group: '页面', keywords: 'chat duihua' },
   { id: 'rooms', label: '多角色房间', hint: '群像场景', href: '/rooms', group: '页面', keywords: 'room fangjian' },
   { id: 'create', label: '创作角色', hint: '新建角色卡', href: '/create', group: '页面', keywords: 'create chuangzuo' },

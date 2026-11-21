@@ -37,11 +37,11 @@ export function DeckDraw({ cards, initial = 0 }: { cards: DeckCard[]; initial?: 
       <div className={`stg-stack is-${phase}`}>
         {[0, 1, 2].map((i) => (
           <div className="stg-dc" key={i} aria-hidden="true">
-            <div className="stg-dc-f"><em>酒</em><small>TAVERN</small></div>
+            <div className="stg-dc-f"><em>夜</em><small>YEHUA</small></div>
           </div>
         ))}
         <Link className="stg-dc stg-dc--top" href={`/c/${card.id}`} aria-label={`抽到：${card.name}，去看看`} tabIndex={phase === 'show' ? 0 : -1}>
-          <div className="stg-dc-f" aria-hidden="true"><em>酒</em><small>TAVERN</small></div>
+          <div className="stg-dc-f" aria-hidden="true"><em>夜</em><small>YEHUA</small></div>
           <div className="stg-dc-b">
             <StageArt character={card} />
             <span>{card.name}</span>

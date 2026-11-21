@@ -34,7 +34,7 @@ export function NocturneHome({ data }: { data: HomeData }) {
       <section className="noc-hero" id="noc-now" aria-label="今夜放映">
         {featuredCover && <div className="noc-hero-plate" style={{ backgroundImage: `url(${featuredCover})` }} aria-hidden="true" />}
         <div className="noc-hero-still" aria-hidden="true">
-          {featuredCover ? <img src={featuredCover} alt="" /> : <div className="noc-hero-blank">{featured?.initial ?? '酒'}</div>}
+          {featuredCover ? <img src={featuredCover} alt="" /> : <div className="noc-hero-blank">{featured?.initial ?? '夜'}</div>}
         </div>
         <div className="noc-bar noc-bar--top" aria-hidden="true">
           <span><i className="noc-rec" />放映厅 · 第 1 号 · 夜场</span>
@@ -76,7 +76,7 @@ export function NocturneHome({ data }: { data: HomeData }) {
           </div>
         ) : (
           <div className="noc-hero-in">
-            <h1 className="noc-title"><span>酒</span><span>馆</span></h1>
+            <h1 className="noc-title"><span>夜</span><span>话</span></h1>
             <p className="noc-tagline">今夜还没有片子上映。去创作一个角色吧。</p>
             <div className="noc-ctas"><Link className="noc-btn noc-btn--primary" href="/create"><span className="noc-play" aria-hidden="true" />创作</Link></div>
           </div>

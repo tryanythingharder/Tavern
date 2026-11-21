@@ -26,10 +26,13 @@ const icon = (path: string) => (
 const NAV = [
   { href: '/', label: '发现', path: 'M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z', page: 'home' },
   { href: '/plaza', label: '广场', path: 'M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.2-11.2-2 4.4-4.4 2 2-4.4z', page: 'plaza' },
+  // 模型广场：桌面导航直达；手机底栏放不下第 6 个，留在「我的」里
+  { href: '/models', label: '模型', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', page: 'models', mobile: false },
   { href: '/chats', label: '对话', path: 'M20 12a7 7 0 0 1-7 7H8l-4 3v-4.6A7 7 0 0 1 8 5h5a7 7 0 0 1 7 7z', page: 'chats' },
   { href: '/create', label: '创作', path: 'M12 5v14M5 12h14', page: 'create' },
   { href: '/me', label: '我的', path: 'M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5 20a7 7 0 0 1 14 0', page: 'settings' },
-];
+] as { href: string; label: string; path: string; page: string; mobile?: boolean }[];
+const TAB_NAV = NAV.filter((item) => item.mobile !== false);
 
 type Recent = { id: number; characterId: string; name: string; initial: string; hue: number; owner: number | null; title: string };
 
@@ -234,7 +237,7 @@ export function SiteShell({
       <div className="p-admin">
         <aside className="p-aside">
           <Link className="p-abrand" href="/admin">
-            <div className="p-mark">酒</div>
+            <div className="p-mark">夜</div>
             <div className="p-brand-name">夜话</div>
           </Link>
           <div className="p-abrand-tag"><span className="p-pill p-pill--sm p-pill--outline">管理后台</span></div>
@@ -310,7 +313,7 @@ export function SiteShell({
         </header>
         <main className="cinema-main" id="main-content" tabIndex={-1}>{children}</main>
         <nav className="p-tabbar" aria-label="主导航">
-          {NAV.map((item) => (
+          {TAB_NAV.map((item) => (
             <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
               {icon(item.path)}
               <span>{item.label}</span>
@@ -328,7 +331,7 @@ export function SiteShell({
     <div className="p-shell">
       <aside className="p-side">
         <Link className="p-brand" href="/">
-          <div className="p-mark">酒</div>
+          <div className="p-mark">夜</div>
           <div className="p-brand-name">夜话</div>
         </Link>
 
@@ -376,7 +379,7 @@ export function SiteShell({
       <div className="p-main">
         <header className="p-topbar">
           <Link className="p-topbar-brand" href="/" aria-label="夜话首页">
-            <span className="p-topbar-mark" aria-hidden="true">酒</span>
+            <span className="p-topbar-mark" aria-hidden="true">夜</span>
             <span className="p-topbar-word">夜话</span>
           </Link>
           <form className="p-search" action="/search" role="search">
@@ -410,7 +413,7 @@ export function SiteShell({
       </div>
 
       <nav className="p-tabbar" aria-label="主导航">
-        {NAV.map((item) => (
+        {TAB_NAV.map((item) => (
           <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
             {icon(item.path)}
             <span>{item.label}</span>
