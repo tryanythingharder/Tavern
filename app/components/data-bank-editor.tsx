@@ -12,7 +12,7 @@ type Option = { id: string; label: string };
 export type DataBankTargets = { characters: Option[]; chats: Option[]; rooms: Option[] };
 
 const SCOPE_LABEL: Record<Scope, string> = { global: '全局', character: '角色', chat: '聊天', room: '群聊' };
-const ACCEPT = '.txt,.md,.markdown,.json,.csv,.tsv,.log,.xml,.yaml,.yml,.html,.htm,.srt,.ini';
+const ACCEPT = '.pdf,.docx,.epub,.odt,.txt,.md,.markdown,.json,.csv,.tsv,.log,.xml,.yaml,.yml,.html,.htm,.srt,.ini';
 
 function sizeText(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -103,7 +103,19 @@ export function DataBankEditor({ initial, prefs, ready, targets, preset }: { ini
     setError('');
     try {
       for (const file of Array.from(list)) {
-        if (/\.(pdf|docx?|epub)$/i.test(file.name)) throw new Error(`「${file.name}」：暂时只支持纯文本类文件（txt、md、json、html…），PDF / Word 请先另存为文本`);
+        if (/\.(doc|wps|rtf|pages)$/i.test(file.name)) throw new Error(`「${file.name}」：旧版 Word（.doc）等格式读不了，请另存为 .docx 或 PDF`);
+        if (/\.(pdf|docx|epub|odt)$/i.test(file.name)) {
+          if (file.size > 20 * 1024 * 1024) throw new Error(`「${file.name}」超过 20 MB`);
+          const form = new FormData();
+          form.append('file', file);
+          form.append('scope', scope);
+          form.append('scopeId', scopeId);
+          const response = await fetch('/api/data-bank/upload', { method: 'POST', body: form });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.message || `上传失败（${response.status}）`);
+          setFiles((prev) => [data.file, ...prev]);
+          continue;
+        }
         if (file.size > 8 * 1024 * 1024) throw new Error(`「${file.name}」超过 8 MB`);
         await add(file.name, await file.text());
       }
@@ -195,7 +207,7 @@ export function DataBankEditor({ initial, prefs, ready, targets, preset }: { ini
             </div>
           </div>
         ))}
-        {!files.length && <p className="small">还没有资料。上传设定集、长篇背景、规则文档等文本，角色生成时会参考（ST 的 Data Bank）。</p>}
+        {!files.length && <p className="small">还没有资料。上传设定集、长篇背景、规则文档（txt、md、PDF、Word、EPUB 等），角色生成时会参考（ST 的 Data Bank）。</p>}
       </div>
 
       {paste && (
