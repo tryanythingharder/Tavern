@@ -7,11 +7,17 @@ declare global {
 }
 
 let nodeRequire: ((id: string) => any) | null = null;
+let asyncStorageMod: unknown = null;
+
 function serverLocale(): Locale {
   try {
     // 读 Next 的请求上下文拿 cookie（同步）；静态预渲染时没有请求，回落中文
-    if (!nodeRequire) nodeRequire = eval('require');
-    const mod = nodeRequire!('next/dist/server/app-render/work-unit-async-storage.external.js');
+    // 模块对象只 require 一次：每次 require 都会走一遍路径解析（stat），长页面上千次调用会拖慢 1 秒以上
+    if (!asyncStorageMod) {
+      if (!nodeRequire) nodeRequire = eval('require');
+      asyncStorageMod = nodeRequire!('next/dist/server/app-render/work-unit-async-storage.external.js');
+    }
+    const mod = asyncStorageMod as { workUnitAsyncStorage?: { getStore?: () => any } };
     const store = mod.workUnitAsyncStorage?.getStore?.();
     const value = store?.cookies?.get?.(LOCALE_COOKIE)?.value;
     return value === 'en' ? 'en' : 'zh';
