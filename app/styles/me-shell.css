@@ -35,3 +35,26 @@ html body[data-theme="folio"]:not(#a) :is(.p-side-back, .p-topbar-back) { border
   html body:not(#a) .p-topbar .p-topbar-back span { display: none; }
   html body:not(#a) .p-shell[data-section="me"] .p-topbar .p-topbar-brand { display: none; }
 }
+
+/* 「我的」桌面：去掉页内大标题，设置目录贴左当侧栏，右侧内容放宽 */
+html body:not(#a) .p-toc-head { display: none; }
+@media (min-width: 1024px) {
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-inner { max-width: none; width: 100%; padding: 0 32px 0 0; margin: 0; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-page-title { display: none; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 0; align-items: start; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings .p-toc {
+    position: sticky; top: calc(var(--topbar-h, 72px) + 8px); align-self: start;
+    max-height: calc(100vh - var(--topbar-h, 72px) - 16px); overflow-y: auto; scrollbar-width: thin;
+    padding: 22px 18px 24px 28px; margin: 0;
+  }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-toc-head {
+    display: block; margin: 0 0 18px; font-size: 13px; font-weight: 700; letter-spacing: .16em; color: var(--ca-muted, #77726b);
+  }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main {
+    max-width: 1080px; min-height: calc(100vh - var(--topbar-h, 72px)); padding: 26px 0 64px 44px;
+    border-left: 1px solid var(--ca-line, #e3e0db);
+  }
+  html body[data-theme="folio"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main { border-left-color: var(--fo-line-strong, #cfcac3); }
+  html body[data-theme="folio"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-toc-head { font-family: var(--fo-italic, serif); font-style: italic; letter-spacing: .08em; font-size: 15px; }
+  html body[data-theme="nocturne"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main { border-left-color: var(--noc-line, rgba(255,255,255,.14)); }
+}

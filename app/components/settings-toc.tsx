@@ -68,6 +68,7 @@ export function SettingsToc() {
 
   return (
     <nav className="p-toc" aria-label="设置目录" ref={navRef}>
+      <div className="p-toc-head" aria-hidden="true">我的</div>
       {GROUPS.filter((group) => reveal || !group.advanced).map((group) => (
         <div className="p-toc-group" role="group" aria-label={group.label} key={group.label}>
           <span className="p-toc-label">{group.label}{group.advanced && newbie ? <small className="pm-st">进阶</small> : null}</span>
