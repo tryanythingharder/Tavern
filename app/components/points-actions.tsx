@@ -69,7 +69,7 @@ export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: 
             className="p-input"
             style={{ flex: '1 1 220px', textTransform: 'uppercase' }}
             value={code}
-            placeholder="TAV-XXXX-XXXX"
+            placeholder="YH-XXXX-XXXX"
             onChange={(event) => setCode(event.target.value)}
             aria-label="兑换码"
           />

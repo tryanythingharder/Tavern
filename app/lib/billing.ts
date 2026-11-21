@@ -22,7 +22,7 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function randomCode(): string {
   const pick = () => Array.from({ length: 4 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
-  return `TAV-${pick()}-${pick()}`;
+  return `YH-${pick()}-${pick()}`;
 }
 
 export type RedeemCode = { id: number; code: string; amount: number; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number };
