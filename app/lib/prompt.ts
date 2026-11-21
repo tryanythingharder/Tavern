@@ -8,6 +8,7 @@ import {
   LORE_BUDGET,
   LORE_SCAN_DEPTH,
   renderContextTemplate,
+  templateUses,
   type LoreEntry,
   type Persona,
   type Preset,
@@ -343,15 +344,38 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   });
   const at = (position: LoreEntry['position']) => scan.entries.filter((entry) => entry.position === position);
 
+  const exampleText = (): string => {
+    const source = ((input.card?.mesExample ?? '').trim() || cardFields.mesExample).trim();
+    return source
+      ? (/^<START>/i.test(source) ? source : `<START>\n${source}`)
+        .split(/<START>/gi)
+        .slice(1)
+        .map((block) => block.trim())
+        .filter(Boolean)
+        .map((block) => `<START>\n${block}`)
+        .join('\n')
+      : '';
+  };
+  // ST story_string 里用到的变量，对应的独立块就不再重复输出
+  const tpl = preset.contextTemplate || '';
+  const tplHas = (...keys: string[]) => keys.some((key) => templateUses(tpl, key));
+  const usesLoreBefore = tplHas('wiBefore', 'loreBefore');
+  const usesLoreAfter = tplHas('wiAfter', 'loreAfter');
+  const usesExamples = tplHas('mesExamples', 'mesExamplesRaw');
+  const usesPersona = tplHas('persona');
+
   const blockText = (key: string): string => {
     switch (key) {
       case 'system':
         return overridePrompt(preset.system, input.card?.systemPrompt?.trim() || cardFields.systemPrompt, !preset.forbidOverrides);
       case 'jailbreak':
         return overridePrompt(preset.jailbreak, input.card?.postHistory?.trim() || cardFields.postHistory, !preset.forbidOverrides);
-      case 'character':
+      case 'character': {
+        const before = loreBlock(at('before'));
+        const after = loreBlock(at('after'));
+        const examples = exampleText();
         return [
-          renderContextTemplate(preset.contextTemplate, {
+          renderContextTemplate(tpl, {
             char: character.name,
             hook: character.hook,
             description: character.description,
@@ -359,28 +383,26 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
             scenario: cardFields.scenario,
             legacy: '',
             instructions: character.pace,
+            // 系统提示是单独的块，模板里的 {{system}} 留空，免得重复
+            system: '',
+            persona: persona?.position === 'prompt' ? personaText : '',
+            wiBefore: before, loreBefore: before,
+            wiAfter: after, loreAfter: after,
+            mesExamples: examples, mesExamplesRaw: examples,
+            anchorBefore: '', anchorAfter: '',
           }),
-          loreBlock(at('after')),
+          usesLoreAfter ? '' : after,
         ]
           .filter(Boolean)
           .join('\n');
+      }
       case 'persona':
-        return persona ? [`【身份】${persona.name}`, persona.position === 'prompt' && persona.description ? `【说明】${persona.description}` : ''].filter(Boolean).join('\n') : '';
+        return persona ? [`【身份】${persona.name}`, persona.position === 'prompt' && persona.description && !usesPersona ? `【说明】${persona.description}` : ''].filter(Boolean).join('\n') : '';
       case 'lore':
         // 作者注释前后（anTop/anBottom）跟着作者注释走；示例前后（emTop/emBottom）进示例块；出口（outlet）只出现在 {{outlet::名字}} 处（同 ST）
-        return loreBlock(at('before'));
+        return usesLoreBefore ? '' : loreBlock(at('before'));
       case 'examples': {
-        const source = ((input.card?.mesExample ?? '').trim() || cardFields.mesExample).trim();
-        const examples = source
-          ? (/^<START>/i.test(source) ? source : `<START>\n${source}`)
-            .split(/<START>/gi)
-            .slice(1)
-            .map((block) => block.trim())
-            .filter(Boolean)
-            .map((block) => `<START>\n${block}`)
-            .join('\n')
-          : '';
-        return [loreBlock(at('emTop')), examples, loreBlock(at('emBottom'))].filter(Boolean).join('\n');
+        return [loreBlock(at('emTop')), usesExamples ? '' : exampleText(), loreBlock(at('emBottom'))].filter(Boolean).join('\n');
       }
       case 'autosummary': {
         const placement = input.summaryPlacement;

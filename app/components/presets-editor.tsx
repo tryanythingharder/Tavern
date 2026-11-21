@@ -269,7 +269,7 @@ export function PresetsEditor({ initial }: { initial: Preset[] }) {
           <h3 className="p-form-section-title" style={{ marginTop: 8 }}>上下文模板</h3>
           <div className="p-field">
             <textarea className="p-textarea" rows={7} value={draft.contextTemplate} onChange={(event) => setDraft({ ...draft, contextTemplate: event.target.value })} />
-            <span className="p-hint">占位符：{`{{char}} {{hook}} {{description}} {{personality}} {{scenario}} {{legacy}} {{instructions}}`}；占位符为空的整行会自动省略。</span>
+            <span className="p-hint">占位符：{`{{char}} {{hook}} {{description}} {{personality}} {{scenario}} {{persona}} {{wiBefore}} {{wiAfter}} {{mesExamples}} {{instructions}}`}；占位符为空的整行会自动省略。也可以直接用 ST 的 story_string 写法（{`{{#if 变量}}…{{else}}…{{/if}}、{{#unless}}、{{trim}}`}）；模板里用了世界书、示例或身份，对应的独立块就不再重复。</span>
           </div>
 
           <h3 className="p-form-section-title">Instruct 序列</h3>

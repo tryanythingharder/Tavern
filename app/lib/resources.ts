@@ -273,15 +273,55 @@ export function defaultPreset(): Omit<Preset, 'id'> {
   };
 }
 
+// ST 上下文模板（story_string）的 Handlebars 写法：{{#if x}}…{{else}}…{{/if}}、{{#unless x}}…{{/unless}}、{{trim}}。
+// 认识的变量见 STORY_KEYS；不认识的 {{宏}}（{{user}}、{{random}}…）原样留给后面的宏替换。
+export const STORY_KEYS = ['char', 'user', 'hook', 'description', 'personality', 'scenario', 'persona', 'legacy', 'instructions', 'system', 'wiBefore', 'wiAfter', 'loreBefore', 'loreAfter', 'mesExamples', 'mesExamplesRaw', 'anchorBefore', 'anchorAfter'] as const;
+
+export function isHandlebarsTemplate(template: string): boolean {
+  return /\{\{\s*[#/](if|unless)\b|\{\{\s*else\s*\}\}|\{\{\s*trim\s*\}\}/.test(template);
+}
+
+/** 模板里用到了哪些变量（用来决定对应的独立块要不要再出现，免得重复） */
+export function templateUses(template: string, key: string): boolean {
+  return new RegExp(`\\{\\{\\s*(?:#if\\s+|#unless\\s+)?${key}\\s*\\}\\}`).test(template);
+}
+
+function renderBlocks(source: string, values: Record<string, string>): string {
+  const truthy = (key: string) => Boolean((values[key] ?? '').trim());
+  const tag = /\{\{\s*(#if|#unless|else|\/if|\/unless)\s*([\w.]*)\s*\}\}/g;
+  type Frame = { kind: 'if' | 'unless'; on: boolean; inElse: boolean; out: string };
+  const stack: Frame[] = [];
+  let out = '';
+  let last = 0;
+  const visible = () => stack.every((frame) => (frame.inElse ? !frame.on : frame.on));
+  const emit = (chunk: string) => { if (visible()) out += chunk; };
+  for (const match of source.matchAll(tag)) {
+    emit(source.slice(last, match.index));
+    last = (match.index ?? 0) + match[0].length;
+    const [, kind, key] = match;
+    if (kind === '#if' || kind === '#unless') stack.push({ kind: kind === '#if' ? 'if' : 'unless', on: kind === '#if' ? truthy(key) : !truthy(key), inElse: false, out: '' });
+    else if (kind === 'else') { const top = stack[stack.length - 1]; if (top) top.inElse = true; }
+    else stack.pop();
+  }
+  emit(source.slice(last));
+  return out;
+}
+
 export function renderContextTemplate(template: string, values: Record<string, string>): string {
   const source = template.trim() ? template : DEFAULT_CONTEXT_TEMPLATE;
+  if (isHandlebarsTemplate(source)) {
+    const body = renderBlocks(source, values)
+      .replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, key: string) => ((STORY_KEYS as readonly string[]).includes(key) && key !== 'user' ? values[key] ?? '' : whole));
+    // {{trim}}：去掉它两侧的空白（ST 常放在末尾吃掉最后的换行）
+    return body.replace(/\s*\{\{\s*trim\s*\}\}\s*/g, '').replace(/\n{3,}/g, '\n\n').trim();
+  }
   return source
     .split('\n')
     .map((line) => {
       let replaced = line;
       let touched = false;
-      for (const key of CONTEXT_PLACEHOLDERS) {
-        if (!replaced.includes(`{{${key}}}`)) continue;
+      for (const key of STORY_KEYS) {
+        if (key === 'user' || !replaced.includes(`{{${key}}}`)) continue;
         touched = true;
         replaced = replaced.split(`{{${key}}}`).join(values[key] ?? '');
       }
@@ -474,17 +514,10 @@ export type Persona = {
 
 // ---------- SillyTavern 导入 ----------
 
+// ST 的 story_string 原样保留（Handlebars 由 renderContextTemplate 执行）；只剩空白就当没有
 function convertStoryString(source: unknown): string {
   const value = text(source).trim();
-  if (!value) return '';
-  return value
-    .replace(/\{\{#if[^}]*\}\}/g, '')
-    .replace(/\{\{\/if\}\}/g, '')
-    .replace(/\{\{else\}\}/g, '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && /\{\{(char|description|personality|scenario)\}\}/.test(line))
-    .join('\n');
+  return value ? value.slice(0, 8000) : '';
 }
 
 export type ImportedPreset = {
