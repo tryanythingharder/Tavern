@@ -5,6 +5,7 @@
 //  - 思考内容 reasoning（自动解析 <think>、展开、加入提示词、最多加入几条）
 import db from '@/lib/db';
 import { estimateTokens } from '@/lib/usage';
+import { DEFAULT_TRANSLATE_PREFS, normalizeTranslatePrefs, type TranslatePrefs } from '@/lib/translation';
 
 export type GenPrefs = {
   stopStrings: string[];
@@ -14,6 +15,8 @@ export type GenPrefs = {
   reasoning: { autoParse: boolean; prefix: string; suffix: string; autoExpand: boolean; addToPrompts: boolean; maxAdditions: number };
   // ST 世界书「插入策略」world_info_character_strategy：均匀排序 / 角色优先（ST 默认）/ 全局优先
   loreStrategy: LoreStrategy;
+  // ST Translate 扩展：目标语言、自动翻译（回复/输入）、发给模型的语言
+  translate: TranslatePrefs;
 };
 
 export type LoreStrategy = 'evenly' | 'character_first' | 'global_first';
@@ -27,6 +30,7 @@ export const DEFAULT_GEN_PREFS: GenPrefs = {
   autoContinue: { enabled: false, target: 400 },
   reasoning: { autoParse: true, prefix: '<think>', suffix: '</think>', autoExpand: false, addToPrompts: false, maxAdditions: 1 },
   loreStrategy: 'character_first',
+  translate: DEFAULT_TRANSLATE_PREFS,
 };
 
 const clampInt = (value: unknown, min: number, max: number, fallback: number) => {
@@ -71,6 +75,7 @@ export function normalizeGenPrefs(raw: unknown): GenPrefs {
       maxAdditions: clampInt(rs.maxAdditions, 0, 50, d.reasoning.maxAdditions),
     },
     loreStrategy: LORE_STRATEGIES.includes(input.loreStrategy) ? input.loreStrategy : d.loreStrategy,
+    translate: normalizeTranslatePrefs(input.translate),
   };
 }
 
@@ -92,6 +97,7 @@ export function setGenPrefs(userId: number, patch: unknown): GenPrefs {
     ...input,
     autoContinue: { ...current.autoContinue, ...(input.autoContinue ?? {}) },
     reasoning: { ...current.reasoning, ...(input.reasoning ?? {}) },
+    translate: { ...current.translate, ...(input.translate ?? {}) },
   });
   db.prepare('UPDATE users SET gen_prefs = ? WHERE id = ?').run(JSON.stringify(next), userId);
   return next;

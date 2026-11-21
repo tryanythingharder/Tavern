@@ -1,6 +1,7 @@
 import { metaAt, type GenMeta } from '@/lib/msg-meta';
 import { reasoningAt, type Reasoning } from '@/lib/reasoning';
 import { messageCandidates, type DbMessage } from '@/lib/db';
+import { translationFor, type TranslationView } from '@/lib/translation';
 
 // 客户端需要的消息视图：正文 + 候选数量（>1 才显示切换）。
 export type ChatAttachment = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
@@ -24,6 +25,8 @@ export type ChatMessageView = {
   hidden: boolean;
   /** 当前候选的生成信息（模型 / tokens / 耗时） */
   meta: GenMeta | null;
+  /** 当前正文的译文（ST Translate）；original=true 时 text 是玩家写的原话、正文是发给模型的译文 */
+  translation: TranslationView | null;
 };
 
 function parseAttachment(raw: string | null): ChatAttachment | null {
@@ -58,5 +61,6 @@ export function toMessageView(message: DbMessage): ChatMessageView {
     createdAt: message.created_at,
     hidden: message.hidden === 1,
     meta: message.role === 'assistant' ? metaAt(message.meta, message.selected) : null,
+    translation: translationFor(message.translations, message.content),
   };
 }

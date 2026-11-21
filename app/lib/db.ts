@@ -494,6 +494,7 @@ ensureColumn('messages', 'reasoning', 'TEXT');
 // ST 对齐：隐藏消息（/hide，幽灵图标，不发给模型）与每个候选的生成信息（lib/msg-meta.ts）
 ensureColumn('messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'meta', 'TEXT');
+ensureColumn('messages', 'translations', 'TEXT');
 ensureColumn('room_messages', 'reasoning', 'TEXT');
 
 // 首次启动把种子角色写入数据库；之后以数据库为准。
@@ -529,7 +530,7 @@ export type DbMessage = {
   id: number; chat_id: number; role: 'user' | 'assistant' | 'system'; content: string;
   candidates: string | null; selected: number; bookmark: number; attachment: string | null; checkpoint_chat_id?: number | null; created_at: number; reasoning?: string | null;
   persona_name?: string | null; persona_avatar?: string | null;
-  hidden?: number; meta?: string | null;
+  hidden?: number; meta?: string | null; translations?: string | null;
 };
 
 export function getCharacterById(id: string): DbCharacter | undefined {
@@ -791,7 +792,7 @@ export function chatBranches(chatId: number, userId: number): ChatBranchInfo {
 
 export type GenerationStatus = 'pending' | 'done' | 'aborted' | 'error';
 
-export function startGeneration(userId: number, chatId: number | null, kind: 'send' | 'regenerate' | 'room' | 'image' | 'tts' | 'summary', model: string): number {
+export function startGeneration(userId: number, chatId: number | null, kind: 'send' | 'regenerate' | 'room' | 'image' | 'tts' | 'summary' | 'translate', model: string): number {
   const result = db.prepare('INSERT INTO generation_events (user_id, chat_id, kind, model, status, created_at) VALUES (?,?,?,?,?,?)').run(userId, chatId, kind, model, 'pending', Date.now());
   return Number(result.lastInsertRowid);
 }

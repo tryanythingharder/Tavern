@@ -1,6 +1,7 @@
 'use client';
 
 import { emitPoints } from '@/lib/points-bus';
+import { langLabel as langName } from '@/lib/translation';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -42,6 +43,8 @@ export type ChatMessageView = {
   meta?: { model: string; tokens: number; ms: number; at: number; cut?: boolean } | null;
   /** 这次生成停在了回复长度上限（finish_reason=length） */
   cut?: boolean;
+  /** 译文（ST Translate）；original=true 时 text 是玩家原话，正文是发给模型的译文 */
+  translation?: { lang: string; text: string; original: boolean } | null;
 };
 
 type Props = {
@@ -81,7 +84,7 @@ type StreamEvent = {
 };
 
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
 function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
@@ -298,6 +301,39 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
   }, [chatId, loadingOlder, messages]);
 
+  // ---- 消息翻译（ST Translate）----
+  const [translating, setTranslating] = useState<number | null>(null);
+  const [translatingInput, setTranslatingInput] = useState(false);
+  // 默认显示译文；点「原文」的消息记在这里
+  const [flipped, setFlipped] = useState<Set<number | string>>(() => new Set());
+  const translatePrefsRef = useRef<{ target: string; auto: 'none' | 'responses' | 'inputs' | 'both'; modelLang: string }>({ target: 'zh-CN', auto: 'none', modelLang: 'en' });
+  useEffect(() => {
+    void fetch('/api/me/gen-prefs').then((response) => (response.ok ? response.json() : null)).then((data) => {
+      if (data?.prefs?.translate) translatePrefsRef.current = data.prefs.translate;
+    }).catch(() => undefined);
+  }, []);
+  const translateMessage = useCallback(async (id: number, quiet = false) => {
+    setTranslating(id);
+    try {
+      const response = await fetch(`/api/messages/${id}/translate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = (await response.json().catch(() => ({}))) as { translation?: ChatMessageView['translation']; message?: string; cost?: number; balance?: number; free?: number };
+      if (!response.ok) throw new Error(data.message || '翻译失败');
+      setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, translation: data.translation ?? null } : item)));
+      setFlipped((prev) => { if (!prev.has(id)) return prev; const next = new Set(prev); next.delete(id); return next; });
+      emitPoints(data);
+    } catch (caught) {
+      setError(`${quiet ? '自动翻译没成功：' : ''}${(caught as Error).message}`);
+    } finally {
+      setTranslating(null);
+    }
+  }, []);
+  const removeTranslation = useCallback(async (id: number) => {
+    await fetch(`/api/messages/${id}/translate`, { method: 'DELETE' }).catch(() => undefined);
+    setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, translation: null } : item)));
+  }, []);
+  const translateRef = useRef(translateMessage);
+  translateRef.current = translateMessage;
+
   const streamInto = useCallback(
     async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void, prefix = ''): Promise<boolean> => {
       const controller = new AbortController();
@@ -309,6 +345,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       let thinking = '';
       let completed = false;
       let accepted = false;
+      let doneId: number | null = null;
       autoContinueRef.current = null;
       streamErrorRef.current = false;
       try {
@@ -353,6 +390,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
             } else if (event.type === 'done') {
               completed = true;
+              if (typeof event.messageId === 'number') doneId = event.messageId;
               // ST 自动继续：服务端判断回复还没到目标长度
               if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
               if (typeof event.cost === 'number' && typeof event.balance === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); }
@@ -390,6 +428,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         // 中断后服务端还要几百毫秒落库，稍等一下再取
         if (!completed) await sleep(400);
         await resync();
+        // ST「自动翻译回复」：回复落库后翻成目标语言（失败不打断对话）
+        const auto = translatePrefsRef.current.auto;
+        if (completed && doneId !== null && !streamErrorRef.current && (auto === 'responses' || auto === 'both')) void translateRef.current(doneId, true);
       }
       return accepted;
     },
@@ -457,7 +498,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
 
   const send = useCallback(async (override?: string) => {
     const text = (override ?? draft).trim();
-    if (streaming) return;
+    if (streaming || translatingInput) return;
     // 斜杠命令（ST STscript 常用子集）
     if (override === undefined && isSlash(text)) {
       setDraft('');
@@ -466,16 +507,35 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
     // ST：空着点发送 = 不加玩家消息，让角色接着回复
     if (!text && !messages.length) return;
+    // ST「自动翻译输入」：先把玩家写的话翻成发给模型的语言，原话留着显示
+    let outgoing = text;
+    let original = '';
+    const autoMode = translatePrefsRef.current.auto;
+    if (text && (autoMode === 'inputs' || autoMode === 'both')) {
+      setTranslatingInput(true);
+      try {
+        const response = await fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, chatId }) });
+        const data = (await response.json().catch(() => ({}))) as { text?: string; message?: string; cost?: number; balance?: number; free?: number };
+        if (!response.ok || !data.text) throw new Error(data.message || '翻译失败');
+        emitPoints(data);
+        if (data.text.trim() !== text) { outgoing = data.text.trim(); original = text; }
+      } catch (caught) {
+        setError(`输入没翻译成功，消息还没发送：${(caught as Error).message}`);
+        return;
+      } finally {
+        setTranslatingInput(false);
+      }
+    }
     const stamp = Date.now();
     const assistantKey = `local-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      ...(text ? [{ id: `local-user-${stamp}`, role: 'user' as const, content: text, candidateCount: 0, selected: 0, personaName: persona.name, personaAvatar: persona.avatar, createdAt: Date.now() }] : []),
+      ...(text ? [{ id: `local-user-${stamp}`, role: 'user' as const, content: outgoing, candidateCount: 0, selected: 0, personaName: persona.name, personaAvatar: persona.avatar, createdAt: Date.now(), translation: original ? { lang: '', text: original, original: true } : null }] : []),
       { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
     emitHelperEvent('generation_started', 'normal');
-    const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => { if (override === undefined) setDraft(''); });
+    const accepted = await streamInto(`/api/chats/${chatId}/messages`, original ? { text: outgoing, original } : { text }, assistantKey, () => { if (override === undefined) setDraft(''); });
     if (accepted) {
       emitHelperEvent('message_sent', { fromEnd: 1 });
       emitHelperEvent('message_received', { fromEnd: 0 });
@@ -496,7 +556,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     } else {
       setFailed(null);
     }
-  }, [chatId, draft, streaming, streamInto, runAutoContinue, messages.length, persona.name, persona.avatar]);
+  }, [chatId, draft, streaming, translatingInput, streamInto, runAutoContinue, messages.length, persona.name, persona.avatar]);
 
   const regenerate = useCallback(
     async (message: ChatMessageView) => {
@@ -992,6 +1052,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             const numericId = typeof message.id === 'number' ? message.id : null;
             const isEditing = editing !== null && editing.id === message.id;
             const isStreamingThis = streamingId === message.id;
+            // 有译文时默认显示译文（玩家输入翻译：默认显示原话），点切换后显示另一面
+            const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
+            const shownText = showTr && message.translation ? message.translation.text : message.content;
             return (
               <article
                 key={message.id}
@@ -1060,9 +1123,20 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                         {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} /> : null}
                         <div className="p-msg-copy p-msg-text">
                           {message.content
-                            ? <RichText text={message.content} streaming={isStreamingThis} rules={displayRules} macros={displayMacros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
+                            ? <RichText text={shownText} streaming={isStreamingThis} rules={displayRules} macros={displayMacros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
                             : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
                         </div>
+                        {message.translation && numericId !== null && !isStreamingThis && (
+                          <div className="p-msg-tr" role="group" aria-label="翻译">
+                            <span className="p-msg-tr-tag">{message.translation.original ? (showTr ? '原话' : '发给模型的译文') : (showTr ? `译文 · ${langName(message.translation.lang)}` : '原文')}</span>
+                            <button type="button" onClick={() => setFlipped((prev) => { const next = new Set(prev); if (next.has(message.id)) next.delete(message.id); else next.add(message.id); return next; })}>
+                              {message.translation.original ? (showTr ? '看译文' : '看原话') : (showTr ? '看原文' : '看译文')}
+                            </button>
+                            {!message.translation.original && <button type="button" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}>{translating === numericId ? '翻译中…' : '重新翻译'}</button>}
+                            {!message.translation.original && <button type="button" onClick={() => void removeTranslation(numericId)}>移除</button>}
+                          </div>
+                        )}
+                        {translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
                         </>
                       )}
                       {message.attachment?.kind === 'audio' && (
@@ -1121,6 +1195,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                             </span>
                           )}
                           <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
+                          {numericId !== null && !isStreamingThis && message.content && !message.translation && (
+                            <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}><Ico name="translate" /></button>
+                          )}
                           {numericId !== null && !isStreamingThis && (
                             <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content })}><Ico name="edit" /></button>
                           )}
@@ -1244,6 +1321,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             <span className="p-chat-acts">
               <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void continueLast()} title="不写台词，让角色接着上一条往下写">▸ 继续</button>
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              {translatingInput && <span className="p-chat-tr-busy" role="status">正在把输入翻译成{langName(translatePrefsRef.current.modelLang)}…</span>}
               <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
               {personaInit && (
                 <PersonaSwitch

@@ -25,6 +25,7 @@ import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig, personaSender } from '@/lib/resources-db';
 import { memorySettings, refreshSummary, snapshotChat, promptMemory } from '@/lib/memory';
 import { retrieveMemories } from '@/lib/vectors';
+import { saveTranslation } from '@/lib/translate';
 import { getOverride } from '@/lib/cards';
 import { autoSummarize } from '@/lib/memory-llm';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
@@ -68,8 +69,10 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const chat = getChat(chatId, user.id);
   if (!chat) return fail('会话不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { text?: string };
+  const body = (await request.json().catch(() => ({}))) as { text?: string; original?: string };
   const text = String(body.text ?? '').trim();
+  // ST「翻译输入」：text 是发给模型的译文，original 是玩家原本写的话（界面默认显示原话）
+  const original = typeof body.original === 'string' ? body.original.trim().slice(0, 20_000) : '';
   // ST：输入框为空时点发送 = 不加玩家消息，直接让角色回复（接着当前最后一条）
   if (!text && !listMessages(chatId, 1).length) return fail('消息不能为空', 400);
   if (text) {
@@ -91,6 +94,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const config = loadGenerationConfig(user.id, chat);
   const genPrefs = getGenPrefs(user.id);
   const userMessage = text ? addMessage(chatId, 'user', text, undefined, undefined, personaSender(user.id, config.persona)) : null;
+  if (userMessage && original && original !== text) saveTranslation(userMessage, { lang: '', text: original, original: true });
   const memory = memorySettings(chat);
   const history = listMessages(chatId);
   // 摘要按间隔自动刷新；检索只从「最近 8 条」之前的历史里挑片段

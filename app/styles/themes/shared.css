@@ -768,6 +768,14 @@ html body .p-msg-cut > span { font-size: 13px; }
 html body .p-msg-cut > button.p-msg-cut-go { appearance: none; border: 0; box-shadow: none; background: var(--u-accent, #c9401f); color: #fff; font-size: 13px; line-height: 1.4; font-weight: 600; padding: 4px 12px; min-height: 0; border-radius: 999px; cursor: pointer; }
 html body .p-msg-cut > button.p-msg-cut-go:hover { filter: brightness(.92); }
 html body .p-msg-cut > button.p-msg-cut-go:focus-visible { outline: 2px solid var(--u-accent, #c9401f); outline-offset: 2px; }
+/* 消息翻译（ST Translate）：正文下方一行小字，标明当前显示的是译文还是原文 */
+html body .p-msg-tr { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: var(--muted, #8a7f78); font-family: inherit; }
+html body .p-msg-tr-tag { display: inline-flex; align-items: center; gap: 4px; }
+html body .p-msg-tr-tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--u-accent, #c9401f); opacity: .7; }
+html body .p-msg-tr > button { appearance: none; border: 0; background: none; box-shadow: none; padding: 0; min-height: 0; font: inherit; font-size: 12px; color: var(--u-accent, #c9401f); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+html body .p-msg-tr > button:disabled { opacity: .55; cursor: default; }
+html body .p-msg-tr > button:focus-visible { outline: 2px solid var(--u-accent, #c9401f); outline-offset: 2px; border-radius: 3px; }
+html body .p-chat-tr-busy { font-size: 12px; color: var(--muted, #8a7f78); align-self: center; }
 
 /* 邀请返点页 /me/invite + 注册页锁定的邀请码 */
 .iv-link { display: grid; gap: 10px; }

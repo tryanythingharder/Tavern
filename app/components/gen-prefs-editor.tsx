@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { usePlayMode } from '@/components/play-mode';
 import type { GenPrefs } from '@/lib/gen-prefs';
+import { Select } from '@/components/ui-select';
+import { TRANSLATE_LANGS, type TranslateAuto } from '@/lib/translation';
 
 // ST「高级格式化 / 用户设置」里不随预设切换的全局项
 export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
@@ -18,6 +20,7 @@ export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
   const patch = (next: Partial<GenPrefs>) => { setPrefs((prev) => ({ ...prev, ...next })); setSaved(false); };
   const patchAc = (next: Partial<GenPrefs['autoContinue']>) => patch({ autoContinue: { ...prefs.autoContinue, ...next } });
   const patchRs = (next: Partial<GenPrefs['reasoning']>) => patch({ reasoning: { ...prefs.reasoning, ...next } });
+  const patchTr = (next: Partial<GenPrefs['translate']>) => patch({ translate: { ...prefs.translate, ...next } });
 
   const save = async () => {
     setBusy(true);
@@ -100,6 +103,34 @@ export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
           )}
         </>
       )}
+
+      <h3 className="p-form-section-title">消息翻译</h3>
+      <p className="small" style={{ marginTop: 0, marginBottom: 12 }}>每条消息的「翻译」按钮用当前模型翻译，按模型价格扣点；模型看到的仍是原文（除非开了翻译输入）。</p>
+      <div className="p-field-row">
+        <div className="p-field">
+          <label htmlFor="gp-tr-target">译成</label>
+          <Select id="gp-tr-target" className="p-select" value={prefs.translate.target} onChange={(event) => patchTr({ target: event.target.value })}>
+            {TRANSLATE_LANGS.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}
+          </Select>
+        </div>
+        <div className="p-field">
+          <label htmlFor="gp-tr-auto">自动翻译</label>
+          <Select id="gp-tr-auto" className="p-select" value={prefs.translate.auto} onChange={(event) => patchTr({ auto: event.target.value as TranslateAuto })}>
+            <option value="none">不自动</option>
+            <option value="responses">自动翻译回复</option>
+            {full && <option value="inputs">自动翻译我的输入</option>}
+            {full && <option value="both">回复和输入都翻译</option>}
+          </Select>
+        </div>
+        {full && (prefs.translate.auto === 'inputs' || prefs.translate.auto === 'both') && (
+          <div className="p-field">
+            <label htmlFor="gp-tr-model">输入翻成（发给模型）</label>
+            <Select id="gp-tr-model" className="p-select" value={prefs.translate.modelLang} onChange={(event) => patchTr({ modelLang: event.target.value })}>
+              {TRANSLATE_LANGS.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}
+            </Select>
+          </div>
+        )}
+      </div>
 
       <div className="p-gen-prefs-actions">
         <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy} onClick={() => void save()}>{busy ? '保存中…' : '保存'}</button>
