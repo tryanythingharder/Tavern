@@ -1,0 +1,21 @@
+/* 表情立绘：画廊头部按钮 + 立绘切换淡入 + 管理弹窗 */
+.chat-stage-expr-btn { margin-left: auto; margin-right: 8px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); background: transparent; color: #fff; font-size: 12px; cursor: pointer; flex: none; }
+.chat-stage-expr-btn:hover { background: rgba(255,255,255,.08); }
+.chat-gallery-tile img.is-sprite { animation: spr-in .32s ease-out; }
+@keyframes spr-in { from { opacity: .25; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .chat-gallery-tile img.is-sprite { animation: none; } }
+
+.spm-intro { margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: #6b625b; }
+.spm-intro code { font-size: 12px; padding: 0 4px; border-radius: 4px; background: #f3eee9; }
+.spm-note { margin: 0 0 10px; font-size: 12.5px; color: #8a4a2f; }
+.spm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; max-height: 56vh; overflow: auto; padding: 2px; }
+.spm-cell { border: 1px solid #e6dfd8; border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 4px; background: #fff; }
+.spm-cell.is-empty { background: #faf8f6; }
+.spm-thumb { position: relative; aspect-ratio: 3 / 4; border-radius: 6px; overflow: hidden; background: #f1ece7; display: grid; place-items: center; color: #b3a89e; font-size: 20px; }
+.spm-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.spm-count { position: absolute; right: 4px; bottom: 4px; font-size: 11px; padding: 0 6px; border-radius: 999px; background: rgba(15,11,9,.66); color: #fff; }
+.spm-label { font-size: 13px; font-weight: 600; color: #2b2420; display: flex; flex-direction: column; line-height: 1.25; }
+.spm-label small { font-weight: 400; font-size: 11px; color: #8d8379; }
+.spm-acts { display: flex; gap: 6px; }
+.spm-acts button { flex: 1; font-size: 12px; padding: 3px 0; border-radius: 6px; border: 1px solid #e0d8d0; background: transparent; color: #4a413a; cursor: pointer; }
+.spm-acts button:hover:not(:disabled) { border-color: #c9401f; color: #c9401f; }

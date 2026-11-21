@@ -53,6 +53,7 @@ import '../styles/auth.css';
 import '../styles/me-shell.css';
 import '../styles/wallet.css';
 import '../styles/points-chip.css';
+import '../styles/sprites.css';
 import '../styles/models.css';
 // 英文界面下替换 CSS 伪元素里的中文
 import '../styles/i18n-en.css';

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { CHAT_STAGE_KEY, CHAT_STAGE_W_KEY, STAGE_MIN_W } from '@/lib/chat-focus';
+import { EXPRESSION_ZH, classifyExpression, pickSprite, type ExpressionLabel, type SpriteMap } from '@/lib/expressions';
+import { SpriteManager } from '@/components/sprite-manager';
 
 // 沉浸模式左侧的「画廊」（只在沉浸、≥1200px 时显示）：
 // 按出现顺序收集这段故事里的插图（卡里 HTML 的大图、生成的图片、单行 Markdown 图片），同一张只收一次；
@@ -28,7 +31,15 @@ function messageImages(msg: Element): string[] {
   return out;
 }
 
-export function ChatStage({ cover, name }: { cover: string; name: string }) {
+export function ChatStage({ cover: coverProp, name, characterId, sprites = {} }: { cover: string | null; name: string; characterId: string; sprites?: SpriteMap }) {
+  const router = useRouter();
+  const cover = coverProp || pickSprite(sprites, 'neutral')?.src || '';
+  const [expr, setExpr] = useState<{ label: ExpressionLabel; src: string } | null>(null);
+  const [managing, setManaging] = useState(false);
+  const hasSprites = Object.keys(sprites).length > 0;
+  const spritesRef = useRef(sprites);
+  spritesRef.current = sprites;
+  const exprCache = useRef(new Map<string, ExpressionLabel>());
   const [state, setState] = useState<'open' | 'rail'>('open');
   const [items, setItems] = useState<Item[]>([{ src: cover, msgId: null }]);
   const [current, setCurrent] = useState<string>(key(cover));
@@ -61,7 +72,9 @@ export function ChatStage({ cover, name }: { cover: string; name: string }) {
       const seen = new Set<string>([key(cover)]);
       const list: Item[] = [{ src: cover, msgId: null }];
       let reading = key(cover);
+      let speaking: HTMLElement | null = null;
       scroller.querySelectorAll<HTMLElement>('.p-msg').forEach((msg) => {
+        if (!msg.classList.contains('p-msg-user') && !msg.classList.contains('p-msg-narrator') && msg.getBoundingClientRect().top < line) speaking = msg;
         const images = messageImages(msg);
         if (!images.length) return;
         const above = msg.getBoundingClientRect().top < line;
@@ -76,6 +89,18 @@ export function ChatStage({ cover, name }: { cover: string; name: string }) {
       const prev = itemsRef.current;
       if (prev.length !== list.length || prev.some((item, i) => item.src !== list[i].src || item.msgId !== list[i].msgId)) setItems(list);
       setCurrent(reading);
+      // 表情立绘：读到的那条角色回复的情绪
+      const map = spritesRef.current;
+      const last = speaking as HTMLElement | null;
+      if (last && Object.keys(map).length) {
+        const text = last.querySelector('.p-msg-text')?.textContent ?? '';
+        const cacheKey = `${last.id}:${text.length}:${text.slice(-40)}`;
+        let label = exprCache.current.get(cacheKey);
+        if (!label) { label = classifyExpression(text); exprCache.current.set(cacheKey, label); }
+        const seed = Number(last.id.replace(/\D/g, '')) || 0;
+        const pick = pickSprite(map, label, seed);
+        setExpr((prev) => (prev?.src === pick?.src && prev?.label === pick?.label ? prev : pick));
+      } else setExpr(null);
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(compute); };
     window.addEventListener('scroll', schedule, true);
@@ -153,6 +178,7 @@ export function ChatStage({ cover, name }: { cover: string; name: string }) {
               <div className="chat-gallery-title">画廊</div>
               <div className="chat-gallery-sub">{name} · {illustrations ? `${illustrations} 张插图` : '还没有插图'}</div>
             </div>
+            <button className="chat-stage-expr-btn" type="button" onClick={() => setManaging(true)} title="表情立绘：按情绪自动切换">表情{hasSprites ? '' : ' +'}</button>
             <button className="chat-stage-fold" type="button" onClick={() => setMode('rail')} title="收起画廊" aria-label="收起画廊">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
             </button>
@@ -161,8 +187,8 @@ export function ChatStage({ cover, name }: { cover: string; name: string }) {
             {items.map((item, index) => (
               <button key={key(item.src)} type="button" className={`chat-gallery-tile${key(item.src) === current ? ' is-current' : ''}${index === 0 ? ' is-cover' : ''}`}
                 onClick={() => setView(index)} aria-label={index === 0 ? '查看立绘' : `查看第 ${index} 张插图`}>
-                <img src={item.src} alt="" loading="lazy" />
-                {index === 0 && <span className="chat-gallery-badge">立绘</span>}
+                <img src={index === 0 && expr ? expr.src : item.src} alt="" loading={index === 0 ? undefined : "lazy"} className={index === 0 && expr ? 'is-sprite' : undefined} key={index === 0 && expr ? expr.src : undefined} />
+                {index === 0 && <span className="chat-gallery-badge">{expr ? `立绘 · ${EXPRESSION_ZH[expr.label]}` : '立绘'}</span>}
               </button>
             ))}
             {!illustrations && <p className="chat-gallery-empty">故事里出现的插图会收在这里，同一张只收一次。</p>}
@@ -177,6 +203,7 @@ export function ChatStage({ cover, name }: { cover: string; name: string }) {
           {illustrations > 0 && <span className="chat-stage-rail-count">{illustrations}</span>}
         </button>
       )}
+      {managing && <SpriteManager characterId={characterId} onClose={() => setManaging(false)} onChange={() => router.refresh()} />}
       {view !== null && items[view] && (
         <Lightbox items={items} index={view} onIndex={setView} onClose={() => setView(null)} onJump={jump} />
       )}
