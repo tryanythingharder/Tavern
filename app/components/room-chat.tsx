@@ -1,4 +1,5 @@
 'use client';
+import { emitPoints } from '@/lib/points-bus';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -198,6 +199,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
             setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, content: shown } : item)));
           } else if (event.type === 'done') {
             completed = true;
+            emitPoints(event as { balance?: unknown; cost?: unknown });
             if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = event.messageId;
             setMessages((prev) =>
               prev.map((item) =>
@@ -428,7 +430,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
           try {
             const event = JSON.parse(line.slice(5).trim()) as { type: string; text?: string; message?: string };
             if (event.type === 'delta' && event.text) { text += event.text; setDraft(text); }
-            else if (event.type === 'done') setDraft(event.text ?? text);
+            else if (event.type === 'done') { setDraft(event.text ?? text); emitPoints(event as { balance?: unknown; cost?: unknown }); }
             else if (event.type === 'error') setError(event.message ?? '代写失败');
           } catch {
             // 忽略坏行

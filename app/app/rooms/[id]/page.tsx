@@ -4,6 +4,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
+import { PointsChip } from '@/components/points-chip';
+import { balance as pointsBalance } from '@/lib/points';
 import { getCharacterById } from '@/lib/db';
 import { getRoom, insertRoomGreetings, listRoomMessages, roomFamily } from '@/lib/rooms';
 import { RoomMemoryButton } from '@/components/room-memory';
@@ -55,6 +57,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
               <Link className="p-chat-icon" href="/rooms" aria-label="返回房间列表">
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
               </Link>
+              <PointsChip initial={pointsBalance(user.id)} />
               <div className="p-chat-title">
                 <div className="p-chat-title-text">
                   <div className="p-chat-name">{room.name}</div>

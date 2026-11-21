@@ -19,6 +19,8 @@ import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
 import { ChatFocusToggle, ChatFocusChrome } from '@/components/chat-focus';
 import { ChatStage } from '@/components/chat-stage';
+import { PointsChip } from '@/components/points-chip';
+import { balance as pointsBalance } from '@/lib/points';
 import { chatFocusBootScript } from '@/lib/chat-focus';
 import { characterLoreEntries, loadExtras, parseCardLore } from '@/lib/card-extras';
 
@@ -75,6 +77,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
               <Link className="p-chat-icon" href="/chats" aria-label="返回会话列表">
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
               </Link>
+              <PointsChip initial={pointsBalance(user.id)} />
               <div className="p-chat-title">
                 <span className={`p-avatar${hasPortrait ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '34px', ['--h' as string]: character.hue }}>
                   {cover ? <img src={cover} alt="" /> : character.initial}

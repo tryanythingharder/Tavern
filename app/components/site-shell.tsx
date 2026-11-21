@@ -15,6 +15,7 @@ import { CommandPalette } from '@/components/command-palette';
 import { OfflineBanner } from '@/components/offline-banner';
 import { SwRegister } from '@/components/sw-register';
 import { ErrorReporter } from '@/components/error-reporter';
+import { onPoints } from '@/lib/points-bus';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -83,7 +84,7 @@ const ADMIN_NAV: { label: string; items: { href: string; label: string; path: st
 export function SiteShell({
   children,
   userName,
-  points = 0,
+  points: initialPoints = 0,
   unread = 0,
   admin = false,
   recents = [],
@@ -152,6 +153,10 @@ export function SiteShell({
     </Link>
   );
   const [pointsOpen, setPointsOpen] = useState(false);
+  // 生成扣点后同步余额（对话页广播），服务端刷新时以新值为准
+  const [points, setPoints] = useState(initialPoints);
+  useEffect(() => setPoints(initialPoints), [initialPoints]);
+  useEffect(() => onPoints(({ balance }) => setPoints(balance)), []);
   const pointsRef = useRef<HTMLDivElement | null>(null);
   const pointsTriggerRef = useRef<HTMLButtonElement | null>(null);
 

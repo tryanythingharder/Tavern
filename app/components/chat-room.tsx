@@ -1,4 +1,6 @@
 'use client';
+
+import { emitPoints } from '@/lib/points-bus';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -353,7 +355,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               completed = true;
               // ST 自动继续：服务端判断回复还没到目标长度
               if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
-              if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free });
+              if (typeof event.cost === 'number' && typeof event.balance === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); }
               setMessages((prev) =>
                 prev.map((item) =>
                   item.id === targetId
@@ -427,7 +429,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           try {
             const event = JSON.parse(line.slice(5));
             if (event.type === 'delta') { text += event.text; setDraft(text); }
-            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') setBilling({ cost: event.cost, balance: event.balance, free: event.free }); }
+            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); } }
             else if (event.type === 'error') setError(event.message ?? '代写失败');
           } catch { /* 忽略坏分片 */ }
         }
@@ -629,7 +631,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         if (event.type === 'delta') text += event.text ?? '';
         else if (event.type === 'done') {
           done = event.text ?? text;
-          if (typeof event.balance === 'number') setBilling({ cost: event.cost ?? 0, balance: event.balance, free: event.free });
+          if (typeof event.balance === 'number') { setBilling({ cost: event.cost ?? 0, balance: event.balance, free: event.free }); emitPoints(event); }
         } else if (event.type === 'error') throw new Error(event.message || '生成失败');
       }
     }
