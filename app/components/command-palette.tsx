@@ -17,6 +17,7 @@ const PAGES: Item[] = [
   { id: 'import', label: '导入角色卡', hint: 'JSON / PNG', href: '/me/import', group: '设定', keywords: 'import daoru' },
   { id: 'presets', label: '预设', href: '/me/presets', group: '设定', keywords: 'preset yushe' },
   { id: 'lorebooks', label: '世界书', href: '/me/lorebooks', group: '设定', keywords: 'lorebook world shijieshu' },
+  { id: 'databank', label: '资料库', href: '/me/databank', group: '设定', keywords: 'data bank files attachments ziliao' },
   { id: 'personas', label: '我的身份', href: '/me/personas', group: '设定', keywords: 'persona shenfen' },
   { id: 'regex', label: '正则', href: '/me/regex', group: '设定', keywords: 'regex zhengze' },
   { id: 'quick', label: '快捷回复', href: '/me/quick-replies', group: '设定', keywords: 'quick reply' },

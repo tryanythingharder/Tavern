@@ -89,5 +89,23 @@ export function genPrefsFromStSettings(raw: unknown, base: GenPrefs): StSettings
     found.push('世界书向量匹配');
   }
 
+  // ST Vector Storage 的文件部分（Data Bank）：enabled_files / size_threshold_db / chunk_size_db / chunk_count_db / overlap_percent_db / file_template_db
+  if (vs && (vs.enabled_files !== undefined || vs.chunk_size_db !== undefined)) {
+    const d = base.dataBank;
+    const n = (value: unknown, min: number, max: number, fallback: number) => { const v = Number(value); return Number.isFinite(v) && v >= min ? Math.min(max, Math.round(v)) : fallback; };
+    const threshold = Number(vs.score_threshold);
+    patch.dataBank = {
+      ...d,
+      enabled: bool(vs.enabled_files) ?? d.enabled,
+      sizeThresholdKb: n(vs.size_threshold_db, 0, 1024, d.sizeThresholdKb),
+      chunkSize: n(vs.chunk_size_db, 200, 20000, d.chunkSize),
+      chunkOverlap: n(vs.overlap_percent_db, 0, 50, d.chunkOverlap),
+      chunkCount: n(vs.chunk_count_db, 1, 50, d.chunkCount),
+      threshold: Number.isFinite(threshold) && threshold >= 0 && threshold <= 1 ? threshold : d.threshold,
+      template: typeof vs.file_template_db === 'string' && vs.file_template_db.trim() ? vs.file_template_db.slice(0, 2000) : d.template,
+    };
+    found.push('资料库');
+  }
+
   return found.length ? { patch, found } : null;
 }

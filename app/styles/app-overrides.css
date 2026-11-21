@@ -970,3 +970,14 @@ body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 
 .lb-vectors-row > .p-check { margin: 0; }
 .lb-vectors-num { display: inline-flex; align-items: center; gap: 6px; font-size: var(--f-xs, 12px); color: var(--text-2); }
 .lb-vectors-num > .p-input { width: 88px; padding-block: 4px; }
+
+/* 资料库（Data Bank） */
+.db-template { display: grid; gap: 4px; font-size: var(--f-xs, 12px); color: var(--text-2); max-width: 560px; }
+.db-template > .p-textarea { font-size: var(--f-sm, 13px); }
+.db-add { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 4px 0 12px; }
+.db-add-scope { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 320px; }
+.db-add-scope > * { flex: 1 1 180px; max-width: 280px; }
+.db-add-actions { display: flex; gap: 8px; }
+.db-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.p-room-card.is-off .p-room-title, .p-room-card.is-off .p-room-last { opacity: .55; }
+.db-view { width: 100%; min-height: 50vh; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; line-height: 1.6; }

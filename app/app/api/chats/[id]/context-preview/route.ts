@@ -1,3 +1,4 @@
+import { dataBankText } from '@/lib/data-bank';
 import { templateLore, templatePrompt } from '@/lib/ejs-server';
 import { modelName } from '@/lib/model';
 import { fail, idParam, json, requireUser } from '@/lib/api';
@@ -32,6 +33,7 @@ export async function GET(_request: Request, context: Params) {
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const vectorLore = await vectorLoreHits(user.id, ejsLore.entries, history);
+  const dataBank = (await dataBankText(user.id, { characterId: chat.character_id, chatId: chat.id }, history)).text;
   const result = assemblePrompt({
     dryRun: true,
     character,
@@ -41,6 +43,7 @@ export async function GET(_request: Request, context: Params) {
     userName: config.userName,
     loreEntries: ejsLore.entries,
     vectorLore,
+    dataBank,
     regexRules: config.regexRules,
     ...promptMemory(chat, user.id),
     rag,

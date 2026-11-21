@@ -87,19 +87,19 @@ export async function embedTexts(texts: string[], config: EmbedConfig): Promise<
   return out;
 }
 
-function hashOf(text: string): string {
+export function hashOf(text: string): string {
   return crypto.createHash('sha1').update(text).digest('hex').slice(0, 16);
 }
 
-function toBlob(vec: number[]): Buffer {
+export function toBlob(vec: number[]): Buffer {
   return Buffer.from(new Float32Array(vec).buffer);
 }
 
-function fromBlob(blob: Uint8Array): Float32Array {
+export function fromBlob(blob: Uint8Array): Float32Array {
   return new Float32Array(blob.buffer.slice(blob.byteOffset, blob.byteOffset + blob.byteLength) as ArrayBuffer);
 }
 
-function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
+export function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
   if (a.length !== b.length) return 0;
   let dot = 0, na = 0, nb = 0;
   for (let index = 0; index < a.length; index += 1) { dot += a[index] * b[index]; na += a[index] * a[index]; nb += b[index] * b[index]; }
@@ -107,7 +107,7 @@ function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
 }
 
 /** 消息里真正要向量化的文本：去掉 <think>、HTML 标签和多余空白 */
-type TextMessage = Pick<DbMessage, 'role' | 'content'> & { hidden?: number | null };
+export type TextMessage = Pick<DbMessage, 'role' | 'content'> & { hidden?: number | null };
 
 function vectorText(message: TextMessage): string {
   return String(message.content || '')
@@ -117,7 +117,7 @@ function vectorText(message: TextMessage): string {
     .trim();
 }
 
-function queryText(history: TextMessage[], queryMessages: number, fallback: string): string {
+export function queryText(history: TextMessage[], queryMessages: number, fallback: string): string {
   const tail = history.filter((message) => message.role !== 'system' && message.hidden !== 1).slice(-Math.max(1, queryMessages));
   const text = tail.map(vectorText).filter(Boolean).join('\n');
   return text || fallback;

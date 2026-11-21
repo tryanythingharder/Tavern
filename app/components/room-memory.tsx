@@ -1,5 +1,6 @@
 'use client';
 
+import { DataBankField } from '@/components/data-bank-field';
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
@@ -243,6 +244,7 @@ function RoomLorePanel({ roomId }: { roomId: number }) {
         </div>
         <span className="hint">只属于这个群聊，总是参与扫描；分支会带上。成员的角色附加世界书在单聊设置里绑定。</span>
       </div>
+      <DataBankField roomId={roomId} />
       <div className="field cs-books">
         <label>本次生效 <small className="pm-st">Active</small></label>
         <div className="cs-active-books">

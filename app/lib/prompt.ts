@@ -79,6 +79,8 @@ export type AssembleInput = {
   summary?: string;
   rag?: { role: string; text: string; index: number }[];
   ragTemplate?: string;
+  /** 资料库（ST Data Bank）已套模板的文本，跟在记忆检索块里（lib/data-bank.ts dataBankText） */
+  dataBank?: string;
   memory?: string;
   /** 摘要放哪（ST Summarize 的注入位置）；不传 = 按预设顺序原样放 */
   summaryPlacement?: { position: 'prompt' | 'depth' | 'none'; depth: number; role: LoreRoleLike; template: string };
@@ -412,12 +414,14 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
       }
       case 'rag': {
         const chunks = input.rag ?? [];
-        if (!chunks.length) return '';
+        const bank = (input.dataBank ?? '').trim();
+        if (!chunks.length) return bank;
         const speaker = character.name;
         const body = chunks.map((chunk) => `［第 ${chunk.index + 1} 条］${chunk.role === 'user' ? userName : speaker}：${chunk.text}`).join('\n');
         // ST Vector Storage 的注入模板：{{text}} 换成检索到的片段
         const template = input.ragTemplate?.trim();
-        return template && template.includes('{{text}}') ? template.split('{{text}}').join(body) : body;
+        const memoryText = template && template.includes('{{text}}') ? template.split('{{text}}').join(body) : body;
+        return [bank, memoryText].filter(Boolean).join('\n\n');
       }
       case 'memory':
         return input.memory ?? '';

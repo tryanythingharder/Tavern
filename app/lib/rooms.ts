@@ -400,6 +400,8 @@ export type RoomPromptInput = {
   characterNoteText?: string;
   /** 向量匹配命中的世界书条目 id（lib/vectors.ts vectorLoreHits，条目来自 roomLoreEntries） */
   vectorLore?: string[];
+  /** 资料库（ST Data Bank）已套模板的文本（lib/data-bank.ts dataBankText） */
+  dataBank?: string;
 };
 
 /** 群聊要扫描的世界书：成员卡自带的（InitVar 这类只给变量用的不进提示词）+ 房间/全局/身份世界书 */
@@ -451,6 +453,7 @@ export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): 
   if (personaText) scanTexts.push(personaText);
   const scan = scanLore(loreEntries, scanTexts, { messageCount, vectorHits: input.vectorLore });
   if (scan.entries.length) blocks.push(`### 世界书命中\n${scan.entries.map((entry) => `【${entry.title}】${macros(entry.text)}`).join('\n')}`);
+  if (input.dataBank?.trim()) blocks.push(input.dataBank.trim());
   if (summary && memory?.summaryPlacement.position === 'prompt') blocks.push(`### 前情摘要\n${summaryText(memory.summaryPlacement.template, summary)}`);
   // 身份说明按 ST 的位置：提示词里 / 作者注释顶部或底部 / 聊天内按深度 / 不进入
   if (persona) blocks.push(`### 玩家身份\n【身份】${userName}${personaText && persona.position === 'prompt' ? `\n${personaText}` : ''}`);

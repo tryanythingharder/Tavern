@@ -1,5 +1,6 @@
 'use client';
 
+import { DataBankField } from '@/components/data-bank-field';
 import { LocalTime } from '@/components/local-time';
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
@@ -449,6 +450,8 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                   <span className="hint">只属于这个聊天，总是参与扫描；分支会带上。</span>
                 </div>
                 )}
+
+                {mode !== 'newbie' && <DataBankField chatId={chatId} />}
 
                 {mode !== 'newbie' && (
                 <div className="field cs-books">

@@ -17,12 +17,18 @@ export type GenPrefs = {
   loreStrategy: LoreStrategy;
   // ST Vector Storage 的世界书部分：enabled_world_info / enabled_for_all / max_entries / score_threshold / depth
   loreVectors: LoreVectorPrefs;
+  // ST Vector Storage 的文件部分（Data Bank）：enabled_files / size_threshold_db / chunk_size_db / chunk_count_db / file_template_db
+  dataBank: DataBankPrefs;
   // ST Translate 扩展：目标语言、自动翻译（回复/输入）、发给模型的语言
   translate: TranslatePrefs;
 };
 
 export type LoreVectorPrefs = { enabled: boolean; allEntries: boolean; maxEntries: number; threshold: number; queryMessages: number };
 export const DEFAULT_LORE_VECTORS: LoreVectorPrefs = { enabled: false, allEntries: false, maxEntries: 5, threshold: 0.25, queryMessages: 2 };
+
+export type DataBankPrefs = { enabled: boolean; sizeThresholdKb: number; chunkSize: number; chunkOverlap: number; chunkCount: number; threshold: number; template: string };
+// 默认开：玩家主动上传资料就是想让角色用上；其余数值同 ST 默认
+export const DEFAULT_DATA_BANK: DataBankPrefs = { enabled: true, sizeThresholdKb: 5, chunkSize: 2500, chunkOverlap: 0, chunkCount: 5, threshold: 0.25, template: '相关资料：\n{{text}}' };
 
 export type LoreStrategy = 'evenly' | 'character_first' | 'global_first';
 export const LORE_STRATEGIES: LoreStrategy[] = ['evenly', 'character_first', 'global_first'];
@@ -36,6 +42,7 @@ export const DEFAULT_GEN_PREFS: GenPrefs = {
   reasoning: { autoParse: true, prefix: '<think>', suffix: '</think>', autoExpand: false, addToPrompts: false, maxAdditions: 1 },
   loreStrategy: 'character_first',
   loreVectors: DEFAULT_LORE_VECTORS,
+  dataBank: DEFAULT_DATA_BANK,
   translate: DEFAULT_TRANSLATE_PREFS,
 };
 
@@ -82,7 +89,24 @@ export function normalizeGenPrefs(raw: unknown): GenPrefs {
     },
     loreStrategy: LORE_STRATEGIES.includes(input.loreStrategy) ? input.loreStrategy : d.loreStrategy,
     loreVectors: normalizeLoreVectors(input.loreVectors),
+    dataBank: normalizeDataBank(input.dataBank),
     translate: normalizeTranslatePrefs(input.translate),
+  };
+}
+
+function normalizeDataBank(raw: unknown): DataBankPrefs {
+  const v = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const d = DEFAULT_DATA_BANK;
+  const threshold = Number(v.threshold);
+  const template = typeof v.template === 'string' ? v.template.slice(0, 2000) : d.template;
+  return {
+    enabled: typeof v.enabled === 'boolean' ? v.enabled : d.enabled,
+    sizeThresholdKb: clampInt(v.sizeThresholdKb, 0, 1024, d.sizeThresholdKb),
+    chunkSize: clampInt(v.chunkSize, 200, 20000, d.chunkSize),
+    chunkOverlap: clampInt(v.chunkOverlap, 0, 50, d.chunkOverlap),
+    chunkCount: clampInt(v.chunkCount, 1, 50, d.chunkCount),
+    threshold: Number.isFinite(threshold) ? Math.min(1, Math.max(0, threshold)) : d.threshold,
+    template: template.trim() ? template : d.template,
   };
 }
 
@@ -119,6 +143,7 @@ export function setGenPrefs(userId: number, patch: unknown): GenPrefs {
     reasoning: { ...current.reasoning, ...(input.reasoning ?? {}) },
     translate: { ...current.translate, ...(input.translate ?? {}) },
     loreVectors: { ...current.loreVectors, ...(input.loreVectors ?? {}) },
+    dataBank: { ...current.dataBank, ...(input.dataBank ?? {}) },
   });
   db.prepare('UPDATE users SET gen_prefs = ? WHERE id = ?').run(JSON.stringify(next), userId);
   return next;

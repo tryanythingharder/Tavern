@@ -1,3 +1,4 @@
+import { dataBankText } from '@/lib/data-bank';
 import { recordMessageMeta, setMessageReasoning } from '@/lib/db';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
@@ -66,6 +67,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const vars = chatVariables(chat.id, chat.character_id, { beforeId: message.id });
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const vectorLore = await vectorLoreHits(user.id, ejsLore.entries, history);
+  const dataBank = (await dataBankText(user.id, { characterId: chat.character_id, chatId: chat.id }, history)).text;
   const prompt = assemblePrompt({
     character,
     history: addReasoningToHistory(history, genPrefs),
@@ -74,6 +76,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     userName: config.userName,
     loreEntries: ejsLore.entries,
     vectorLore,
+    dataBank,
     regexRules: config.regexRules,
     trigger: 'regenerate',
     ...promptMemory(chat, user.id),

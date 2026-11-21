@@ -37,6 +37,7 @@ const GROUPS: { label: string; advanced?: boolean; items: TocItem[] }[] = [
     items: [
       { href: '/me/presets', label: '预设', st: 'Preset' },
       { href: '/me/lorebooks', label: '世界书', st: 'World Info' },
+      { href: '/me/databank', label: '资料库', st: 'Data Bank' },
       { href: '/me/regex', label: '正则', st: 'Regex' },
       { href: '/me/cards', label: '角色卡', st: 'Card 覆盖' },
     ],

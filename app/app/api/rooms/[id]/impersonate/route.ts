@@ -1,3 +1,4 @@
+import { dataBankText } from '@/lib/data-bank';
 import { vectorLoreHits } from '@/lib/vectors';
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
@@ -43,6 +44,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const config = loadRoomConfig(user.id, room);
   const genPrefs = getGenPrefs(user.id);
   const vectorLore = await vectorLoreHits(user.id, roomLoreEntries(room, config.loreEntries, config.cardLoreLane), messages);
+  const dataBank = (await dataBankText(user.id, { roomId: room.id, characterIds: room.characterIds }, messages)).text;
   const prompt = buildRoomPrompt({
     room,
     messages,
@@ -53,6 +55,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     loreEntries: config.loreEntries,
     cardLoreLane: config.cardLoreLane,
     vectorLore,
+    dataBank,
     regexRules: config.regexRules,
     variables: roomVariables(room.id, room.characterIds),
   });

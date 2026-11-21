@@ -1,3 +1,4 @@
+import { dataBankText } from '@/lib/data-bank';
 import { vectorLoreHits } from '@/lib/vectors';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
@@ -95,6 +96,7 @@ async function handlePost(request: Request, context: Params) {
   const namePrefix = names.length ? new RegExp(`^\\s*(?:${names.join('|')})\\s*[：:]\\s*`) : /^\s*$/;
 
   const vectorLore = await vectorLoreHits(user.id, roomLoreEntries(room, config.loreEntries, config.cardLoreLane), messages);
+  const dataBank = (await dataBankText(user.id, { roomId: room.id, characterIds: room.characterIds }, messages)).text;
   const prompt = buildRoomPrompt({
     room,
     messages: addReasoningToHistory(messages, genPrefs),
@@ -105,6 +107,7 @@ async function handlePost(request: Request, context: Params) {
     loreEntries: config.loreEntries,
     cardLoreLane: config.cardLoreLane,
     vectorLore,
+    dataBank,
     regexRules: config.regexRules,
     memory: roomPromptMemory(room.id, user.id),
     characterNoteText: combinedNoteText(roomPromptMemory(room.id, user.id)?.authorNote.text ?? '', characterNote(user.id, speaker.id)),
