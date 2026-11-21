@@ -4,21 +4,13 @@ import { labelFromFilename, EXPRESSION_LABELS, type ExpressionLabel } from '@/li
 import { addSprite, countOwn, deleteSprites, listSprites, relabelSprite } from '@/lib/sprites-db';
 import { saveMedia } from '@/lib/storage';
 import { readZip } from '@/lib/zip-read';
+import { imageExt } from '@/lib/image-ext';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 const MAX_OWN = 200;
 const MAX_FILE = 5 * 1024 * 1024;
-
-function imageExt(buf: Buffer): string | null {
-  if (buf.length < 12) return null;
-  if (buf[0] === 0x89 && buf[1] === 0x50) return 'png';
-  if (buf[0] === 0xff && buf[1] === 0xd8) return 'jpg';
-  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
-  if (buf.toString('ascii', 0, 3) === 'GIF') return 'gif';
-  return null;
-}
 
 async function load(context: Params) {
   const user = await requireUser();

@@ -20,6 +20,8 @@ import { ChatNavSheet } from '@/components/chat-nav-sheet';
 import { ChatFocusToggle, ChatFocusChrome } from '@/components/chat-focus';
 import { ChatStage } from '@/components/chat-stage';
 import { spriteMap } from '@/lib/sprites-db';
+import { resolveBackground } from '@/lib/backgrounds';
+import { ChatBackdropLayer, ChatBackgroundButton } from '@/components/chat-background';
 import { PointsChip } from '@/components/points-chip';
 import { balance as pointsBalance } from '@/lib/points';
 import { chatFocusBootScript } from '@/lib/chat-focus';
@@ -65,12 +67,14 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const richCard = loadExtras(character.id).flags?.html === true;
   const cover = character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null);
   const sprites = spriteMap(character.id, user.id, character.owner_id ?? null);
+  const bg = resolveBackground('chat', chat.id, user.id);
   const hasStage = Boolean(cover) || Object.keys(sprites).length > 0;
 
   return (
     <main className="p-inner">
       <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard, hasStage) }} />
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
+      <ChatBackdropLayer src={bg.src} />
       {hasStage && <ChatStage cover={cover} name={character.name} characterId={character.id} sprites={sprites} />}
       <ChatFocusChrome />
       <div className="p-rp-workbench" data-theme-chat={theme}>
@@ -95,6 +99,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
                 <ChatNavSheet />
                 <ChatSearch chatId={chat.id} characterName={character.name} />
                 <ChatSettings chatId={chat.id} />
+                <ChatBackgroundButton kind="chat" id={chat.id} value={bg.value} />
                 <AppearanceButton className="btn btn--sm ua-trigger--chat" />
               </div>
             </div>

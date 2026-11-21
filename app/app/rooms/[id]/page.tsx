@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { PointsChip } from '@/components/points-chip';
+import { resolveBackground } from '@/lib/backgrounds';
+import { ChatBackdropLayer, ChatBackgroundButton } from '@/components/chat-background';
 import { balance as pointsBalance } from '@/lib/points';
 import { getCharacterById } from '@/lib/db';
 import { getRoom, insertRoomGreetings, listRoomMessages, roomFamily } from '@/lib/rooms';
@@ -48,8 +50,10 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
   const activeCount = members.filter((member) => !room.muted.includes(member.id)).length;
   const strategyLabel = STRATEGY_LABEL[room.strategy] ?? room.strategy;
 
+  const bg = resolveBackground('room', room.id, user.id);
   return (
     <main className="p-inner">
+      <ChatBackdropLayer src={bg.src} />
       <div className="p-rp-workbench" data-room="">
         <div className="p-chat">
           <header className="p-chat-head">
@@ -66,6 +70,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               <RoomMemoryButton roomId={room.id} />
+              <ChatBackgroundButton kind="room" id={room.id} value={bg.value} />
               <AppearanceButton className="p-chat-icon ua-trigger--icon" />
               <Link className="p-chat-icon" href="/rooms" aria-label="房间设置">
                 <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></svg>
