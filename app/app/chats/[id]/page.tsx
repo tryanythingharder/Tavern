@@ -19,6 +19,7 @@ import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
 import { ChatFocusToggle, ChatFocusChrome } from '@/components/chat-focus';
 import { ChatStage } from '@/components/chat-stage';
+import { ChatSpriteFloat } from '@/components/chat-sprite-float';
 import { spriteMap } from '@/lib/sprites-db';
 import { resolveBackground } from '@/lib/backgrounds';
 import { ChatBackdropLayer, ChatBackgroundButton } from '@/components/chat-background';
@@ -76,6 +77,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
       <ChatBackdropLayer src={bg.src} />
       {hasStage && <ChatStage cover={cover} name={character.name} characterId={character.id} sprites={sprites} />}
+      {Object.keys(sprites).length > 0 && <ChatSpriteFloat sprites={sprites} name={character.name} />}
       <ChatFocusChrome />
       <div className="p-rp-workbench" data-theme-chat={theme}>
         <div className="p-chat">

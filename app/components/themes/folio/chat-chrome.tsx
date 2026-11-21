@@ -1,5 +1,6 @@
 import { displayCardText } from '@/lib/st-macros';
 import Link from 'next/link';
+import { LiveCover } from '@/components/live-cover';
 import type { ChatChromeData } from '@/components/themes/chat-chrome';
 import { latinName, pad } from '@/components/themes/folio/lib';
 import { FolioBookmarks, FolioComposerTools, FolioFolio, FolioProgress, FolioToc } from '@/components/themes/folio/chat-live';
@@ -25,7 +26,7 @@ export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
         </div>
         <div className="fo-plate-body">
           <Link className="fo-ph" href={`/c/${character.id}`} aria-label={`查看 ${character.name} 的角色卡`}>
-            {character.cover ? <img src={character.cover} alt="" /> : <span className="fo-ph-initial" aria-hidden="true">{Array.from(character.name)[0]}</span>}
+            {character.cover ? <LiveCover src={character.cover} /> : <span className="fo-ph-initial" aria-hidden="true">{Array.from(character.name)[0]}</span>}
             <span className="fo-no">Vol. {pad(chrome.chatId)}</span>
           </Link>
           <h1 className="fo-plate-name">{character.name}{latin && <span className="fo-it">{latin}</span>}</h1>

@@ -46,3 +46,10 @@ html:has(.chat-bg) .p-rp-workbench { position: relative; z-index: 1; }
 .cbg-dim { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: #4a413a; }
 .cbg-dim input { flex: 1; accent-color: #c9401f; }
 .cbg-dim output { width: 3em; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* 非沉浸模式：主题侧栏立绘位换成表情立绘（components/live-cover.tsx） */
+html body[data-theme]:not(#_):not(#__) img.is-live-sprite { object-fit: contain !important; object-position: 50% 100% !important; transform: none !important; animation: spr-in .32s ease-out; }
+html body[data-theme="nocturne"]:not(#_):not(#__) .noc-dossier-live { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 24%; }
+html body[data-theme="nocturne"]:not(#_):not(#__) .noc-dossier-live:not(.is-live-sprite) { opacity: 0; }
+html body[data-theme="nocturne"]:not(#_):not(#__) .noc-dossier-ph:has(.is-live-sprite) { background-image: none !important; }
+@media (prefers-reduced-motion: reduce) { html body[data-theme]:not(#_):not(#__) img.is-live-sprite { animation: none; } }

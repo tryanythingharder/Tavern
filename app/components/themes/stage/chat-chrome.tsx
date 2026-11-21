@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LiveCover } from '@/components/live-cover';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { ChatChromeData } from '@/components/themes/chat-chrome';
@@ -129,7 +130,7 @@ export function StageChatChrome({ chrome }: { chrome: ChatChromeData }) {
       <aside className="stg-char" ref={cardRef} aria-label={`${character.name} 的角色卡`} style={{ ['--name' as string]: `${nameSize}px` } as CSSProperties}>
         <div className="stg-char-ph">
           {character.cover
-            ? <img src={character.cover} alt="" draggable={false} />
+            ? <LiveCover src={character.cover} draggable={false} />
             : <span className="stg-art stg-art--none" aria-hidden="true"><b>{Array.from(character.name)[0]}</b></span>}
           <div className="stg-char-top">
             <Link className="stg-back" href="/">← 卡册</Link>

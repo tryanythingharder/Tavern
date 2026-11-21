@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LiveCover } from '@/components/live-cover';
 import type { ChatChromeData } from '@/components/themes/chat-chrome';
 import { NocTimecode } from '@/components/themes/nocturne/parts';
 import { actInfo, cnNumber, pad2, runtime, TURNS_PER_ACT } from '@/components/themes/nocturne/lib';
@@ -71,6 +72,7 @@ export function NocturneChatChrome({ chrome }: { chrome: ChatChromeData }) {
       <aside className="noc-dossier" aria-label={`${character.name}记得的事`}>
         <Link className="noc-dossier-ph" href={`/c/${character.id}`} style={character.cover ? { backgroundImage: `url(${character.cover})` } : undefined}>
           {!character.cover && <span className="noc-dossier-initial">{Array.from(character.name)[0]}</span>}
+          {character.cover && <LiveCover src={character.cover} className="noc-dossier-live" />}
           <span className="noc-latin">Cast · {character.name}</span>
         </Link>
         <h5>{character.name} 记得</h5>
