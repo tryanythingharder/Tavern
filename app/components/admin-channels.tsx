@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
+import { INSTRUCT_PRESETS, parseInstructJson } from '@/lib/instruct';
 
 export type ChannelView = {
   id: number;
@@ -14,6 +15,8 @@ export type ChannelView = {
   defaultModel: string;
   priority: number;
   enabled: boolean;
+  apiMode?: 'chat' | 'text';
+  textTemplate?: string;
   hasKey: boolean;
   lastTestAt: number | null;
   lastTestOk: boolean | null;
@@ -56,6 +59,10 @@ function ChannelForm({
   const [defaultModel, setDefaultModel] = useState(current?.defaultModel ?? '');
   const [priority, setPriority] = useState(String(current?.priority ?? 0));
   const [enabled, setEnabled] = useState(current?.enabled ?? true);
+  const [apiMode, setApiMode] = useState<'chat' | 'text'>(current?.apiMode ?? 'chat');
+  const initialTpl = current?.textTemplate ?? '';
+  const [tplId, setTplId] = useState(initialTpl.startsWith('{') ? 'custom' : (initialTpl || 'chatml'));
+  const [tplJson, setTplJson] = useState(initialTpl.startsWith('{') ? initialTpl : '');
   const [filter, setFilter] = useState('');
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState('');
@@ -110,6 +117,7 @@ function ChannelForm({
       if (editing === 'new' && !apiKey.trim()) throw new Error('请填写 API Key');
       if (!selectedList.length) throw new Error('请先获取并勾选至少一个模型');
       if (!defaultModel) throw new Error('请选择默认模型');
+      if (apiMode === 'text' && tplId === 'custom' && !parseInstructJson(tplJson)) throw new Error('自定义模板不是有效的 ST Instruct JSON');
       const payload = {
         name: name.trim(),
         baseUrl: baseUrl.trim(),
@@ -118,6 +126,8 @@ function ChannelForm({
         defaultModel,
         priority: Number(priority) || 0,
         enabled,
+        apiMode,
+        textTemplate: apiMode === 'text' ? (tplId === 'custom' ? tplJson.trim() : tplId) : '',
       };
       const result = current
         ? await api<{ channel: ChannelView }>(`/api/admin/channels/${current.id}`, { method: 'PATCH', body: JSON.stringify(payload) })
@@ -156,6 +166,33 @@ function ChannelForm({
         <label htmlFor="channel-key">API Key{current ? '（留空不改）' : ''}</label>
         <input id="channel-key" className="p-input" type="password" value={apiKey} placeholder={current?.hasKey ? '已保存，留空不变' : 'sk-…'} onChange={(event) => setApiKey(event.target.value)} />
       </div>
+
+      <div className="channel-form-grid">
+        <div className="p-field">
+          <label htmlFor="channel-api">接口类型</label>
+          <Select id="channel-api" value={apiMode} onChange={(event) => setApiMode(event.target.value === 'text' ? 'text' : 'chat')}>
+            <option value="chat">对话补全 /chat/completions</option>
+            <option value="text">文本补全 /completions（ST Text Completion）</option>
+          </Select>
+          <span className="p-hint">本地模型 / KoboldCpp / vLLM / text-generation-webui 等走文本补全时，按 Instruct 模板拼 prompt。</span>
+        </div>
+        {apiMode === 'text' && (
+          <div className="p-field">
+            <label htmlFor="channel-tpl">Instruct 模板</label>
+            <Select id="channel-tpl" value={tplId} onChange={(event) => setTplId(event.target.value)}>
+              {Object.entries(INSTRUCT_PRESETS).map(([id, tpl]) => <option key={id} value={id}>{tpl.name}</option>)}
+              <option value="custom">自定义（粘贴 ST 导出的 JSON）</option>
+            </Select>
+          </div>
+        )}
+      </div>
+      {apiMode === 'text' && tplId === 'custom' && (
+        <div className="p-field">
+          <label htmlFor="channel-tpl-json">ST Instruct 模板 JSON</label>
+          <textarea id="channel-tpl-json" className="p-input" rows={6} value={tplJson} placeholder='{"name":"…","input_sequence":"…","output_sequence":"…"}' onChange={(event) => setTplJson(event.target.value)} />
+          <span className="p-hint">{tplJson.trim() ? (parseInstructJson(tplJson) ? `已识别：${parseInstructJson(tplJson)!.name}` : '还不是有效的模板 JSON') : 'ST 里「AI 回复格式 → Instruct 模板」导出的文件内容。'}</span>
+        </div>
+      )}
 
       <div className="channel-models-head">
         <div>

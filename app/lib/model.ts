@@ -1,5 +1,6 @@
 // 模型调用：OpenAI 兼容的 /chat/completions，流式。
 // 端点与密钥优先读后台配置（app_settings），其次环境变量（.env.local，已 gitignore）——绝不写进代码或提交。
+import { formatTextPrompt, resolveInstruct } from '@/lib/instruct';
 import type { PresetParams } from '@/lib/resources';
 import { getSetting } from '@/lib/settings';
 import { channelCount, channelModels, channelRoutes, channelRoutesFor } from '@/lib/channels';
@@ -20,7 +21,7 @@ function modelId(): string {
   return getSetting('model.name', process.env.TAVERN_MODEL_NAME ?? '');
 }
 
-export type ModelRoute = { baseUrl: string; apiKey: string; model: string };
+export type ModelRoute = { baseUrl: string; apiKey: string; model: string; api?: 'chat' | 'text'; template?: string };
 
 function parseFallbacks(raw: string): ModelRoute[] {
   if (!raw.trim()) return [];
@@ -170,6 +171,8 @@ export type StreamOptions = {
   model?: string | null;
   // ST「自动解析」：正文以前缀（<think>）开头时，前缀到后缀之间当作思考内容
   reasoningTags?: { prefix: string; suffix: string } | null;
+  // 文本补全渠道拼 prompt 时用的名字（Instruct 模板的 names_behavior）
+  names?: { user: string; char: string };
 };
 
 // 上游可重试的状态：限流、超时、网关故障（含 Cloudflare 52x、Anthropic 529 过载）
@@ -417,10 +420,23 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
     // 先主线路，再按顺序尝试备用线路
     let response: Response | null = null;
     let usedModel = '';
+    let textMode = false;
     let lastError = '';
     for (let routeIndex = 0; routeIndex < routes.length && !response; routeIndex += 1) {
       const route = routes[routeIndex];
       let payload: Record<string, unknown> = { ...body, model: route.model };
+      let endpoint = '/chat/completions';
+      if (route.api === 'text') {
+        // ST 文本补全：按渠道的 Instruct 模板拼成 prompt，模板的结束符并进停止词
+        const tpl = resolveInstruct(route.template);
+        // 没有名字的后台调用（摘要、记忆）不加「名字:」前缀
+        const formatted = formatTextPrompt(messages, options.names ? tpl : { ...tpl, names_behavior: 'none' }, options.names ?? { user: '', char: '' });
+        const { messages: _drop, ...rest } = payload;
+        const allStops = [...new Set([...stops, ...formatted.stop])];
+        payload = { ...rest, prompt: formatted.prompt, ...(allStops.length ? { stop: allStops.slice(0, MAX_API_STOPS) } : {}) };
+        endpoint = '/completions';
+        textMode = true;
+      }
       let strippedExtras = false;
       for (let attempt = 0; attempt < 3; attempt += 1) {
         let retry = false;
@@ -428,7 +444,7 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
         if (local.signal.aborted && !userAborted() && !expired) { local = new AbortController(); timedOut = ''; }
         try {
           armIdle(connectMs, `上游 ${Math.round(connectMs / 1000)} 秒没有响应`);
-          const candidate = await fetch(`${route.baseUrl}/chat/completions`, {
+          const candidate = await fetch(`${route.baseUrl}${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json', Authorization: `Bearer ${route.apiKey}` },
             body: JSON.stringify(payload),
@@ -489,7 +505,9 @@ export async function* streamChat(messages: ChatMessage[], options: StreamOption
       for (const raw of parsed.content) {
         const part = splitter ? splitter.push(raw) : { reasoning: '', content: raw };
         if (part.reasoning) { reasoned = true; yield { type: 'reasoning', text: part.reasoning }; }
-        const out = part.content ? trimmer.push(part.content) : '';
+        let out = part.content ? trimmer.push(part.content) : '';
+        // 文本补全接在「名字:」后面，开头常带空格/换行
+        if (textMode && !produced) out = out.replace(/^\s+/, '');
         if (out) { produced = true; yield { type: 'content', text: out }; }
       }
       if (parsed.finish) finish = parsed.finish;

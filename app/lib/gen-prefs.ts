@@ -175,6 +175,7 @@ export class GenTrace {
 export function streamExtras(prefs: GenPrefs, base: string[], names: { user: string; char: string }) {
   return {
     stop: [...base, ...resolveStopStrings(prefs, names)],
+    names,
     reasoningTags: prefs.reasoning.autoParse ? { prefix: prefs.reasoning.prefix, suffix: prefs.reasoning.suffix } : null,
   };
 }
