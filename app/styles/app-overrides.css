@@ -911,6 +911,10 @@ html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-thought { justify-
 .p-gen-prefs-head { margin-top: 32px; }
 .p-gen-prefs .p-check { margin: 6px 0; }
 .p-gen-prefs-inline { max-width: 220px; margin: 4px 0 8px 26px; }
+.p-gen-prefs-import { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; margin-bottom: 12px; border: 1px dashed var(--border); border-radius: 10px; }
+.p-gen-prefs-import .p-btn { flex: none; }
+.p-gen-prefs-imported { margin: -4px 0 12px; color: var(--accent, #c9401f); }
+@media (max-width: 560px) { .p-gen-prefs-import { flex-direction: column; align-items: stretch; } }
 .p-gen-prefs-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
 
 /* 年龄门槛（backlog 9） */

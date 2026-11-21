@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { usePlayMode } from '@/components/play-mode';
 import type { GenPrefs } from '@/lib/gen-prefs';
 import { Select } from '@/components/ui-select';
 import { TRANSLATE_LANGS, type TranslateAuto } from '@/lib/translation';
+import { genPrefsFromStSettings } from '@/lib/st-settings';
 
 // ST「高级格式化 / 用户设置」里不随预设切换的全局项
 export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
@@ -16,6 +17,29 @@ export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [imported, setImported] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // 读 ST 的 settings.json，填进表单，点保存才生效
+  const importSt = async (file: File | undefined) => {
+    if (!file) return;
+    setError('');
+    setImported('');
+    try {
+      const data = JSON.parse(await file.text());
+      const result = genPrefsFromStSettings(data, prefs);
+      if (!result) throw new Error('这个文件里没有可导入的生成行为设置，请选 SillyTavern 的 settings.json');
+      const next = { ...prefs, ...result.patch };
+      setPrefs(next);
+      if (result.patch.stopStrings) setStopText(result.patch.stopStrings.length ? JSON.stringify(result.patch.stopStrings) : '');
+      setSaved(false);
+      setImported(`已读到：${result.found.join('、')}。检查一下，点保存生效。`);
+    } catch (caught) {
+      setError(caught instanceof SyntaxError ? '文件不是有效的 JSON' : (caught as Error).message);
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   const patch = (next: Partial<GenPrefs>) => { setPrefs((prev) => ({ ...prev, ...next })); setSaved(false); };
   const patchAc = (next: Partial<GenPrefs['autoContinue']>) => patch({ autoContinue: { ...prefs.autoContinue, ...next } });
@@ -40,6 +64,14 @@ export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
   return (
     <div className="p-gen-prefs">
       <ErrorLine message={error} />
+      {full && (
+        <div className="p-gen-prefs-import">
+          <span className="p-small">从 SillyTavern 搬过来？选它的 settings.json，停止词、思考、自动继续、世界书策略、翻译一次带过来。</span>
+          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(event) => void importSt(event.target.files?.[0])} />
+          <button className="p-btn p-btn--sm" type="button" onClick={() => fileRef.current?.click()}>导入 ST 设置</button>
+        </div>
+      )}
+      {imported && <p className="p-small p-gen-prefs-imported" role="status">{imported}</p>}
       <h3 className="p-form-section-title">回复处理</h3>
       <label className="p-check">
         <input type="checkbox" checked={prefs.trimSentences} onChange={(event) => patch({ trimSentences: event.target.checked })} />
