@@ -39,7 +39,7 @@ html body[data-theme="folio"]:not(#a) :is(.p-side-back, .p-topbar-back) { border
 /* 「我的」桌面：去掉页内大标题，设置目录贴左当侧栏，右侧内容放宽 */
 html body:not(#a) .p-toc-head { display: none; }
 @media (min-width: 1024px) {
-  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-inner { max-width: none; width: 100%; padding: 0 32px 0 0; margin: 0; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-inner { max-width: none; width: 100%; padding: 0; margin: 0; }
   html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-page-title { display: none; }
   html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 0; align-items: start; }
   html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings .p-toc {
@@ -51,10 +51,14 @@ html body:not(#a) .p-toc-head { display: none; }
     display: block; margin: 0 0 18px; font-size: 13px; font-weight: 700; letter-spacing: .16em; color: var(--ca-muted, #77726b);
   }
   html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main {
-    max-width: 1080px; min-height: calc(100vh - var(--topbar-h, 72px)); padding: 26px 0 64px 44px;
+    max-width: none; min-height: calc(100vh - var(--topbar-h, 72px)); padding: 26px 44px 64px;
     border-left: 1px solid var(--ca-line, #e3e0db);
   }
   html body[data-theme="folio"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main { border-left-color: var(--fo-line-strong, #cfcac3); }
   html body[data-theme="folio"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-toc-head { font-family: var(--fo-italic, serif); font-style: italic; letter-spacing: .08em; font-size: 15px; }
   html body[data-theme="nocturne"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main { border-left-color: var(--noc-line, rgba(255,255,255,.14)); }
+}
+@media (min-width: 1024px) {
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main > * { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings .p-toc :is(button, a) { white-space: normal; }
 }
