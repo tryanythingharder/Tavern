@@ -33,6 +33,8 @@ export const SLASH_HELP: { cmd: string; desc: string }[] = [
   { cmd: '/qr-chatset 集名', desc: '只在本聊天切换（/qr-chatset-on、/qr-chatset-off）' },
   { cmd: '/bg 名字', desc: '换背景（按名字匹配背景库；锁定了就换这段故事的，否则换默认；不带参数看当前；/bg none 无背景）' },
   { cmd: '/lockbg', desc: '把当前背景锁定到这段故事（/unlockbg 解锁）' },
+  { cmd: '/reasoning-get', desc: '读取最后一条角色消息的思考内容给下一条命令（at=楼层号 指定楼层）' },
+  { cmd: '/reasoning-set 文本', desc: '改写最后一条角色消息的思考内容（at=楼层号；不写文本 = 删除）' },
   { cmd: '/expression-set 表情', desc: '手动切换立绘表情，如 joy 或「开心」（/expression-list 列出全部）' },
 ];
 
@@ -47,6 +49,7 @@ const ALIASES: Record<string, string> = {
   qr: 'qr', 'qr-list': 'qr-list', 'qr-set': 'qr-set', 'qr-set-on': 'qr-set-on', 'qr-set-off': 'qr-set-off',
   'qr-chatset': 'qr-chatset', 'qr-chatset-on': 'qr-chatset-on', 'qr-chatset-off': 'qr-chatset-off',
   bg: 'bg', background: 'bg', lockbg: 'lockbg', bglock: 'lockbg', unlockbg: 'unlockbg', bgunlock: 'unlockbg',
+  'reasoning-get': 'reasoning-get', 'get-reasoning': 'reasoning-get', 'reasoning-set': 'reasoning-set', 'set-reasoning': 'reasoning-set',
   'expression-set': 'expression-set', sprite: 'expression-set', emote: 'expression-set', 'expression-list': 'expression-list', expressions: 'expression-list',
 };
 

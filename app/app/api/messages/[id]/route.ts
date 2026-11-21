@@ -28,10 +28,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return updated ? Response.json({ message: toMessageView(updated) }) : fail('消息不存在', 404);
   }
 
+  // 只改思考内容（/reasoning-set）：不传 content，正文不动
+  const reasoningOnly = body.content === undefined && body.reasoning !== undefined;
   const content = String(body.content ?? '').trim();
-  if (!content) return fail('内容不能为空', 400);
+  if (!content && !reasoningOnly) return fail('内容不能为空', 400);
 
-  const updated0 = updateMessageContent(message.id, content);
+  const updated0 = reasoningOnly ? message : updateMessageContent(message.id, content);
   if (!updated0) return fail('消息不存在', 404);
   // 思考内容（ST 的 reasoning 编辑）：只改当前候选；空串 = 删除；不传 = 不动
   let updated = updated0;

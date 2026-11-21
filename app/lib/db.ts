@@ -495,6 +495,7 @@ ensureColumn('messages', 'reasoning', 'TEXT');
 ensureColumn('messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'meta', 'TEXT');
 ensureColumn('messages', 'translations', 'TEXT');
+ensureColumn('room_messages', 'translations', 'TEXT');
 ensureColumn('room_messages', 'reasoning', 'TEXT');
 
 // 首次启动把种子角色写入数据库；之后以数据库为准。

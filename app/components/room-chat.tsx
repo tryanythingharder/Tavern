@@ -16,8 +16,9 @@ import { parseSlash } from '@/lib/slash';
 import { runBgCommand } from '@/lib/slash-media';
 import { useRouter } from 'next/navigation';
 import { showAlert } from '@/components/ui-dialog';
+import { langLabel } from '@/lib/translation';
 
-type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null };
+type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null; translation?: { lang: string; text: string; original: boolean } | null };
 type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
 
 type Props = {
@@ -36,7 +37,7 @@ type Props = {
   quickReplies?: QrState;
 };
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "checkpoint": "M7 4h10v16l-5-3.5L7 20z"} as const;
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"} as const;
 function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
@@ -82,6 +83,39 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
   const abortRef = useRef<AbortController | null>(null);
   const autoContinueRef = useRef<number | null>(null);
   const thoughtsOpen = useThoughtsOpen();
+
+  // ---- 消息翻译（ST Translate，同单聊）----
+  const [translating, setTranslating] = useState<number | null>(null);
+  // 默认显示译文；点「看原文」的消息记在这里
+  const [flipped, setFlipped] = useState<Set<number | string>>(() => new Set());
+  const autoTranslateRef = useRef(false);
+  useEffect(() => {
+    void fetch('/api/me/gen-prefs').then((response) => (response.ok ? response.json() : null)).then((data) => {
+      const auto = data?.prefs?.translate?.auto;
+      autoTranslateRef.current = auto === 'responses' || auto === 'both';
+    }).catch(() => undefined);
+  }, []);
+  const translateMessage = useCallback(async (id: number, quiet = false) => {
+    setTranslating(id);
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/messages/${id}/translate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = (await response.json().catch(() => ({}))) as { translation?: RoomMessageView['translation']; message?: string; cost?: number; balance?: number };
+      if (!response.ok) throw new Error(data.message || '翻译失败');
+      setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, translation: data.translation ?? null } : item)));
+      setFlipped((prev) => { if (!prev.has(id)) return prev; const next = new Set(prev); next.delete(id); return next; });
+      emitPoints(data);
+    } catch (caught) {
+      setError(`${quiet ? '自动翻译没成功：' : ''}${(caught as Error).message}`);
+    } finally {
+      setTranslating(null);
+    }
+  }, [roomId]);
+  const removeTranslation = useCallback(async (id: number) => {
+    await fetch(`/api/rooms/${roomId}/messages/${id}/translate`, { method: 'DELETE' }).catch(() => undefined);
+    setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, translation: null } : item)));
+  }, [roomId]);
+  const translateRef = useRef(translateMessage);
+  translateRef.current = translateMessage;
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -208,6 +242,10 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
             completed = true;
             emitPoints(event as { balance?: unknown; cost?: unknown });
             if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = event.messageId;
+            if (autoTranslateRef.current && typeof event.messageId === 'number' && !event.autoContinue) {
+              const doneId = event.messageId;
+              setTimeout(() => void translateRef.current(doneId, true), 600);
+            }
             setMessages((prev) =>
               prev.map((item) =>
                 item.id === streamKey
@@ -215,6 +253,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                       ...item,
                       id: event.messageId ?? item.id,
                       content: event.content ?? full,
+                      translation: null,
                       thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
                       speakerId: event.speakerId ?? item.speakerId,
                       ...(event.candidateCount ? { candidateCount: event.candidateCount, selected: event.candidateIndex ?? event.candidateCount - 1 } : {}),
@@ -361,7 +400,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
       const data = (await response.json().catch(() => ({}))) as { message?: RoomMessageView & { message?: string } };
       if (response.ok && data.message) {
         const updated = data.message;
-        setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: updated.content, selected: updated.selected, candidateCount: updated.candidateCount, thought: updated.thought ?? null } : item)));
+        setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: updated.content, selected: updated.selected, candidateCount: updated.candidateCount, thought: updated.thought ?? null, translation: updated.translation ?? null } : item)));
       } else setError('切换失败');
     } finally {
       setSwitching(null);
@@ -380,7 +419,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     }
     const saved = typeof data.message === 'object' ? data.message : null;
     const touchedThought = editing.thought !== undefined;
-    setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content, ...(touchedThought ? { thought: saved?.thought ?? null } : {}) } : item)));
+    setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content, ...(content !== item.content ? { translation: null } : {}), ...(touchedThought ? { thought: saved?.thought ?? null } : {}) } : item)));
     setEditing(null);
   }, [editing, roomId]);
 
@@ -495,6 +534,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
             const canSwipe = !isUser && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
             // 开场白（玩家还没说过话之前的角色消息）：只在备选开场白之间切换，不生成新版（同单聊 / ST）
             const isOpening = !isUser && index <= firstUserIndex;
+            const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
             return (
               <article
                 key={message.id}
@@ -569,9 +609,18 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                       {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
                       <div className="p-msg-copy p-msg-text">
                         {message.content
-                          ? <RichText text={message.content} streaming={isStreamingThis} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
+                          ? <RichText text={showTr && message.translation ? message.translation.text : message.content} streaming={isStreamingThis} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
                           : isStreamingThis ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
                       </div>
+                      {message.translation && numericId !== null && !isStreamingThis && (
+                        <div className="p-msg-tr" role="group" aria-label="翻译">
+                          <span className="p-msg-tr-tag">{showTr ? `译文 · ${langLabel(message.translation.lang)}` : '原文'}</span>
+                          <button type="button" onClick={() => setFlipped((prev) => { const next = new Set(prev); if (next.has(message.id)) next.delete(message.id); else next.add(message.id); return next; })}>{showTr ? '看原文' : '看译文'}</button>
+                          <button type="button" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}>{translating === numericId ? '翻译中…' : '重新翻译'}</button>
+                          <button type="button" onClick={() => void removeTranslation(numericId)}>移除</button>
+                        </div>
+                      )}
+                      {translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
                       {message.checkpoint ? (
                         <a className="p-msg-checkpoint" href={`/rooms/${message.checkpoint}`}>
                           <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS.checkpoint} /></svg>
@@ -609,6 +658,9 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                           <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
                           {!isUser && isLast && !isOpening && (
                             <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void run({ kind: 'regenerate', messageId: numericId })}><Ico name="regen" /></button>
+                          )}
+                          {!message.translation && message.content && (
+                            <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void translateMessage(numericId)}><Ico name="translate" /></button>
                           )}
                           <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void branch(message)}><Ico name="branch" /></button>
                           <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} disabled={streaming} onClick={() => void branch(message, true)}><Ico name="checkpoint" /></button>

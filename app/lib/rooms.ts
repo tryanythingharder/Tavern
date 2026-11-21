@@ -1,3 +1,4 @@
+import { translationFor, withTranslation, type TranslationView } from '@/lib/translation';
 import { reasoningAt, withReasoning, type Reasoning } from '@/lib/reasoning';
 import db, { getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
 import { applyRegex, scanLore, summaryText } from '@/lib/prompt';
@@ -48,6 +49,8 @@ export type RoomMessage = {
   personaAvatar: string | null;
   /** 当前候选的思考内容 */
   thought: Reasoning | null;
+  /** 当前正文的译文（ST Translate；按正文哈希存，和单聊一样） */
+  translation: TranslationView | null;
 };
 
 type RoomRow = {
@@ -58,7 +61,7 @@ type RoomRow = {
 type RoomMessageRow = {
   id: number; room_id: number; role: string; speaker_id: string | null; content: string; created_at: number;
   candidates?: string | null; selected?: number | null; checkpoint_room_id?: number | null; attachment?: string | null;
-  persona_name?: string | null; persona_avatar?: string | null; reasoning?: string | null;
+  persona_name?: string | null; persona_avatar?: string | null; reasoning?: string | null; translations?: string | null;
 };
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -190,7 +193,17 @@ function messageFromRow(row: RoomMessageRow): RoomMessage {
     personaName: row.persona_name ?? null,
     personaAvatar: row.persona_avatar ?? null,
     thought: row.role === 'user' ? null : reasoningAt(row.reasoning, Math.min(Math.max(row.selected ?? 0, 0), count - 1)),
+    translation: translationFor(row.translations, row.content),
   };
+}
+
+/** 存/删群聊消息当前正文的译文 */
+export function saveRoomTranslation(messageId: number, entry: { lang: string; text: string } | null): TranslationView | null {
+  const row = db.prepare('SELECT content, translations FROM room_messages WHERE id = ?').get(messageId) as { content: string; translations: string | null } | undefined;
+  if (!row) return null;
+  const raw = withTranslation(row.translations, row.content, entry ? { ...entry, at: Date.now() } : null);
+  db.prepare('UPDATE room_messages SET translations = ? WHERE id = ?').run(raw, messageId);
+  return translationFor(raw, row.content);
 }
 
 export function listRoomMessages(roomId: number, limit = 200): RoomMessage[] {
@@ -214,7 +227,7 @@ export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speak
   const personaAvatar = sender?.avatar ?? null;
   const result = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?)').run(roomId, role, speakerId, content, personaName, personaAvatar, now);
   db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, roomId);
-  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar, thought: null };
+  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar, thought: null, translation: null };
 }
 
 /**

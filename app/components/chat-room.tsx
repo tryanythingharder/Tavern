@@ -155,6 +155,8 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   }, [messages]);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [offset, setOffset] = useState(initialOffset);
+  const offsetRef = useRef(initialOffset);
+  offsetRef.current = offset;
   const [notice, setNotice] = useState('');
   const [slashHelp, setSlashHelp] = useState(false);
   const [qr, setQr] = useState<QrState>(qrInitial ?? { sets: [], globalIds: [], scopeIds: [] });
@@ -858,6 +860,26 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
           setNotice(result.notice);
           pipe = result.pipe;
           if (result.changed) router.refresh();
+        } else if (name === 'reasoning-get' || name === 'reasoning-set') {
+          // ST /reasoning-get、/reasoning-set：默认最后一条角色消息；at=楼层号（和 #N 一致）
+          const list = messagesRef.current;
+          const target = named.at !== undefined
+            ? list[Number(named.at) - offsetRef.current]
+            : [...list].reverse().find((item) => item.role === 'assistant' && typeof item.id === 'number');
+          if (!target || typeof target.id !== 'number') throw new Error(named.at !== undefined ? `找不到第 ${named.at} 楼（可能还没加载）` : '还没有角色消息');
+          if (target.role !== 'assistant') throw new Error('只有角色消息有思考内容');
+          if (name === 'reasoning-get') {
+            pipe = target.thought?.t ?? '';
+            setNotice(pipe ? `思考内容：\n${pipe}` : '这条消息没有思考内容');
+          } else {
+            const response = await fetch(`/api/messages/${target.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reasoning: arg }) });
+            const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView & { thought?: ThoughtView | null }; };
+            if (!response.ok || !data.message) throw new Error('保存思考内容失败');
+            const thought = data.message.thought ?? null;
+            setMessages((prev) => prev.map((item) => (item.id === target.id ? { ...item, thought } : item)));
+            pipe = arg;
+            setNotice(arg ? '已改写思考内容' : '已删除思考内容');
+          }
         } else if (name === 'expression-set' || name === 'expression-list') {
           const result = runExpressionCommand(name, arg);
           setNotice(result.notice);
