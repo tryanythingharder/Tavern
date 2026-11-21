@@ -39,24 +39,9 @@ import '../styles/app-overrides.css';
 import '../styles/redesign.css';
 // 三套主题：各自只在 body[data-theme=...] 下生效
 import '../styles/themes/shared.css';
-import '../styles/themes/folio.css';
-import '../styles/themes/nocturne.css';
-import '../styles/themes/stage.css';
-// 用户自定义外观：只在 body[data-u-*] 存在时覆盖主题，必须最后导入
-import '../styles/themes/custom.css';
-import '../styles/themes/dark.css';
-import '../styles/chat-focus.css';
-import '../styles/ui-select.css';
-import '../styles/quick-replies.css';
-import '../styles/ui-dialog.css';
-import '../styles/auth.css';
-import '../styles/me-shell.css';
-import '../styles/wallet.css';
-import '../styles/points-chip.css';
-import '../styles/sprites.css';
-import '../styles/models.css';
-// 英文界面下替换 CSS 伪元素里的中文
-import '../styles/i18n-en.css';
+// 当前主题（styles/themes/<t>.css）与排在主题之后的全局样式（custom、dark…i18n-en）
+// 由 scripts/build-css.mjs 预构建到 public/_css/，下面用 precedence 分组按原顺序加载，只下载当前主题那份。
+import { postCssHref, themeCssHref, themeCssMap } from '@/lib/css-assets';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({
@@ -115,6 +100,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* 界面语言：英文时在 hydration 前加载词典，客户端渲染与服务端一致 */}
         <script dangerouslySetInnerHTML={{ __html: `window.__TAVERN_LANG=${JSON.stringify(locale)};` }} />
         {locale === 'en' ? <Script src={`/i18n-en.js?v=${dictVersion()}`} strategy="beforeInteractive" /> : null}
+        {/* 层叠顺序：Next 打包的样式（precedence=next）→ 当前主题 → 主题之后的样式 */}
+        {themeCssHref(theme) ? <link rel="stylesheet" href={themeCssHref(theme)} precedence="yh-theme" /> : null}
+        {postCssHref() ? <link rel="stylesheet" href={postCssHref()} precedence="yh-post" /> : null}
+        <script dangerouslySetInnerHTML={{ __html: `window.__YH_THEME_CSS=${JSON.stringify(themeCssMap())};` }} />
       </head>
       <body
         // 首屏脚本会在 hydration 前改写 data-page / data-view / class，这是有意的

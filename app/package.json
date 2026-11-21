@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/build-css.mjs",
     "dev": "next dev -p 3100",
+    "css": "node scripts/build-css.mjs",
+    "css:watch": "node scripts/build-css.mjs --watch",
+    "prebuild": "node scripts/build-css.mjs",
     "build": "next build",
     "start": "next start -p 3100",
     "probe": "node scripts/production-probe.mjs",

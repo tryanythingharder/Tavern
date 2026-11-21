@@ -58,6 +58,8 @@ const nextConfig = {
       { source: '/((?!sandbox/).*)', headers: securityHeaders },
       // 角色卡 HTML 沙盒：被本站以 sandbox iframe 嵌入；允许外链图片/样式/字体/脚本（状态图、美化常用 CDN），禁止网络请求外发
       { source: '/sandbox/:path*', headers: sandboxHeaders },
+      // 预构建样式（scripts/build-css.mjs）文件名带内容 hash，可长期缓存
+      { source: '/_css/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
       // Service Worker 必须每次重新校验，否则新版本发不出去
       { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }, { key: 'Service-Worker-Allowed', value: '/' }] },
     ];

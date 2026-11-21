@@ -3,7 +3,7 @@
 import { syncPref } from '@/components/sync-prefs';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Theme } from '@/lib/theme';
 
 const OPTIONS: { id: Theme; label: string; hint?: string }[] = [
@@ -17,15 +17,46 @@ export function setThemeCookie(next: Theme) {
   void syncPref('theme', next);
 }
 
+// 主题样式按主题拆分（scripts/build-css.mjs），切换前先把新主题的样式加载好，
+// 插在当前主题样式旁边（同一 precedence 分组），保持层叠顺序；React 刷新时会直接沿用这个 <link>。
+function ensureThemeCss(next: Theme): Promise<void> {
+  const href = (window as Window & { __YH_THEME_CSS?: Record<string, string> }).__YH_THEME_CSS?.[next];
+  if (!href) return Promise.resolve();
+  const found = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).find((l) => l.getAttribute('href') === href);
+  if (found) return Promise.resolve();
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  link.setAttribute('data-precedence', 'yh-theme');
+  const group = document.querySelectorAll('link[data-precedence="yh-theme"]');
+  const last = group[group.length - 1];
+  const post = document.querySelector('link[data-precedence="yh-post"]');
+  if (last) last.after(link);
+  else if (post) post.before(link);
+  else document.head.appendChild(link);
+  return new Promise((resolve) => {
+    const done = () => resolve();
+    link.addEventListener('load', done, { once: true });
+    link.addEventListener('error', done, { once: true });
+    window.setTimeout(done, 4000);
+  });
+}
+
 export function ThemeSwitch({ initial, variant = 'pill' }: { initial: Theme; variant?: 'pill' | 'cards' }) {
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>(initial);
   useEffect(() => setTheme(initial), [initial]);
+  const themeRef = useRef<Theme>(initial);
 
   const choose = (next: Theme) => {
     if (next === theme) return;
     setThemeCookie(next);
     setTheme(next);
+    themeRef.current = next;
+    void ensureThemeCss(next).then(() => run());
+  };
+  const run = () => {
+    const next = themeRef.current;
     const apply = () => {
       document.body.dataset.theme = next;
       router.refresh();
