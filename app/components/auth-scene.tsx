@@ -1,27 +1,14 @@
 import Link from 'next/link';
-import { authWallColumns } from '@/lib/auth-wall';
+import { authRoster } from '@/lib/auth-wall';
+import { AuthRoster } from '@/components/auth-roster';
 
-// 登录 / 注册右侧场景：夜色里缓缓流动的角色立绘拼贴，三套主题共用（只换字体与强调色）
+// 登录 / 注册右侧「名册」：角色名索引 + 跟随的立绘（参考 197 Historias / Grids 的编辑部版式），三套主题共用
 
 
 export function AuthScene() {
-  const columns = authWallColumns();
   return (
-    <aside className="p-auth-scene" aria-hidden="true">
-      <div className="p-auth-wall">
-        {columns.map((col, i) => (
-          <div className="p-auth-col" data-col={i} key={i}>
-            {[...col, ...col].map((src, j) => (
-              <img key={j} src={src} alt="" loading={j < 3 ? 'eager' : 'lazy'} decoding="async" />
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="p-auth-scene-copy">
-        <div className="p-auth-scene-label">夜话 · YEHUA</div>
-        <h2>夜深了，<br />故事才刚开始。</h2>
-        <p>今晚，想和谁说说话？</p>
-      </div>
+    <aside className="p-auth-scene p-auth-scene--roster" aria-hidden="true">
+      <AuthRoster entries={authRoster()} />
     </aside>
   );
 }

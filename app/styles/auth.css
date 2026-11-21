@@ -46,49 +46,89 @@ html body[data-theme]:not(#a) .p-auth-more-body { display: flex; flex-direction:
 html body[data-theme]:not(#a) .p-auth-form .p-check span { color: var(--cai-text-2); font-size: 13px; line-height: 1.6; }
 html body[data-theme]:not(#a) .p-auth-form .p-check a { color: var(--cai-text); text-decoration: underline; text-underline-offset: 2px; }
 
-/* 场景：永远是夜色（规则带 data-scheme，深色插件不改写） */
-html[data-scheme] body[data-theme]:not(#a) .p-auth-scene {
-  position: relative; z-index: 0; inset: auto; min-height: 0; margin: 16px 16px 16px 0;
-  overflow: hidden; border-radius: 24px; background: #0c0b0f; opacity: 1; pointer-events: none;
+/* 名册（方向 B，参考 197 Historias / Grids）：等宽小字 + 细线索引，划过哪行立绘就浮到哪行；跟随主题浅/深色 */
+html body[data-theme]:not(#a) .p-auth-kicker {
+  font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: .2em; color: var(--cai-muted);
 }
-html[data-scheme] body[data-theme="folio"]:not(#a) .p-auth-scene { border-radius: 0; }
-html[data-scheme] body[data-theme="stage"]:not(#a) .p-auth-scene { border-radius: var(--stg-r, 24px); }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-wall {
-  position: absolute; inset: -18% -8%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
-  transform: rotate(-6deg);
+html body[data-theme]:not(#a) .p-auth-card h1 { font-family: "Noto Serif SC", "Songti SC", serif; font-weight: 600; letter-spacing: .01em; }
+html body[data-theme="stage"]:not(#a) .p-auth-card h1 { font-family: var(--stg-sans, inherit); font-weight: 700; letter-spacing: -.03em; }
+
+html body[data-theme]:not(#a) .p-auth-scene--roster {
+  position: relative; z-index: 0; inset: auto; display: block; min-height: 0; margin: 0;
+  overflow: hidden; border: 0; border-left: 1px solid var(--cai-border); border-radius: 0;
+  background: transparent; opacity: 1; pointer-events: auto; box-shadow: none;
 }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-col { display: flex; flex-direction: column; animation: auth-drift 70s linear infinite; }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="1"] { animation-duration: 90s; animation-direction: reverse; margin-top: -30%; }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="2"] { animation-duration: 80s; margin-top: -12%; }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-col img {
-  display: block; width: 100%; aspect-ratio: 2 / 3; height: auto; object-fit: cover; margin-bottom: 14px;
-  border-radius: 14px; filter: saturate(.85) brightness(.82);
+html body[data-theme]:not(#a) .p-auth-scene--roster::after { content: none; }
+html body[data-theme]:not(#a) .p-roster {
+  --roster-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+  display: flex; flex-direction: column; height: 100%; padding: 40px 56px 36px; color: var(--cai-text);
 }
-html[data-scheme] body[data-theme="folio"]:not(#a) .p-auth-col img { border-radius: 0; filter: grayscale(.2) brightness(.8); }
-@keyframes auth-drift { from { transform: translateY(0); } to { transform: translateY(-50%); } }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-scene::after {
-  content: ''; position: absolute; inset: 0; z-index: 1;
-  background:
-    radial-gradient(120% 80% at 50% 40%, transparent 30%, rgba(8, 7, 10, .55) 100%),
-    linear-gradient(0deg, rgba(8, 7, 10, .94) 0%, rgba(8, 7, 10, .55) 30%, transparent 58%);
+html body[data-theme]:not(#a) .p-roster-head {
+  display: flex; justify-content: space-between; gap: 16px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--cai-text);
+  font-family: var(--roster-mono); font-size: 11px; letter-spacing: .18em; color: var(--cai-text-2);
 }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy {
-  position: absolute; z-index: 2; left: 44px; right: 44px; bottom: 40px; max-width: none; color: #f6f1ea; text-align: left;
+html body[data-theme]:not(#a) .p-roster-body {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) clamp(150px, 15vw, 230px);
+  align-items: start; gap: 40px; padding-top: 6px;
 }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy h2 {
-  max-width: none; margin: 12px 0 0; color: #f6f1ea;
-  font-family: "Noto Serif SC", "Songti SC", serif; font-size: clamp(30px, 3vw, 44px); font-weight: 600; line-height: 1.3; letter-spacing: .01em;
+html body[data-theme]:not(#a) .p-roster-list { margin: 0; padding: 0; list-style: none; }
+html body[data-theme]:not(#a) .p-roster-row {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 88px; align-items: baseline; gap: 16px;
+  padding: 11px 12px; border-bottom: 1px solid var(--cai-border); cursor: default;
+  transition: background-color .25s ease, color .25s ease;
 }
-html[data-scheme] body[data-theme="stage"]:not(#a) .p-auth-scene-copy h2 { font-family: var(--stg-sans, inherit); font-weight: 700; letter-spacing: -.04em; }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-label {
-  display: inline-block; padding: 0; border-radius: 0; background: none;
-  color: #f0714f; font-size: 12px; font-weight: 600; letter-spacing: .24em;
+html body[data-theme]:not(#a) .p-roster-no,
+html body[data-theme]:not(#a) .p-roster-cat,
+html body[data-theme]:not(#a) .p-roster-by {
+  font-family: var(--roster-mono); font-size: 11px; letter-spacing: .1em; color: var(--cai-muted); white-space: nowrap;
 }
-html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy p { margin-top: 10px; color: rgba(246, 241, 234, .72); font-size: 15px; }
+html body[data-theme]:not(#a) .p-roster-by { overflow: hidden; text-overflow: ellipsis; text-align: right; }
+html body[data-theme]:not(#a) .p-roster-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: "Noto Serif SC", "Songti SC", serif; font-size: clamp(22px, 2.1vw, 32px); font-weight: 500; line-height: 1.25;
+}
+html body[data-theme="stage"]:not(#a) .p-roster-name { font-family: var(--stg-sans, inherit); font-weight: 700; letter-spacing: -.04em; }
+html body[data-theme]:not(#a) .p-roster-row[data-active] { background: var(--cai-text); color: var(--cai-bg); }
+html body[data-theme]:not(#a) .p-roster-row[data-active] :is(.p-roster-no, .p-roster-cat, .p-roster-by) { color: var(--cai-bg); opacity: .7; }
+html body[data-theme]:not(#a) .p-roster-row[data-active] .p-roster-no { opacity: 1; }
+/* 角色不多时（≤6）放大字号与立绘，免得右侧大片空白 */
+@media (min-width: 960px) {
+  html body[data-theme]:not(#a) .p-roster[data-few] .p-roster-row { padding: 18px 14px; }
+  html body[data-theme]:not(#a) .p-roster[data-few] .p-roster-name { font-size: clamp(30px, 3.1vw, 50px); }
+  html body[data-theme]:not(#a) .p-roster[data-few] .p-roster-body { grid-template-columns: minmax(0, 1fr) clamp(190px, 19vw, 290px); }
+}
+
+html body[data-theme]:not(#a) .p-roster-frame {
+  position: relative; margin: 0; aspect-ratio: 3 / 4; background: var(--cai-surface-2);
+  transform: translateY(var(--roster-y, 0px)); transition: transform .55s cubic-bezier(.2, .7, .2, 1);
+}
+html body[data-theme="stage"]:not(#a) .p-roster-frame,
+html body[data-theme="stage"]:not(#a) .p-roster-frame img { border-radius: 14px; }
+html body[data-theme]:not(#a) .p-roster-frame img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%;
+  opacity: 0; transition: opacity .45s ease;
+}
+html body[data-theme="folio"]:not(#a) .p-roster-frame img { filter: grayscale(.15) contrast(1.02); }
+html body[data-theme]:not(#a) .p-roster-frame img[data-active] { opacity: 1; }
+html body[data-theme]:not(#a) .p-roster-frame figcaption {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px);
+  font-family: var(--roster-mono); font-size: 11px; letter-spacing: .14em; color: var(--cai-muted);
+}
+html body[data-theme]:not(#a) .p-roster-foot {
+  margin: auto 0 0; padding-top: 40px;
+  font-family: "Noto Serif SC", "Songti SC", serif; font-size: clamp(24px, 2.4vw, 38px); font-weight: 500; line-height: 1.3; color: var(--cai-text);
+}
+html body[data-theme="stage"]:not(#a) .p-roster-foot { font-family: var(--stg-sans, inherit); font-weight: 700; letter-spacing: -.04em; }
 
 @media (max-width: 1199px) and (min-width: 960px) {
   html body[data-theme]:not(#a) .p-auth-stage { grid-template-columns: 420px minmax(0, 1fr); }
   html body[data-theme]:not(#a) .p-auth-panel { padding: 32px; }
+  html body[data-theme]:not(#a) .p-roster { padding: 32px 32px 28px; }
+  html body[data-theme]:not(#a) .p-roster-body { gap: 24px; }
+  html body[data-theme]:not(#a) .p-roster-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
+  html body[data-theme]:not(#a) .p-roster-by { display: none; }
 }
 @media (max-width: 959px) {
   html body[data-theme]:not(#a) .p-auth-header { padding: 0 20px; }
@@ -96,20 +136,16 @@ html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy p { margin-top: 10
   html body[data-theme]:not(#a) .p-auth-stage { display: flex; flex-direction: column; min-height: 0; padding: 0; }
   html body[data-theme]:not(#a) .p-auth-panel { width: 100%; padding: 28px 20px 32px; align-items: center; }
   html body[data-theme]:not(#a) .p-auth-card { max-width: 440px; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene { order: -1; flex: none; height: 188px; margin: 0; border-radius: 0; left: auto; right: auto; top: auto; bottom: auto; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-wall { inset: -60% -10%; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-col img { margin-bottom: 10px; border-radius: 10px; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy { display: block; left: 20px; right: 20px; bottom: 18px; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy h2 { font-size: 24px; margin-top: 6px; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy p { display: none; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-scene-copy h2 br { display: none; }
+  html body[data-theme]:not(#a) .p-auth-scene--roster { order: 1; border-left: 0; border-top: 1px solid var(--cai-border); }
+  html body[data-theme]:not(#a) .p-roster { padding: 24px 20px 28px; }
+  html body[data-theme]:not(#a) .p-roster-body { grid-template-columns: minmax(0, 1fr) 104px; gap: 16px; }
+  html body[data-theme]:not(#a) .p-roster-row { grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; padding: 9px 8px; }
+  html body[data-theme]:not(#a) .p-roster-row:nth-child(n+7) { display: none; }
+  html body[data-theme]:not(#a) .p-roster-by { display: none; }
+  html body[data-theme]:not(#a) .p-roster-name { font-size: 20px; }
+  html body[data-theme]:not(#a) .p-roster-head span:last-child { display: none; }
+  html body[data-theme]:not(#a) .p-roster-foot { padding-top: 32px; font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-col { animation: none; }
-}
-/* 桌面只显示前三列 */
-@media (min-width: 960px) { html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="3"], html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="4"] { display: none; } }
-@media (max-width: 959px) {
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="3"] { animation-duration: 85s; animation-direction: reverse; margin-top: -20%; }
-  html[data-scheme] body[data-theme]:not(#a) .p-auth-col[data-col="4"] { animation-duration: 75s; margin-top: -40%; }
+  html body[data-theme]:not(#a) :is(.p-roster-frame, .p-roster-frame img, .p-roster-row) { transition: none; }
 }
