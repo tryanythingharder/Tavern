@@ -120,7 +120,9 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = [], macros }: Props) {
+const NO_RULES: RegexRule[] = [];
+
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = NO_RULES, macros }: Props) {
   const router = useRouter();
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);

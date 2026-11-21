@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { RpText } from '@/components/rp-text';
 import { HtmlFrame } from '@/components/html-frame';
 import { applyRegex, type RegexMacros } from '@/lib/regex-apply';
@@ -37,7 +37,7 @@ function renderEjs(chatId: number, messageId: number, key: string): Promise<stri
 const stripEjs = (value: string) => value.replace(/<%(?!%)[\s\S]*?%>/g, '');
 
 // 消息正文：先套「仅显示」正则（玩家规则 + 角色卡自带脚本），再把 HTML 片段交给沙盒渲染。
-export function RichText({
+function RichTextInner({
   text,
   streaming = false,
   rules,
@@ -94,3 +94,21 @@ export function RichText({
     </>
   );
 }
+
+type RichTextProps = Parameters<typeof RichTextInner>[0];
+
+// 只有正则规则限定了深度时，深度才影响显示；否则新消息进来时老消息不必重画（长会话发送卡顿的主因）
+function usesDepth(rules?: RegexRule[]): boolean {
+  return Boolean(rules?.some((rule) => (rule.depthFrom !== null && rule.depthFrom >= -1) || (rule.depthTo !== null && rule.depthTo >= 0)));
+}
+
+function sameProps(a: RichTextProps, b: RichTextProps): boolean {
+  if (a.text !== b.text || a.streaming !== b.streaming || a.rules !== b.rules || a.macros !== b.macros || a.role !== b.role) return false;
+  if (a.depth !== b.depth && usesDepth(b.rules)) return false;
+  const va = a.variables; const vb = b.variables;
+  if (va === vb) return true;
+  if (!va || !vb) return false;
+  return va.chatId === vb.chatId && va.messageId === vb.messageId && va.rev === vb.rev && va.room === vb.room;
+}
+
+export const RichText = memo(RichTextInner, sameProps);

@@ -981,3 +981,10 @@ body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 
 .db-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 .p-room-card.is-off .p-room-title, .p-room-card.is-off .p-room-last { opacity: .55; }
 .db-view { width: 100%; min-height: 50vh; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; line-height: 1.6; }
+
+/* 长会话性能：屏幕外的消息跳过样式/布局/绘制（上千楼时发送不再卡 1 秒）。
+   最新、正在生成、展开操作的消息照常渲染；auto 记住已渲染过的高度，滚动不跳 */
+article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}

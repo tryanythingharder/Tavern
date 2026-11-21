@@ -51,7 +51,10 @@ const STRATEGY_HINT: Record<string, string> = {
   pooled: '随机：每轮从成员里抽一个。',
 };
 
-export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = [], memberRules = {}, quickReplies: qrInitial }: Props) {
+const NO_RULES: RegexRule[] = [];
+const NO_MEMBER_RULES: Record<string, RegexRule[]> = {};
+
+export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = NO_RULES, memberRules = NO_MEMBER_RULES, quickReplies: qrInitial }: Props) {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -60,6 +63,24 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialUserName, avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
   const userName = persona.name;
+  // 每位发言者的显示正则与宏只算一次，消息组件才能跳过重画
+  const rulesFor = useMemo(() => {
+    const cache = new Map<string, RegexRule[]>();
+    return (speakerId: string | null | undefined) => {
+      const key = speakerId ?? '';
+      let hit = cache.get(key);
+      if (!hit) { hit = [...(speakerId ? memberRules[speakerId] ?? [] : []), ...displayRules]; cache.set(key, hit); }
+      return hit;
+    };
+  }, [memberRules, displayRules]);
+  const macrosFor = useMemo(() => {
+    const cache = new Map<string, { char: string; user: string }>();
+    return (charName: string) => {
+      let hit = cache.get(charName);
+      if (!hit) { hit = { char: charName, user: userName }; cache.set(charName, hit); }
+      return hit;
+    };
+  }, [userName]);
   const [messages, setMessages] = useState<RoomMessageView[]>(initialMessages);
   const [draft, setDraft] = useState('');
   const draftRef = useRef(draft);
@@ -609,7 +630,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                       {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
                       <div className="p-msg-copy p-msg-text">
                         {message.content
-                          ? <RichText text={showTr && message.translation ? message.translation.text : message.content} streaming={isStreamingThis} rules={[...(message.speakerId ? memberRules[message.speakerId] ?? [] : []), ...displayRules]} macros={{ char: member?.name ?? '', user: userName }} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
+                          ? <RichText text={showTr && message.translation ? message.translation.text : message.content} streaming={isStreamingThis} rules={rulesFor(message.speakerId)} macros={macrosFor(member?.name ?? '')} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
                           : isStreamingThis ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
                       </div>
                       {message.translation && numericId !== null && !isStreamingThis && (
