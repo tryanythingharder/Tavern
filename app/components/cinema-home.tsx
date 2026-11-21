@@ -8,8 +8,8 @@ export function CinemaHome({ characters, userName, returning = false }: { charac
   return (
     <div className="cinema-home">
       <header className="cinema-curtain">
-        <span>酒馆 · 放映</span>
-        <h1>{returning ? '欢迎回来' : '欢迎来到酒馆'}，{userName ?? '旅人'}</h1>
+        <span>夜话 · 放映</span>
+        <h1>{returning ? '欢迎回来' : '欢迎来到夜话'}，{userName ?? '旅人'}</h1>
         <p>挑一部片，开始今晚的故事。</p>
       </header>
       <div className="cinema-grid">

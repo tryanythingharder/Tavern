@@ -15,7 +15,7 @@ export function HomeClassic({ data }: { data: HomeData }) {
       <div className="ca-home">
         <HomeHero
           characters={data.showcase}
-          greeting={`${data.returning ? '欢迎回来' : '欢迎来到酒馆'}，${data.userName ?? '旅人'}`}
+          greeting={`${data.returning ? '欢迎回来' : '欢迎来到夜话'}，${data.userName ?? '旅人'}`}
           sub={data.returning ? '今天想和谁说说话？' : '挑一个角色，写下第一句。'}
         />
 

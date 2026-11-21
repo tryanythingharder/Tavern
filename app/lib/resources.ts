@@ -161,7 +161,7 @@ export const DEFAULT_PARAMS: PresetParams = {
   repetitionPenaltySlope: 0.7,
   presencePenalty: 0,
   frequencyPenalty: 0,
-  maxTokens: 400,
+  maxTokens: 1024,
   contextSize: 0,
   seed: -1,
 };

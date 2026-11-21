@@ -3,8 +3,8 @@ import type { MetadataRoute } from 'next';
 // PWA：可「添加到主屏幕」，独立窗口打开。图标在 public/icons，由 app/icon.svg 同款字形生成。
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: '酒馆 · 角色扮演',
-    short_name: '酒馆',
+    name: '夜话 · 角色扮演',
+    short_name: '夜话',
     description: '和喜欢的角色开始一段故事。',
     lang: 'zh-CN',
     start_url: '/?source=pwa',

@@ -150,12 +150,12 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (added.trim()) {
           const finalText = joinContinue(base, added);
           updateMessageContent(message.id, finalText);
-          recordMessageMeta(message.id, message.selected ?? 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now() }, true);
+          recordMessageMeta(message.id, message.selected ?? 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now(), cut: trace.finish === 'length' }, true);
           const thought = mergeThought(trace);
           if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
           await applyReplyTemplates(full, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { uptoId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
-          send({ type: 'done', messageId: message.id, content: finalText, reasoning: thought ?? reasoningAt(message.reasoning, message.selected ?? 0), autoContinue: wantsAutoContinue(genPrefs, finalText, added, trace.finish), cost: settlement.cost, balance: settlement.balance });
+          send({ type: 'done', messageId: message.id, content: finalText, reasoning: thought ?? reasoningAt(message.reasoning, message.selected ?? 0), cut: trace.finish === 'length', autoContinue: wantsAutoContinue(genPrefs, finalText, added, trace.finish), cost: settlement.cost, balance: settlement.balance });
         } else {
           send({ type: 'error', message: '模型没有返回内容，请重试' });
         }

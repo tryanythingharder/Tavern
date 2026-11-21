@@ -18,8 +18,8 @@ export async function POST(request: Request) {
   const link = authLink('/verify', token, request);
   const result = await sendMail({
     to: user.email,
-    subject: '验证你的酒馆邮箱',
-    text: `欢迎来到酒馆。\n\n在 24 小时内打开这个链接验证邮箱：\n${link}\n\n验证后可以更安全地找回密码，也能收到审核结果通知。`,
+    subject: '验证你的夜话邮箱',
+    text: `欢迎来到夜话。\n\n在 24 小时内打开这个链接验证邮箱：\n${link}\n\n验证后可以更安全地找回密码，也能收到审核结果通知。`,
   });
   if (!result.ok) return fail(result.error ?? '邮件发送失败，请稍后再试', 502);
   if (!mailConfigured()) console.info('[mail:outbox] verification email written to outbox');

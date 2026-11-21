@@ -165,7 +165,7 @@ export function StageHome({ data }: { data: HomeData }) {
         </section>
       )}
 
-      <footer className="stg-foot"><b>酒馆</b><span>角色是卡，故事是戏台</span><span className="stg-ital">the stage</span></footer>
+      <footer className="stg-foot"><b>夜话</b><span>角色是卡，故事是戏台</span><span className="stg-ital">the stage</span></footer>
     </div>
   );
 }

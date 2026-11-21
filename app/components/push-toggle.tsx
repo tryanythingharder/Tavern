@@ -95,7 +95,7 @@ export function PushToggle() {
   const hint: Record<State, string> = {
     loading: '',
     unsupported: '这个浏览器不支持系统推送，站内通知照常显示在这里。',
-    'ios-install': 'iPhone 上要先用 Safari「分享 → 添加到主屏幕」，再从主屏图标打开酒馆，才能开启推送。',
+    'ios-install': 'iPhone 上要先用 Safari「分享 → 添加到主屏幕」，再从主屏图标打开夜话，才能开启推送。',
     denied: '浏览器已拒绝通知。去浏览器的网站设置里把「通知」改为允许，再回来开启。',
     off: '新作品上架、点数到账、审核结果会弹系统通知，关掉页面也能收到。',
     on: `本设备已开启${devices > 1 ? `（这个账号共 ${devices} 台设备）` : ''}。`,

@@ -309,7 +309,7 @@ export function AdminSettings() {
           用于找回密码与邮箱验证。配置 Resend 后会真的发信；未配置时邮件写到 <code>.data/outbox/</code>，便于本地查看链接。
         </p>
         <div className="p-field-row">
-          <div className="p-field"><label>发件人</label><input aria-label="发件人" className="p-input" value={form.mail.from} placeholder="酒馆 <no-reply@example.com>" onChange={(event) => setForm({ ...form, mail: { ...form.mail, from: event.target.value } })} /></div>
+          <div className="p-field"><label>发件人</label><input aria-label="发件人" className="p-input" value={form.mail.from} placeholder="夜话 <no-reply@example.com>" onChange={(event) => setForm({ ...form, mail: { ...form.mail, from: event.target.value } })} /></div>
           <div className="p-field"><label>Resend API Key（留空不改）</label><input aria-label="Resend API Key（留空不改）" className="p-input" type="password" value={form.mail.resendKey} placeholder={status?.mail.hasKey ? '已保存，留空不变' : '未设置'} onChange={(event) => setForm({ ...form, mail: { ...form.mail, resendKey: event.target.value } })} /></div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

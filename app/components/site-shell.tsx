@@ -235,7 +235,7 @@ export function SiteShell({
         <aside className="p-aside">
           <Link className="p-abrand" href="/admin">
             <div className="p-mark">酒</div>
-            <div className="p-brand-name">酒馆</div>
+            <div className="p-brand-name">夜话</div>
           </Link>
           <div className="p-abrand-tag"><span className="p-pill p-pill--sm p-pill--outline">管理后台</span></div>
           <nav className="p-anav" aria-label="后台导航">
@@ -291,7 +291,7 @@ export function SiteShell({
               <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>{item.label}</Link>
             ))}
           </nav>
-          <Link className="cinema-logo" href="/">酒馆</Link>
+          <Link className="cinema-logo" href="/">夜话</Link>
           <div className="cinema-nav-right">
             <SchemeToggle className="pill" />
             <AppearanceButton />
@@ -329,7 +329,7 @@ export function SiteShell({
       <aside className="p-side">
         <Link className="p-brand" href="/">
           <div className="p-mark">酒</div>
-          <div className="p-brand-name">酒馆</div>
+          <div className="p-brand-name">夜话</div>
         </Link>
 
         <>
@@ -375,9 +375,9 @@ export function SiteShell({
 
       <div className="p-main">
         <header className="p-topbar">
-          <Link className="p-topbar-brand" href="/" aria-label="酒馆首页">
+          <Link className="p-topbar-brand" href="/" aria-label="夜话首页">
             <span className="p-topbar-mark" aria-hidden="true">酒</span>
-            <span className="p-topbar-word">酒馆</span>
+            <span className="p-topbar-word">夜话</span>
           </Link>
           <form className="p-search" action="/search" role="search">
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}

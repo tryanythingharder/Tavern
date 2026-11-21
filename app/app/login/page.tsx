@@ -40,7 +40,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <div className="p-auth">
       <header className="p-auth-header">
-        <Link className="p-auth-wordmark" href="/" aria-label="酒馆首页">(酒馆)</Link>
+        <Link className="p-auth-wordmark" href="/" aria-label="夜话首页">(夜话)</Link>
         <nav className="p-auth-nav" aria-label="账号操作">
           <Link className={`p-btn p-btn--sm${isLogin ? '' : ' p-btn--primary'}`} href="/login" aria-current={isLogin ? undefined : 'page'}>注册开聊</Link>
           <Link className={`p-btn p-btn--sm${isLogin ? ' p-btn--primary' : ''}`} href="/login?mode=login" aria-current={isLogin ? 'page' : undefined}>登录</Link>
@@ -80,7 +80,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 {inviter && (
                   <div className="p-auth-invite" role="note">
                     <span className="p-auth-invite-avatar" aria-hidden="true">{inviter.nickname.slice(0, 1)}</span>
-                    <span><b>{inviter.nickname}</b> 邀请你来酒馆{inviter.bonus > 0 ? <>，注册即多得 <b>{inviter.bonus}</b> 点</> : null}。邀请码已帮你填好。</span>
+                    <span><b>{inviter.nickname}</b> 邀请你来夜话{inviter.bonus > 0 ? <>，注册即多得 <b>{inviter.bonus}</b> 点</> : null}。邀请码已帮你填好。</span>
                   </div>
                 )}
                 {error && <p className="p-form-error" role="alert">{error}</p>}

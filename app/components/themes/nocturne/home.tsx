@@ -41,7 +41,7 @@ export function NocturneHome({ data }: { data: HomeData }) {
           <span>2.39 : 1 · 35mm</span>
         </div>
         <div className="noc-bar noc-bar--bot" aria-hidden="true">
-          <span>酒馆影业 出品</span>
+          <span>夜话影业 出品</span>
           <span>今夜共 {total} 部在映</span>
         </div>
 
@@ -166,7 +166,7 @@ export function NocturneHome({ data }: { data: HomeData }) {
       <footer className="noc-roll">
         <p className="noc-fin noc-latin">— fin —</p>
         <dl>
-          <dt>出品</dt><dd>酒馆</dd>
+          <dt>出品</dt><dd>夜话</dd>
           <dt>放映</dt><dd>{total} 部在映 · 每夜更新</dd>
           {authors.length > 0 && (<><dt>作者</dt><dd>{authors.join(' · ')}</dd></>)}
           <dt>主演</dt><dd>{data.userName ?? '你'}</dd>

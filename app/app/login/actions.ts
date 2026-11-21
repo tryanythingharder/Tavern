@@ -61,15 +61,15 @@ export async function register(formData: FormData) {
   applyDefaultHide(user.id);
   ensureStartingPoints(user.id);
   const welcomeBonus = referral ? recordReferral(user.id, referral) : 0;
-  notify(user.id, { type: 'system', title: '欢迎来到酒馆', body: `已赠送 ${STARTING_POINTS + welcomeBonus} 点${welcomeBonus ? `（含好友邀请见面礼 ${welcomeBonus} 点）` : ''}。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/', push: false });
+  notify(user.id, { type: 'system', title: '欢迎来到夜话', body: `已赠送 ${STARTING_POINTS + welcomeBonus} 点${welcomeBonus ? `（含好友邀请见面礼 ${welcomeBonus} 点）` : ''}。先去发现页挑一个角色，或者去「房间」把几个人放进同一个场景。`, link: '/', push: false });
   // 注册后发验证邮件；发信失败不阻塞注册，用户可在「我的」里重发
   try {
     const token = createAuthToken(user.id, 'verify', 24 * 60 * 60 * 1000);
     const link = authLink('/verify', token);
     const sent = await sendMail({
       to: email,
-      subject: '验证你的酒馆邮箱',
-      text: `欢迎来到酒馆。\n\n在 24 小时内打开这个链接验证邮箱：\n${link}\n\n验证后可以更安全地找回密码，也能收到审核结果通知。`,
+      subject: '验证你的夜话邮箱',
+      text: `欢迎来到夜话。\n\n在 24 小时内打开这个链接验证邮箱：\n${link}\n\n验证后可以更安全地找回密码，也能收到审核结果通知。`,
     });
     if (!mailConfigured()) console.info('[mail:outbox] verification email written to outbox');
     if (!sent.ok) console.warn('[mail] verify email failed:', sent.error);

@@ -8,7 +8,7 @@ export function AuthPage({ kicker, title, lead, children }: { kicker: string; ti
   return (
     <div className="p-auth">
       <header className="p-auth-header">
-        <Link className="p-auth-wordmark" href="/" aria-label="酒馆首页">(酒馆)</Link>
+        <Link className="p-auth-wordmark" href="/" aria-label="夜话首页">(夜话)</Link>
         <nav className="p-auth-nav" aria-label="账号操作">
           <Link className="p-btn p-btn--sm" href="/login">注册开聊</Link>
           <Link className="p-btn p-btn--sm" href="/login?mode=login">登录</Link>

@@ -37,7 +37,9 @@ export type ChatMessageView = {
   /** ST 隐藏（幽灵）：不发给模型 */
   hidden?: boolean;
   /** 生成信息：模型 / 输出 tokens / 耗时 */
-  meta?: { model: string; tokens: number; ms: number; at: number } | null;
+  meta?: { model: string; tokens: number; ms: number; at: number; cut?: boolean } | null;
+  /** 这次生成停在了回复长度上限（finish_reason=length） */
+  cut?: boolean;
 };
 
 type Props = {
@@ -73,6 +75,7 @@ type StreamEvent = {
   balance?: number;
   reasoning?: ThoughtView | null;
   autoContinue?: boolean;
+  cut?: boolean;
 };
 
 
@@ -361,6 +364,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                         thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
                         candidateCount: event.candidateCount ?? item.candidateCount,
                         selected: event.candidateIndex ?? item.selected,
+                        cut: event.cut === true,
                       }
                     : item,
                 ),
@@ -581,9 +585,9 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ index }),
       });
-      const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string; thought?: ThoughtView | null };
+      const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string; thought?: ThoughtView | null; meta?: ChatMessageView['meta'] };
       if (!response.ok || typeof data.content !== 'string') throw new Error(data.message || '切换失败');
-      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index, thought: data.thought ?? null } : item)));
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index, thought: data.thought ?? null, cut: undefined, meta: data.meta ?? null } : item)));
       emitHelperEvent('message_swiped', { dbId: message.id });
     } catch (caught) {
       setError((caught as Error).message);
@@ -1081,6 +1085,12 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                       ) : (
                         <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void regenerate(message)}><Ico name="next" /></button>
                       )}
+                    </div>
+                  )}
+                  {!isUser && !isEditing && isLatest && !streaming && (message.cut ?? message.meta?.cut) && (
+                    <div className="p-msg-cut" role="note">
+                      <span>回复到了长度上限，后面被截断了</span>
+                      <button type="button" className="p-msg-cut-go" onClick={() => void continueLast()}>继续写完</button>
                     </div>
                   )}
                   {!isEditing && (

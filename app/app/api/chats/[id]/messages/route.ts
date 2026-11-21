@@ -174,13 +174,13 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (finalText.trim()) {
           const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
           if (thought) setMessageReasoning(saved.id, 0, thought);
-          recordMessageMeta(saved.id, 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now() });
+          recordMessageMeta(saved.id, 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now(), cut: trace.finish === 'length' });
           // 回复里的 EJS（如 setvar）在这一步才真正写变量
           await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
           // 到间隔了就在后台更新模型摘要（不挡这次回复）
           void autoSummarize(chatId, user.id);
-          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
+          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, reasoning: thought, cut: trace.finish === 'length', autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
         } else {
           touchChat(chatId);
           send({ type: 'done', messageId: null, cost: settlement.cost, free: settlement.free, balance: settlement.balance });

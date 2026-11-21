@@ -21,7 +21,7 @@ export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
       <label htmlFor="fo-notes-toggle" className="fo-notes-scrim" aria-hidden="true" />
       <aside className="fo-plate" aria-label="角色书版">
         <div className="fo-runhead fo-runhead--l">
-          <Link href="/">酒馆 No.{issue}</Link><span aria-hidden="true">/</span><Link href="/chats">对话</Link>
+          <Link href="/">夜话 No.{issue}</Link><span aria-hidden="true">/</span><Link href="/chats">对话</Link>
         </div>
         <div className="fo-plate-body">
           <Link className="fo-ph" href={`/c/${character.id}`} aria-label={`查看 ${character.name} 的角色卡`}>

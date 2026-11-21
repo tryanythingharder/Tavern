@@ -68,7 +68,7 @@ export function PlayModeChooser() {
         <div className="pm-steps" aria-hidden="true"><i className="is-on" /><i className={step === 'depth' ? 'is-on' : ''} /></div>
         {step === 'who' ? (
           <>
-            <p className="pm-kicker">欢迎来到酒馆</p>
+            <p className="pm-kicker">欢迎来到夜话</p>
             <h2 id="pm-title">你玩过 SillyTavern（酒馆）吗？</h2>
             <p className="pm-lead">按你的经验来布置界面。功能一样都不少，只是默认展示多少不同，随时可以在「外观」里改。</p>
             <div className="pm-grid">

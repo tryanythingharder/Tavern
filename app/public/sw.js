@@ -44,8 +44,8 @@ self.addEventListener('fetch', (event) => {
 // 系统推送：服务端发来 { title, body, link, tag }，弹系统通知；点开跳到对应页面（已开着就聚焦）。
 self.addEventListener('push', (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { title: '酒馆', body: event.data ? event.data.text() : '' }; }
-  const title = data.title || '酒馆';
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: '夜话', body: event.data ? event.data.text() : '' }; }
+  const title = data.title || '夜话';
   event.waitUntil(self.registration.showNotification(title, {
     body: data.body || '',
     icon: '/icons/icon-192.png',

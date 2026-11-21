@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const result = await sendMail({
     to: email,
     subject: '确认你的新邮箱',
-    text: `你正在把酒馆账号的邮箱更换为这个地址。\n\n在 1 小时内打开链接确认：\n${link}\n\n如果不是你本人操作，请忽略这封邮件，当前邮箱不会改变。`,
+    text: `你正在把夜话账号的邮箱更换为这个地址。\n\n在 1 小时内打开链接确认：\n${link}\n\n如果不是你本人操作，请忽略这封邮件，当前邮箱不会改变。`,
   });
   if (!result.ok) return fail(result.error ?? '邮件发送失败，请稍后再试', 502);
   if (!mailConfigured()) console.info('[mail:outbox] email change confirmation written to outbox');

@@ -761,3 +761,10 @@ html body[data-theme="folio"] .version-row { border-radius: 0 !important; }
 .cs-cardlore-meta { font-size: 11.5px; color: var(--muted, #6b6259); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-cardlore-reset { margin-top: 6px; }
 .cs-ejs-error { color: #b3261e; }
+
+/* 回复停在长度上限：提示并给「继续写完」 */
+html body .p-msg-cut { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 2px; padding: 6px 8px 6px 12px; border: 1px dashed rgba(60, 40, 30, .32); border-radius: 10px; font-size: 13px; line-height: 1.4; color: inherit; opacity: .9; width: fit-content; max-width: 100%; font-family: inherit; }
+html body .p-msg-cut > span { font-size: 13px; }
+html body .p-msg-cut > button.p-msg-cut-go { appearance: none; border: 0; box-shadow: none; background: var(--u-accent, #c9401f); color: #fff; font-size: 13px; line-height: 1.4; font-weight: 600; padding: 4px 12px; min-height: 0; border-radius: 999px; cursor: pointer; }
+html body .p-msg-cut > button.p-msg-cut-go:hover { filter: brightness(.92); }
+html body .p-msg-cut > button.p-msg-cut-go:focus-visible { outline: 2px solid var(--u-accent, #c9401f); outline-offset: 2px; }

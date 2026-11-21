@@ -27,7 +27,7 @@ export function reportError(report: ErrorReport): void {
   if ((recent.get(key) ?? 0) > now - THROTTLE_MS) return;
   recent.set(key, now);
   if (recent.size > 500) recent.clear();
-  const text = `【酒馆告警】${report.source === 'client' ? '前端' : '服务端'}错误\n${report.path ?? ''}\n${entry.message}`;
+  const text = `【夜话告警】${report.source === 'client' ? '前端' : '服务端'}错误\n${report.path ?? ''}\n${entry.message}`;
   void fetch(hook, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

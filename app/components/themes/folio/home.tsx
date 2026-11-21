@@ -62,12 +62,12 @@ export function FolioHome({ data }: { data: HomeData }) {
           <span className="fo-hide-m">本期主题：{theme ? `${theme}与未完成的故事` : '未完成的故事'}</span>
         </div>
         <div className="fo-masthead">
-          <h1 className="fo-title" aria-label="酒馆">
-            <span style={{ ['--d' as string]: 120 }}>酒</span>
-            <span style={{ ['--d' as string]: 220 }}>馆</span>
+          <h1 className="fo-title" aria-label="夜话">
+            <span style={{ ['--d' as string]: 120 }}>夜</span>
+            <span style={{ ['--d' as string]: 220 }}>话</span>
           </h1>
           <div className="fo-mh-mid fo-rv" style={{ ['--d' as string]: 300 }}>
-            <span className="fo-tagline">The Tavern — a quarterly of characters</span>
+            <span className="fo-tagline">Yehua — a quarterly of characters</span>
             <p>一本可以对话的小说杂志。每一位角色都是一篇未写完的故事，等你翻开、落笔、续写。</p>
           </div>
           <div className="fo-issue fo-rv" style={{ ['--d' as string]: 380 }}>
@@ -207,8 +207,8 @@ export function FolioHome({ data }: { data: HomeData }) {
 
       {/* ───── Colophon ───── */}
       <footer className="fo-colophon">
-        <div className="fo-c1">酒馆<span className="fo-it">The Tavern, No.{issueNo} — {seasonEn(month)} {year}</span></div>
-        <div className="fo-c2"><b>版权页</b>主编 · 酒馆编辑部<br />角色作者保留其作品署名权</div>
+        <div className="fo-c1">夜话<span className="fo-it">Yehua, No.{issueNo} — {seasonEn(month)} {year}</span></div>
+        <div className="fo-c2"><b>版权页</b>主编 · 夜话编辑部<br />角色作者保留其作品署名权</div>
         <div className="fo-c3"><b>排印</b>正文 思源宋体 · 界面 思源黑体<br />拉丁 Instrument Serif · Newsreader</div>
         <div className="fo-c4"><b>投稿</b><Link href="/create">投一张角色卡 →</Link><br /><Link href="/plaza">翻阅广场</Link></div>
       </footer>

@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { getMessage, getOwnedMessage, selectCandidate } from '@/lib/db';
 import { reasoningAt } from '@/lib/reasoning';
+import { metaAt } from '@/lib/msg-meta';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,5 +24,5 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   // 换版时把这一版的思考内容一起带回去
   const fresh = getMessage(message.id);
-  return Response.json({ ...selected, thought: fresh ? reasoningAt(fresh.reasoning, selected.index) : null });
+  return Response.json({ ...selected, thought: fresh ? reasoningAt(fresh.reasoning, selected.index) : null, meta: fresh ? metaAt(fresh.meta, selected.index) : null });
 }

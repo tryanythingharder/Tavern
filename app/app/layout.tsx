@@ -54,10 +54,10 @@ import '../styles/i18n-en.css';
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100'),
-  title: { default: '酒馆 · 角色扮演', template: '%s · 酒馆' },
+  title: { default: '夜话 · 角色扮演', template: '%s · 夜话' },
   description: '和喜欢的角色开始一段故事。保持 SillyTavern 的能力，做成更好用的前端。',
-  applicationName: '酒馆',
-  appleWebApp: { capable: true, title: '酒馆', statusBarStyle: 'default' },
+  applicationName: '夜话',
+  appleWebApp: { capable: true, title: '夜话', statusBarStyle: 'default' },
   icons: { apple: '/icons/apple-touch-icon.png' },
 });
 }

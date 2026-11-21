@@ -135,7 +135,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         if (finalText.trim()) {
           const candidate = appendCandidate(message.id, finalText);
           if (candidate) setMessageReasoning(message.id, candidate.index, thought);
-          if (candidate) recordMessageMeta(message.id, candidate.index, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now() });
+          if (candidate) recordMessageMeta(message.id, candidate.index, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now(), cut: trace.finish === 'length' });
           await applyReplyTemplates(finalText, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history, model: billedModel, variables: chatVariables(chat.id, chat.character_id, { beforeId: message.id }) }).catch(() => null);
           snapshotChat(chat.id, user.id);
           send({
@@ -145,6 +145,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
             candidateIndex: candidate?.index ?? 0,
             candidateCount: candidate?.count ?? 1,
             reasoning: thought,
+            cut: trace.finish === 'length',
             autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish),
             cost: settlement.cost,
             balance: settlement.balance,

@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: character.name,
     description: character.hook,
     openGraph: {
-      title: tr('{0} · 酒馆').replace('{0}', character.name),
+      title: tr('{0} · 夜话').replace('{0}', character.name),
       description: character.hook,
       images: character.ownerId === null ? [`/characters/${character.id}.jpg`] : [],
     },
