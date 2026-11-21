@@ -107,7 +107,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const maxCost = pointsCost(prompt.tokens, prompt.params.maxTokens, modelName(chat.model));
   const reservation = reservePoints(user.id, maxCost, `继续 · ${modelName(chat.model)}`, `chat:${chat.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点），请先签到或充值`, 402);
-  const generationId = startGeneration(user.id, chat.id, 'send', modelName(chat.model));
+  const generationId = startGeneration(user.id, chat.id, 'continue', modelName(chat.model));
   const encoder = new TextEncoder();
 
   // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）

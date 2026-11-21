@@ -69,7 +69,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const maxCost = pointsCost(promptTokens, maxTokens, modelName(room.model));
   const reservation = reservePoints(user.id, maxCost, `房间代写 · ${modelName(room.model)}`, `room:${room.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点）`, 402);
-  const generationId = startGeneration(user.id, null, 'room', modelName(room.model));
+  const generationId = startGeneration(user.id, null, 'impersonate', modelName(room.model));
   const encoder = new TextEncoder();
   let billedModel = modelName(room.model);
   // 一条线路都没接通（全部失败）就不扣点；接通后失败且没产出任何正文也不扣

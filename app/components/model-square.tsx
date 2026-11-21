@@ -34,6 +34,19 @@ function PriceBlock({ item, big = false }: { item: SquareModel; big?: boolean })
   );
 }
 
+// 后台没写介绍时，按模型名和特点拼一句（不写「暂无介绍」）
+function autoSummary(item: { id: string; traits: string[] }): string {
+  const parts: string[] = [];
+  if (/flash|mini|lite|turbo|haiku|nano|small|instant/i.test(item.id)) parts.push('响应快、价格低，适合日常闲聊和长时间陪聊');
+  else if (/opus|pro\b|-pro|max|large|ultra|sonnet/i.test(item.id)) parts.push('文笔和理解力更强，适合复杂剧情与细腻描写');
+  if (item.traits.includes('深度思考')) parts.push('会先思考再回答，推理和伏笔处理更稳');
+  if (item.traits.includes('长上下文')) parts.push('能记住更长的对话');
+  if (item.traits.includes('识图')) parts.push('可以看图');
+  if (!parts.length) parts.push('通用对话模型，适合日常角色扮演');
+  const text = parts.join('，');
+  return `${text.charAt(0)}${text.slice(1)}。`;
+}
+
 export function ModelSquare({ models, signedIn, hasMine }: { models: SquareModel[]; signedIn: boolean; hasMine: boolean }) {
   const [query, setQuery] = useState('');
   const [vendor, setVendor] = useState('all');
@@ -189,7 +202,7 @@ export function ModelSquare({ models, signedIn, hasMine }: { models: SquareModel
                     <div className="ms-badges">{badges(item)}</div>
                   </div>
                   {copyBtn(item)}
-                  <p className="ms-summary">{item.summary || '暂无介绍。'}</p>
+                  <p className={`ms-summary${item.summary ? '' : ' is-auto'}`}>{item.summary || autoSummary(item)}</p>
                   <div className="ms-tags">
                     {item.context && <span className="ms-tag ms-tag--ctx">上下文 {item.context}</span>}
                     {[...item.traits, ...item.tags].slice(0, 4).map((value) => <span key={value} className="ms-tag">{value}</span>)}
@@ -255,7 +268,7 @@ function ModelDrawer({ item, onClose, action, copyBtn, badges }: { item: SquareM
         </div>
         <div className="ms-badges">{badges}</div>
         {copyBtn}
-        {item.summary && <p className="ms-summary">{item.summary}</p>}
+        <p className={`ms-summary${item.summary ? '' : ' is-auto'}`}>{item.summary || autoSummary(item)}</p>
         <div className="ms-drawer-price"><PriceBlock item={item} big /><span className="ms-est">≈ 每条回复 {perReply(item)}</span></div>
         <dl className="ms-specs">
           <div><dt>计费方式</dt><dd>{item.mode === 'call' ? '按次：每次生成固定扣点' : '按量：按用掉的 tokens 扣点，不足 1 点按 1 点'}</dd></div>
