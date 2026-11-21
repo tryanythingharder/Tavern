@@ -17,7 +17,9 @@ export async function register(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const password = String(formData.get('password') ?? '');
   const nickname = String(formData.get('nickname') ?? '').trim() || email.split('@')[0] || '旅人';
-  const invite = String(formData.get('invite') ?? '').trim().toUpperCase();
+  // 从好友专属链接进来的（cookie 里记了有效邀请人）以链接为准，表单改不了
+  const lockedRef = (await cookies()).get('tavern_ref')?.value?.trim().toUpperCase() ?? '';
+  const invite = lockedRef && isReferralCode(lockedRef) && referrerFor(lockedRef) ? lockedRef : String(formData.get('invite') ?? '').trim().toUpperCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/login?error=' + encodeURIComponent('邮箱格式不对'));
   if (password.length < 8) redirect('/login?error=' + encodeURIComponent('密码至少 8 位'));
   const birthDate = String(formData.get('birth') ?? '').trim();

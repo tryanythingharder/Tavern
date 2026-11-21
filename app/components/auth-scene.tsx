@@ -1,22 +1,18 @@
 import Link from 'next/link';
+import { authWallColumns } from '@/lib/auth-wall';
 
 // 登录 / 注册右侧场景：夜色里缓缓流动的角色立绘拼贴，三套主题共用（只换字体与强调色）
-const COLS = [
-  ['lin-wanzhao', 'a-heng', 'lu-shiyan'],
-  ['bai-lu', 'xie-wujiu', 'shen-yanzhi'],
-  ['lu-shiyan', 'bai-lu', 'a-heng'],
-  ['xie-wujiu', 'lin-wanzhao', 'shen-yanzhi'],
-  ['a-heng', 'shen-yanzhi', 'lu-shiyan'],
-];
+
 
 export function AuthScene() {
+  const columns = authWallColumns();
   return (
     <aside className="p-auth-scene" aria-hidden="true">
       <div className="p-auth-wall">
-        {COLS.map((col, i) => (
+        {columns.map((col, i) => (
           <div className="p-auth-col" data-col={i} key={i}>
-            {[...col, ...col].map((name, j) => (
-              <img key={j} src={`/characters/${name}.jpg`} alt="" loading={j < 3 ? 'eager' : 'lazy'} decoding="async" />
+            {[...col, ...col].map((src, j) => (
+              <img key={j} src={src} alt="" loading={j < 3 ? 'eager' : 'lazy'} decoding="async" />
             ))}
           </div>
         ))}

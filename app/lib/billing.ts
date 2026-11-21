@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { grantFirstTopupBonus } from '@/lib/growth';
+import { grantFirstTopupBonus, grantReferralRebate, reverseReferralRebate } from '@/lib/growth';
 import db, { transaction } from '@/lib/db';
 import { balance, grantPoints, spendPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
@@ -138,6 +138,7 @@ export function markOrderPaid(orderId: number, providerOrderId?: string): { ok: 
     if (Number(changed.changes) === 0) return { ok: true, message: '订单已支付', points: row.points };
     grantPoints(row.user_id, row.points, `订单 #${orderId} 充值`, 'recharge');
     const bonus = grantFirstTopupBonus(row.user_id, orderId, row.points);
+    grantReferralRebate(row.user_id, orderId, row.points);
     notify(row.user_id, { type: 'points', title: `充值到账 +${row.points + bonus} 点`, body: bonus ? `订单 #${orderId} 已确认，含首充赠送 ${bonus} 点` : `订单 #${orderId} 已确认`, link: '/me/points' });
     return { ok: true, message: '已确认', points: row.points };
   });
@@ -156,6 +157,7 @@ export function refundOrder(orderId: number): { ok: boolean; message: string; po
       grantPoints(row.user_id, row.points, `订单 #${orderId} 退款回滚`, 'adjust');
       return { ok: false, message: '订单状态已变化，退款未执行' };
     }
+    reverseReferralRebate(orderId);
     notify(row.user_id, { type: 'points', title: `订单 #${orderId} 已退款`, body: `已扣回 ${row.points} 点`, link: '/me/points' });
     return { ok: true, message: '已退款', points: row.points };
   });

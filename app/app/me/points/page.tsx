@@ -10,7 +10,7 @@ import { listOrders, pricePerPointCents } from '@/lib/billing';
 import { PointsActions } from '@/components/points-actions';
 import { CheckinCard } from '@/components/checkin-card';
 import { GrowthCard } from '@/components/invite-card';
-import { dailyFreeRemaining, firstTopupEligible, growthConfig, referralCode, referralStats } from '@/lib/growth';
+import { dailyFreeRemaining, firstTopupEligible, growthConfig, referralStats } from '@/lib/growth';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +60,7 @@ export default async function PointsPage() {
   const ledger = listLedger(user.id, 100);
   const days = groupByDay(ledger as LedgerRow[]);
   const growth = growthConfig();
-  const inviteOn = growth.inviteReward > 0 || growth.inviteeBonus > 0;
+  const inviteOn = growth.inviteReward > 0 || growth.inviteeBonus > 0 || growth.rebatePct > 0;
   const stats = inviteOn ? referralStats(user.id) : { joined: 0, active: 0 };
 
   return (
@@ -90,11 +90,17 @@ export default async function PointsPage() {
           firstTopup={firstTopupEligible(user.id)}
           inviteReward={growth.inviteReward}
           inviteeBonus={growth.inviteeBonus}
-          code={inviteOn ? referralCode(user.id) : null}
+          code={null}
           joined={stats.joined}
           active={stats.active}
         />
       </div>
+      {inviteOn && (
+        <Link className="p-card p-card--pad iv-promo" href="/me/invite" style={{ marginTop: 16 }}>
+          <div><b>邀请好友{growth.rebatePct > 0 ? `，拿 ${growth.rebatePct}% 返点` : '，一起拿点数'}</b><p className="p-small">已邀请 {stats.joined} 人 · 专属链接、好友列表和返点记录都在邀请页</p></div>
+          <span aria-hidden="true">→</span>
+        </Link>
+      )}
       <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} currency={__cur()} /></div>
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">点数记录</h2>

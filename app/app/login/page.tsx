@@ -36,7 +36,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const inviter = refCode ? referralInviter(refCode) : null;
   const isLogin = mode === 'login';
   const needInvite = inviteRequired();
-  const showInvite = needInvite || !!refCode;
+  // 通过好友专属链接进来：邀请码锁定，不能改（服务端也以 cookie 为准）
+  const locked = inviter ? refCode : '';
+  const showInvite = needInvite && !locked;
 
   return (
     <div className="p-auth">
@@ -76,19 +78,29 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 {inviter && (
                   <div className="p-auth-invite" role="note">
                     <span className="p-auth-invite-avatar" aria-hidden="true">{inviter.nickname.slice(0, 1)}</span>
-                    <span><b>{inviter.nickname}</b> 邀请你来夜话{inviter.bonus > 0 ? <>，注册即多得 <b>{inviter.bonus}</b> 点</> : null}。邀请码已帮你填好。</span>
+                    <span><b>{inviter.nickname}</b> 邀请你来夜话{inviter.bonus > 0 ? <>，注册即多得 <b>{inviter.bonus}</b> 点</> : null}。</span>
                   </div>
                 )}
                 {error && <p className="p-form-error" role="alert">{error}</p>}
 
                 <form action={register} className="p-auth-form">
                   {field('register-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
-                  {showInvite && field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                  {locked && (
+                    <div className="p-auth-field">
+                      <span className="p-auth-label">邀请码</span>
+                      <div className="p-auth-locked" aria-label={`邀请码 ${locked}，已锁定`}>
+                        <code>{locked}</code>
+                        <span>好友专属链接 · 已锁定</span>
+                      </div>
+                      <input type="hidden" name="invite" value={locked} />
+                    </div>
+                  )}
+                  {showInvite && field('register-invite', '邀请码（必填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', required: 'required' })}
                   <details className="p-auth-more">
-                    <summary>{showInvite ? '填写昵称' : '填写昵称或邀请码'}<span>选填</span></summary>
+                    <summary>{showInvite || locked ? '填写昵称' : '填写昵称或邀请码'}<span>选填</span></summary>
                     <div className="p-auth-more-body">
                       {field('register-nickname', '昵称', 'text', { placeholder: '角色如何称呼你', maxLength: '20' })}
-                      {!showInvite && field('register-invite', needInvite ? '邀请码（必填）' : '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false', ...(refCode ? { defaultValue: refCode } : {}), ...(needInvite ? { required: 'required' } : {}) })}
+                      {!showInvite && !locked && field('register-invite', '邀请码（选填）', 'text', { placeholder: 'INV-XXXX 或好友码 R-XXXX', autoCapitalize: 'characters', spellCheck: 'false' })}
                     </div>
                   </details>
                   <div className="p-auth-field">
