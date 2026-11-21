@@ -7,6 +7,7 @@ import { usePlayMode } from '@/components/play-mode';
 import { PARAM_FIELDS } from '@/lib/param-fields';
 import type { PresetParams } from '@/lib/resources';
 import { Select } from '@/components/ui-select';
+import { askConfirm } from '@/components/ui-dialog';
 
 type SettingsData = {
   settings: { presetId: number | null; personaId: number | null; lorebookIds: number[] | null };
@@ -42,12 +43,13 @@ type SummaryPrefs = { enabled: boolean; interval: number; mode: 'llm' | 'extract
 type NoteData = { text: string; position: 'after' | 'before' | 'depth'; depth: number; role: Role; interval: number };
 type MemoryData = {
   status: SummaryPrefs & { covered: number; behind: number; text: string; source: string; updatedAt: number; error: string; running: boolean };
-  rag: { enabled: boolean; topK: number };
+  rag: { enabled: boolean; topK: number; threshold: number; queryMessages: number; template: string };
+  vector?: { ready: boolean; stored: number };
   memory: string;
   note: NoteData;
   characterNote: { text: string; mode: 'replace' | 'before' | 'after' };
   characterName: string;
-  defaults: { summaryPrompt: string; summaryTemplate: string };
+  defaults: { summaryPrompt: string; summaryTemplate: string; ragTemplate?: string };
   messageCount: number;
   recentWindow: number;
   error?: string;
@@ -90,6 +92,9 @@ export function ChatSettings({ chatId }: { chatId: number }) {
   const [charNote, setCharNote] = useState<MemoryData['characterNote']>({ text: '', mode: 'replace' });
   const [ragEnabled, setRagEnabled] = useState(true);
   const [ragTopK, setRagTopK] = useState(3);
+  const [ragThreshold, setRagThreshold] = useState(0.25);
+  const [ragQuery, setRagQuery] = useState(2);
+  const [ragTemplate, setRagTemplate] = useState('');
   const [manualMemory, setManualMemory] = useState('');
   const [backups, setBackups] = useState<Backup[] | null>(null);
   const [confirmRestore, setConfirmRestore] = useState<number | null>(null);
@@ -166,6 +171,9 @@ export function ChatSettings({ chatId }: { chatId: number }) {
       setCharNote(result.characterNote);
       setRagEnabled(result.rag.enabled);
       setRagTopK(result.rag.topK);
+      setRagThreshold(result.rag.threshold ?? 0.25);
+      setRagQuery(result.rag.queryMessages ?? 2);
+      setRagTemplate(result.rag.template ?? '');
       setManualMemory(result.memory);
     } catch (caught) {
       setError((caught as Error).message);
@@ -237,6 +245,9 @@ export function ChatSettings({ chatId }: { chatId: number }) {
           summaryText,
           ragEnabled,
           ragTopK,
+          ragThreshold,
+          ragQueryMessages: ragQuery,
+          ragTemplate,
           memory: manualMemory,
           ...(note ? { note } : {}),
           characterNote: charNote,
@@ -247,6 +258,20 @@ export function ChatSettings({ chatId }: { chatId: number }) {
       setSummaryText(result.status.text);
       if (result.error) setError(result.error);
       else flashSaved();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const purgeVectors = async () => {
+    if (!(await askConfirm({ title: '清除本会话的向量', message: '下次生成时会重新计算。', confirmLabel: '清除', danger: true }))) return;
+    setBusy(true);
+    setError('');
+    try {
+      setMemory(await api<MemoryData>(`/api/chats/${chatId}/memory`, { method: 'PATCH', body: JSON.stringify({ purgeVectors: true }) }));
+      flashSaved();
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -610,17 +635,44 @@ export function ChatSettings({ chatId }: { chatId: number }) {
                 </div>
 
                 <h3 className="panel-title" style={{ marginTop: 8 }}>记忆检索</h3>
-                <p className="small" style={{ marginTop: 0 }}>按当前输入从更早的对话里挑相关片段（字符 bigram 近似，不调用 embedding）。</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 20px', marginBottom: 16 }}>
+                <p className="small" style={{ marginTop: 0 }}>
+                  从最近 {memory.recentWindow} 条之前的对话里，按相关度把旧内容带回上下文（对应 ST 的向量记忆）。
+                  {memory.vector?.ready ? ` 当前用向量检索，本会话已向量化 ${memory.vector.stored} 条。` : ' 站点还没配置向量模型，暂用关键词近似检索。'}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 20px', marginBottom: 12 }}>
                   <label className="check">
                     <input type="checkbox" checked={ragEnabled} onChange={(event) => setRagEnabled(event.target.checked)} />
                     <span>启用检索</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)' }}>
                     返回片段数
-                    <input className="input" style={{ width: 80 }} type="number" min={1} max={5} value={ragTopK} onChange={(event) => setRagTopK(Number(event.target.value))} />
+                    <input className="input" style={{ width: 72 }} type="number" min={1} max={10} value={ragTopK} onChange={(event) => setRagTopK(Number(event.target.value))} />
                   </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)' }}>
+                    查询用最近
+                    <input className="input" style={{ width: 64 }} type="number" min={1} max={10} value={ragQuery} onChange={(event) => setRagQuery(Number(event.target.value))} />
+                    条
+                  </label>
+                  {memory.vector?.ready && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)' }}>
+                      相似度阈值
+                      <input className="input" style={{ width: 76 }} type="number" min={0} max={1} step={0.05} value={ragThreshold} onChange={(event) => setRagThreshold(Number(event.target.value))} />
+                    </label>
+                  )}
                 </div>
+                <details className="small" style={{ marginBottom: 16 }}>
+                  <summary style={{ cursor: 'pointer' }}>注入模板与向量缓存</summary>
+                  <div className="field" style={{ marginTop: 8 }}>
+                    <label>注入模板（{'{{text}}'} = 检索到的片段）</label>
+                    <textarea className="textarea" rows={2} value={ragTemplate} onChange={(event) => setRagTemplate(event.target.value)} />
+                    <span style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                      <button className="btn btn--sm" style={{ width: 'auto' }} type="button" onClick={() => setRagTemplate(memory.defaults.ragTemplate ?? '')}>恢复默认</button>
+                      {memory.vector?.ready && (
+                        <button className="btn btn--sm" style={{ width: 'auto' }} type="button" disabled={busy || !memory.vector.stored} onClick={() => void purgeVectors()}>清除本会话向量（{memory.vector.stored}）</button>
+                      )}
+                    </span>
+                  </div>
+                </details>
 
                 <h3 className="panel-title" style={{ marginTop: 8 }}>手动记忆</h3>
                 <div className="field">

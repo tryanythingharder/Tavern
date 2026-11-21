@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
+import { AdminEmbedding } from '@/components/admin-embedding';
 
 type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
 type Status = {
@@ -211,6 +212,8 @@ export function AdminSettings() {
             : <p className="small" style={{ margin: '10px 0 0', color: 'var(--danger)' }}>{test.error}</p>
         )}
       </section>
+
+      <AdminEmbedding />
 
       <section className="p-card p-card--pad" id="billing" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>

@@ -6,7 +6,8 @@ import { assemblePrompt } from '@/lib/prompt';
 import { chatVariables } from '@/lib/mvu-server';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { getOverride } from '@/lib/cards';
-import { memorySettings, ragChunks, summaryState, promptMemory } from '@/lib/memory';
+import { memorySettings, summaryState, promptMemory } from '@/lib/memory';
+import { retrieveMemories } from '@/lib/vectors';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export async function GET(_request: Request, context: Params) {
   const history = listMessages(chat.id);
   const memory = memorySettings(chat);
   const lastUser = [...history].reverse().find((message) => message.role === 'user');
-  const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
+  const rag = (await retrieveMemories(chat.id, history, lastUser?.content ?? '', memory.ragPrefs)).chunks;
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const result = assemblePrompt({

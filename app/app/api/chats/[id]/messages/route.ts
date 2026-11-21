@@ -23,7 +23,8 @@ import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig, personaSender } from '@/lib/resources-db';
-import { memorySettings, ragChunks, refreshSummary, snapshotChat, promptMemory } from '@/lib/memory';
+import { memorySettings, refreshSummary, snapshotChat, promptMemory } from '@/lib/memory';
+import { retrieveMemories } from '@/lib/vectors';
 import { getOverride } from '@/lib/cards';
 import { autoSummarize } from '@/lib/memory-llm';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
@@ -95,7 +96,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   // 摘要按间隔自动刷新；检索只从「最近 8 条」之前的历史里挑片段
   const summary = refreshSummary(chatId, character.name, history);
   const query = text || [...history].reverse().find((message) => message.role === 'user')?.content || '';
-  const rag = memory.ragPrefs.enabled && query ? ragChunks(history, query, memory.ragPrefs.topK) : [];
+  const rag = (await retrieveMemories(chatId, history, query, memory.ragPrefs)).chunks;
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({

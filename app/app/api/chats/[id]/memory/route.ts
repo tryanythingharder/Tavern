@@ -6,6 +6,7 @@ import {
   memorySettings,
   RECENT_WINDOW,
   saveCharacterNote,
+  RAG_TEMPLATE_DEFAULT,
   SUMMARY_PROMPT_DEFAULT,
   SUMMARY_TEMPLATE_DEFAULT,
   summaryStatus,
@@ -14,6 +15,7 @@ import {
   type MemoryPatch,
 } from '@/lib/memory';
 import { summarizeNow, summarizing } from '@/lib/memory-llm';
+import { chatVectorCount, embedConfig, purgeChatVectors } from '@/lib/vectors';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +27,12 @@ function payload(chat: DbChat, userId: number, extra: Record<string, unknown> = 
   return {
     status: { ...summaryStatus(chat, messages.length), running: summarizing(chat.id) },
     rag: settings.ragPrefs,
+    vector: { ready: Boolean(embedConfig()), stored: chatVectorCount(chat.id) },
     memory: settings.memory,
     note: authorNote(chat),
     characterNote: characterNote(userId, chat.character_id),
     characterName: getCharacterById(chat.character_id)?.name ?? '',
-    defaults: { summaryPrompt: SUMMARY_PROMPT_DEFAULT, summaryTemplate: SUMMARY_TEMPLATE_DEFAULT },
+    defaults: { summaryPrompt: SUMMARY_PROMPT_DEFAULT, summaryTemplate: SUMMARY_TEMPLATE_DEFAULT, ragTemplate: RAG_TEMPLATE_DEFAULT },
     messageCount: messages.length,
     recentWindow: RECENT_WINDOW,
     ...extra,
@@ -57,12 +60,13 @@ export async function PATCH(request: Request, context: Params) {
   const chat = getChat(id, user.id);
   if (!chat) return fail('会话不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as MemoryPatch & { refresh?: boolean; characterNote?: { text?: unknown; mode?: unknown } };
+  const body = (await request.json().catch(() => ({}))) as MemoryPatch & { refresh?: boolean; purgeVectors?: boolean; characterNote?: { text?: unknown; mode?: unknown } };
   if (!updateMemorySettings(chat.id, user.id, body)) return fail('保存失败', 400);
   if (body.characterNote && typeof body.characterNote.text === 'string') {
     const mode: CharacterNoteMode = body.characterNote.mode === 'before' || body.characterNote.mode === 'after' ? body.characterNote.mode : 'replace';
     saveCharacterNote(user.id, chat.character_id, { text: body.characterNote.text, mode });
   }
+  if (body.purgeVectors) purgeChatVectors(chat.id);
   let error: string | undefined;
   if (body.refresh) error = (await summarizeNow(chat.id, user.id)).error;
   return json(payload(getChat(chat.id, user.id)!, user.id, error ? { error } : {}));

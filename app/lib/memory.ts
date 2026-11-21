@@ -30,7 +30,8 @@ export type SummaryPrefs = {
   prompt: string;
   words: number;
 };
-export type RagPrefs = { enabled: boolean; topK: number };
+export type RagPrefs = { enabled: boolean; topK: number; threshold: number; queryMessages: number; template: string };
+export const RAG_TEMPLATE_DEFAULT = '［相关的更早对话］\n{{text}}';
 
 export const SUMMARY_PROMPT_DEFAULT = '忽略之前的指令。用简洁的语言概括到目前为止故事里最重要的事实和事件：人物关系、关键事件、承诺与伏笔、当前所在地点与状态。如果已经有摘要，在它的基础上更新并补充新的内容，删掉已经过时的。控制在 {{words}} 字以内。只输出摘要正文，不要别的内容。';
 export const SUMMARY_TEMPLATE_DEFAULT = '[前情摘要：{{summary}}]';
@@ -77,12 +78,16 @@ export function summaryPrefs(chat: Pick<DbChat, 'summary_prefs'>): SummaryPrefs 
   };
 }
 
-export function ragPrefs(chat: DbChat): RagPrefs {
-  const source = parseJson<{ enabled?: boolean; topK?: number }>(chat.rag_prefs, {});
-  const topK = Number(source.topK);
+export function ragPrefs(chat: Pick<DbChat, 'rag_prefs'>): RagPrefs {
+  const source = parseJson<{ enabled?: boolean; topK?: number; threshold?: number; queryMessages?: number; template?: string }>(chat.rag_prefs, {});
+  const threshold = Number(source.threshold);
   return {
     enabled: source.enabled !== false,
-    topK: Number.isFinite(topK) && topK >= 1 && topK <= 5 ? Math.round(topK) : RAG_TOPK_DEFAULT,
+    topK: clampInt(source.topK, 1, 10, RAG_TOPK_DEFAULT),
+    // ST Vector Storage 默认 0.25；只在向量检索时生效
+    threshold: Number.isFinite(threshold) && threshold >= 0 && threshold <= 1 ? Math.round(threshold * 100) / 100 : 0.25,
+    queryMessages: clampInt(source.queryMessages, 1, 10, 2),
+    template: typeof source.template === 'string' && source.template.trim() ? source.template.slice(0, 1000) : RAG_TEMPLATE_DEFAULT,
   };
 }
 
@@ -189,6 +194,7 @@ export type PromptMemory = {
   summaryPlacement: { position: SummaryPosition; depth: number; role: Role; template: string };
   memory: string;
   authorNote: AuthorNote;
+  ragTemplate: string;
 };
 
 export function promptMemory(chat: DbChat, userId: number): PromptMemory {
@@ -200,6 +206,7 @@ export function promptMemory(chat: DbChat, userId: number): PromptMemory {
     summaryPlacement: { position: prefs.position, depth: prefs.depth, role: prefs.role, template: prefs.template },
     memory: chat.memory ?? '',
     authorNote: { ...note, text: combinedNoteText(note.text, characterNote(userId, chat.character_id)) },
+    ragTemplate: ragPrefs(chat).template,
   };
 }
 
@@ -253,6 +260,9 @@ export type MemoryPatch = {
   summaryWords?: number;
   ragEnabled?: boolean;
   ragTopK?: number;
+  ragThreshold?: number;
+  ragQueryMessages?: number;
+  ragTemplate?: string;
   memory?: string;
   note?: Partial<AuthorNote>;
 };
@@ -277,10 +287,13 @@ export function updateMemorySettings(chatId: number, userId: number, patch: Memo
       words: patch.summaryWords ?? prefs.words,
     }),
   });
-  const nextRag: RagPrefs = {
+  const nextRag: RagPrefs = ragPrefs({ rag_prefs: JSON.stringify({
     enabled: patch.ragEnabled ?? rag.enabled,
-    topK: patch.ragTopK === undefined ? rag.topK : Math.max(1, Math.min(5, Math.round(patch.ragTopK))),
-  };
+    topK: patch.ragTopK ?? rag.topK,
+    threshold: patch.ragThreshold ?? rag.threshold,
+    queryMessages: patch.ragQueryMessages ?? rag.queryMessages,
+    template: patch.ragTemplate ?? rag.template,
+  }) });
   const current = summaryState(chat);
   const summary = patch.summaryText === undefined || patch.summaryText === current.text
     ? chat.summary

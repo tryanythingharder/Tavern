@@ -19,7 +19,8 @@ import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
-import { memorySettings, ragChunks, snapshotChat, summaryState, promptMemory } from '@/lib/memory';
+import { memorySettings, snapshotChat, summaryState, promptMemory } from '@/lib/memory';
+import { retrieveMemories } from '@/lib/vectors';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 
@@ -61,7 +62,7 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const history = listMessagesBefore(chat.id, message.id);
   const memory = memorySettings(chat);
   const lastUser = [...history].reverse().find((item) => item.role === 'user');
-  const rag = memory.ragPrefs.enabled && lastUser ? ragChunks(history, lastUser.content, memory.ragPrefs.topK) : [];
+  const rag = (await retrieveMemories(chat.id, history, lastUser?.content ?? '', memory.ragPrefs)).chunks;
   const vars = chatVariables(chat.id, chat.character_id, { beforeId: message.id });
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chat.id, character, userName: config.userName, loreEntries: config.loreEntries, history: history, model: modelName(chat.model), variables: vars });
   const prompt = assemblePrompt({

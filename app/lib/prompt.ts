@@ -75,6 +75,7 @@ export type AssembleInput = {
   // M3：摘要、检索片段、手动记忆
   summary?: string;
   rag?: { role: string; text: string; index: number }[];
+  ragTemplate?: string;
   memory?: string;
   /** 摘要放哪（ST Summarize 的注入位置）；不传 = 按预设顺序原样放 */
   summaryPlacement?: { position: 'prompt' | 'depth' | 'none'; depth: number; role: LoreRoleLike; template: string };
@@ -383,7 +384,10 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
         const chunks = input.rag ?? [];
         if (!chunks.length) return '';
         const speaker = character.name;
-        return chunks.map((chunk) => `［更早的对话 · 第 ${chunk.index + 1} 条］${chunk.role === 'user' ? userName : speaker}：${chunk.text}`).join('\n');
+        const body = chunks.map((chunk) => `［第 ${chunk.index + 1} 条］${chunk.role === 'user' ? userName : speaker}：${chunk.text}`).join('\n');
+        // ST Vector Storage 的注入模板：{{text}} 换成检索到的片段
+        const template = input.ragTemplate?.trim();
+        return template && template.includes('{{text}}') ? template.split('{{text}}').join(body) : body;
       }
       case 'memory':
         return input.memory ?? '';
