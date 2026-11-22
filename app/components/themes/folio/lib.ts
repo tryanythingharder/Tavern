@@ -40,8 +40,10 @@ export function roman(n: number, upper = false): string {
 }
 
 /** 内置角色的 id 就是拼音（lin-wanzhao → Lin Wanzhao）；用户角色没有拉丁名 */
-export function latinName(character: { id: string; ownerId: number | null }): string | null {
+export function latinName(character: { id: string; ownerId: number | null; name?: string }): string | null {
   if (character.ownerId !== null) return null;
+  // 英文界面的种子角色名字本身就是拼音，不再重复
+  if (character.name && !/[\u4e00-\u9fff]/.test(character.name)) return null;
   if (!/^[a-z]+(-[a-z]+)*$/.test(character.id)) return null;
   const parts = character.id.split('-');
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

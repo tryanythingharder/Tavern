@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { characters } from '@/data/characters';
+import { localizeSeedName, localizeSeedRow } from './seed-i18n';
 
 // M1 用 Node 内置 SQLite（node:sqlite，零依赖）。换成 Postgres 时只替换这个文件的实现，
 // 表结构与查询语义保持一致（见 prototype/IMPLEMENTATION-PLAN.md §4）。
@@ -535,11 +536,12 @@ export type DbMessage = {
 };
 
 export function getCharacterById(id: string): DbCharacter | undefined {
-  return db.prepare('SELECT * FROM characters WHERE id = ?').get(id) as DbCharacter | undefined;
+  const row = db.prepare('SELECT * FROM characters WHERE id = ?').get(id) as DbCharacter | undefined;
+  return row ? localizeSeedRow(row) : undefined;
 }
 
 export function listCharacters(): DbCharacter[] {
-  return db.prepare('SELECT * FROM characters ORDER BY rowid').all() as DbCharacter[];
+  return (db.prepare('SELECT * FROM characters ORDER BY rowid').all() as DbCharacter[]).map((row) => localizeSeedRow(row));
 }
 
 export function createChat(userId: number, characterId: string, title: string): number {
@@ -551,7 +553,7 @@ export function createChat(userId: number, characterId: string, title: string): 
 }
 
 export function listChats(userId: number): (DbChat & { character_name: string; character_initial: string; character_hue: number; character_owner: number | null; last_message: string | null; last_message_id: number | null; message_count: number })[] {
-  return db.prepare(`
+  const rows = db.prepare(`
         SELECT c.*, ch.name AS character_name, ch.initial AS character_initial, ch.hue AS character_hue, ch.owner_id AS character_owner,
                (SELECT content FROM messages m WHERE m.chat_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_message,
                (SELECT id FROM messages m WHERE m.chat_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_message_id,
@@ -559,6 +561,10 @@ export function listChats(userId: number): (DbChat & { character_name: string; c
         FROM chats c JOIN characters ch ON ch.id = c.character_id
         WHERE c.user_id = ? ORDER BY c.updated_at DESC
     `).all(userId) as (DbChat & { character_name: string; character_initial: string; character_hue: number; character_owner: number | null; last_message: string | null; last_message_id: number | null; message_count: number })[];
+  return rows.map((row) => {
+    const local = localizeSeedName(row.character_id, row.character_owner, row.character_name, row.character_initial);
+    return { ...row, character_name: local.name, character_initial: local.initial };
+  });
 }
 
 export function getChat(chatId: number, userId: number): DbChat | undefined {

@@ -9,7 +9,7 @@ import { FolioBookmarks, FolioComposerTools, FolioFolio, FolioProgress, FolioToc
 // 以及中栏底部的书写工具条。消息流与输入框仍由 ChatRoom 渲染，用 CSS 排成手稿。
 export function FolioChatChrome({ chrome }: { chrome: ChatChromeData }) {
   const { character } = chrome;
-  const latin = latinName({ id: character.id, ownerId: character.cover?.startsWith('/characters/') ? null : 1 });
+  const latin = latinName({ id: character.id, name: character.name, ownerId: character.cover?.startsWith('/characters/') ? null : 1 });
   // 设定里常有 ST 注释宏 {{// …}}（作者备注 / 加密串），不能原样当题记显示
   const epigraph = displayCardText(character.description, character.name).slice(0, 240);
   const paceParts = character.pace.split(/[·・]/).map((part) => part.trim()).filter(Boolean);

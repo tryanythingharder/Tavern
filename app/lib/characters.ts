@@ -1,6 +1,7 @@
 import db, { type DbCharacter } from '@/lib/db';
 import { CATEGORIES } from '@/lib/catalog';
 import { saveMedia } from '@/lib/storage';
+import { localizeSeedRow, seedIdsMatching } from './seed-i18n';
 
 export { CATEGORIES } from '@/lib/catalog';
 
@@ -85,7 +86,8 @@ export type CharacterView = {
   card: CardFields;
 };
 
-export function characterView(row: DbCharacter): CharacterView {
+export function characterView(source: DbCharacter): CharacterView {
+  const row = localizeSeedRow(source);
   let tags: string[] = [];
   try {
     const parsed = JSON.parse(row.tags);
@@ -152,6 +154,9 @@ export function searchCharacterViews(
         WHERE status = 'published' AND (name LIKE ? ESCAPE '\\' OR hook LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' OR author LIKE ? ESCAPE '\\')
         ORDER BY rowid LIMIT 60
     `).all(like, like, like, like, like) as DbCharacter[];
+  // 英文界面：种子角色按英文卡面也能搜到
+  const extra = seedIdsMatching(q).filter((id) => !rows.some((row) => row.id === id));
+  if (extra.length) rows.push(...(db.prepare(`SELECT * FROM characters WHERE status = 'published' AND id IN (${extra.map(() => '?').join(',')})`).all(...extra) as DbCharacter[]));
   let list = rows.map(characterView);
   if (options.hideNsfw) list = list.filter((item) => !item.nsfw);
   if (options.category && options.category !== '全部') list = list.filter((item) => item.category === options.category);
