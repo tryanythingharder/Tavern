@@ -35,7 +35,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
   {
     id: 'stripe',
     title: 'Stripe 收款',
-    intro: '填好后在「接口配置 → 支付渠道」里选 Stripe。Webhook 地址填 https://你的域名/api/payments/stripe，订阅 checkout.session.completed。成人内容需先确认 Stripe 允许你的业务。',
+    intro: '填好后在「计费与增长 → 支付渠道」里选 Stripe。Webhook 地址填 https://你的域名/api/payments/stripe，订阅 checkout.session.completed。成人内容需先确认 Stripe 允许你的业务。',
     fields: [
       { key: 'payment.stripeKey', env: 'TAVERN_STRIPE_SECRET_KEY', label: 'Secret Key', secret: true, placeholder: 'sk_live_…' },
       { key: 'payment.stripeWebhookSecret', env: 'TAVERN_STRIPE_WEBHOOK_SECRET', label: 'Webhook 签名密钥', secret: true, placeholder: 'whsec_…' },

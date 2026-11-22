@@ -52,7 +52,7 @@ function sourceNote(field: Field): string {
   return '';
 }
 
-export function AdminServices() {
+export function AdminServices({ only }: { only?: string } = {}) {
   const [status, setStatus] = useState<Status | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
@@ -117,7 +117,7 @@ export function AdminServices() {
       <ErrorLine message={error} />
       {notice && <p className="admin-toast" role="status">{notice}</p>}
 
-      {status.groups.map((group) => {
+      {status.groups.filter((group) => !only || group.id === only).map((group) => {
         const badge = groupBadge(group.id, s, status.groups);
         const dirty = group.fields.some((field) => draft[field.key] !== undefined);
         const hasOwnSecret = group.fields.some((field) => field.secret && field.source === 'admin');
@@ -127,7 +127,7 @@ export function AdminServices() {
               <h2 className="p-form-section-title" style={{ margin: 0 }}>{group.title}</h2>
               {badge && <Badge ok={badge.ok} text={badge.text} />}
             </div>
-            <p className="small" style={{ margin: '0 0 14px' }}>{group.intro}</p>
+            {!only && <p className="small" style={{ margin: '0 0 14px' }}>{group.intro}</p>}
 
             <div className="p-field-row">
               {group.fields.filter((field) => field.kind !== 'switch').map((field) => {
@@ -200,6 +200,7 @@ export function AdminServices() {
         );
       })}
 
+      {(!only || only === 'age') && (
       <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>年龄验证</h2>
@@ -211,6 +212,7 @@ export function AdminServices() {
             : '还没有接入年龄验证服务商。在「内容分级」里列为「需要验证」的地区，目前只能由管理员在玩家详情里手动标记已验证。接入新服务商需要在 lib/age-verify/ 加一个适配文件。'}
         </p>
       </section>
+      )}
     </>
   );
 }

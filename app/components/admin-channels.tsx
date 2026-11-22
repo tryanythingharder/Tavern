@@ -386,9 +386,9 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
         <div className="p-block-head channel-section-head" style={{ padding: '16px 18px 12px' }}>
           <div>
             <h2 style={{ margin: 0 }}>其他网关</h2>
-            <p className="p-hint" style={{ margin: '4px 0 0' }}>生图、语音、支付、邮件在「接口配置」里维护。</p>
+            <p className="p-hint" style={{ margin: '4px 0 0' }}>生图、语音、邮件在「扩展能力」里维护，支付在「计费与增长」。</p>
           </div>
-          <Link className="p-btn p-btn--sm" href="/admin/settings">接口配置</Link>
+          <Link className="p-btn p-btn--sm" href="/admin/settings/image">生图与语音</Link>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">

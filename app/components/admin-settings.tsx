@@ -39,7 +39,10 @@ function Badge({ ok, text }: { ok: boolean; text: string }) {
   );
 }
 
-export function AdminSettings() {
+export type SettingsSection = 'billing' | 'context' | 'growth' | 'payment' | 'image' | 'tts' | 'embedding' | 'mail';
+
+export function AdminSettings({ only }: { only?: SettingsSection } = {}) {
+  const show = (key: SettingsSection) => !only || only === key;
   const [status, setStatus] = useState<Status | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
   const [error, setError] = useState('');
@@ -138,6 +141,7 @@ export function AdminSettings() {
       <ErrorLine message={error} />
       {notice && <p className="admin-toast" role="status">{notice}</p>}
 
+      {show('image') && (
       <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>生图</h2>
@@ -175,7 +179,9 @@ export function AdminSettings() {
             : <p className="small" style={{ margin: '10px 0 0', color: 'var(--danger)' }}>{test.error}</p>
         )}
       </section>
+      )}
 
+      {show('tts') && (
       <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>语音（TTS）</h2>
@@ -213,9 +219,11 @@ export function AdminSettings() {
             : <p className="small" style={{ margin: '10px 0 0', color: 'var(--danger)' }}>{test.error}</p>
         )}
       </section>
+      )}
 
-      <AdminEmbedding />
+      {show('embedding') && <AdminEmbedding />}
 
+      {show('billing') && (
       <section className="p-card p-card--pad" id="billing" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>点数计费</h2>
@@ -238,7 +246,14 @@ export function AdminSettings() {
           <textarea id="model-prices" className="p-textarea" rows={5} value={form.billing.modelPrices} placeholder={'claude-sonnet-4.5=6\ndeepseek-r1=3\ngpt-4o-mini=1'} onChange={(event) => setForm({ ...form, billing: { ...form.billing, modelPrices: event.target.value } })} />
           {status?.billing.models?.length ? <span className="p-small">当前可选模型：{joinList(status.billing.models)}</span> : null}
         </div>
-        <h3 className="p-form-section-title" style={{ margin: '18px 0 4px', fontSize: 14 }}>上下文长度</h3>
+        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing', form.billing.modelPrices.trim() ? [] : ['modelPrices'])}>{busy === 'billing' ? '保存中…' : '保存'}</button>
+      </section>
+      )}
+      {show('context') && (
+      <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <h2 className="p-form-section-title" style={{ margin: 0 }}>上下文长度</h2>
+        </div>
         <p className="small" style={{ marginTop: 0 }}>每个模型的上限在「模型广场」里填（如 200K）。玩家可在预设里把 context_size 调小，不会超过模型上限。可写 32K、1M 或纯数字，留空用默认。</p>
         <div className="p-field-row">
           {([
@@ -252,7 +267,14 @@ export function AdminSettings() {
             </div>
           ))}
         </div>
-        <h3 className="p-form-section-title" style={{ margin: '18px 0 4px', fontSize: 14 }}>福利与增长</h3>
+        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing', form.billing.modelPrices.trim() ? [] : ['modelPrices'])}>{busy === 'billing' ? '保存中…' : '保存'}</button>
+      </section>
+      )}
+      {show('growth') && (
+      <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <h2 className="p-form-section-title" style={{ margin: 0 }}>福利与增长</h2>
+        </div>
         <p className="small" style={{ marginTop: 0 }}>填 0 表示关闭，用户端不会显示。改动立即生效。</p>
         <div className="p-field-row">
           {([
@@ -271,10 +293,12 @@ export function AdminSettings() {
             </div>
           ))}
         </div>
-        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing', form.billing.modelPrices.trim() ? [] : ['modelPrices'])}>{busy === 'billing' ? '保存中…' : '保存计费配置'}</button>
+        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'billing'} onClick={() => void save('billing', form.billing.modelPrices.trim() ? [] : ['modelPrices'])}>{busy === 'billing' ? '保存中…' : '保存'}</button>
       </section>
+      )}
 
-      <section className="p-card p-card--pad">
+      {show('payment') && (
+      <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>支付渠道</h2>
           <Badge ok text={`当前：${status?.payment.providers.find((item) => item.active)?.label ?? '手动确认'}`} />
@@ -294,19 +318,10 @@ export function AdminSettings() {
           <button className="p-btn p-btn--sm" type="button" disabled={busy === 'payment' || !status?.payment.hasSecret} onClick={() => void save('payment', ['secret'])}>清除密钥</button>
         </div>
       </section>
+      )}
 
-      <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <h2 className="p-form-section-title" style={{ margin: 0 }}>媒体存储</h2>
-          <Badge ok text={`当前：${status?.payment.storage.find((item) => item.active)?.label ?? '本地磁盘'}`} />
-        </div>
-        <p className="small" style={{ marginTop: 0 }}>
-          插件式：每个驱动在 <code>lib/storage-drivers/</code> 一个文件。用环境变量 <code>TAVERN_STORAGE_DRIVER</code> 指定，留空自动选第一个已配置的；密钥只走环境变量。
-        </p>
-        <PluginList items={status?.payment.storage ?? []} />
-      </section>
-
-      <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
+      {show('mail') && (
+      <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>邮件</h2>
           <Badge ok={status?.mail.mode === 'resend'} text={status?.mail.mode === 'resend' ? 'Resend 已配置' : '本地 outbox（不真的发信）'} />
@@ -323,6 +338,7 @@ export function AdminSettings() {
           <button className="p-btn p-btn--sm" type="button" disabled={busy === 'mail' || !status?.mail.hasKey} onClick={() => void save('mail', ['resendKey'])}>清除密钥</button>
         </div>
       </section>
+      )}
     </>
   );
 }

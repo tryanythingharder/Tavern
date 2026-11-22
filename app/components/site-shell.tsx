@@ -16,6 +16,7 @@ import { OfflineBanner } from '@/components/offline-banner';
 import { SwRegister } from '@/components/sw-register';
 import { ErrorReporter } from '@/components/error-reporter';
 import { onPoints } from '@/lib/points-bus';
+import { AdminMobileNav, AdminSideNav } from '@/components/admin-nav';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -37,51 +38,6 @@ const TAB_NAV = NAV.filter((item) => item.mobile !== false);
 
 type Recent = { id: number; characterId: string; name: string; initial: string; hue: number; owner: number | null; title: string };
 
-const ADMIN_SECTIONS = [
-  { href: '/admin', label: '审核队列' },
-  { href: '/admin/users', label: '玩家' },
-  { href: '/admin/orders', label: '订单与兑换码' },
-  { href: '/admin/settings', label: '接口配置' },
-  { href: '/admin/services', label: '站点与服务' },
-];
-
-const ADMIN_NAV: { label: string; items: { href: string; label: string; path: string }[] }[] = [
-  {
-    label: '内容',
-    items: [
-      { href: '/admin', label: '概览', path: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 8h6V4h-6z' },
-      { href: '/admin/review', label: '广场审核', path: 'M4 5h16v14H4zM8 9h8M8 13h5' },
-      { href: '/admin/reports', label: '举报处理', path: 'M12 3 2 21h20zM12 9v5M12 17v.01' },
-      { href: '/admin/content', label: '内容分级', path: 'M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3Z' },
-      { href: '/admin/announcement', label: '公告', path: 'M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1Zm12-5 4-2v16l-4-2' },
-    ],
-  },
-  {
-    label: '用户与交易',
-    items: [
-      { href: '/admin/users', label: '玩家', path: 'M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5 20a7 7 0 0 1 14 0' },
-      { href: '/admin/orders', label: '订单', path: 'M3 6h18v12H3zM3 10h18M7 15h4' },
-      { href: '/admin/codes', label: '卡密', path: 'M4 7h16v10H4zM8 7V5h8v2M9 12h6' },
-      { href: '/admin/invites', label: '邀请码', path: 'M12 3v18M5 8h14M5 16h14' },
-    ],
-  },
-  {
-    label: '配置',
-    items: [
-      { href: '/admin/channels', label: '渠道', path: 'M4 6h16v4H4zM4 14h16v4H4z' },
-      { href: '/admin/models', label: '模型广场', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
-      { href: '/admin/model', label: '单线路配置', path: 'M4 7h16v10H4zM8 12h8' },
-      { href: '/admin/settings', label: '接口配置', path: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-3 2-1-2-4-2 .5-1.5-1L15 4h-6l-.5 2.5-1.5 1L5 7l-2 4 2 1-2 1 2 4 2-.5 1.5 1L9 20h6l.5-2.5 1.5-1 2 .5 2-4z' },
-      { href: '/admin/services', label: '站点与服务', path: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01' },
-    ],
-  },
-  {
-    label: '系统',
-    items: [
-      { href: '/admin/audit', label: '审计日志', path: 'M5 4h14v16H5zM9 8h6M9 12h6M9 16h4' },
-    ],
-  },
-];
 
 export function SiteShell({
   children,
@@ -287,22 +243,7 @@ export function SiteShell({
             <div className="p-brand-name">夜话</div>
           </Link>
           <div className="p-abrand-tag"><span className="p-pill p-pill--sm p-pill--outline">管理后台</span></div>
-          <nav className="p-anav" aria-label="后台导航">
-            {ADMIN_NAV.map((group) => (
-              <div key={group.label}>
-                <div className="p-nav-label">{group.label}</div>
-                {group.items.map((item) => {
-                  const active = item.href === '/admin' ? pathname === '/admin' : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  return (
-                    <Link key={item.href} className="p-nav-item" href={item.href} aria-current={active ? 'page' : undefined}>
-                      {icon(item.path)}
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-          </nav>
+          <AdminSideNav pathname={pathname} />
           <div className="p-side-foot">
             <Link className="p-user-row" href="/me">
               <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: 28 }}>{userName ? Array.from(userName)[0] : 'A'}</span>
@@ -312,17 +253,7 @@ export function SiteShell({
           </div>
         </aside>
         <div className="p-amain">
-          <nav className="p-atabs" aria-label="后台分区">
-            {ADMIN_NAV.flatMap((group) => group.items).map((item) => {
-              const active = item.href === '/admin' ? pathname === '/admin' : pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined}>
-                  {item.label}
-                </Link>
-              );
-            })}
-            <Link className="p-atabs-back" href="/">返回前台</Link>
-          </nav>
+          <AdminMobileNav pathname={pathname} />
           {children}
         </div>
         {overlays}

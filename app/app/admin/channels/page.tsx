@@ -26,10 +26,10 @@ export default async function AdminChannelsPage() {
   const tts = ttsConfig();
   const initial = listChannels().map(publicChannel);
   const others = [
-    { name: '生图', endpoint: hostOf(image.baseUrl), model: image.model, ok: Boolean(image.baseUrl && image.apiKey && image.model), href: '/admin/settings', kind: 'image' as const },
-    { name: '语音（TTS）', endpoint: hostOf(tts.baseUrl), model: tts.model, ok: Boolean(tts.baseUrl && tts.apiKey && tts.model), href: '/admin/settings', kind: 'tts' as const },
-    { name: '支付', endpoint: activeProvider().label, model: getSetting('payment.checkoutUrl', '未配置结算页'), ok: Boolean(getSetting('payment.secret', process.env.TAVERN_PAYMENT_SECRET ?? '')), href: '/admin/settings', kind: 'payment' as const },
-    { name: '邮件', endpoint: getSetting('mail.from', '未配置发件人'), model: 'Resend', ok: Boolean(getSetting('mail.resend_key', process.env.TAVERN_MAIL_RESEND_KEY ?? '')), href: '/admin/settings', kind: 'mail' as const },
+    { name: '生图', endpoint: hostOf(image.baseUrl), model: image.model, ok: Boolean(image.baseUrl && image.apiKey && image.model), href: '/admin/settings/image', kind: 'image' as const },
+    { name: '语音（TTS）', endpoint: hostOf(tts.baseUrl), model: tts.model, ok: Boolean(tts.baseUrl && tts.apiKey && tts.model), href: '/admin/settings/tts', kind: 'tts' as const },
+    { name: '支付', endpoint: activeProvider().label, model: getSetting('payment.checkoutUrl', '未配置结算页'), ok: Boolean(getSetting('payment.secret', process.env.TAVERN_PAYMENT_SECRET ?? '')), href: '/admin/settings/payment', kind: 'payment' as const },
+    { name: '邮件', endpoint: getSetting('mail.from', '未配置发件人'), model: 'Resend', ok: Boolean(getSetting('mail.resend_key', process.env.TAVERN_MAIL_RESEND_KEY ?? '')), href: '/admin/settings/mail', kind: 'mail' as const },
   ];
 
   return (

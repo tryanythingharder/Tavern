@@ -45,7 +45,7 @@ export function ttsConfigured(): boolean {
 
 export async function generateImage(prompt: string, ownerId: number): Promise<{ url: string; prompt: string }> {
   const config = imageConfig();
-  if (!config.baseUrl || !config.apiKey || !config.model) throw new Error('生图未配置：请到后台「接口配置」填写');
+  if (!config.baseUrl || !config.apiKey || !config.model) throw new Error('生图未配置：请到后台「扩展能力 → 生图」填写');
   const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/images/generations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
@@ -74,7 +74,7 @@ export async function generateImage(prompt: string, ownerId: number): Promise<{ 
 
 export async function generateSpeech(text: string, ownerId: number): Promise<{ url: string }> {
   const config = ttsConfig();
-  if (!config.baseUrl || !config.apiKey || !config.model) throw new Error('语音未配置：请到后台「接口配置」填写');
+  if (!config.baseUrl || !config.apiKey || !config.model) throw new Error('语音未配置：请到后台「扩展能力 → 语音朗读」填写');
   const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/audio/speech`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },

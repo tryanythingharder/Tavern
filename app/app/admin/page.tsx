@@ -81,8 +81,9 @@ export default async function AdminPage() {
             <Link className="p-admin-module" href="/admin/content"><strong>内容分级</strong><span>18+ 总开关、地区规则、年龄验证</span></Link>
             <Link className="p-admin-module" href="/admin/announcement"><strong>公告</strong><span>编辑玩家端顶部公告</span></Link>
             <Link className="p-admin-module" href="/admin/channels"><strong>渠道</strong><span>多线路、优先级、从上游拉取模型</span></Link>
-            <Link className="p-admin-module" href="/admin/settings"><strong>接口配置</strong><span>生图 / TTS / 支付 / 邮件</span></Link>
-            <Link className="p-admin-module" href="/admin/services"><strong>站点与服务</strong><span>运营主体 / Stripe / 存储 / 备份 / 告警 / 审核</span></Link>
+            <Link className="p-admin-module" href="/admin/settings/billing"><strong>计费与增长</strong><span>扣点 / 支付渠道 / 福利 / 上下文</span></Link>
+            <Link className="p-admin-module" href="/admin/settings/image"><strong>扩展能力</strong><span>生图 / 语音 / 向量记忆 / 邮件</span></Link>
+            <Link className="p-admin-module" href="/admin/services/legal"><strong>站点与服务</strong><span>运营主体 / Stripe / 存储 / 备份 / 告警 / 审核</span></Link>
             <Link className="p-admin-module" href="/admin/audit"><strong>审计日志</strong><span>敏感操作留痕</span></Link>
           </div>
         </section>
