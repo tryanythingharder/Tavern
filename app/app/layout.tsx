@@ -42,13 +42,16 @@ import '../styles/themes/shared.css';
 // 当前主题（styles/themes/<t>.css）与排在主题之后的全局样式（custom、dark…i18n-en）
 // 由 scripts/build-css.mjs 预构建到 public/_css/，下面用 precedence 分组按原顺序加载，只下载当前主题那份。
 import { postCssHref, themeCssHref, themeCssMap } from '@/lib/css-assets';
+import { ogImage } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100'),
   title: { default: '夜话 · 角色扮演', template: '%s · 夜话' },
-  description: '和喜欢的角色开始一段故事。保持 SillyTavern 的能力，做成更好用的前端。',
+  description: '夜话是一个角色扮演故事平台：挑一扇门，和角色开始一段只属于你的故事。兼容 SillyTavern 角色卡、世界书与预设。',
   applicationName: '夜话',
+  openGraph: { type: 'website', siteName: '夜话 Yehua', images: [{ url: ogImage(), width: 1200, height: 630 }] },
+  twitter: { card: 'summary_large_image', images: [ogImage()] },
   appleWebApp: { capable: true, title: '夜话', statusBarStyle: 'default' },
   icons: { apple: '/icons/apple-touch-icon.png' },
 });

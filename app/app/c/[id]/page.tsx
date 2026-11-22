@@ -28,20 +28,26 @@ import { FavoriteButton } from '@/components/favorite-button';
 import { AddToLibraryButton } from '@/components/add-to-library';
 import { StartStoryForm } from '@/components/start-story-form';
 
+import { NOINDEX, alternates, ogImage } from '@/lib/seo';
+
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const character = getCharacterView(id);
   if (!character) return { title: tr('找不到这个角色') };
+  // 未发布、18+ 不收录，也不在分享卡片里放封面
+  const hidden = character.status !== 'published' || character.nsfw;
+  const cover = hidden ? null : coverSrc(character);
+  const title = tr('{0} · 夜话').replace('{0}', character.name);
+  const description = (character.hook || character.description || '').slice(0, 160);
   return {
     title: character.name,
-    description: character.hook,
-    openGraph: {
-      title: tr('{0} · 夜话').replace('{0}', character.name),
-      description: character.hook,
-      images: character.ownerId === null ? [`/characters/${character.id}.jpg`] : [],
-    },
+    description,
+    alternates: alternates(`/c/${encodeURIComponent(character.id)}`),
+    robots: hidden ? NOINDEX : undefined,
+    openGraph: { type: 'profile', title, description, images: cover ? [cover] : [ogImage()] },
+    twitter: { card: 'summary_large_image', title, description, images: cover ? [cover] : [ogImage()] },
   };
 }
 

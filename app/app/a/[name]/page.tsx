@@ -5,6 +5,8 @@ import { listCharacterViews } from '@/lib/characters';
 import { nsfwAccess } from '@/lib/age-gate';
 import { getBlockedAuthors } from '@/lib/blocked';
 import { authorBio } from '@/lib/authors';
+import { tr } from '@/lib/i18n/runtime';
+import { NOINDEX, alternates, ogImage } from '@/lib/seo';
 import { AuthorActions } from '@/components/author-actions';
 import { ProtoWorkCard } from '@/components/proto-work-card';
 import { getCurrentUser } from '@/lib/auth';
@@ -14,7 +16,16 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
-  return { title: decodeURIComponent(name) };
+  const author = decodeURIComponent(name);
+  const works = listCharacterViews(undefined, { hideNsfw: true }).filter((c) => c.author === author);
+  const description = (authorBio(author) || tr('{0} 在夜话发布的 {1} 个角色').replace('{0}', author).replace('{1}', String(works.length))).slice(0, 160);
+  return {
+    title: author,
+    description,
+    alternates: alternates(`/a/${encodeURIComponent(author)}`),
+    robots: works.length ? undefined : NOINDEX,
+    openGraph: { type: 'profile', title: author, description, images: [ogImage()] },
+  };
 }
 
 function heat(value: string): number {
