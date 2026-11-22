@@ -31,3 +31,8 @@ export function themeCssMap(): Record<string, string> {
   for (const [k, v] of Object.entries(m)) if (k.startsWith('theme-')) out[k.slice(6)] = v;
   return out;
 }
+
+/** 页面级样式包（page-auth、page-chat），见 scripts/build-css.mjs */
+export function pageCssHref(name: 'auth' | 'chat'): string | undefined {
+  return manifest()[`page-${name}`];
+}

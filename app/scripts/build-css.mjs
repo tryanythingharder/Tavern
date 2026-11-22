@@ -37,11 +37,9 @@ export const BUNDLES = {
   post: [
     'styles/themes/custom.css',
     'styles/themes/dark.css',
-    'styles/chat-focus.css',
     'styles/ui-select.css',
     'styles/quick-replies.css',
     'styles/ui-dialog.css',
-    'styles/auth.css',
     'styles/me-shell.css',
     'styles/wallet.css',
     'styles/points-chip.css',
@@ -50,6 +48,11 @@ export const BUNDLES = {
     'styles/i18n-en.css',
   ],
 };
+// 只在个别页面用到的样式：单独成包，由页面用 <link precedence="yh-page"> 引入（排在 post 之后）
+Object.assign(BUNDLES, {
+  'page-auth': ['styles/auth.css'],
+  'page-chat': ['styles/chat-focus.css'],
+});
 const OUT = path.join(ROOT, 'public/_css');
 
 async function processFile(rel) {

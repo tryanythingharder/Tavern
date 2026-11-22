@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
+import { pageCssHref } from '@/lib/css-assets';
 import { chatBranches, getChat, getCharacterById, listMessagesPage, messageOffset } from '@/lib/db';
 import { ChatBranches } from '@/components/chat-branches';
 import { toMessageView } from '@/lib/chat-view';
@@ -74,6 +75,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
 
   return (
     <main className="p-inner">
+      {pageCssHref('chat') ? <link rel="stylesheet" href={pageCssHref('chat')} precedence="yh-page" /> : null}
       <script dangerouslySetInnerHTML={{ __html: chatFocusBootScript(richCard, hasStage) }} />
       {cover && <div className="chat-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(cover)})` }} />}
       <ChatBackdropLayer src={bg.src} />
