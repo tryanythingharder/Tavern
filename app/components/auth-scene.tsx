@@ -1,34 +1,28 @@
 import Link from 'next/link';
-import { authRoster } from '@/lib/auth-wall';
-import { AuthRoster } from '@/components/auth-roster';
+import type { ReactNode } from 'react';
+import { AuthDoors } from '@/components/auth-doors';
+import { LanguageSwitch } from '@/components/language-switch';
 
-// 登录 / 注册右侧「名册」：角色名索引 + 跟随的立绘（参考 197 Historias / Grids 的编辑部版式），三套主题共用
+// 登录 / 注册 / 找回密码等共用的外壳：照 Thorgal 首页复刻的「五扇门」，账号表单在左侧滑出的面板里。三套主题共用。
 
-
-export function AuthScene() {
+export function AuthShell({ mode, open = false, children }: { mode: 'login' | 'register' | 'other'; open?: boolean; children: ReactNode }) {
   return (
-    <aside className="p-auth-scene p-auth-scene--roster" aria-hidden="true">
-      <AuthRoster entries={authRoster()} />
-    </aside>
-  );
-}
-
-// 登录页顶栏：品牌 + 一个切换链接
-export function AuthHeader({ mode }: { mode: 'login' | 'register' | 'other' }) {
-  return (
-    <header className="p-auth-header">
-      <Link className="p-auth-wordmark" href="/" aria-label="夜话首页">
-        <span className="p-auth-seal" aria-hidden="true">夜</span>
-        <span>夜话</span>
-      </Link>
-      <nav className="p-auth-nav" aria-label="账号操作">
-        {mode === 'login'
-          ? <><span className="p-auth-nav-note">还没有账号？</span><Link className="p-btn p-btn--sm" href="/login">注册</Link></>
-          : mode === 'register'
-            ? <><span className="p-auth-nav-note">已有账号？</span><Link className="p-btn p-btn--sm" href="/login?mode=login">登录</Link></>
-            : <Link className="p-btn p-btn--sm" href="/login?mode=login">登录</Link>}
-      </nav>
-    </header>
+    <div className="p-auth">
+      <AuthDoors
+        mode={mode}
+        initialOpen={open}
+        footer={(
+          <>
+            <Link href="/support">帮助</Link>
+            <Link href="/terms">条款</Link>
+            <Link href="/privacy">隐私</Link>
+            <LanguageSwitch variant="link" />
+          </>
+        )}
+      >
+        <main className="p-auth-stage">{children}</main>
+      </AuthDoors>
+    </div>
   );
 }
 
@@ -36,7 +30,7 @@ export function AuthTabs({ mode }: { mode: 'login' | 'register' }) {
   return (
     <nav className="p-auth-tabs" aria-label="登录或注册">
       <Link href="/login?mode=login" aria-current={mode === 'login' ? 'page' : undefined}>登录</Link>
-      <Link href="/login" aria-current={mode === 'register' ? 'page' : undefined}>注册</Link>
+      <Link href="/login?mode=register" aria-current={mode === 'register' ? 'page' : undefined}>注册</Link>
     </nav>
   );
 }
