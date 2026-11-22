@@ -4,3 +4,9 @@
 .btn--danger-solid:hover { filter: brightness(.92); }
 .ui-dialog-input { width: 100%; box-sizing: border-box; margin-top: 8px; }
 .ui-dialog-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* 表单校验提示（components/form-validity.tsx）：替代浏览器自带的气泡 */
+.ui-invalid-msg { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--danger, #c9401f); }
+[aria-invalid="true"]:is(input:not([type=checkbox]):not([type=radio]), textarea, select) { border-color: var(--danger, #c9401f) !important; }
+input[type=checkbox][aria-invalid="true"] { outline: 1.5px solid var(--danger, #c9401f); outline-offset: 2px; }
+html[data-scheme=dark] .ui-invalid-msg { color: #ef7a5c; }

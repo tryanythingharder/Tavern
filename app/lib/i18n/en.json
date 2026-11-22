@@ -249,7 +249,7 @@
  "链接无效或已过期，请重新申请": "Link invalid or expired, please request a new one",
  "链接无效，请重新申请": "Invalid link, please request a new one",
  "这个邮箱已经被其他账号使用": "This email is already used by another account",
- "邮箱格式不对": "Invalid email format",
+ "邮箱格式不对": "That doesn't look like an email address",
  "请求太频繁，请 {0} 分钟后再试": "Too many requests, try again in {0} min",
  "重置你的夜话密码": "Reset your Yehua password",
  "你（或有人用这个邮箱）请求重置夜话密码。 在 1 小时内打开这个链接设置新密码： {0} 如果不是你本人操作，可以忽略这封邮件，密码不会改变。": "You (or someone using this email) asked to reset your Yehua password. Open this link within 1 hour to set a new one: {0} If this wasn't you, ignore this email and your password won't change.",
@@ -4034,5 +4034,13 @@
  "用户协议与隐私政策": "Terms & privacy",
  "我已阅读并同意": "I have read and agree to the",
  "我已阅读并同意{0}和{1}": "I have read and agree to the {0} and {1}",
- "请先阅读并勾选同意用户协议和隐私政策": "Please read and agree to the Terms of Use and Privacy Policy first"
+ "请先阅读并勾选同意用户协议和隐私政策": "Please read and agree to the Terms of Use and Privacy Policy first",
+ "请先勾选此项": "Please check this box",
+ "请填写此项": "Please fill in this field",
+ "链接格式不对": "That doesn't look like a valid link",
+ "至少 {n} 个字符": "At least {n} characters",
+ "最多 {n} 个字符": "At most {n} characters",
+ "不能小于 {n}": "Must be at least {n}",
+ "不能大于 {n}": "Must be at most {n}",
+ "请检查此项": "Please check this field"
 }

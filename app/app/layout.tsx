@@ -19,6 +19,7 @@ import { checkinStatus } from '@/lib/checkin';
 import { dailyFreeRemaining, firstTopupEligible, growthConfig } from '@/lib/growth';
 import Script from 'next/script';
 import { LocaleGuard } from '@/components/locale-guard';
+import { FormValidity } from '@/components/form-validity';
 import { getLocale, dictVersion } from '@/lib/i18n/server';
 import './globals.css';
 // 原型样式：直接引入，让页面 DOM 使用原型的 p-* / ca-* 类名
@@ -119,6 +120,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* 背景色调滤镜层：仅在用户选了色调时由 CSS 显示 */}
         <a className="skip-link" href="#main-content">跳到正文</a>
         <div className="ua-tint" aria-hidden="true" />
+        <FormValidity />
         {/* 首屏在 hydration 前就定好页面/视图标记，避免切页时先闪一下旧排版 */}
         <script
           dangerouslySetInnerHTML={{
