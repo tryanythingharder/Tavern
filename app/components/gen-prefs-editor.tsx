@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useRef, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -33,7 +34,7 @@ export function GenPrefsEditor({ initial }: { initial: GenPrefs }) {
       setPrefs(next);
       if (result.patch.stopStrings) setStopText(result.patch.stopStrings.length ? JSON.stringify(result.patch.stopStrings) : '');
       setSaved(false);
-      setImported(`已读到：${result.found.join('、')}。检查一下，点保存生效。`);
+      setImported(`已读到：${joinList(result.found)}。检查一下，点保存生效。`);
     } catch (caught) {
       setError(caught instanceof SyntaxError ? '文件不是有效的 JSON' : (caught as Error).message);
     } finally {

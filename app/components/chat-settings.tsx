@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { DataBankField } from '@/components/data-bank-field';
 import { LocalTime } from '@/components/local-time';
@@ -514,7 +515,7 @@ export function ChatSettings({ chatId, initialOpen = false }: { chatId: number; 
                             <span className="cs-cardlore-text">
                               <span className="cs-cardlore-title">{item.title}</span>
                               <small className="cs-cardlore-meta">
-                                {item.trigger === 'constant' ? '常驻' : item.keywords.length ? `关键词：${item.keywords.join('、')}` : '关键词触发'}
+                                {item.trigger === 'constant' ? '常驻' : item.keywords.length ? `关键词：${joinList(item.keywords)}` : '关键词触发'}
                                 {item.on !== item.defaultOn ? (item.defaultOn ? ' · 卡默认开' : ' · 卡默认关') : ''}
                               </small>
                             </span>
@@ -532,11 +533,11 @@ export function ChatSettings({ chatId, initialOpen = false }: { chatId: number; 
                       {preview.persona ? ` · 身份 ${preview.persona.name}` : ''}
                     </p>
                     <p className="small" style={{ margin: '0 0 8px' }}>
-                      世界书命中：{preview.loreHits.length ? preview.loreHits.map((hit) => `${hit.title}（${hit.keys.join('、')}）`).join('；') : '无'}
+                      世界书命中：{preview.loreHits.length ? joinList(preview.loreHits.map((hit) => `${hit.title}（${joinList(hit.keys)}）`), '；') : '无'}
                     </p>
                     {!!preview.ejsErrors?.length && (
                       <p className="small cs-ejs-error" style={{ margin: '0 0 8px' }}>
-                        EJS 模板出错（出错的部分去掉代码后发送）：{preview.ejsErrors.map((item) => item.message).join('；')}
+                        EJS 模板出错（出错的部分去掉代码后发送）：{joinList(preview.ejsErrors.map((item) => item.message), '；')}
                       </p>
                     )}
                     {preview.blocks.filter((block) => block.enabled && block.text).map((block) => (
@@ -826,7 +827,7 @@ function MemoryMap({ data, ragOn, manual }: { data: MemoryData; ragOn: boolean; 
   return (
     <div className="mm" aria-label="记忆覆盖示意">
       <div className="mm-head"><b>这段故事的记忆</b><span>共 {data.messageCount} 条</span></div>
-      <div className="mm-bar" role="img" aria-label={segs.map((seg) => seg.note).join('，')}>
+      <div className="mm-bar" role="img" aria-label={joinList(segs.map((seg) => seg.note), '，')}>
         {segs.map((seg) => seg.n > 0 && <i key={seg.key} className={`mm-${seg.key}${seg.key === 'gap' && !ragOn ? ' is-off' : ''}`} style={{ width: pct(seg.n) }} title={seg.note} />)}
       </div>
       <ul className="mm-legend">

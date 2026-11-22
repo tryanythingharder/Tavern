@@ -23,6 +23,7 @@ import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
 import { expandStMacros } from '@/lib/st-macros';
 import { applyStVarMacros, makeVarStore } from '@/lib/st-vars';
 import { persistVarStore } from '@/lib/st-vars-server';
+import { fallbackUserName, promptLocale } from './prompt-lang';
 
 // 上下文预算按 tokens 计，和 ST 一样：窗口 = 玩家预设里的「上下文长度」（0 = 跟随模型），但不超过模型自己的上限
 // （后台模型广场填的「上下文」，如 200K）。模型没填上限时用后台 prompt.defaultContext（默认 32K）；
@@ -325,9 +326,9 @@ export function assemblePrompt(input: AssembleInput): AssembleResult {
   const triggered = input.trigger ?? 'normal';
 
   // 扫描文本：最近消息 + 角色设定 + 玩家身份（对应 ST 的 match_* 字段）
-  const userName = input.userName || persona?.name || '你';
+  const userName = input.userName || persona?.name || fallbackUserName();
   // 玩家消息用发送时的身份名（ST：每条消息的 name；中途换身份，旧楼层还是旧名字）
-  const speakerOf = (message: DbMessage) => (message.role === 'user' ? message.persona_name || userName : message.role === 'system' ? '旁白' : character.name);
+  const speakerOf = (message: DbMessage) => (message.role === 'user' ? message.persona_name || userName : message.role === 'system' ? (promptLocale() === 'en' ? 'Narrator' : '旁白') : character.name);
   const recent = history.slice(-Math.max(LORE_SCAN_DEPTH, 1));
   const scanTexts = recent.map((message) => `${speakerOf(message)}：${message.content}`);
   if (character.description) scanTexts.push(character.description);

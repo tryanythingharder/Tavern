@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
   const [greeting, setGreeting] = useState(initial?.greeting ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [pace, setPace] = useState(initial?.pace ?? '');
-  const [tags, setTags] = useState(initial?.tags.join('，') ?? '');
+  const [tags, setTags] = useState(initial ? joinList(initial.tags, '，') : '');
   const [category, setCategory] = useState(initial?.category ?? '现代');
   const [nsfw, setNsfw] = useState(initial?.nsfw ?? false);
   const [coverData, setCoverData] = useState<string>(initial?.coverImage ?? '');
@@ -184,7 +185,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
   );
 
   const missing = [!name.trim() && '名称', !hook.trim() && '剧情钩子', !greeting.trim() && '开场白'].filter(Boolean) as string[];
-  const publishHint = missing.length ? `发布前还需要填写：${missing.join('、')}` : '可以发布了';
+  const publishHint = missing.length ? `发布前还需要填写：${joinList(missing)}` : '可以发布了';
   return (
     <>
       <header className="p-page-title">

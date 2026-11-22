@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useEffect, useRef, useState } from 'react';
 import { Modal, api } from '@/components/settings-ui';
@@ -37,7 +38,7 @@ export function SpriteManager({ characterId, onClose, onChange }: { characterId:
       if (!res.ok) throw new Error(data.message || '上传失败');
       setSprites(data.sprites ?? []);
       const skipped = data.skipped ?? [];
-      setNote(`导入 ${data.added ?? 0} 张${skipped.length ? `，跳过 ${skipped.length} 个（文件名不是表情标签或不是图片）：${skipped.slice(0, 5).join('、')}${skipped.length > 5 ? '…' : ''}` : ''}`);
+      setNote(`导入 ${data.added ?? 0} 张${skipped.length ? `，跳过 ${skipped.length} 个（文件名不是表情标签或不是图片）：${joinList(skipped.slice(0, 5))}${skipped.length > 5 ? '…' : ''}` : ''}`);
       onChange();
     } catch (error) { setNote((error as Error).message); }
     finally { setBusy(false); }

@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useState } from 'react';
 import { LORE_LOGICS, LORE_POSITIONS, type LoreEntry, type Lorebook } from '@/lib/resources';
@@ -281,7 +282,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
                 <label>关键词（逗号分隔）</label>
                 <input
                   className="p-input"
-                  value={entry.keywords.join('，')}
+                  value={joinList(entry.keywords, '，')}
                   placeholder="例如：报馆，申报，雨夜"
                   onChange={(event) => updateEntry(entryIndex, { keywords: event.target.value.split(/[,，\n]/).map((item) => item.trim()).filter(Boolean) })}
                 />
@@ -304,7 +305,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
                     <label>次要关键词</label>
                     <input
                       className="p-input"
-                      value={entry.secondaryKeywords.join('，')}
+                      value={joinList(entry.secondaryKeywords, '，')}
                       onChange={(event) => updateEntry(entryIndex, { secondaryKeywords: event.target.value.split(/[,，\n]/).map((item) => item.trim()).filter(Boolean) })}
                     />
                   </div>
@@ -438,7 +439,7 @@ export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [],
                     <div className="p-room-main">
                       <div className="p-room-title" style={{ fontSize: 13.5 }}>{item.title || '未命名'}</div>
                       <div className="p-room-last">
-                        {item.constant ? '常驻' : `${item.vectorized ? '向量 · ' : ''}${item.keywords.join('、') || (item.vectorized ? '只靠向量匹配' : '没有关键词')}`} · {positionLabel(item.position)}
+                        {item.constant ? '常驻' : `${item.vectorized ? '向量 · ' : ''}${joinList(item.keywords) || (item.vectorized ? '只靠向量匹配' : '没有关键词')}`} · {positionLabel(item.position)}
                         {item.position === 'depth' ? ` · 深度 ${item.depth}` : ''} · {item.enabled ? '启用' : '停用'}
                       </div>
                     </div>

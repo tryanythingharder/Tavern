@@ -6,6 +6,7 @@ import { getSetting } from '@/lib/settings';
 import { channelCount, channelModels, channelRoutes, channelRoutesFor } from '@/lib/channels';
 import { priceLabel, priceRule, priceShort, type PriceRule } from '@/lib/points';
 import { isModelHidden, modelCatalogMeta, type ModelMeta } from '@/lib/model-catalog';
+import { localizeMessages } from './prompt-lang';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -360,7 +361,9 @@ function parseChunk(json: any): Parsed {
 // 稳定性：等响应头有连接超时；流开始后按「两块之间的空闲时间」判超时（长回复不会被总时长误杀），另有总时长上限；
 // 限流/网关故障按 Retry-After 退避重试；400 且是采样字段不认识就去掉这些字段再试；
 // 只在还没输出任何内容时切线路，不会重复扣费；流里的 error 负载、空回复都会报错而不是静默结束。
-export async function* streamChat(messages: ChatMessage[], options: StreamOptions = {}): AsyncGenerator<StreamEvent> {
+export async function* streamChat(input: ChatMessage[], options: StreamOptions = {}): AsyncGenerator<StreamEvent> {
+  // 英文界面的玩家：平台脚手架换成英文（lib/prompt-lang.ts），作者写的内容不动
+  const messages = localizeMessages(input);
   if (!modelConfigured()) throw new UpstreamError('模型未配置：请在后台「模型与网关」或 .env.local 配置', 'unavailable');
   const params = options.params;
   const body: Record<string, unknown> = {

@@ -1,3 +1,4 @@
+import { joinList } from '@/lib/i18n/runtime';
 // ST 背景/表情斜杠命令（前端执行）：/bg /lockbg /unlockbg /expression-set /expression-list
 import { EXPRESSION_LABELS, EXPRESSION_ZH, type ExpressionLabel } from '@/lib/expressions';
 
@@ -44,7 +45,7 @@ export async function runBgCommand(kind: 'chat' | 'room', id: number, name: stri
   if (!arg.trim()) return { notice: `当前背景：${nameOf(current)}${locked ? '（锁定在这段故事）' : ''}`, pipe: nameOf(current), changed: false };
   const none = /^(none|无|无背景|off)$/i.test(arg.trim());
   const found = none ? null : matchBackground(lib.backgrounds, arg);
-  if (!none && !found) throw new Error(`背景库里没有「${arg.trim()}」${lib.backgrounds.length ? `。有：${lib.backgrounds.slice(0, 8).map((bg) => bg.name).join('、')}${lib.backgrounds.length > 8 ? '…' : ''}` : '，先在「背景」里上传'}`);
+  if (!none && !found) throw new Error(`背景库里没有「${arg.trim()}」${lib.backgrounds.length ? `。有：${joinList(lib.backgrounds.slice(0, 8).map((bg) => bg.name))}${lib.backgrounds.length > 8 ? '…' : ''}` : '，先在「背景」里上传'}`);
   if (locked) await call(threadUrl, { method: 'PUT', body: JSON.stringify({ value: found?.src ?? '' }) });
   else await call('/api/backgrounds', { method: 'PUT', body: JSON.stringify({ global: found?.src ?? null }) });
   const label = found?.name ?? '无背景';
@@ -64,7 +65,7 @@ export const EXPRESSION_EVENT = 'tavern:expression-set';
 
 export function runExpressionCommand(name: string, arg: string): { notice: string; pipe: string } {
   if (name === 'expression-list') {
-    const list = EXPRESSION_LABELS.map((label) => `${label}（${EXPRESSION_ZH[label]}）`).join('、');
+    const list = joinList(EXPRESSION_LABELS.map((label) => `${label}（${EXPRESSION_ZH[label]}）`));
     return { notice: `可用表情：${list}`, pipe: JSON.stringify(EXPRESSION_LABELS) };
   }
   const label = parseExpression(arg);

@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useRef, useState } from 'react';
 import type { Persona } from '@/lib/resources';
@@ -188,7 +189,7 @@ export function PersonasEditor({ initial, characters, lorebooks }: { initial: Pe
               <div className="p-room-last">
                 {POSITIONS.find(([key]) => key === persona.position)?.[1]}
                 {persona.position === 'depth' ? ` · 深度 ${persona.depth}` : ''}
-                {persona.boundCharacters.length ? ` · 绑定 ${persona.boundCharacters.map(nameOf).join('、')}` : ''}
+                {persona.boundCharacters.length ? ` · 绑定 ${joinList(persona.boundCharacters.map(nameOf))}` : ''}
               </div>
             </div>
             <div className="p-library-actions">
