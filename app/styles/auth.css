@@ -367,3 +367,10 @@ html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-panel .p-auth-tabs
 @media (max-width: 639px) {
   html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-name { font-size: clamp(36px, 11vw, 56px); white-space: normal; }
 }
+
+/* 登录按钮下的协议说明（注册页是勾选框，不重复） */
+html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-auth-legal { margin: 14px 0 0; font-size: 12px; line-height: 1.6; color: var(--pp-fg-3); text-align: left; }
+html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-auth-legal a,
+html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-check a { color: var(--pp-fg-2); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-auth-legal a:hover,
+html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-check a:hover { color: var(--pp-accent); }

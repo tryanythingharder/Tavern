@@ -21,7 +21,7 @@ export default function SettingsImportPage() {
           <span className="p-small">打开对话 →</span>
         </Link>
         <Link className="p-row" href="/terms">
-          <div className="p-row-main"><div className="p-row-title">服务条款与隐私政策</div><div className="p-row-sub">仅限 18 周岁以上 · 了解你的数据如何使用</div></div>
+          <div className="p-row-main"><div className="p-row-title">用户协议与隐私政策</div><div className="p-row-sub">仅限 18 周岁以上 · 了解你的数据如何使用</div></div>
           <span className="p-small">查看 →</span>
         </Link>
         <Link className="p-row" href="/guidelines">

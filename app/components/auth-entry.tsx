@@ -52,6 +52,8 @@ export async function AuthEntry({ view, open, error, refParam }: { view: 'login'
                   </button>
                 </form>
 
+                <p className="p-auth-legal">登录即表示你同意<Link href="/terms">《用户协议》</Link>和<Link href="/privacy">《隐私政策》</Link></p>
+
                 <p className="p-auth-hint">
                   <span>登录后回到你的对话、角色库与点数</span>
                   <Link href="/forgot">忘记密码？</Link>
@@ -100,7 +102,7 @@ export async function AuthEntry({ view, open, error, refParam }: { view: 'login'
                   <div className="p-door-submit">
                   <label className="p-check" style={{ alignItems: 'flex-start' }}>
                     <input id="register-age" name="age" type="checkbox" required style={{ marginTop: 2 }} />
-                    <span>已年满 18 岁、出生日期属实，并同意<Link href="/terms">服务条款</Link>、<Link href="/privacy">隐私政策</Link>与<Link href="/guidelines">社区准则</Link></span>
+                    <span>已年满 18 岁、出生日期属实，并同意<Link href="/terms">《用户协议》</Link>、<Link href="/privacy">《隐私政策》</Link>与<Link href="/guidelines">《社区准则》</Link></span>
                   </label>
                   <button className="p-btn p-btn--primary p-auth-button" type="submit">
                     创建账号并进入

@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return trMeta({ title: '服务条款' });
+  return trMeta({ title: '用户协议' });
 }
 
 // 这是可用的条款模板，正式上线前请让法务按实际运营主体与地区审核。
 export default function TermsPage() {
   return (
     <LegalPage
-      title="服务条款"
+      title="用户协议"
       meta="最后更新：2026-11-09 · 本页是模板文本，正式上线前需经法务审核"
       notice={<><strong>这是模板文本。</strong>正式条款需由法务起草后再替换本页。请在使用前阅读；继续使用即表示你同意以下条款。</>}
       footer={<>正式上线前，本页需由法务审阅并替换；相关问题请联系站点管理员。</>}

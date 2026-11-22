@@ -26,7 +26,7 @@ export async function register(formData: FormData) {
   const age = ageFrom(birthDate);
   if (age === null || age > 120) redirect('/register?error=' + encodeURIComponent('请填写正确的出生日期'));
   if (age < 18) redirect('/register?error=' + encodeURIComponent('需要年满 18 岁才能注册'));
-  if (formData.get('age') !== 'on') redirect('/register?error=' + encodeURIComponent('请确认已年满 18 岁并同意服务条款'));
+  if (formData.get('age') !== 'on') redirect('/register?error=' + encodeURIComponent('请确认已年满 18 岁并同意用户协议'));
 
   const ip = await clientIp();
   const ipLimit = rateLimit('register-ip', [ip], 5, 60 * 60 * 1000);

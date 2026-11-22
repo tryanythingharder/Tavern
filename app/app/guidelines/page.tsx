@@ -12,7 +12,7 @@ export default function GuidelinesPage() {
       title="社区准则"
       meta="最后更新：2026-11-09 · 本页是模板文本，正式上线前需经法务审核"
       notice={<><strong>这是模板文本。</strong>社区准则会随运营情况调整；重大变更会在站内通知。</>}
-      footer={<>相关条款：<a href="/terms">服务条款</a> · <a href="/privacy">隐私政策</a></>}
+      footer={<>相关条款：<a href="/terms">用户协议</a> · <a href="/privacy">隐私政策</a></>}
     >
       <h2>允许的</h2>
       <p>原创角色、虚构剧情、日常与冒险、情感向与慢热叙事、成人向的虚构内容（需标记 18+，且不涉及未成年人）。</p>

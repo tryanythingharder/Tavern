@@ -1739,8 +1739,8 @@
  "社区准则会随运营情况调整；重大变更会在站内通知。": "These guidelines may change as we operate; major changes will be announced on site.",
  "§相关条款：{0} · {1}": "Related: {0} · {1}",
  "相关条款：": "Related:",
- "服务条款": "Terms of service",
- "隐私政策": "Privacy policy",
+ "服务条款": "Terms of Use",
+ "隐私政策": "Privacy Policy",
  "允许的": "Allowed",
  "原创角色、虚构剧情、日常与冒险、情感向与慢热叙事、成人向的虚构内容（需标记 18+，且不涉及未成年人）。": "Original characters, fiction, slice-of-life and adventure, romance and slow-burn stories, adult fiction (must be marked 18+ and never involve minors).",
  "不允许的": "Not allowed",
@@ -4025,5 +4025,13 @@
  "夜话是一个角色扮演故事平台：挑一扇门，和角色开始一段只属于你的故事。兼容 SillyTavern 角色卡、世界书与预设。": "Yehua is a roleplay story platform: pick a door and start a story with a character that is yours alone. Works with SillyTavern character cards, lorebooks and presets.",
  "夜话 Yehua": "Yehua",
  "{0} 在夜话发布的 {1} 个角色": "{1} characters by {0} on Yehua",
- "每一扇门后，都有人在等你": "Behind every door, someone is waiting"
+ "每一扇门后，都有人在等你": "Behind every door, someone is waiting",
+ "用户协议": "Terms of Use",
+ "《用户协议》": "Terms of Use",
+ "《隐私政策》": "Privacy Policy",
+ "《社区准则》": "Community Guidelines",
+ "登录即表示你同意": "By signing in, you agree to the",
+ "登录即表示你同意{0}和{1}": "By signing in, you agree to the {0} and {1}.",
+ "请确认已年满 18 岁并同意用户协议": "Confirm you're 18+ and agree to the Terms of Use",
+ "用户协议与隐私政策": "Terms & privacy"
 }
