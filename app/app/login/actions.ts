@@ -20,28 +20,28 @@ export async function register(formData: FormData) {
   // 从好友专属链接进来的（cookie 里记了有效邀请人）以链接为准，表单改不了
   const lockedRef = (await cookies()).get('tavern_ref')?.value?.trim().toUpperCase() ?? '';
   const invite = lockedRef && isReferralCode(lockedRef) && referrerFor(lockedRef) ? lockedRef : String(formData.get('invite') ?? '').trim().toUpperCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/login?error=' + encodeURIComponent('邮箱格式不对'));
-  if (password.length < 8) redirect('/login?error=' + encodeURIComponent('密码至少 8 位'));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/register?error=' + encodeURIComponent('邮箱格式不对'));
+  if (password.length < 8) redirect('/register?error=' + encodeURIComponent('密码至少 8 位'));
   const birthDate = String(formData.get('birth') ?? '').trim();
   const age = ageFrom(birthDate);
-  if (age === null || age > 120) redirect('/login?error=' + encodeURIComponent('请填写正确的出生日期'));
-  if (age < 18) redirect('/login?error=' + encodeURIComponent('需要年满 18 岁才能注册'));
-  if (formData.get('age') !== 'on') redirect('/login?error=' + encodeURIComponent('请确认已年满 18 岁并同意服务条款'));
+  if (age === null || age > 120) redirect('/register?error=' + encodeURIComponent('请填写正确的出生日期'));
+  if (age < 18) redirect('/register?error=' + encodeURIComponent('需要年满 18 岁才能注册'));
+  if (formData.get('age') !== 'on') redirect('/register?error=' + encodeURIComponent('请确认已年满 18 岁并同意服务条款'));
 
   const ip = await clientIp();
   const ipLimit = rateLimit('register-ip', [ip], 5, 60 * 60 * 1000);
   const emailLimit = rateLimit('register-email', [email], 3, 60 * 60 * 1000);
   if (!ipLimit.ok || !emailLimit.ok) {
     const wait = !ipLimit.ok ? ipLimit.retryAfter : !emailLimit.ok ? emailLimit.retryAfter : 60;
-    redirect('/login?error=' + encodeURIComponent(`注册尝试太频繁，请 ${Math.ceil(wait / 60)} 分钟后再试`));
+    redirect('/register?error=' + encodeURIComponent(`注册尝试太频繁，请 ${Math.ceil(wait / 60)} 分钟后再试`));
   }
 
-  if (findUserByEmail(email)) redirect('/login?error=' + encodeURIComponent('这个邮箱已经注册过了'));
-  if (inviteRequired() && !invite) redirect('/login?error=' + encodeURIComponent('当前注册需要邀请码'));
+  if (findUserByEmail(email)) redirect('/register?error=' + encodeURIComponent('这个邮箱已经注册过了'));
+  if (inviteRequired() && !invite) redirect('/register?error=' + encodeURIComponent('当前注册需要邀请码'));
   // 好友邀请码（R-XXXXXX）与管理员邀请码（INV-…）共用一个输入框
   const referral = invite && isReferralCode(invite) ? invite : '';
-  if (referral && !referrerFor(referral)) redirect('/login?error=' + encodeURIComponent('好友邀请码不存在，检查一下有没有抄错'));
-  if (invite && !referral && !inviteValid(invite)) redirect('/login?error=' + encodeURIComponent('邀请码无效或已经被使用'));
+  if (referral && !referrerFor(referral)) redirect('/register?error=' + encodeURIComponent('好友邀请码不存在，检查一下有没有抄错'));
+  if (invite && !referral && !inviteValid(invite)) redirect('/register?error=' + encodeURIComponent('邀请码无效或已经被使用'));
   const user = (() => {
     try {
       return transaction(() => {
@@ -52,7 +52,7 @@ export async function register(formData: FormData) {
       });
     } catch (error) {
       if (error instanceof Error && error.message === 'INVITE_USED') {
-        redirect('/login?error=' + encodeURIComponent('邀请码无效或已经被使用'));
+        redirect('/register?error=' + encodeURIComponent('邀请码无效或已经被使用'));
       }
       throw error;
     }

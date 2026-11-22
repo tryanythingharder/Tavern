@@ -133,6 +133,7 @@ export function SiteShell({
     if (pathname.startsWith('/notifications')) return 'notifications';
     if (pathname.startsWith('/me')) return 'settings';
     if (pathname.startsWith('/admin')) return 'admin';
+    if (pathname === '/register') return 'login'; // 注册页沿用登录页的样式
     return pathname.split('/')[1] || 'home';
   })();
   // 原型的影院模式只作用于叙事页：home / plaza / character / author
@@ -271,7 +272,7 @@ export function SiteShell({
     </>
   );
 
-  if (pathname.startsWith('/login') || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}<MotionLayer /><ErrorReporter /></>;
+  if (pathname.startsWith('/login') || pathname === '/register' || pathname === '/forgot' || pathname === '/reset' || pathname.startsWith('/verify') || pathname === '/terms' || pathname === '/privacy' || pathname === '/guidelines' || pathname === '/support') return <>{children}<MotionLayer /><ErrorReporter /></>;
 
   // 后台：原型 admin.html 的独立骨架（240px 侧栏 + 主区工具栏）
   if (adminPage) {

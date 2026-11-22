@@ -18,6 +18,16 @@ function pickLang(request: NextRequest): { lang: 'zh' | 'en'; set: boolean } {
 // 邀请链接：任何页面带 ?ref=R-XXXXXX 都记进 cookie（30 天），朋友先逛几页再注册也不会丢码。
 // 注册页从 cookie 预填邀请码；注册成功后清掉。
 export function middleware(request: NextRequest) {
+  // 旧注册链接 /login?mode=register、好友链接 /login?ref=… 转到独立注册页（真 307，不靠页面里的流式跳转）
+  const url = request.nextUrl;
+  if (url.pathname === '/login' && (url.searchParams.get('mode') === 'register' || (url.searchParams.get('ref') && url.searchParams.get('mode') !== 'login'))) {
+    // 反向代理后面 request.url 可能是内部地址：按转发头拼外部地址（middleware 不接受相对 Location）
+    const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? url.host;
+    const proto = request.headers.get('x-forwarded-proto') ?? url.protocol.replace(':', '');
+    const to = new URL(`${proto}://${host}/register`);
+    url.searchParams.forEach((v, k) => { if (k !== 'mode') to.searchParams.append(k, v); });
+    return NextResponse.redirect(to, 307);
+  }
   const ref = request.nextUrl.searchParams.get('ref');
   const validRef = ref && /^R-[A-Z0-9]{6}$/i.test(ref) ? ref.toUpperCase() : null;
   const { lang, set } = pickLang(request);

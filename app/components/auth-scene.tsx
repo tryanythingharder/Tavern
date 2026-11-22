@@ -30,7 +30,7 @@ export function AuthTabs({ mode }: { mode: 'login' | 'register' }) {
   return (
     <nav className="p-auth-tabs" aria-label="登录或注册">
       <Link href="/login?mode=login" aria-current={mode === 'login' ? 'page' : undefined}>登录</Link>
-      <Link href="/login?mode=register" aria-current={mode === 'register' ? 'page' : undefined}>注册</Link>
+      <Link href="/register" aria-current={mode === 'register' ? 'page' : undefined}>注册</Link>
     </nav>
   );
 }

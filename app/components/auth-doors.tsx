@@ -298,7 +298,7 @@ export function AuthDoors({ mode, initialOpen, footer, children }: { mode: 'logi
         </Link>
         <div className="p-door-head-r">
           {mode === 'login'
-            ? <Link href="/login?mode=register" className="p-door-news"><i aria-hidden="true" />注册</Link>
+            ? <Link href="/register" className="p-door-news"><i aria-hidden="true" />注册</Link>
             : <Link href="/login?mode=login" className="p-door-news"><i aria-hidden="true" />登录</Link>}
         </div>
       </header>

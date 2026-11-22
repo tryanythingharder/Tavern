@@ -19,7 +19,7 @@ export function GrowthCard(props: {
   const [origin, setOrigin] = useState('');
   const [copied, setCopied] = useState(false);
   useEffect(() => setOrigin(window.location.origin), []);
-  const link = props.code ? `${origin}/login?ref=${props.code}` : '';
+  const link = props.code ? `${origin}/register?ref=${props.code}` : '';
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(link);
