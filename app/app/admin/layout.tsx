@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import '../../styles/admin.css';
 import { notFound, redirect } from 'next/navigation';
 import { adminTwoFactorReady, getCurrentUser, isAdminIdentity } from '@/lib/auth';
 

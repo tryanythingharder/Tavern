@@ -1,0 +1,64 @@
+/*  from styles/proto/admin-proto.css  */
+:root { --danger: #d9483f; }
+.p-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.65;
+}
+.p-notice-main { flex: 1; min-width: 0; }
+.p-notice-title { margin-bottom: 2px; color: var(--text); font-weight: var(--fw-semi, 600); }
+.p-eyebrow { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+/*  from styles/proto/admin-shell.css  */
+.p-block-head .p-btn {
+    margin-left: auto;
+}
+.p-rows {
+    overflow: hidden;
+}
+.p-rows .p-row {
+    border-radius: 0;
+}
+.p-queue .p-row {
+    border-top: 1px solid var(--border);
+    padding-inline: var(--s5);
+}
+.p-orders-tools .p-search {
+    flex: 0 0 220px;
+    width: 220px;
+}
+@media (max-width: 960px) {
+
+    .p-orders-tools .p-search {
+        flex: 1 1 160px;
+        width: auto;
+    }
+}
+@media (max-width: 720px) {
+
+    .p-queue .p-row {
+        padding-inline: var(--s4);
+    }
+
+    .p-qactions .p-btn {
+        padding: 0 10px;
+    }
+}
+@media (max-width: 560px) {
+    /* 手机上仍保留两列，四个 KPI 不必各占一整屏 */
+
+    .p-kpis .p-card--pad {
+        padding: var(--s4);
+    }
+
+    .p-queue .p-row {
+        flex-wrap: wrap;
+        row-gap: var(--s2);
+    }
+}

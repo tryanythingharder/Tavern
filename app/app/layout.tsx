@@ -31,8 +31,7 @@ import '../styles/proto/platform-polish.css';
 import '../styles/proto/cinema.css';
 import '../styles/proto/discovery.css';
 import '../styles/proto/immersive.css';
-import '../styles/proto/admin-proto.css';
-import '../styles/proto/admin-shell.css';
+import '../styles/proto/admin-shared.css';
 import '../styles/proto/auth.css';
 import '../styles/app-overrides.css';
 // 重设计层：最后导入，只调整层次、质感与动效，不改配色令牌
