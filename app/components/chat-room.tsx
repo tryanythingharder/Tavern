@@ -202,6 +202,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   const [awayFromBottom, setAwayFromBottom] = useState(false);
   const [unseen, setUnseen] = useState(0);
   const lastCountRef = useRef(initialMessages.length);
+  const followFrameRef = useRef(0);
 
   const scrollTarget = useCallback((): { top: number; height: number; client: number } => {
     const el = scrollRef.current;
@@ -213,19 +214,24 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
   }, []);
 
   useEffect(() => {
-    const onScroll = () => {
+    // 一帧最多量一次：长会话里每次滚动都读 scrollHeight 会强制重排（流式输出时一秒几十次）
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
       const { top, height, client } = scrollTarget();
       const near = height - (top + client) < 140;
       stickRef.current = near;
       setAwayFromBottom(!near);
       if (near) setUnseen(0);
     };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(measure); };
     const el = scrollRef.current;
     el?.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       el?.removeEventListener('scroll', onScroll);
       window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
     };
   }, [scrollTarget]);
 
@@ -253,7 +259,14 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     const lastIsUser = messages[messages.length - 1]?.role === 'user';
     lastCountRef.current = messages.length;
     if (stickRef.current || (grew && lastIsUser)) {
-      bottomRef.current?.scrollIntoView({ block: 'end' });
+      // 流式输出每个片段都会走到这里；合并到下一帧只滚一次，避免每片段一次同步重排
+      if (grew && lastIsUser) stickRef.current = true;
+      if (!followFrameRef.current) {
+        followFrameRef.current = requestAnimationFrame(() => {
+          followFrameRef.current = 0;
+          if (stickRef.current) bottomRef.current?.scrollIntoView({ block: 'end' });
+        });
+      }
     } else if (grew) {
       setUnseen((count) => count + 1);
     }

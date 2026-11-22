@@ -89,17 +89,22 @@ export function MotionLayer() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => {
+    // 一帧最多读一次滚动位置（长对话流式输出时滚动事件很密）
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
       const scroller = document.querySelector('.p-main');
       const y = Math.max(window.scrollY, scroller instanceof HTMLElement ? scroller.scrollTop : 0);
       document.body.classList.toggle('is-scrolled', y > 8);
     };
-    onScroll();
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    measure();
     window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('scroll', onScroll, { passive: true, capture: true });
     return () => {
       window.removeEventListener('scroll', onScroll);
       document.removeEventListener('scroll', onScroll, { capture: true });
+      if (frame) cancelAnimationFrame(frame);
     };
   }, [pathname]);
 

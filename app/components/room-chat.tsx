@@ -139,9 +139,16 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
   translateRef.current = translateMessage;
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  // 流式片段合并到下一帧只滚一次（同单聊 chat-room.tsx）
+  const followFrameRef = useRef(0);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' });
+    if (followFrameRef.current) return;
+    followFrameRef.current = requestAnimationFrame(() => {
+      followFrameRef.current = 0;
+      bottomRef.current?.scrollIntoView({ block: 'end' });
+    });
   }, [messages]);
+  useEffect(() => () => { if (followFrameRef.current) cancelAnimationFrame(followFrameRef.current); }, []);
 
   // 每楼「此前所有变量命令」的累积指纹：前面楼层改了变量，后面的状态栏要重新取（同单聊 chat-room.tsx）
   const mvuHashes = useRef(new Map<number | string, { content: string; h: number }>());
