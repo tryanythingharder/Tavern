@@ -106,6 +106,70 @@ function Lintel() {
   return <svg ref={ref} className="p-door-lintel" aria-hidden="true"><path d={d} /></svg>;
 }
 
+// 门槛：底部一道跟顶栏门楣呼应的弧线，文字沿弧线缓缓流动；换门时弧线被「压弯」再弹回。
+// 两端用遮罩淡出，不压左下开关与右下链接。减少动态效果：静止不动、不弯。
+function Threshold({ phase, motion }: { phase: 'in' | 'out' | 'pre'; motion: boolean }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const textRef = useRef<SVGTextPathElement>(null);
+  const unitRef = useRef<SVGTSpanElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [reps, setReps] = useState(6);
+  const live = useRef({ bend: 0, target: 0, offset: 0, speed: 0.35, raf: 0 });
+  const unit = `${tr('夜话 Yehua')}  ✦  ${tr('每一扇门后，都有人在等你')}  ✦  ${DOORS.map((d) => tr(d.name)).join('  ·  ')}  ✦  `;
+
+  const arc = useCallback((w: number, h: number, bend: number) => {
+    const depth = Math.min(120, Math.max(64, w * 0.075)) * (1 + bend);
+    const base = h - 6;
+    return `M -40 ${base + 10} Q ${w / 2} ${base - depth * 2} ${w + 40} ${base + 10}`;
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = svgRef.current; if (!el) return;
+    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // 弧长 / 一段文字的长度 → 需要重复几段才能铺满（再多一段用来无缝循环）
+  useLayoutEffect(() => {
+    const p = pathRef.current; const u = unitRef.current;
+    if (!p || !u || !size.w) return;
+    const len = p.getTotalLength(); const uw = u.getComputedTextLength();
+    if (uw > 0) setReps(Math.min(24, Math.ceil(len / uw) + 2));
+  }, [size.w, size.h, unit]);
+
+  useEffect(() => { live.current.target = phase === 'out' ? 0.38 : 0; }, [phase]);
+
+  useEffect(() => {
+    if (!motion || !size.w) return;
+    const L = live.current;
+    const tick = () => {
+      L.bend += (L.target - L.bend) * 0.08;
+      const speed = L.speed * (1 + L.bend * 6);
+      const uw = unitRef.current?.getComputedTextLength() ?? 0;
+      L.offset -= speed;
+      if (uw > 0 && L.offset <= -uw) L.offset += uw;
+      pathRef.current?.setAttribute('d', arc(size.w, size.h, L.bend));
+      textRef.current?.setAttribute('startOffset', String(L.offset));
+      L.raf = requestAnimationFrame(tick);
+    };
+    L.raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(L.raf);
+  }, [motion, size.w, size.h, arc]);
+
+  return (
+    <svg ref={svgRef} className="p-door-threshold" aria-hidden="true">
+      <defs><path id="p-door-arc" ref={pathRef} d={size.w ? arc(size.w, size.h, 0) : ''} /></defs>
+      <use href="#p-door-arc" className="p-door-threshold-line" />
+      <text dy="-10"><textPath ref={textRef} href="#p-door-arc" startOffset="0">
+        <tspan ref={unitRef}>{unit}</tspan>{Array.from({ length: reps - 1 }, (_, i) => <tspan key={i}>{unit}</tspan>)}
+      </textPath></text>
+    </svg>
+  );
+}
+
 export function AuthDoors({ mode, initialOpen, footer, children }: { mode: 'login' | 'register' | 'other'; initialOpen: boolean; footer: ReactNode; children: ReactNode }) {
   const doors = DOORS;
   const n = doors.length;
@@ -324,6 +388,8 @@ export function AuthDoors({ mode, initialOpen, footer, children }: { mode: 'logi
           <svg className="p-door-orn p-door-orn--r" viewBox="0 0 16 30" aria-hidden="true"><path d="M8 0v30M8 15l6 0M8 9l-5 6 5 6" /></svg>
         </button>
       </div>
+
+      <Threshold phase={phase} motion={motion} />
 
       <div className="p-door-scroll" aria-hidden="true">
         <span><Letters text="滚动探索" /></span>

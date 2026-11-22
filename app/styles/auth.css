@@ -178,6 +178,20 @@ html[data-scheme] body[data-theme]:not(#a) .p-door-legal button {
 html[data-scheme] body[data-theme]:not(#a) .p-door-legal a:hover,
 html[data-scheme] body[data-theme]:not(#a) .p-door-legal button:hover { color: var(--d-paper); }
 
+/* 门槛：底部弧线 + 沿弧流动的字（两端遮罩淡出） */
+html[data-scheme] body[data-theme]:not(#a) .p-door-threshold {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; width: 100%; height: 280px; overflow: visible; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 4%, #000 24%, #000 76%, transparent 96%); mask-image: linear-gradient(90deg, transparent 4%, #000 24%, #000 76%, transparent 96%);
+  animation: yh-thr 1.4s 1.2s cubic-bezier(.42, 0, .58, 1) both; transition: opacity .4s;
+}
+@keyframes yh-thr { from { opacity: 0; transform: translateY(24px); } }
+html[data-scheme] body[data-theme]:not(#a) .p-door-threshold-line { fill: none; stroke: rgba(239, 238, 237, .42); stroke-width: 1; }
+html[data-scheme] body[data-theme]:not(#a) .p-door-threshold text {
+  fill: rgba(239, 238, 237, .78); stroke: rgba(10, 10, 10, .32); stroke-width: 2.5px; paint-order: stroke; stroke-linejoin: round;
+  font-family: var(--d-sans); font-size: 11px; font-weight: 600; letter-spacing: .32em; white-space: pre;
+}
+html[data-scheme] body[data-theme]:not(#a) .p-door[data-open] .p-door-threshold { opacity: 0; }
+
 /* 面板：从门中间向两边推开的弹窗（clip-path 从中线展开，像两扇门板分开） */
 html[data-scheme] body[data-theme]:not(#a) .p-door-veil {
   position: absolute; inset: 0; z-index: 4; background: rgba(10, 10, 10, .5); opacity: 0; pointer-events: none;
@@ -326,6 +340,8 @@ html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-auth-locked code { c
   html[data-scheme] body[data-theme]:not(#a) .p-door-cta { margin-top: 34vh; }
   html[data-scheme] body[data-theme]:not(#a) .p-door-cta-label { padding: 0 22px; font-size: 14px; letter-spacing: .12em; }
   html[data-scheme] body[data-theme]:not(#a) .p-door-scroll { display: none; }
+  html[data-scheme] body[data-theme]:not(#a) .p-door-threshold { height: 200px; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%); }
+  html[data-scheme] body[data-theme]:not(#a) .p-door-threshold text { font-size: 10px; letter-spacing: .24em; }
   html[data-scheme] body[data-theme]:not(#a) .p-door-sound { left: 14px; bottom: 14px; }
   html[data-scheme] body[data-theme]:not(#a) .p-door-panel-side { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 10px 22px 26px; }
   html[data-scheme] body[data-theme]:not(#a) .p-door-panel-top { margin-bottom: 14px; }
