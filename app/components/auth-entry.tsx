@@ -46,13 +46,17 @@ export async function AuthEntry({ view, open, error, refParam }: { view: 'login'
                 <form action={login} className="p-auth-form">
                   {field('login-email', '邮箱', 'email', { required: 'required', autoComplete: 'email' })}
                   {field('login-password', '密码', 'password', { required: 'required', autoComplete: 'current-password' })}
+                  <div className="p-door-submit">
+                  <label className="p-check" style={{ alignItems: 'flex-start' }}>
+                    <input id="login-agree" name="agree" type="checkbox" required style={{ marginTop: 2 }} />
+                    <span>我已阅读并同意<Link href="/terms">《用户协议》</Link>和<Link href="/privacy">《隐私政策》</Link></span>
+                  </label>
                   <button className="p-btn p-btn--primary p-auth-button" type="submit">
                     登录
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
                   </button>
+                  </div>
                 </form>
-
-                <p className="p-auth-legal">登录即表示你同意<Link href="/terms">《用户协议》</Link>和<Link href="/privacy">《隐私政策》</Link></p>
 
                 <p className="p-auth-hint">
                   <span>登录后回到你的对话、角色库与点数</span>

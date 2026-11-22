@@ -4030,8 +4030,9 @@
  "《用户协议》": "Terms of Use",
  "《隐私政策》": "Privacy Policy",
  "《社区准则》": "Community Guidelines",
- "登录即表示你同意": "By signing in, you agree to the",
- "登录即表示你同意{0}和{1}": "By signing in, you agree to the {0} and {1}.",
  "请确认已年满 18 岁并同意用户协议": "Confirm you're 18+ and agree to the Terms of Use",
- "用户协议与隐私政策": "Terms & privacy"
+ "用户协议与隐私政策": "Terms & privacy",
+ "我已阅读并同意": "I have read and agree to the",
+ "我已阅读并同意{0}和{1}": "I have read and agree to the {0} and {1}",
+ "请先阅读并勾选同意用户协议和隐私政策": "Please read and agree to the Terms of Use and Privacy Policy first"
 }

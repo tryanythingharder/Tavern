@@ -86,6 +86,7 @@ export async function register(formData: FormData) {
 export async function login(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const password = String(formData.get('password') ?? '');
+  if (formData.get('agree') !== 'on') redirect('/login?mode=login&error=' + encodeURIComponent('请先阅读并勾选同意用户协议和隐私政策'));
   const ip = await clientIp();
   const ipLimit = rateLimit('login-ip', [ip], 30, 15 * 60 * 1000);
   const accountLimit = rateLimit('login-account', [email, ip], 10, 15 * 60 * 1000);
