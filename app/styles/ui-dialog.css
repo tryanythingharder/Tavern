@@ -1,0 +1,6 @@
+/* 站内确认框（components/ui-dialog.tsx）：外框沿用各主题的 .modal，只补正文与危险按钮 */
+.ui-dialog-msg { margin: 0 0 4px; font-size: 15px; line-height: 1.7; white-space: pre-line; color: var(--text-2, #4a4a50); }
+.btn--danger-solid { background: var(--danger, #c0392b); border-color: var(--danger, #c0392b); color: #fff; }
+.btn--danger-solid:hover { filter: brightness(.92); }
+.ui-dialog-input { width: 100%; box-sizing: border-box; margin-top: 8px; }
+.ui-dialog-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

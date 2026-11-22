@@ -28,6 +28,8 @@ export async function POST(request: Request) {
       defaultModel: typeof body.defaultModel === 'string' ? body.defaultModel : undefined,
       priority: Number(body.priority ?? 0),
       enabled: body.enabled === undefined ? true : Boolean(body.enabled),
+      apiMode: typeof body.apiMode === 'string' ? body.apiMode : undefined,
+      textTemplate: typeof body.textTemplate === 'string' ? body.textTemplate : undefined,
     });
     logAdmin(user.id, '新建模型渠道', `${channel.name} · ${channel.baseUrl} · ${channel.defaultModel || '未选模型'}`);
     return json({ channel: publicChannel(channel) });

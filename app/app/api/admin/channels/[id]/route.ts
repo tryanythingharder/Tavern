@@ -24,6 +24,8 @@ export async function PATCH(request: Request, context: Params) {
       defaultModel: typeof body.defaultModel === 'string' ? body.defaultModel : undefined,
       priority: body.priority === undefined ? undefined : Number(body.priority),
       enabled: body.enabled === undefined ? undefined : Boolean(body.enabled),
+      apiMode: typeof body.apiMode === 'string' ? body.apiMode : undefined,
+      textTemplate: typeof body.textTemplate === 'string' ? body.textTemplate : undefined,
     });
     if (!channel) return fail('渠道不存在', 404);
     logAdmin(user.id, '修改模型渠道', `${channel.name} · ${channel.baseUrl} · ${channel.enabled ? '启用' : '停用'}`);

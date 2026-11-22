@@ -1,3 +1,5 @@
+import { formatMoney } from '@/lib/money';
+import { paymentCurrency } from '@/lib/billing';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
@@ -9,7 +11,7 @@ import { listRecentOrders } from '@/lib/billing';
 export const dynamic = 'force-dynamic';
 
 const STATUS_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', cancelled: '已取消', refunded: '已退款' };
-const yuan = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
+const yuan = (cents: number) => formatMoney(cents, paymentCurrency());
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -57,7 +59,7 @@ export default async function AdminPage() {
             <div className="p-kpi-delta">生成 {totals.runs} 次 · 消耗 {totals.spentToday.toLocaleString('zh-CN')} 点</div>
             <div className="p-kpi-delta">
               {totals.upstreamCostToday > 0
-                ? `上游成本 ¥${(totals.upstreamCostToday / 100).toFixed(2)} · 毛利 ¥${(totals.marginToday / 100).toFixed(2)}`
+                ? `上游成本 ${yuan(totals.upstreamCostToday)} · 毛利 ${yuan(totals.marginToday)}`
                 : '上游成本未配置'}
             </div>
           </div>
@@ -76,6 +78,7 @@ export default async function AdminPage() {
             <Link className="p-admin-module" href="/admin/orders"><strong>订单</strong><span>充值订单与到账确认</span></Link>
             <Link className="p-admin-module" href="/admin/codes"><strong>卡密</strong><span>批量生成兑换码</span></Link>
             <Link className="p-admin-module" href="/admin/invites"><strong>邀请码</strong><span>生成邀请码，注册可填</span></Link>
+            <Link className="p-admin-module" href="/admin/content"><strong>内容分级</strong><span>18+ 总开关、地区规则、年龄验证</span></Link>
             <Link className="p-admin-module" href="/admin/announcement"><strong>公告</strong><span>编辑玩家端顶部公告</span></Link>
             <Link className="p-admin-module" href="/admin/channels"><strong>渠道</strong><span>多线路、优先级、从上游拉取模型</span></Link>
             <Link className="p-admin-module" href="/admin/settings"><strong>接口配置</strong><span>生图 / TTS / 支付 / 邮件</span></Link>

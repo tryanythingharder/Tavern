@@ -29,8 +29,8 @@
   --primary: var(--g900);
   --primary-hover: var(--g800);
   --danger: #c0362c;
-  --accent: #4b5bf5;
-  --accent-soft: #eceefe;
+  --accent: #c9401f;
+  --accent-soft: #f9e8e4;
 
   --r-sm: 10px;
   --r-md: 14px;
@@ -524,7 +524,13 @@ img { display: block; max-width: 100%; }
   border-radius: 10px;
   font-size: var(--f-sm);
 }
-.block-order-row .name { flex: 1; min-width: 0; }
+.block-order-row .name { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; overflow-wrap: anywhere; }
+.pm-badge { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.block-order-item.is-open .block-order-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.pm-edit { border: 1px solid var(--border); border-top: 0; border-radius: 0 0 10px 10px; padding: 12px 12px 4px; }
+.pm-edit .p-field-row { flex-wrap: wrap; }
+.pm-triggers, .pm-toggles { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.pm-toggles { margin-bottom: 12px; }
 .icon-btn {
   width: 26px;
   height: 26px;
@@ -596,8 +602,8 @@ img { display: block; max-width: 100%; }
 
 /* M3：搜索跳转到消息时的高亮 */
 @keyframes msgFlash {
-  0% { box-shadow: 0 0 0 3px rgba(75, 91, 245, 0.45); }
-  100% { box-shadow: 0 0 0 0 rgba(75, 91, 245, 0); }
+  0% { box-shadow: 0 0 0 3px rgba(201, 64, 31, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 64, 31, 0); }
 }
 .msg--flash { animation: msgFlash 1.6s ease; }
 

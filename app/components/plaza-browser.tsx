@@ -1,10 +1,13 @@
 'use client';
 
+import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { ProtoWorkCard, type WorkCharacter } from '@/components/proto-work-card';
+import { AgeGateDialog, type NsfwStateName } from '@/components/age-gate-dialog';
+import { Select } from '@/components/ui-select';
 
 type Item = WorkCharacter & { tags: string[]; nsfw: boolean; createdAt: number };
 
@@ -15,7 +18,7 @@ function heat(value: string): number {
   return String(value).includes('万') ? number * 10000 : number;
 }
 
-export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[] }) {
+export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfwState = 'allowed', minAge = 18 }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[]; nsfwState?: NsfwStateName; minAge?: number }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'hot' | 'new'>('hot');
@@ -24,8 +27,6 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
   const [visible, setVisible] = useState(6);
   const [blocked, setBlocked] = useState<string[]>(initialBlocked);
   const [ageOpen, setAgeOpen] = useState(false);
-  const [ageChecked, setAgeChecked] = useState(false);
-  const [ageError, setAgeError] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -59,18 +60,12 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
       void setNsfwPref(true);
       return;
     }
-    setAgeChecked(false);
-    setAgeError('');
-    setAgeOpen(true);
-  };
-
-  const confirmAge = async () => {
-    if (!ageChecked) {
-      setAgeError('请先确认年龄');
+    // 已确认过年龄：直接打开；否则走年龄流程（填出生日期 / 验证 / 说明）
+    if (nsfwState === 'allowed') {
+      void setNsfwPref(false);
       return;
     }
-    setAgeOpen(false);
-    await setNsfwPref(false);
+    setAgeOpen(true);
   };
 
   const unblockAll = async () => {
@@ -87,7 +82,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
     setBusy(true);
     setImportError('');
     try {
-      if (file.size > 10 * 1024 * 1024) throw new Error('图片太大（上限 10MB）');
+      if (file.size > 20 * 1024 * 1024) throw new Error('图片太大（上限 20MB）');
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result ?? ''));
@@ -123,7 +118,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
         </div>
         <div className="p-page-title-actions">
           <button className="p-btn" type="button" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>导入角色卡</button>
-          <Link className="p-btn p-btn--primary" href="/create">创建角色</Link>
+          <Link className="p-btn p-btn--primary" href="/create">发布角色</Link>
         </div>
       </header>
 
@@ -140,13 +135,16 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
               onChange={(event) => { setQuery(event.target.value); setVisible(6); }}
             />
           </label>
-          <select className="p-select" aria-label="排序方式" value={sort} onChange={(event) => setSort(event.target.value as 'hot' | 'new')}>
+          <Select className="p-select" aria-label="排序方式" value={sort} onChange={(event) => setSort(event.target.value as 'hot' | 'new')}>
             <option value="hot">最热</option>
             <option value="new">最新</option>
-          </select>
-          <button className="p-chip" type="button" aria-pressed={!hideNsfw} onClick={toggleNsfw}>
-            {hideNsfw ? '显示 NSFW' : '已显示 NSFW'}
-          </button>
+          </Select>
+          {/* 全站关闭 / 地区不提供 / 未满年龄时不放这个开关 */}
+          {!['site_off', 'region_blocked', 'underage'].includes(nsfwState) && (
+            <button className="p-chip" type="button" aria-pressed={!hideNsfw} onClick={toggleNsfw}>
+              {hideNsfw ? '显示 18+' : '已显示 18+'}
+            </button>
+          )}
           <span className="p-filterbar-count">{list.length} 个作品</span>
         </div>
         <div className="p-chips" aria-label="角色题材">
@@ -183,23 +181,12 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
       </div>
 
       {ageOpen && (
-        <Modal
-          title="显示成人向作品"
+        <AgeGateDialog
+          state={nsfwState}
+          minAge={minAge}
           onClose={() => setAgeOpen(false)}
-          footer={
-            <>
-              <button className="btn btn--sm" type="button" onClick={() => setAgeOpen(false)}>取消</button>
-              <button className="btn btn--sm btn--primary" type="button" onClick={() => void confirmAge()}>确认并开启</button>
-            </>
-          }
-        >
-          <p className="small" style={{ marginTop: 0 }}>这些作品可能包含成人内容。请确认你已年满 18 周岁，并愿意浏览相关角色。</p>
-          <label className="check">
-            <input type="checkbox" checked={ageChecked} onChange={(event) => { setAgeChecked(event.target.checked); setAgeError(''); }} />
-            <span>我已年满 18 周岁</span>
-          </label>
-          <ErrorLine message={ageError} />
-        </Modal>
+          onAllowed={() => { setAgeOpen(false); setHideNsfw(false); router.refresh(); }}
+        />
       )}
 
       {importOpen && (
@@ -216,7 +203,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked }: { 
           <ErrorLine message={importError} />
           <div className="field">
             <label>角色卡 PNG</label>
-            <input className="input" type="file" accept="image/png" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void importPng(file); event.target.value = ''; }} />
+            <FileDrop accept="image/png" disabled={busy} title="选择 PNG 角色卡" hint="点击选择，或把 SillyTavern / Chub 导出的 PNG 拖到这里" onFile={(file) => void importPng(file)} />
             <span className="hint">{busy ? '正在读取 PNG 里的角色卡…' : '读取 PNG 中 chara / ccv3 数据，卡面会同时存成角色封面。'}</span>
           </div>
           <div className="field">

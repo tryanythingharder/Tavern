@@ -1,3 +1,4 @@
+import { activeProvider } from '@/lib/payments';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
@@ -75,7 +76,7 @@ export default async function AdminModelPage() {
               <Badge ok={Boolean(tts.baseUrl && tts.apiKey && tts.model)} />
             </div>
             <div className="p-room-card" style={{ padding: '12px 16px' }}>
-              <div className="p-room-main"><div className="p-room-title">支付</div><p className="p-room-last">{getSetting('payment.provider', '手动确认')} · 每点 {pricePerPointCents()} 分</p></div>
+              <div className="p-room-main"><div className="p-room-title">支付</div><p className="p-room-last">{activeProvider().label} · 每点 {pricePerPointCents()} 分</p></div>
               <Badge ok={Boolean(getSetting('payment.secret', process.env.TAVERN_PAYMENT_SECRET ?? ''))} />
             </div>
             <div className="p-room-card" style={{ padding: '12px 16px' }}>

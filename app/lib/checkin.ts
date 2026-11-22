@@ -1,23 +1,19 @@
 import db, { transaction } from '@/lib/db';
 import { grantPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
+import { platformToday, shiftDayKey } from '@/lib/tz';
 
-// 每日签到：基础 10 点，连续天数每天 +2（最多 +14）。按服务器本地日期算一天。
+// 每日签到：基础 10 点，连续天数每天 +2（最多 +14）。按平台日算一天（lib/tz.ts）。
 const BASE = 10;
 const STEP = 2;
 const MAX_BONUS_DAYS = 7;
 
-function dayKey(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+function dayKey(): string {
+  return platformToday();
 }
 
 function yesterdayKey(): string {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  return dayKey(date);
+  return shiftDayKey(platformToday(), -1);
 }
 
 export type CheckinStatus = { todayDone: boolean; streak: number; amount: number; day: string };
@@ -42,7 +38,7 @@ export function claimCheckin(userId: number): { ok: boolean; message: string; am
       return { ok: false, message: '今天已经签到过了' };
     }
     const balance = grantPoints(userId, status.amount, `签到 · 连续 ${status.streak} 天`, 'checkin');
-    notify(userId, { type: 'points', title: `签到 +${status.amount} 点`, body: `连续签到 ${status.streak} 天`, link: '/me/points' });
+    notify(userId, { type: 'points', title: `签到 +${status.amount} 点`, body: `连续签到 ${status.streak} 天`, link: '/me/points', push: false });
     return { ok: true, message: '签到成功', amount: status.amount, streak: status.streak, balance };
   });
 }

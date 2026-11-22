@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -122,7 +123,7 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
                   <td data-label="创建人">{invite.createdByName ?? '—'}</td>
                   <td data-label="使用人">{invite.usedByName ?? '—'}</td>
                   <td data-label="状态"><span className={`p-pill p-pill--sm ${invite.usedBy ? 'p-pill--outline' : 'p-pill--ok'}`}>{invite.usedBy ? '已使用' : '未使用'}</span></td>
-                  <td data-label="生成时间" className="small">{new Date(invite.createdAt).toLocaleString('zh-CN')}</td>
+                  <td data-label="生成时间" className="small"><LocalTime value={invite.createdAt} /></td>
                 </tr>
               ))}
               {!invites.length && <tr><td colSpan={6} className="admin-empty">还没有邀请码。</td></tr>}

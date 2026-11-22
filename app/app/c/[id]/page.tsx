@@ -1,5 +1,8 @@
+import { displayCardText } from '@/lib/st-macros';
+import { tr } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { RpText } from '@/components/rp-text';
 import { notFound } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import {
@@ -12,7 +15,8 @@ import {
 } from '@/lib/characters';
 import { listPersonas } from '@/lib/resources-db';
 import { balance } from '@/lib/points';
-import { hideNsfw } from '@/lib/prefs';
+import { STATE_MESSAGE, nsfwAccess } from '@/lib/age-gate';
+import { AgeGateButton } from '@/components/age-gate-dialog';
 import { getViewMode } from '@/lib/view';
 import { startStory } from './actions';
 import { ReportButton } from '@/components/report-button';
@@ -24,20 +28,26 @@ import { FavoriteButton } from '@/components/favorite-button';
 import { AddToLibraryButton } from '@/components/add-to-library';
 import { StartStoryForm } from '@/components/start-story-form';
 
+import { NOINDEX, alternates, ogImage } from '@/lib/seo';
+
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const character = getCharacterView(id);
-  if (!character) return { title: '找不到这个角色' };
+  if (!character) return { title: tr('找不到这个角色') };
+  // 未发布、18+ 不收录，也不在分享卡片里放封面
+  const hidden = character.status !== 'published' || character.nsfw;
+  const cover = hidden ? null : coverSrc(character);
+  const title = tr('{0} · 夜话').replace('{0}', character.name);
+  const description = (character.hook || character.description || '').slice(0, 160);
   return {
     title: character.name,
-    description: character.hook,
-    openGraph: {
-      title: `${character.name} · 酒馆`,
-      description: character.hook,
-      images: character.ownerId === null ? [`/characters/${character.id}.jpg`] : [],
-    },
+    description,
+    alternates: alternates(`/c/${encodeURIComponent(character.id)}`),
+    robots: hidden ? NOINDEX : undefined,
+    openGraph: { type: 'profile', title, description, images: cover ? [cover] : [ogImage()] },
+    twitter: { card: 'summary_large_image', title, description, images: cover ? [cover] : [ogImage()] },
   };
 }
 
@@ -56,24 +66,49 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
   const added = user ? isAdded(user.id, character.id) : false;
   const myChats = user ? countChatsForCharacter(user.id, character.id) : 0;
   const recentChat = user ? latestChatForCharacter(user.id, character.id) : null;
-  const gated = character.nsfw && hideNsfw(user?.id ?? null);
+  const access = await nsfwAccess(user?.id ?? null);
+  // restricted：不能看（地区/年龄/未登录…）→ 只给名字和说明，不展示封面、开场白和设定，也不能开聊；作者本人不受限
+  // gated：能看但自己隐藏了 → 封面打码，其余照常
+  const restricted = character.nsfw && !owned && !access.allowed;
+  const gated = character.nsfw && !restricted && access.hidden;
+  if (restricted) {
+    return (
+      <main className="page rd-character">
+        <div className="p-character-top">
+          <Link className="small" href="/plaza">← 返回</Link>
+        </div>
+        <section className="p-card p-card--pad p-age-wall" style={{ marginTop: 18 }}>
+          <span className="p-pill p-pill--sm">18+</span>
+          <h1>{character.name}</h1>
+          <p className="p-detail-by">@{character.author} · 成人向角色</p>
+          <p>{STATE_MESSAGE[access.state]}。</p>
+          {(access.state === 'guest' || access.state === 'needs_age' || access.state === 'needs_verification') && (
+            <AgeGateButton state={access.state} minAge={access.minAge} className="p-btn p-btn--primary" label={access.state === 'guest' ? '登录并确认年龄' : access.state === 'needs_age' ? '确认年龄' : '去做年龄验证'} />
+          )}
+        </section>
+      </main>
+    );
+  }
   const lowBalance = Boolean(user && balance(user.id) <= 0);
-  const defaultPersona = personas.find((persona) => persona.boundCharacters.includes(character.id)) ?? personas[0];
+  const defaultPersona = personas.find((persona) => persona.boundCharacters.includes(character.id)) ?? personas.find((persona) => persona.isDefault);
   const openings = [
     { id: 'default', title: '默认开场', text: character.greeting },
     ...character.alternateGreetings.map((opening, index) => ({ id: `alt-${index}`, title: opening.title, text: opening.text })),
   ];
 
   return (
-    <main className="page">
+    <main className="page rd-character">
+      {view !== 'cinema' && !gated && coverSrc(character) && (
+        <div className="rd-ambient" aria-hidden="true"><img src={coverSrc(character) ?? ''} alt="" /></div>
+      )}
       <div className="p-character-top">
       <Link className="small" href="/plaza">← 返回</Link>
 
       {gated && (
         <div className="ca-notice" style={{ marginTop: 12 }}>
           <strong>这是一个成人向角色</strong>
-          <span>开启「显示 18+」后可查看封面；公开设定仍可阅读，也可以直接开始对话。</span>
-          <Link className="btn btn--sm" href="/plaza">去开启</Link>
+          <span>你设置了隐藏 18+，封面已遮住；公开设定仍可阅读，也可以直接开始对话。</span>
+          <AgeGateButton state={access.state} minAge={access.minAge} label="显示 18+" />
         </div>
       )}
 
@@ -119,7 +154,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
       <div className="p-detail" style={{ marginTop: 18 }}>
         <div className="p-detail-sticky">
           <div className="p-detail-id">
-            <div className={`p-detail-cover p-cover${coverSrc(character) ? ' has-portrait' : ''}`} style={{ ['--h' as string]: character.hue }} data-initial={character.initial} role="img" aria-label={`${character.name}的立绘`}>
+            <div className={`p-detail-cover rd-glow p-cover${coverSrc(character) ? ' has-portrait' : ''}`} style={{ ['--h' as string]: character.hue }} data-initial={character.initial} role="img" aria-label={`${character.name}的立绘`}>
               {coverSrc(character) && <img src={coverSrc(character) ?? ''} alt="" />}
               {gated && (
                 <div className="p-cover-gate"><strong>18+</strong><span>开启「显示 18+」后查看</span></div>
@@ -160,14 +195,14 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
         <div className="p-detail-main">
           <section className="p-card p-card--pad">
             <div className="p-eyebrow">故事的开端</div>
-            <blockquote className="p-quote"><p>{character.greeting}</p></blockquote>
+            <blockquote className="p-quote rd-quote"><RpText text={character.greeting} /></blockquote>
           </section>
 
           <section className="p-card">
             <div className="p-card-head"><h2>公开设定</h2><span className="p-small">作者公开内容</span></div>
             <div className="p-sub">
               <div className="p-eyebrow">角色与场景</div>
-              <p>{character.description || '作者没有填写更多描述。'}</p>
+              <p>{displayCardText(character.description, character.name) || '作者没有填写更多描述。'}</p>
             </div>
             <div className="p-sub">
               <div className="p-eyebrow">互动节奏</div>

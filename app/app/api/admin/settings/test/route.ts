@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     try {
       let text = '';
       for await (const event of streamChat([{ role: 'user', content: '只回复两个字母：ok' }], {
-        params: { temperature: 0.7, topP: 0.95, topK: 0, minP: 0, typicalP: 1, repetitionPenalty: 1, repetitionPenaltyRange: 0, repetitionPenaltySlope: 0, presencePenalty: 0, frequencyPenalty: 0, maxTokens: 16, seed: -1 },
+        params: { temperature: 0.7, topP: 0.95, topK: 0, minP: 0, typicalP: 1, repetitionPenalty: 1, repetitionPenaltyRange: 0, repetitionPenaltySlope: 0, presencePenalty: 0, frequencyPenalty: 0, maxTokens: 16, contextSize: 0, seed: -1 },
       })) {
         if (event.type === 'content') text += event.text;
       }

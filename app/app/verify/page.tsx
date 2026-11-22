@@ -1,9 +1,12 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AuthPage } from '@/components/auth-page';
 import { VerifyForm } from '@/components/auth-forms';
 
-export const metadata: Metadata = { title: '验证邮箱' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '验证邮箱' });
+}
 
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token = '' } = await searchParams;

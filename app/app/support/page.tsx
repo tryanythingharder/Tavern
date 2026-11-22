@@ -1,8 +1,11 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 import { getSetting } from '@/lib/settings';
 
-export const metadata: Metadata = { title: '帮助与申诉' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '帮助与申诉' });
+}
 
 export default function SupportPage() {
   const email = getSetting('site.supportEmail', process.env.TAVERN_SUPPORT_EMAIL ?? '').trim();
@@ -11,7 +14,7 @@ export default function SupportPage() {
       title="帮助与申诉"
       meta="账号、充值、内容处理与数据权利"
       notice={<><strong>需要人工处理？</strong>请尽量附上账号邮箱、订单号或内容链接，方便快速定位。</>}
-      footer={<>返回 <a href="/">酒馆首页</a> · <a href="/guidelines">社区准则</a></>}
+      footer={<>返回 <a href="/">夜话首页</a> · <a href="/guidelines">社区准则</a></>}
       backHref="/"
       backLabel="返回首页"
     >

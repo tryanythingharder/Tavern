@@ -1,10 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { emitPoints } from '@/lib/points-bus';
+import { langLabel as langName } from '@/lib/translation';
+import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { hasMvuCommands } from '@/lib/mvu-text';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { runBgCommand, runExpressionCommand } from '@/lib/slash-media';
 import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
+import { RpText, TypingDots } from '@/components/rp-text';
+import { RichText, usesDepth } from '@/components/rich-text';
+import { HelperRunner, emitHelperEvent, type HelperActions } from '@/components/helper-runner';
+import type { RegexRule } from '@/lib/resources';
+import type { RegexMacros } from '@/lib/regex-apply';
+import { ModelPicker, NewbieTip } from '@/components/model-picker';
+import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
+import { SLASH_HELP, VAR_COMMANDS, isSlash, parseSlash } from '@/lib/slash';
+import { QuickReplyBar } from '@/components/quick-reply-bar';
+import { activeQrSets, findQuickReply, planQuickReply, type QrItem, type QrSet, type QrState, type QrAuto } from '@/lib/quick-replies';
+import { askChoice, askPrompt, showAlert } from '@/components/ui-dialog';
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
 
@@ -15,7 +32,20 @@ export type ChatMessageView = {
   candidateCount: number;
   selected: number;
   bookmark?: boolean;
+  checkpoint?: number | null;
   attachment?: ChatAttachmentView | null;
+  personaName?: string | null;
+  personaAvatar?: string | null;
+  thought?: ThoughtView | null;
+  createdAt?: number;
+  /** ST 隐藏（幽灵）：不发给模型 */
+  hidden?: boolean;
+  /** 生成信息：模型 / 输出 tokens / 耗时 */
+  meta?: { model: string; tokens: number; ms: number; at: number; cut?: boolean } | null;
+  /** 这次生成停在了回复长度上限（finish_reason=length） */
+  cut?: boolean;
+  /** 译文（ST Translate）；original=true 时 text 是玩家原话，正文是发给模型的译文 */
+  translation?: { lang: string; text: string; original: boolean } | null;
 };
 
 type Props = {
@@ -23,15 +53,25 @@ type Props = {
   characterName: string;
   initialMessages: ChatMessageView[];
   initialHasMore?: boolean;
-  quickReplies?: { label: string; content: string }[];
+  /** 第一条已加载消息之前还有几条（ST 楼层号 = 偏移 + 序号） */
+  initialOffset?: number;
+  quickReplies?: QrState;
   media?: { image: boolean; tts: boolean; imageCost: number };
   title?: string;
   personaName?: string;
+  /** 身份切换：当前生效身份、可选身份、锁定在本对话的身份 */
+  persona?: { current: PersonaCurrent; options: PersonaOption[]; lockedId: number | null };
+  characterCover?: string | null;
+  characterHue?: number;
+  // 「仅显示」正则（玩家规则 + 角色卡自带脚本）与 {{char}}/{{user}}
+  displayRules?: RegexRule[];
+  macros?: RegexMacros;
 };
 
 type StreamEvent = {
   type: string;
   text?: string;
+  free?: number;
   message?: string;
   messageId?: number | null;
   content?: string;
@@ -39,7 +79,34 @@ type StreamEvent = {
   candidateCount?: number;
   cost?: number;
   balance?: number;
+  reasoning?: ThoughtView | null;
+  autoContinue?: boolean;
+  cut?: boolean;
 };
+
+
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
+function Ico({ name }: { name: keyof typeof ICONS }) {
+  return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
+}
+
+// 消息时间：只在客户端格式化（服务器时区不同会导致 hydration 不一致）
+function MsgTime({ at }: { at?: number }) {
+  const [label, setLabel] = useState('');
+  const [full, setFull] = useState('');
+  useEffect(() => {
+    if (!at) return;
+    const d = new Date(at);
+    const now = new Date();
+    const hm = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const sameDay = d.toDateString() === now.toDateString();
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    setLabel(sameDay ? hm : d.toDateString() === y.toDateString() ? `昨天 ${hm}` : `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`);
+    setFull(d.toLocaleString('zh-CN', { hour12: false }));
+  }, [at]);
+  if (!at) return null;
+  return <time className="p-msg-time" dateTime={new Date(at).toISOString()} title={full || undefined} suppressHydrationWarning>{label}</time>;
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -53,29 +120,134 @@ function friendlyError(message: string): string {
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, quickReplies = [], media, title, personaName }: Props) {
+const NO_RULES: RegexRule[] = [];
+
+export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = NO_RULES, macros }: Props) {
   const router = useRouter();
+  const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
+  const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
+  const personaName = persona.name;
+  // 显示时的 {{user}} 跟着当前身份走（ST 显示宏用当前 name1）
+  const displayMacros = useMemo(() => ({ ...(macros ?? {}), user: persona.name } as RegexMacros), [macros, persona.name]);
   const [messages, setMessages] = useState<ChatMessageView[]>(initialMessages);
+  // MVU 变量是按楼层重放出来的：前面任何一楼的变量命令变了（编辑、重生、换候选、删除），
+  // 后面各楼的状态栏都要重新取。这里给每楼算一个「此前所有变量命令」的累积指纹，交给状态栏当缓存版本。
+  const mvuHashes = useRef(new Map<number | string, { content: string; h: number }>());
+  const mvuRev = useMemo(() => {
+    const rev = new Map<number, string>();
+    const cache = mvuHashes.current;
+    let acc = 0;
+    for (const m of messages) {
+      if (m.role === 'assistant' && typeof m.content === 'string') {
+        let item = cache.get(m.id);
+        if (!item || item.content !== m.content) {
+          let h = 0;
+          if (hasMvuCommands(m.content)) {
+            for (let i = 0; i < m.content.length; i += 1) h = (Math.imul(31, h) + m.content.charCodeAt(i)) | 0;
+            h = (Math.imul(31, h) + Number(m.id)) | 0 || 1;
+          }
+          item = { content: m.content, h };
+          cache.set(m.id, item);
+        }
+        if (item.h) acc = (Math.imul(1000003, acc) + item.h) | 0;
+      }
+      if (typeof m.id === 'number') rev.set(m.id, String(acc));
+    }
+    return rev;
+  }, [messages]);
   const [hasMore, setHasMore] = useState(initialHasMore);
+  const [offset, setOffset] = useState(initialOffset);
+  const offsetRef = useRef(initialOffset);
+  offsetRef.current = offset;
+  const [notice, setNotice] = useState('');
+  const [slashHelp, setSlashHelp] = useState(false);
+  const [qr, setQr] = useState<QrState>(qrInitial ?? { sets: [], globalIds: [], scopeIds: [] });
+  const qrRef = useRef(qr);
+  qrRef.current = qr;
+  // 自动执行的快捷回复（玩家发消息后 / 角色回复后…）在 runQuickReply 里定义，这里先占位，避免 send 依赖它
+  const qrAutoRef = useRef<(kind: keyof QrAuto) => Promise<void>>(async () => {});
+  const [confirmingFrom, setConfirmingFrom] = useState<number | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState('');
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const [preview, setPreview] = useState(false);
+  useEffect(() => { try { setPreview(localStorage.getItem('tavern_compose_preview') === '1'); } catch {} }, []);
+  const togglePreview = () => setPreview((on) => { try { localStorage.setItem('tavern_compose_preview', on ? '0' : '1'); } catch {} return !on; });
   const [streaming, setStreaming] = useState(false);
   const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const [error, setError] = useState('');
-  const [failed, setFailed] = useState<{ type: 'send' } | { type: 'regen'; message: ChatMessageView } | null>(null);
-  const [billing, setBilling] = useState<{ cost: number; balance: number } | null>(null);
-  const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
+  const [failed, setFailed] = useState<{ type: 'send' } | { type: 'reply' } | { type: 'regen'; message: ChatMessageView } | null>(null);
+  // 本次流里收到了错误事件且没有产出（服务端已保存玩家消息）
+  const streamErrorRef = useRef(false);
+  const [billing, setBilling] = useState<{ cost: number; balance: number; free?: number } | null>(null);
+  const [editing, setEditing] = useState<{ id: number; draft: string; thought?: string | null } | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
   const [switching, setSwitching] = useState<number | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [openActions, setOpenActions] = useState<number | string | null>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageBusy, setImageBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const autoContinueRef = useRef<{ id: number; content: string } | null>(null);
+  const thoughtsOpen = useThoughtsOpen();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const prependingRef = useRef(false);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  // 只有读者本来就在底部时才跟随新内容；往上翻旧剧情时不打扰，改为显示「回到最新」
+  const stickRef = useRef(true);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
+  const [unseen, setUnseen] = useState(0);
+  const lastCountRef = useRef(initialMessages.length);
+  const followFrameRef = useRef(0);
+
+  const scrollTarget = useCallback((): { top: number; height: number; client: number } => {
+    const el = scrollRef.current;
+    if (el && el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible') {
+      return { top: el.scrollTop, height: el.scrollHeight, client: el.clientHeight };
+    }
+    const doc = document.scrollingElement ?? document.documentElement;
+    return { top: doc.scrollTop, height: doc.scrollHeight, client: window.innerHeight };
+  }, []);
+
+  useEffect(() => {
+    // 一帧最多量一次：长会话里每次滚动都读 scrollHeight 会强制重排（流式输出时一秒几十次）
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const { top, height, client } = scrollTarget();
+      const near = height - (top + client) < 140;
+      stickRef.current = near;
+      setAwayFromBottom(!near);
+      if (near) setUnseen(0);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    const el = scrollRef.current;
+    el?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [scrollTarget]);
+
+  const jumpToLatest = useCallback(() => {
+    stickRef.current = true;
+    setUnseen(0);
+    bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }, []);
+
+  // 输入框随内容长高（最多约 8 行），发送后回落
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [draft]);
 
   useEffect(() => {
     // 加载更早消息时保持当前阅读位置，不要跳到底部
@@ -83,15 +255,33 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       prependingRef.current = false;
       return;
     }
-    bottomRef.current?.scrollIntoView({ block: 'end' });
+    const grew = messages.length > lastCountRef.current;
+    const lastIsUser = messages[messages.length - 1]?.role === 'user';
+    lastCountRef.current = messages.length;
+    if (stickRef.current || (grew && lastIsUser)) {
+      // 流式输出每个片段都会走到这里；合并到下一帧只滚一次，避免每片段一次同步重排
+      if (grew && lastIsUser) stickRef.current = true;
+      if (!followFrameRef.current) {
+        followFrameRef.current = requestAnimationFrame(() => {
+          followFrameRef.current = 0;
+          if (stickRef.current) bottomRef.current?.scrollIntoView({ block: 'end' });
+        });
+      }
+    } else if (grew) {
+      setUnseen((count) => count + 1);
+    }
   }, [messages]);
 
   const resync = useCallback(async () => {
     try {
       const response = await fetch(`/api/chats/${chatId}/messages`, { cache: 'no-store' });
       if (!response.ok) return;
-      const data = (await response.json()) as { messages?: ChatMessageView[] };
-      if (Array.isArray(data.messages)) setMessages(data.messages);
+      const data = (await response.json()) as { messages?: ChatMessageView[]; offset?: number; hasMore?: boolean };
+      if (Array.isArray(data.messages)) {
+        setMessages(data.messages);
+        if (typeof data.offset === 'number') setOffset(data.offset);
+        if (typeof data.hasMore === 'boolean') setHasMore(data.hasMore);
+      }
     } catch {
       // 对齐失败不影响本地内容，下次刷新再取
     }
@@ -110,9 +300,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     try {
       const response = await fetch(`/api/chats/${chatId}/messages?before=${firstId}&limit=40`, { cache: 'no-store' });
       if (!response.ok) throw new Error('加载失败');
-      const data = (await response.json()) as { messages?: ChatMessageView[]; hasMore?: boolean };
+      const data = (await response.json()) as { messages?: ChatMessageView[]; hasMore?: boolean; offset?: number };
       if (Array.isArray(data.messages) && data.messages.length) {
         prependingRef.current = true;
+        if (typeof data.offset === 'number') setOffset(data.offset);
         setMessages((prev) => [...data.messages!, ...prev]);
         setHasMore(Boolean(data.hasMore));
         requestAnimationFrame(() => {
@@ -128,16 +319,53 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
   }, [chatId, loadingOlder, messages]);
 
+  // ---- 消息翻译（ST Translate）----
+  const [translating, setTranslating] = useState<number | null>(null);
+  const [translatingInput, setTranslatingInput] = useState(false);
+  // 默认显示译文；点「原文」的消息记在这里
+  const [flipped, setFlipped] = useState<Set<number | string>>(() => new Set());
+  const translatePrefsRef = useRef<{ target: string; auto: 'none' | 'responses' | 'inputs' | 'both'; modelLang: string }>({ target: 'zh-CN', auto: 'none', modelLang: 'en' });
+  useEffect(() => {
+    void fetch('/api/me/gen-prefs').then((response) => (response.ok ? response.json() : null)).then((data) => {
+      if (data?.prefs?.translate) translatePrefsRef.current = data.prefs.translate;
+    }).catch(() => undefined);
+  }, []);
+  const translateMessage = useCallback(async (id: number, quiet = false) => {
+    setTranslating(id);
+    try {
+      const response = await fetch(`/api/messages/${id}/translate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = (await response.json().catch(() => ({}))) as { translation?: ChatMessageView['translation']; message?: string; cost?: number; balance?: number; free?: number };
+      if (!response.ok) throw new Error(data.message || '翻译失败');
+      setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, translation: data.translation ?? null } : item)));
+      setFlipped((prev) => { if (!prev.has(id)) return prev; const next = new Set(prev); next.delete(id); return next; });
+      emitPoints(data);
+    } catch (caught) {
+      setError(`${quiet ? '自动翻译没成功：' : ''}${(caught as Error).message}`);
+    } finally {
+      setTranslating(null);
+    }
+  }, []);
+  const removeTranslation = useCallback(async (id: number) => {
+    await fetch(`/api/messages/${id}/translate`, { method: 'DELETE' }).catch(() => undefined);
+    setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, translation: null } : item)));
+  }, []);
+  const translateRef = useRef(translateMessage);
+  translateRef.current = translateMessage;
+
   const streamInto = useCallback(
-    async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void): Promise<boolean> => {
+    async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void, prefix = ''): Promise<boolean> => {
       const controller = new AbortController();
       abortRef.current = controller;
       setStreaming(true);
       setStreamingId(targetId);
       setError('');
       let text = '';
+      let thinking = '';
       let completed = false;
       let accepted = false;
+      let doneId: number | null = null;
+      autoContinueRef.current = null;
+      streamErrorRef.current = false;
       try {
         const response = await fetch(url, {
           method: 'POST',
@@ -171,12 +399,19 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             } catch {
               continue;
             }
-            if (event.type === 'delta' && event.text) {
+            if (event.type === 'reasoning' && event.text) {
+              thinking += event.text;
+              const live = thinking;
+              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, thought: { t: live, ms: 0 } } : item)));
+            } else if (event.type === 'delta' && event.text) {
               text += event.text;
-              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: text } : item)));
+              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
             } else if (event.type === 'done') {
               completed = true;
-              if (typeof event.cost === 'number' && typeof event.balance === 'number') setBilling({ cost: event.cost, balance: event.balance });
+              if (typeof event.messageId === 'number') doneId = event.messageId;
+              // ST 自动继续：服务端判断回复还没到目标长度
+              if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
+              if (typeof event.cost === 'number' && typeof event.balance === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); }
               setMessages((prev) =>
                 prev.map((item) =>
                   item.id === targetId
@@ -184,18 +419,23 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                         ...item,
                         id: event.messageId ?? item.id,
                         content: event.content ?? text,
+                        thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
                         candidateCount: event.candidateCount ?? item.candidateCount,
                         selected: event.candidateIndex ?? item.selected,
+                        cut: event.cut === true,
                       }
                     : item,
                 ),
               );
             } else if (event.type === 'error') {
               completed = true;
+              if (!text) streamErrorRef.current = true;
               setError(event.message ?? '生成失败');
             }
           }
         }
+        // 流断了却没收到结束事件（网络掉线 / 代理断开）：提示一下，已生成的部分下面会和服务端对齐
+        if (!completed && !controller.signal.aborted) setError('连接中断了，已和服务器同步');
       } catch (caught) {
         if ((caught as Error).name !== 'AbortError') setError((caught as Error).message);
         // 中断时保留已生成的部分（服务端也会保存），下面统一和数据库对齐
@@ -206,50 +446,181 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         // 中断后服务端还要几百毫秒落库，稍等一下再取
         if (!completed) await sleep(400);
         await resync();
+        // ST「自动翻译回复」：回复落库后翻成目标语言（失败不打断对话）
+        const auto = translatePrefsRef.current.auto;
+        if (completed && doneId !== null && !streamErrorRef.current && (auto === 'responses' || auto === 'both')) void translateRef.current(doneId, true);
       }
       return accepted;
     },
     [resync],
   );
 
-  const send = useCallback(async () => {
-    const text = draft.trim();
-    if (!text || streaming) return;
+  // override：快捷动作（如「继续」）直接发送一段固定文本，不动用户正在写的草稿
+  // ST 的「代写」：让 AI 以玩家身份写一句，流式写进输入框，玩家改完再发
+  const [impersonating, setImpersonating] = useState(false);
+  const impersonate = useCallback(async () => {
+    if (impersonating || streaming) return;
+    setImpersonating(true);
+    setError('');
+    const hint = draft.trim();
+    setDraft('');
+    try {
+      const response = await fetch(`/api/chats/${chatId}/impersonate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hint }) });
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.message ?? '代写失败');
+        setDraft(hint);
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let text = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data:')) continue;
+          try {
+            const event = JSON.parse(line.slice(5));
+            if (event.type === 'delta') { text += event.text; setDraft(text); }
+            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); } }
+            else if (event.type === 'error') setError(event.message ?? '代写失败');
+          } catch { /* 忽略坏分片 */ }
+        }
+      }
+      inputRef.current?.focus();
+    } catch {
+      setError('代写失败，请稍后再试');
+    } finally {
+      setImpersonating(false);
+    }
+  }, [chatId, draft, impersonating, streaming]);
+
+  // ST 自动继续：最多接 5 次，玩家点停止或某次没续出内容就停
+  const runAutoContinue = useCallback(async () => {
+    for (let round = 0; round < 5; round += 1) {
+      const next = autoContinueRef.current;
+      if (!next) return;
+      autoContinueRef.current = null;
+      const accepted = await streamInto(`/api/messages/${next.id}/continue`, {}, next.id, undefined, next.content);
+      if (!accepted) return;
+      emitHelperEvent('message_updated', { dbId: next.id });
+    }
+    autoContinueRef.current = null;
+  }, [streamInto]);
+
+  const send = useCallback(async (override?: string) => {
+    const text = (override ?? draft).trim();
+    if (streaming || translatingInput) return;
+    // 斜杠命令（ST STscript 常用子集）
+    if (override === undefined && isSlash(text)) {
+      setDraft('');
+      await slashRef.current(text);
+      return;
+    }
+    // ST：空着点发送 = 不加玩家消息，让角色接着回复
+    if (!text && !messages.length) return;
+    // ST「自动翻译输入」：先把玩家写的话翻成发给模型的语言，原话留着显示
+    let outgoing = text;
+    let original = '';
+    const autoMode = translatePrefsRef.current.auto;
+    if (text && (autoMode === 'inputs' || autoMode === 'both')) {
+      setTranslatingInput(true);
+      try {
+        const response = await fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, chatId }) });
+        const data = (await response.json().catch(() => ({}))) as { text?: string; message?: string; cost?: number; balance?: number; free?: number };
+        if (!response.ok || !data.text) throw new Error(data.message || '翻译失败');
+        emitPoints(data);
+        if (data.text.trim() !== text) { outgoing = data.text.trim(); original = text; }
+      } catch (caught) {
+        setError(`输入没翻译成功，消息还没发送：${(caught as Error).message}`);
+        return;
+      } finally {
+        setTranslatingInput(false);
+      }
+    }
     const stamp = Date.now();
     const assistantKey = `local-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      { id: `local-user-${stamp}`, role: 'user', content: text, candidateCount: 0, selected: 0 },
-      { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0 },
+      ...(text ? [{ id: `local-user-${stamp}`, role: 'user' as const, content: outgoing, candidateCount: 0, selected: 0, personaName: persona.name, personaAvatar: persona.avatar, createdAt: Date.now(), translation: original ? { lang: '', text: original, original: true } : null }] : []),
+      { id: assistantKey, role: 'assistant', content: '', candidateCount: 0, selected: 0, createdAt: Date.now() },
     ]);
     // 被限流/失败时不吞掉用户输入：请求没被接受就把草稿放回去
-    const accepted = await streamInto(`/api/chats/${chatId}/messages`, { text }, assistantKey, () => setDraft(''));
+    emitHelperEvent('generation_started', 'normal');
+    const accepted = await streamInto(`/api/chats/${chatId}/messages`, original ? { text: outgoing, original } : { text }, assistantKey, () => { if (override === undefined) setDraft(''); });
+    if (accepted) {
+      emitHelperEvent('message_sent', { fromEnd: 1 });
+      emitHelperEvent('message_received', { fromEnd: 0 });
+      emitHelperEvent('character_message_rendered', { fromEnd: 0 });
+      emitHelperEvent('generation_ended', { fromEnd: 0 });
+      await runAutoContinue();
+      if (text) await qrAutoRef.current('user');
+      if (!streamErrorRef.current) await qrAutoRef.current('ai');
+    }
     if (!accepted) {
       // 请求未被接受：撤掉本地乐观消息，避免留下空气泡
       setMessages((prev) => prev.filter((item) => item.id !== assistantKey && item.id !== `local-user-${stamp}`));
-      setDraft((current) => (current ? current : text));
+      if (override === undefined) setDraft((current) => (current ? current : text));
       setFailed({ type: 'send' });
+    } else if (streamErrorRef.current) {
+      // 玩家消息已保存、回复失败：重试 = 不再加玩家消息，直接让角色回复（ST 同样保留玩家消息）
+      setFailed({ type: 'reply' });
     } else {
       setFailed(null);
     }
-  }, [chatId, draft, streaming, streamInto]);
+  }, [chatId, draft, streaming, translatingInput, streamInto, runAutoContinue, messages.length, persona.name, persona.avatar]);
 
   const regenerate = useCallback(
     async (message: ChatMessageView) => {
       if (streaming || typeof message.id !== 'number') return;
       setEditing(null);
       setConfirming(null);
-      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: '' } : item)));
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: '', thought: null } : item)));
       setFailed(null);
+      emitHelperEvent('generation_started', 'regenerate');
       const accepted = await streamInto(`/api/messages/${message.id}/regenerate`, {}, message.id);
+      if (accepted) {
+        emitHelperEvent('message_swiped', { dbId: message.id });
+        emitHelperEvent('message_received', { dbId: message.id });
+        emitHelperEvent('character_message_rendered', { dbId: message.id });
+        emitHelperEvent('generation_ended', { dbId: message.id });
+        await runAutoContinue();
+        if (!streamErrorRef.current) await qrAutoRef.current('ai');
+      }
       if (!accepted) {
         // 重新生成没被接受：恢复原文，不把消息清空
         setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: message.content } : item)));
         setFailed({ type: 'regen', message });
       }
     },
-    [streaming, streamInto],
+    [streaming, streamInto, runAutoContinue],
   );
+
+  // ST「继续」：最后一条是角色消息时接着它往下写（不插玩家消息）；否则退回发一句「*继续*」
+  const continueLast = useCallback(async () => {
+    if (streaming) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant' || typeof last.id !== 'number' || !last.content) {
+      void send('*继续*');
+      return;
+    }
+    setFailed(null);
+    emitHelperEvent('generation_started', 'continue');
+    const accepted = await streamInto(`/api/messages/${last.id}/continue`, {}, last.id, undefined, last.content);
+    if (accepted) {
+      emitHelperEvent('message_updated', { dbId: last.id });
+      emitHelperEvent('generation_ended', { dbId: last.id });
+      await runAutoContinue();
+    } else {
+      setMessages((prev) => prev.map((item) => (item.id === last.id ? { ...item, content: last.content } : item)));
+    }
+  }, [messages, streaming, streamInto, send, runAutoContinue]);
 
   const saveEdit = useCallback(async () => {
     if (!editing) return;
@@ -259,13 +630,16 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       const response = await fetch(`/api/messages/${editing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(editing.thought === undefined ? { content } : { content, reasoning: editing.thought ?? '' }),
       });
-      const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView; messageText?: string };
+      const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView & { thought?: ThoughtView | null }; messageText?: string };
       if (!response.ok || !data.message) throw new Error('保存失败');
       const saved = data.message;
-      setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content: saved.content } : item)));
+      const touchedThought = editing.thought !== undefined;
+      setMessages((prev) => prev.map((item) => (item.id === editing.id ? { ...item, content: saved.content, ...(touchedThought ? { thought: saved.thought ?? null } : {}) } : item)));
       setEditing(null);
+      emitHelperEvent('message_edited', { dbId: editing.id });
+      emitHelperEvent('message_updated', { dbId: editing.id });
     } catch (caught) {
       setError((caught as Error).message);
     }
@@ -277,6 +651,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
       if (!response.ok) throw new Error('删除失败');
       setMessages((prev) => prev.filter((item) => item.id !== id));
       setConfirming(null);
+      emitHelperEvent('message_deleted', { dbId: id });
     } catch (caught) {
       setError((caught as Error).message);
     }
@@ -291,9 +666,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ index }),
       });
-      const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string };
+      const data = (await response.json().catch(() => ({}))) as { content?: string; index?: number; message?: string; thought?: ThoughtView | null; meta?: ChatMessageView['meta'] };
       if (!response.ok || typeof data.content !== 'string') throw new Error(data.message || '切换失败');
-      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index } : item)));
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, content: data.content!, selected: data.index ?? index, thought: data.thought ?? null, cut: undefined, meta: data.meta ?? null } : item)));
+      emitHelperEvent('message_swiped', { dbId: message.id });
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -301,17 +677,327 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
   }, []);
 
+  // ---- ST 对齐：隐藏 / 删到最后 / 旁白 / 斜杠命令（/api/chats/[id]/ops）----
+  const ops = useCallback(async (body: Record<string, unknown>) => {
+    const response = await fetch(`/api/chats/${chatId}/ops`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView | string; ids?: number[]; hidden?: boolean; deleted?: number; text?: string; value?: unknown; current?: unknown; chat?: unknown; global?: unknown };
+    if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : '操作失败');
+    return data;
+  }, [chatId]);
+
+  // /gen、/genraw：只拿文字（SSE，和代写同一个接口），不落库
+  const genText = useCallback(async (mode: 'gen' | 'genraw', prompt: string, length?: number) => {
+    const response = await fetch(`/api/chats/${chatId}/impersonate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, prompt, length }) });
+    if (!response.ok || !response.body) {
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(data.message || '生成失败');
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let text = '';
+    let done: string | null = null;
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+      for (const part of parts) {
+        const line = part.split('\n').find((item) => item.startsWith('data: '));
+        if (!line) continue;
+        const event = JSON.parse(line.slice(6)) as { type: string; text?: string; message?: string; balance?: number; cost?: number; free?: number };
+        if (event.type === 'delta') text += event.text ?? '';
+        else if (event.type === 'done') {
+          done = event.text ?? text;
+          if (typeof event.balance === 'number') { setBilling({ cost: event.cost ?? 0, balance: event.balance, free: event.free }); emitPoints(event); }
+        } else if (event.type === 'error') throw new Error(event.message || '生成失败');
+      }
+    }
+    return (done ?? text).trim();
+  }, [chatId]);
+
+  const toggleHidden = useCallback(async (message: ChatMessageView) => {
+    if (typeof message.id !== 'number') return;
+    const next = !message.hidden;
+    try {
+      await ops({ op: next ? 'hide' : 'unhide', ids: [message.id] });
+      setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, hidden: next } : item)));
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [ops]);
+
+  const removeFrom = useCallback(async (id: number) => {
+    try {
+      await ops({ op: 'delete-from', messageId: id });
+      setMessages((prev) => prev.filter((item) => typeof item.id !== 'number' || item.id < id));
+      setConfirmingFrom(null);
+      emitHelperEvent('message_deleted', { dbId: id });
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [ops]);
+
+  const regenRef = useRef(regenerate);
+  regenRef.current = regenerate;
+  const continueRef = useRef(continueLast);
+  continueRef.current = continueLast;
+  const impersonateRef = useRef(impersonate);
+  impersonateRef.current = impersonate;
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  const runSlash = useCallback(async (text: string) => {
+    setError('');
+    try {
+      // ST 管道：上一条命令的结果是下一条的 {{pipe}}；参数为空时直接用它
+      let pipe = '';
+      for (const command of parseSlash(text)) {
+        const { name, named } = command;
+        let arg = command.arg.replace(/\{\{pipe\}\}/gi, () => pipe);
+        if (!arg && pipe && !named.key) arg = pipe;
+        if (/\{\{/.test(arg) && name !== 'setinput') arg = String((await ops({ op: 'expand', text: arg })).text ?? arg);
+        if (name in VAR_COMMANDS) {
+          const [scope, action] = VAR_COMMANDS[name];
+          // ST：/setvar key=名字 值；也认 /setvar 名字 值 和 /getvar 名字
+          let varName = named.key ?? named.name ?? '';
+          let value = arg;
+          if (!varName) {
+            const parts = arg.split(/\s+/);
+            varName = parts.shift() ?? '';
+            value = parts.join(' ');
+          }
+          if (!varName) throw new Error(`/${name} 要写变量名，例如 /${name} key=好感度 ${action === 'set' || action === 'add' ? '10' : ''}`.trim());
+          const data = await ops({ op: 'var', scope, action, name: varName, value: named.value ?? value });
+          pipe = String(data.value ?? '');
+          if (action === 'get') setNotice(pipe === '' ? `${varName}（未设置）` : `${varName} = ${pipe}`);
+          else if (action === 'flush') setNotice(`已删除变量 ${varName}`);
+          else setNotice(`${varName} = ${typeof data.current === 'object' ? JSON.stringify(data.current) : String(data.current ?? '')}`);
+          continue;
+        }
+        if (name === 'listvar') {
+          const data = await ops({ op: 'var', action: 'list' });
+          const fmt = (obj: unknown) => Object.entries((obj ?? {}) as Record<string, unknown>).map(([k, v]) => `${k} = ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join('\n') || '（无）';
+          setNotice(`聊天变量：\n${fmt(data.chat)}\n全局变量：\n${fmt(data.global)}`);
+          continue;
+        }
+        pipe = '';
+        if (name === 'help') setSlashHelp(true);
+        else if (name === 'sys' || name === 'send') {
+          if (!arg) throw new Error(`/${name} 后面要写内容`);
+          const data = await ops({ op: name === 'sys' ? 'narrate' : 'send', text: arg });
+          if (data.message && typeof data.message === 'object') setMessages((prev) => [...prev, data.message as ChatMessageView]);
+        } else if (name === 'trigger') await sendRef.current('');
+        else if (name === 'continue') await continueRef.current();
+        else if (name === 'regen') {
+          const last = [...messagesRef.current].reverse().find((item) => item.role === 'assistant');
+          if (last) await regenRef.current(last);
+        } else if (name === 'impersonate') {
+          setDraft(arg);
+          await sleep(0);
+          await impersonateRef.current();
+        } else if (name === 'hide' || name === 'unhide') {
+          if (!/\d/.test(arg)) throw new Error(`/${name} 后面写楼层号，例如 /${name} 3-5`);
+          const data = await ops({ op: name, range: arg });
+          const ids = new Set(data.ids ?? []);
+          setMessages((prev) => prev.map((item) => (typeof item.id === 'number' && ids.has(item.id) ? { ...item, hidden: name === 'hide' } : item)));
+          setNotice(`已${name === 'hide' ? '隐藏' : '取消隐藏'} ${ids.size} 条`);
+        } else if (name === 'cut' || name === 'del') {
+          const body = name === 'cut' ? { op: 'delete', range: arg } : { op: 'delete', last: Number(arg) || 1 };
+          if (name === 'cut' && !/\d/.test(arg)) throw new Error('/cut 后面写楼层号，例如 /cut 3-5');
+          const data = await ops(body);
+          await resync();
+          setNotice(`已删除 ${data.deleted ?? 0} 条`);
+        } else if (name === 'setinput') {
+          setDraft(arg);
+          inputRef.current?.focus();
+        } else if (name === 'echo') {
+          setNotice(arg);
+          pipe = arg;
+        }
+        else if (name === 'sendas' || name === 'comment') {
+          if (!arg) throw new Error(`/${name} 后面要写内容`);
+          const data = await ops({ op: name, text: arg, name: named.name ?? '' });
+          if (data.message && typeof data.message === 'object') setMessages((prev) => [...prev, data.message as ChatMessageView]);
+        } else if (name === 'gen' || name === 'genraw') {
+          if (!arg) throw new Error(`/${name} 后面要写提示`);
+          setNotice('生成中…');
+          pipe = await genText(name, arg, Number(named.length) || undefined);
+          setNotice('');
+        } else if (name === 'input') {
+          const value = await askPrompt({ message: arg, defaultValue: named.default ?? '', multiline: named.rows ? Number(named.rows) > 1 : false });
+          if (value === null) break;
+          pipe = value;
+        } else if (name === 'buttons') {
+          let labels: string[] = [];
+          try { labels = JSON.parse(named.labels ?? '[]'); } catch { labels = String(named.labels ?? '').split(','); }
+          labels = labels.map((label) => String(label).trim()).filter(Boolean);
+          if (!labels.length) throw new Error('/buttons 要写 labels=["选项1","选项2"]');
+          const value = await askChoice(arg, labels);
+          if (value === null) break;
+          pipe = value;
+        } else if (name === 'popup') {
+          await showAlert(arg);
+        } else if (name === 'qr') {
+          const state = qrRef.current;
+          const pool = named.set ? state.sets : activeQrSets(state);
+          const found = findQuickReply(pool, { index: named.label ? undefined : Number(arg || named.index), label: named.label ?? (arg && !/^\d+$/.test(arg) ? arg : undefined), set: named.set });
+          if (!found) throw new Error(`找不到快捷回复 ${named.label ?? arg}`);
+          await runQuickReplyRef.current(found.set, found.item);
+        } else if (name === 'qr-list') {
+          const state = qrRef.current;
+          if (arg) {
+            const set = state.sets.find((item) => item.name === arg);
+            if (!set) throw new Error(`没有叫「${arg}」的快捷回复集`);
+            pipe = JSON.stringify(set.replies.map((item) => item.label));
+            setNotice(`${set.name}：${set.replies.map((item) => item.label).join('、') || '（空）'}`);
+          } else {
+            pipe = JSON.stringify(state.sets.map((item) => item.name));
+            setNotice(`快捷回复集：${state.sets.map((item) => `${item.name}${state.globalIds.includes(item.id) ? '（全局）' : ''}${state.scopeIds.includes(item.id) ? '（本聊天）' : ''}`).join('、') || '（无）'}`);
+          }
+        } else if (name.startsWith('qr-set') || name.startsWith('qr-chatset')) {
+          const state = qrRef.current;
+          const set = state.sets.find((item) => item.name === arg);
+          if (!set) throw new Error(`没有叫「${arg}」的快捷回复集`);
+          const scoped = name.startsWith('qr-chatset');
+          const list = scoped ? state.scopeIds : state.globalIds;
+          const on = name.endsWith('-on') ? true : name.endsWith('-off') ? false : !list.includes(set.id);
+          const nextIds = on ? [...new Set([...list, set.id])] : list.filter((id) => id !== set.id);
+          const response = await fetch('/api/quick-replies', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(scoped ? { chatId, scopeIds: nextIds } : { chatId, globalIds: nextIds }) });
+          const data = (await response.json().catch(() => ({}))) as QrState & { message?: string };
+          if (!response.ok) throw new Error(data.message || '保存失败');
+          setQr({ sets: data.sets, globalIds: data.globalIds, scopeIds: data.scopeIds });
+          setNotice(`${on ? '已启用' : '已关闭'}快捷回复集「${set.name}」${scoped ? '（本聊天）' : ''}`);
+        }
+        else if (name === 'bg' || name === 'lockbg' || name === 'unlockbg') {
+          const result = await runBgCommand('chat', chatId, name, arg);
+          setNotice(result.notice);
+          pipe = result.pipe;
+          if (result.changed) router.refresh();
+        } else if (name === 'reasoning-get' || name === 'reasoning-set') {
+          // ST /reasoning-get、/reasoning-set：默认最后一条角色消息；at=楼层号（和 #N 一致）
+          const list = messagesRef.current;
+          const target = named.at !== undefined
+            ? list[Number(named.at) - offsetRef.current]
+            : [...list].reverse().find((item) => item.role === 'assistant' && typeof item.id === 'number');
+          if (!target || typeof target.id !== 'number') throw new Error(named.at !== undefined ? `找不到第 ${named.at} 楼（可能还没加载）` : '还没有角色消息');
+          if (target.role !== 'assistant') throw new Error('只有角色消息有思考内容');
+          if (name === 'reasoning-get') {
+            pipe = target.thought?.t ?? '';
+            setNotice(pipe ? `思考内容：\n${pipe}` : '这条消息没有思考内容');
+          } else {
+            const response = await fetch(`/api/messages/${target.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reasoning: arg }) });
+            const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView & { thought?: ThoughtView | null }; };
+            if (!response.ok || !data.message) throw new Error('保存思考内容失败');
+            const thought = data.message.thought ?? null;
+            setMessages((prev) => prev.map((item) => (item.id === target.id ? { ...item, thought } : item)));
+            pipe = arg;
+            setNotice(arg ? '已改写思考内容' : '已删除思考内容');
+          }
+        } else if (name === 'expression-set' || name === 'expression-list') {
+          const result = runExpressionCommand(name, arg);
+          setNotice(result.notice);
+          pipe = result.pipe;
+        }
+        else throw new Error(`本站暂不支持 /${name.slice(1)}，输入 /help 查看可用命令`);
+      }
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [ops, resync, genText, chatId, router]);
+  const slashRef = useRef(runSlash);
+  slashRef.current = runSlash;
+
+  // ST 快捷回复：点按钮 / /qr / 自动执行都走这里
+  const qrDepth = useRef(0);
+  const qrMute = useRef(0);
+  const runQuickReply = useCallback(async (set: QrSet, item: QrItem) => {
+    if (qrDepth.current > 4) return;
+    qrDepth.current += 1;
+    const mute = item.preventAuto !== false;
+    if (mute) qrMute.current += 1;
+    try {
+      const plan = planQuickReply(set, item.message, draftRef.current);
+      if (plan.kind === 'input') {
+        setDraft(plan.text);
+        inputRef.current?.focus();
+        return;
+      }
+      if (plan.clearInput) setDraft('');
+      if (plan.kind === 'slash') await slashRef.current(plan.text);
+      else if (plan.text.trim()) await sendRef.current(plan.text);
+    } finally {
+      qrDepth.current -= 1;
+      if (mute) qrMute.current -= 1;
+    }
+  }, []);
+  const runQuickReplyRef = useRef(runQuickReply);
+  runQuickReplyRef.current = runQuickReply;
+  // 自动执行：自动执行触发的生成不再触发自动执行（ST 也防这种循环）
+  qrAutoRef.current = async (kind: keyof QrAuto) => {
+    if (qrMute.current > 0) return;
+    await sleep(30);
+    for (const set of activeQrSets(qrRef.current)) {
+      for (const item of set.replies) if (item.auto[kind]) await runQuickReplyRef.current(set, item);
+    }
+  };
+  useEffect(() => {
+    // 进入聊天时；打开网站时（这个标签页第一次进聊天）
+    let first = false;
+    try {
+      first = !sessionStorage.getItem('tavern:qr-startup');
+      sessionStorage.setItem('tavern:qr-startup', '1');
+    } catch { /* 无痕模式 */ }
+    void (async () => {
+      if (first) await qrAutoRef.current('startup');
+      await qrAutoRef.current('chatChange');
+    })();
+  }, [chatId]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), Math.min(12000, 2600 + notice.length * 60));
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  // 卡内酒馆助手脚本能调用的动作（components/helper-runner.tsx）
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  const helperActions = useMemo<HelperActions>(() => ({
+    send: (text) => { void sendRef.current(text); },
+    setInput: (text) => { setDraft(text); inputRef.current?.focus(); },
+    slash: (text) => slashRef.current(text),
+    editMessage: async (id, content) => {
+      const response = await fetch(`/api/messages/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      const data = (await response.json().catch(() => ({}))) as { message?: ChatMessageView };
+      if (!response.ok || !data.message) throw new Error('保存失败');
+      const saved = data.message;
+      setMessages((prev) => prev.map((item) => (item.id === id ? { ...item, content: saved.content } : item)));
+    },
+  }), []);
+
+  // ST「创建分支」跳到新会话；「创建检查点」留在这里，消息上挂一个检查点入口
   const branch = useCallback(
-    async (message: ChatMessageView) => {
+    async (message: ChatMessageView, checkpoint = false) => {
       if (typeof message.id !== 'number') return;
+      if (checkpoint && message.checkpoint) {
+        router.push(`/chats/${message.checkpoint}?from=${chatId}&at=${message.id}`);
+        return;
+      }
       try {
         const response = await fetch(`/api/chats/${chatId}/branch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messageId: message.id }),
+          body: JSON.stringify({ messageId: message.id, checkpoint }),
         });
         const data = (await response.json().catch(() => ({}))) as { chatId?: number; message?: string };
         if (!response.ok || !data.chatId) throw new Error(data.message || '分支失败');
+        if (checkpoint) {
+          const created = data.chatId;
+          setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, checkpoint: created } : item)));
+          setOpenActions(null);
+          return;
+        }
         router.push(`/chats/${data.chatId}?from=${chatId}&at=${message.id}`);
       } catch (caught) {
         setError((caught as Error).message);
@@ -384,6 +1070,265 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     }
   }, []);
 
+  const renderRow = (message: ChatMessageView, index: number) => {
+            const isUser = message.role === 'user';
+        const isNarrator = message.role === 'system';
+        const floor = offset + index;
+        const metaText = message.meta ? `${message.meta.tokens} tokens · ${(message.meta.ms / 1000).toFixed(1)}s` : '';
+        const isLatest = index === messages.length - 1;
+        // ST：第一条开场白只能在备选开场白之间切换，不生成新版
+        const isGreeting = !hasMore && index === 0 && !isUser;
+        const numericId = typeof message.id === 'number' ? message.id : null;
+        const isEditing = editing !== null && editing.id === message.id;
+        const isStreamingThis = streamingId === message.id;
+        // 有译文时默认显示译文（玩家输入翻译：默认显示原话），点切换后显示另一面
+        const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
+        const shownText = showTr && message.translation ? message.translation.text : message.content;
+        return (
+          <article
+            key={message.id}
+            id={`msg-${message.id}`}
+            className={`p-msg${isUser ? ' p-msg-user' : ''}${isNarrator ? ' p-msg-narrator' : ''}${message.hidden ? ' is-hidden' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLatest ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
+            onTouchStart={!isUser && isLatest ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
+            onTouchEnd={!isUser && isLatest ? (event) => {
+              // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版
+              const start = swipeStart.current; swipeStart.current = null;
+              if (!start || L.streaming || L.editing || numericId === null || !message.content) return;
+              const t = event.changedTouches[0];
+              const dx = t.clientX - start.x; const dy = t.clientY - start.y;
+              if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+              if (dx > 0 && message.selected > 0) void L.switchCandidate(message, message.selected - 1);
+              else if (dx < 0) void (message.selected < message.candidateCount - 1 ? L.switchCandidate(message, message.selected + 1) : isGreeting ? undefined : L.regenerate(message));
+            } : undefined}
+          >
+            {isNarrator ? null : isUser ? (
+              <UserAvatar name={message.personaName || personaName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
+            ) : (
+              <span className={`p-avatar${characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: characterHue }}>
+                {characterCover ? <img src={characterCover} alt="" /> : Array.from(characterName)[0]}
+              </span>
+            )}
+            <div>
+              <div className="p-msg-name">
+                <span className="p-msg-who">{isNarrator ? '旁白' : isUser ? (message.personaName || personaName) : (message.personaName || characterName)}</span>
+                <MsgTime at={message.createdAt} />
+                {message.hidden && <span className="p-msg-ghost" title="已隐藏：这条不会发给模型"><Ico name="ghost" />已隐藏</span>}
+              </div>
+              {isEditing ? (
+                <div>
+                  {!isUser && editing.thought != null ? (
+                    <div className="p-thought-edit">
+                      <label className="p-small" htmlFor={`thought-${message.id}`}>思考内容</label>
+                      <textarea
+                        id={`thought-${message.id}`}
+                        className="p-textarea"
+                        value={editing.thought}
+                        rows={Math.min(10, Math.max(2, editing.thought.split('\n').length + 1))}
+                        placeholder="留空保存 = 删除思考内容"
+                        onChange={(event) => setEditing({ ...editing, thought: event.target.value })}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') setEditing(null);
+                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void L.saveEdit(); }
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  <textarea
+                    className="p-textarea"
+                    value={editing.draft}
+                    rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
+                    autoFocus
+                    onChange={(event) => setEditing({ ...editing, draft: event.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') setEditing(null);
+                      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                        event.preventDefault();
+                        void L.saveEdit();
+                      }
+                    }}
+                    aria-label="编辑消息"
+                  />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void L.saveEdit()}>保存</button>
+                    <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
+                    {!isUser && editing.thought == null ? (
+                      <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>加思考内容</button>
+                    ) : null}
+                    {!isUser && editing.thought != null && message.thought?.t ? (
+                      <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>清空思考</button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {message.attachment?.kind === 'image' ? (
+                    <figure style={{ margin: '4px 0 0' }}>
+                      <img
+                        src={message.attachment.url}
+                        alt={message.attachment.prompt ?? '生成的图片'}
+                        style={{ display: 'block', width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid var(--border)' }}
+                      />
+                      {message.attachment.prompt && <figcaption className="p-small" style={{ marginTop: 6 }}>{message.attachment.prompt}</figcaption>}
+                    </figure>
+                  ) : (
+                    <>
+                    {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={(isLatest && streaming) || numericId === null ? undefined : () => setEditing({ id: numericId, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
+                    <div className="p-msg-copy p-msg-text">
+                      {message.content
+                        ? <RichText text={shownText} streaming={isStreamingThis} rules={displayRules} macros={displayMacros} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && typeof message.id === 'number' && message.id > 0 ? { chatId, messageId: message.id, rev: mvuRev.get(message.id) } : undefined} />
+                        : isStreamingThis ? <TypingDots label={`${characterName}正在构思`} /> : null}
+                    </div>
+                    {message.translation && numericId !== null && !isStreamingThis && (
+                      <div className="p-msg-tr" role="group" aria-label="翻译">
+                        <span className="p-msg-tr-tag">{message.translation.original ? (showTr ? '原话' : '发给模型的译文') : (showTr ? `译文 · ${langName(message.translation.lang)}` : '原文')}</span>
+                        <button type="button" onClick={() => setFlipped((prev) => { const next = new Set(prev); if (next.has(message.id)) next.delete(message.id); else next.add(message.id); return next; })}>
+                          {message.translation.original ? (showTr ? '看译文' : '看原话') : (showTr ? '看原文' : '看译文')}
+                        </button>
+                        {!message.translation.original && <button type="button" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}>{translating === numericId ? '翻译中…' : '重新翻译'}</button>}
+                        {!message.translation.original && <button type="button" onClick={() => void L.removeTranslation(numericId)}>移除</button>}
+                      </div>
+                    )}
+                    {translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
+                    </>
+                  )}
+                  {message.attachment?.kind === 'audio' && (
+                    <audio controls src={message.attachment.url} style={{ display: 'block', width: '100%', maxWidth: 360, marginTop: 8 }} />
+                  )}
+                  {message.checkpoint ? (
+                    <a className="p-msg-checkpoint" href={`/chats/${message.checkpoint}?from=${chatId}&at=${message.id}`}>
+                      <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS.checkpoint} /></svg>
+                      <span>检查点</span>
+                    </a>
+                  ) : null}
+                </>
+              )}
+              {!isEditing && !isUser && isLatest && numericId !== null && !isStreamingThis && message.content && (
+                <div className="rp-swipe" role="group" aria-label="回复版本">
+                  <button type="button" aria-label="上一版回复" disabled={message.selected <= 0 || switching === numericId || streaming} onClick={() => void L.switchCandidate(message, message.selected - 1)}><Ico name="prev" /></button>
+                  <span className="rp-swipe-index" aria-live="polite">{Math.max(1, message.selected + 1)} / {Math.max(1, message.candidateCount)}</span>
+                  {message.selected < message.candidateCount - 1 ? (
+                    <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void L.switchCandidate(message, message.selected + 1)}><Ico name="next" /></button>
+                  ) : isGreeting ? (
+                    <button type="button" aria-label="下一版回复" disabled><Ico name="next" /></button>
+                  ) : (
+                    <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void L.regenerate(message)}><Ico name="next" /></button>
+                  )}
+                </div>
+              )}
+              {!isUser && !isEditing && isLatest && !streaming && (message.cut ?? message.meta?.cut) && (
+                <div className="p-msg-cut" role="note">
+                  <span>回复到了长度上限，后面被截断了</span>
+                  <button type="button" className="p-msg-cut-go" onClick={() => void L.continueLast()}>继续写完</button>
+                </div>
+              )}
+              {!isEditing && (
+                <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>
+              )}
+              {!isEditing && (
+                <div className="p-msg-tools">
+                  {confirmingFrom !== null && confirmingFrom === numericId ? (
+                    <>
+                      <span className="p-msg-confirm">删除这条及之后的 {messages.length - index} 条？</span>
+                      <button type="button" aria-label="确认删除这条及之后的消息" title="确认删除" onClick={() => void L.removeFrom(confirmingFrom)}><Ico name="check" /></button>
+                      <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirmingFrom(null)}><Ico name="x" /></button>
+                    </>
+                  ) : confirming !== null && confirming === numericId ? (
+                    <>
+                      <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void L.remove(confirming)}><Ico name="check" /></button>
+                      <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
+                    </>
+                  ) : (
+                    <>
+                      {!isUser && message.candidateCount > 1 && (
+                        <span className="p-rp-candidate">
+                          <button type="button" aria-label="上一个候选" disabled={message.selected <= 0 || switching === numericId} onClick={() => void L.switchCandidate(message, message.selected - 1)}><Ico name="prev" /></button>
+                          <span className="p-rp-candidate-index">{message.selected + 1}/{message.candidateCount}</span>
+                          <button type="button" aria-label="下一个候选" disabled={message.selected >= message.candidateCount - 1 || switching === numericId} onClick={() => void L.switchCandidate(message, message.selected + 1)}><Ico name="next" /></button>
+                        </span>
+                      )}
+                      <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void L.copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
+                      {numericId !== null && !isStreamingThis && message.content && !message.translation && (
+                        <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}><Ico name="translate" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && (
+                        <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
+                      )}
+                      {!isUser && numericId !== null && !isStreamingThis && media?.tts && (
+                        <button type="button" aria-label="朗读" title="朗读" onClick={() => void L.speak(message)}><Ico name="play" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && (
+                        <button type="button" data-act="bookmark" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void L.toggleBookmark(message)}><Ico name="star" /></button>
+                      )}
+                      {!isUser && !isGreeting && numericId !== null && !isStreamingThis && (
+                        <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={isLatest && streaming} onClick={() => void L.regenerate(message)}><Ico name="regen" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && (
+                        <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" onClick={() => void L.branch(message)}><Ico name="branch" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && (
+                        <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} onClick={() => void L.branch(message, true)}><Ico name="checkpoint" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && (
+                        <button type="button" data-act="hide" aria-label={message.hidden ? '取消隐藏' : '隐藏（不发给模型）'} title={message.hidden ? '取消隐藏' : '隐藏：不发给模型'} aria-pressed={message.hidden === true} onClick={() => void L.toggleHidden(message)}><Ico name="ghost" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && (
+                        <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
+                      )}
+                      {numericId !== null && !isStreamingThis && !isLatest && (
+                        <button type="button" data-act="cut" aria-label="删除这条及之后的消息" title="删除这条及之后" onClick={() => setConfirmingFrom(numericId)}><Ico name="cut" /></button>
+                      )}
+                      {numericId !== null && (
+                        <span className="p-msg-meta" title={message.meta ? `${message.meta.model} · ${metaText}` : `第 ${floor} 楼`}>#{floor}{message.meta ? ` · ${message.meta.model} · ${metaText}` : ''}</span>
+                      )}
+                      {!isUser && numericId !== null && !isStreamingThis && (
+                        <ReportButton targetType="message" targetId={numericId} className="p-msg-tool" label="举报" icon={<Ico name="flag" />} />
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </article>
+        );
+  };
+
+  // 长会话（上千楼）性能：每楼的渲染结果按「会影响这一楼的值」缓存，没变就复用同一个 React 元素，
+  // 流式更新时只重画正在写的那一楼。楼里的事件处理一律通过 L 读最新的函数和状态，避免缓存住旧闭包。
+  const live = useRef<Record<string, unknown>>({});
+  live.current = { switchCandidate, regenerate, saveEdit, translateMessage, removeTranslation, continueLast, removeFrom, remove, copy, speak, toggleBookmark, branch, toggleHidden, streaming, editing };
+  const L = useMemo(() => new Proxy({}, { get: (_t, k: string) => live.current[k] }) as {
+    switchCandidate: typeof switchCandidate; regenerate: typeof regenerate; saveEdit: typeof saveEdit; translateMessage: typeof translateMessage;
+    removeTranslation: typeof removeTranslation; continueLast: typeof continueLast; removeFrom: typeof removeFrom; remove: typeof remove; copy: typeof copy;
+    speak: typeof speak; toggleBookmark: typeof toggleBookmark; branch: typeof branch; toggleHidden: typeof toggleHidden; streaming: boolean; editing: typeof editing;
+  }, []);
+  const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
+  const rowEnv = [displayRules, displayMacros, characterCover, characterName, characterHue, personaName, persona.avatar, thoughtsOpen, media?.tts, chatId];
+  const rowEnvRef = useRef<unknown[]>(rowEnv);
+  if (rowEnv.some((v, i) => v !== rowEnvRef.current[i])) { rowEnvRef.current = rowEnv; rowCache.current.clear(); }
+  const depthMatters = usesDepth(displayRules);
+  const cachedRow = (message: ChatMessageView, index: number) => {
+    const id = message.id;
+    const isLatest = index === messages.length - 1;
+    const deps: unknown[] = [
+      // 楼层号 = offset + index；往前翻页时两者一增一减、楼层不变，老楼就不必重画
+      message, offset + index, isLatest, isLatest ? streaming : false, hasMore && index === 0,
+      depthMatters ? messages.length - index : 0,
+      editing !== null && editing.id === id ? editing : null,
+      streamingId === id, openActions === id, flipped.has(id), translating === id, switching === id, copied === id,
+      confirming === id, confirmingFrom === id ? messages.length - index : -1,
+      typeof id === 'number' ? mvuRev.get(id) : undefined,
+    ];
+    const hit = rowCache.current.get(id);
+    if (hit && hit.deps.length === deps.length && hit.deps.every((v, i) => v === deps[i])) return hit.el;
+    const el = renderRow(message, index);
+    rowCache.current.set(id, { deps, el });
+    return el;
+  };
+  if (rowCache.current.size > messages.length * 2 + 50) {
+    const ids = new Set(messages.map((m) => m.id));
+    for (const k of rowCache.current.keys()) if (!ids.has(k)) rowCache.current.delete(k);
+  }
+
   return (
     <>
       <div className="p-chat-scroll" ref={scrollRef}>
@@ -395,125 +1340,46 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               </button>
             </div>
           )}
-          <section className="p-rp-prologue">
-            <div className="p-eyebrow">STORY</div>
-            <h1>{title ?? '故事'}</h1>
-            <p>当前身份 · {personaName ?? '你'}</p>
-            <small>开场</small>
+          <section className={`p-rp-prologue${characterCover ? ' has-cover' : ''}`} style={{ ['--h' as string]: characterHue }}>
+            {characterCover && <img className="rd-prologue-bg" src={characterCover} alt="" aria-hidden="true" />}
+            <div className="rd-prologue-in">
+              <div className="p-eyebrow">STORY · {characterName}</div>
+              <h1>{title ?? '故事'}</h1>
+              <p>你以「{personaName ?? '你'}」的身份进入这段故事</p>
+              <small>开场</small>
+            </div>
           </section>
-          {messages.map((message) => {
-            const isUser = message.role === 'user';
-            const numericId = typeof message.id === 'number' ? message.id : null;
-            const isEditing = editing !== null && editing.id === message.id;
-            const isStreamingThis = streamingId === message.id;
-            return (
-              <article key={message.id} id={`msg-${message.id}`} className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}`}>
-                <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: isUser ? 28 : 212 }}>
-                  {isUser ? '你' : Array.from(characterName)[0]}
-                </span>
-                <div>
-                  <div className="p-msg-name">{isUser ? '你' : characterName}</div>
-                  {isEditing ? (
-                    <div>
-                      <textarea
-                        className="p-textarea"
-                        value={editing.draft}
-                        autoFocus
-                        onChange={(event) => setEditing({ id: editing.id, draft: event.target.value })}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Escape') setEditing(null);
-                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                            event.preventDefault();
-                            void saveEdit();
-                          }
-                        }}
-                        aria-label="编辑消息"
-                      />
-                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                        <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void saveEdit()}>保存</button>
-                        <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {message.attachment?.kind === 'image' ? (
-                        <figure style={{ margin: '4px 0 0' }}>
-                          <img
-                            src={message.attachment.url}
-                            alt={message.attachment.prompt ?? '生成的图片'}
-                            style={{ display: 'block', width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid var(--border)' }}
-                          />
-                          {message.attachment.prompt && <figcaption className="p-small" style={{ marginTop: 6 }}>{message.attachment.prompt}</figcaption>}
-                        </figure>
-                      ) : (
-                        <div className="p-msg-copy p-msg-text">{message.content || (isStreamingThis ? '…' : '')}</div>
-                      )}
-                      {message.attachment?.kind === 'audio' && (
-                        <audio controls src={message.attachment.url} style={{ display: 'block', width: '100%', maxWidth: 360, marginTop: 8 }} />
-                      )}
-                    </>
-                  )}
-                  {!isEditing && (
-                    <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>
-                  )}
-                  {!isEditing && (
-                    <div className="p-msg-tools">
-                      {confirming !== null && confirming === numericId ? (
-                        <>
-                          <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void remove(confirming)}>✓</button>
-                          <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}>✕</button>
-                        </>
-                      ) : (
-                        <>
-                          {!isUser && message.candidateCount > 1 && (
-                            <span className="p-rp-candidate">
-                              <button type="button" aria-label="上一个候选" disabled={message.selected <= 0 || switching === numericId} onClick={() => void switchCandidate(message, message.selected - 1)}>‹</button>
-                              <span className="p-rp-candidate-index">{message.selected + 1}/{message.candidateCount}</span>
-                              <button type="button" aria-label="下一个候选" disabled={message.selected >= message.candidateCount - 1 || switching === numericId} onClick={() => void switchCandidate(message, message.selected + 1)}>›</button>
-                            </span>
-                          )}
-                          <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void copy(message)}>{copied === message.id ? '✓' : '⧉'}</button>
-                          {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content })}>✎</button>
-                          )}
-                          {!isUser && numericId !== null && !isStreamingThis && media?.tts && (
-                            <button type="button" aria-label="朗读" title="朗读" onClick={() => void speak(message)}>▶</button>
-                          )}
-                          {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void toggleBookmark(message)}>★</button>
-                          )}
-                          {!isUser && numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void regenerate(message)}>↻</button>
-                          )}
-                          {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="从这里创建分支" title="分支" onClick={() => void branch(message)}>⑂</button>
-                          )}
-                          {numericId !== null && !isStreamingThis && (
-                            <button type="button" aria-label="删除消息" title="删除" onClick={() => setConfirming(numericId)}>✕</button>
-                          )}
-                          {!isUser && numericId !== null && !isStreamingThis && (
-                            <ReportButton targetType="message" targetId={numericId} className="p-msg-tool" />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </article>
-            );
-          })}
+          {messages.map(cachedRow)}
           <div ref={bottomRef} style={{ scrollMarginBottom: 120 }} />
         </div>
       </div>
 
+
       <div className="p-chat-compose">
         <div className="p-chat-col">
+          <button
+            type="button"
+            className={`rd-jump${awayFromBottom ? ' is-visible' : ''}`}
+            onClick={jumpToLatest}
+            aria-label={unseen ? `回到最新，${unseen} 条新消息` : '回到最新'}
+            tabIndex={awayFromBottom ? 0 : -1}
+          >
+            <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+            <span>{unseen ? `${unseen} 条新消息` : '回到最新'}</span>
+          </button>
+          {notice && <div className="p-chat-notice" role="status">{notice}</div>}
+          {slashHelp && (
+            <div className="p-slash-help" role="dialog" aria-label="斜杠命令">
+              <div className="p-slash-help-head"><strong>斜杠命令</strong><span className="p-small">和 SillyTavern 写法一致，可以用 | 串联</span><button type="button" className="p-btn p-btn--sm" onClick={() => setSlashHelp(false)}>关闭</button></div>
+              <dl>{SLASH_HELP.map((item) => <div key={item.cmd}><dt><code>{item.cmd}</code></dt><dd>{item.desc}</dd></div>)}</dl>
+            </div>
+          )}
           {error && (
             <div role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>
               <div>{friendlyError(error)}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                 {failed && (
-                  <button className="p-btn p-btn--sm" type="button" onClick={() => { const action = failed; setFailed(null); setError(''); if (action.type === 'send') void send(); else void regenerate(action.message); }}>重试</button>
+                  <button className="p-btn p-btn--sm" type="button" onClick={() => { const action = failed; setFailed(null); setError(''); if (action.type === 'send') void send(); else if (action.type === 'reply') void send(''); else void regenerate(action.message); }}>重试</button>
                 )}
                 {/点数不足|402/.test(error) && (
                   <>
@@ -529,23 +1395,18 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
               <button className="p-text-btn" type="button" onClick={() => setImageOpen(true)}>生图</button>
             </div>
           )}
-          {quickReplies.length > 0 && (
-            <div className="p-chat-quick">
-              {quickReplies.map((reply) => (
-                <button
-                  key={`${reply.label}-${reply.content}`}
-                  className="p-chip"
-                  type="button"
-                  title={reply.content}
-                  onClick={() => setDraft((current) => (current ? `${current}\n${reply.content}` : reply.content))}
-                >
-                  {reply.label}
-                </button>
-              ))}
+          <QuickReplyBar state={qr} scope={{ chatId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />
+          <HelperRunner chatId={chatId} names={{ char: characterName, user: personaName || macros?.user || '' }} actions={helperActions} />
+          <NewbieTip />
+          {preview && draft.trim() && !streaming && (
+            <div className="p-chat-preview" aria-live="polite">
+              <span className="p-chat-preview-k">预览</span>
+              <div className="p-msg-copy"><RpText text={draft} /></div>
             </div>
           )}
           <div className="p-chat-compose-row">
             <textarea
+              ref={inputRef}
               className="p-chat-input"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -556,18 +1417,36 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
                 }
               }}
               rows={1}
-              placeholder="写下台词，或用 *行动描述* 推进故事…"
+              placeholder="写下台词，或用 *行动描述* 推进故事…（/ 开头是命令，/help 查看）"
               aria-label="消息"
             />
             {streaming ? (
-              <button className="p-chat-send" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成">■</button>
+              <button className="p-chat-send is-stop" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成"><span className="rd-stop" aria-hidden="true" /></button>
             ) : (
-              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim()} aria-label="发送">↑</button>
+              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim() && !messages.length} aria-label={draft.trim() ? '发送' : '让角色接着回复'} title={draft.trim() ? undefined : '空着发送：让角色接着回复'}>
+                <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+              </button>
             )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
-            <span className="p-small">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
-            {billing && <span className="p-small">本回合 -{billing.cost} 点 · 余额 {billing.balance}</span>}
+          <div className="p-chat-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
+            <span className="p-chat-acts">
+              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void continueLast()} title="不写台词，让角色接着上一条往下写">▸ 继续</button>
+              <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              {translatingInput && <span className="p-chat-tr-busy" role="status">正在把输入翻译成{langName(translatePrefsRef.current.modelLang)}…</span>}
+              <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
+              {personaInit && (
+                <PersonaSwitch
+                  endpoint={`/api/chats/${chatId}/persona`}
+                  personas={personaInit.options}
+                  lockedId={personaLock}
+                  current={persona}
+                  onChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); router.refresh(); }}
+                />
+              )}
+              <ModelPicker chatId={chatId} />
+            </span>
+            <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
+            {billing && <span className="p-small">本回合 -{billing.cost} 点{billing.free ? `（免费额度抵扣 ${billing.free}）` : ''} · 余额 {billing.balance}</span>}
           </div>
         </div>
       </div>

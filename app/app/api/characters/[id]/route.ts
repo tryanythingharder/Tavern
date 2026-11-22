@@ -1,3 +1,4 @@
+import { flattenText, moderateText } from '@/lib/auto-moderation';
 import { fail, json, requireUser } from '@/lib/api';
 import { deleteCharacter, getCharacterView, updateCharacter } from '@/lib/characters';
 import { canGenerate } from '@/lib/auth';
@@ -12,6 +13,8 @@ export async function PATCH(request: Request, context: Params) {
   const { id } = await context.params;
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   if (body.status !== 'draft' && !canGenerate(user)) return fail('请先验证邮箱后再发布作品', 403);
+  const verdict = await moderateText(flattenText(body));
+  if (!verdict.ok) return fail(verdict.message, 422);
   const character = updateCharacter(user.id, id, body);
   if (!character) return fail('只能编辑自己的角色，且名称、钩子、开场白不能为空', 404);
   return json({ character });

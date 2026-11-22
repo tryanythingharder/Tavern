@@ -5,11 +5,17 @@ export type ImportedMessage = {
   content: string;
   candidates?: string[];
   selected?: number;
+  hidden?: boolean;
+  /** ST extra.reasoning（当前候选的思考内容） */
+  reasoning?: { t: string; ms: number };
 };
 
 export type ParsedChatImport = {
   title: string;
   messages: ImportedMessage[];
+  /** ST chat_metadata：聊天变量、聊天世界书名 */
+  variables?: Record<string, unknown>;
+  worldInfo?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -46,6 +52,9 @@ function messageFrom(item: unknown): ImportedMessage | null {
   if (typeof item.role === 'string') role = roleOf(item.role);
   else if (typeof item.is_user === 'boolean') role = item.is_user ? 'user' : 'assistant';
   else role = 'assistant';
+  // ST 旁白（/sys）：extra.type = narrator → 本站 system 角色消息
+  if (isRecord(item.extra) && item.extra.type === 'narrator' && !item.is_user) role = 'system';
+  const hidden = item.is_system === true || item.hidden === true;
 
   // ST 把隐藏消息记成 is_system（/hide）；没有 role 的系统消息仍按 assistant 导入
   const swipes = Array.isArray(item.swipes) ? item.swipes.map(textOf).filter((text) => text.trim()) : [];
@@ -54,6 +63,8 @@ function messageFrom(item: unknown): ImportedMessage | null {
     role,
     content,
     ...(swipes.length > 1 ? { candidates: swipes, selected } : {}),
+    ...(hidden ? { hidden: true } : {}),
+    ...(isRecord(item.extra) && typeof item.extra.reasoning === 'string' && item.extra.reasoning.trim() ? { reasoning: { t: item.extra.reasoning, ms: Number(item.extra.reasoning_duration) || 0 } } : {}),
   };
 }
 
@@ -148,5 +159,11 @@ export function parseChatImport(text: string): ParsedChatImport | null {
   }
 
   if (!messages.length) return null;
-  return { title, messages };
+  const meta = isRecord(first.chat_metadata) ? first.chat_metadata : null;
+  return {
+    title,
+    messages,
+    variables: meta && isRecord(meta.variables) ? meta.variables : undefined,
+    worldInfo: meta && typeof meta.world_info === 'string' && meta.world_info.trim() ? meta.world_info.trim() : undefined,
+  };
 }

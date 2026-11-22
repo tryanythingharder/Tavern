@@ -1,9 +1,12 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AuthPage } from '@/components/auth-page';
 import { EmailChangeVerify } from '@/components/email-change-verify';
 
-export const metadata: Metadata = { title: '确认新邮箱' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '确认新邮箱' });
+}
 
 export default async function VerifyEmailPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;

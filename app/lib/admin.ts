@@ -1,12 +1,12 @@
 import db from '@/lib/db';
+import { platformDayStart } from '@/lib/tz';
 import { upstreamCostPer1kCents } from '@/lib/billing';
 
 // 后台用的只读汇总：用户、余额、今日用量。
 export type AdminUser = { id: number; email: string; nickname: string; role: string; status: string; createdAt: number | null; balance: number; tokensToday: number; runsToday: number };
 
 export function adminUsers(limit = 20, offset = 0): AdminUser[] {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const start = new Date(platformDayStart());
   const rows = db.prepare(`
         SELECT u.id, u.email, u.nickname, u.role, u.status, u.created_at,
                (SELECT balance_after FROM points_ledger p WHERE p.user_id = u.id ORDER BY p.id DESC LIMIT 1) AS balance,
@@ -41,8 +41,7 @@ export type AdminUserDetail = {
 };
 
 export function adminUserDetail(id: number): AdminUserDetail | null {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const start = new Date(platformDayStart());
   const row = db.prepare(`
         SELECT u.id, u.email, u.nickname, u.role, u.status, u.created_at,
                (SELECT balance_after FROM points_ledger p WHERE p.user_id = u.id ORDER BY p.id DESC LIMIT 1) AS balance,
@@ -98,8 +97,7 @@ export function adminCharacters(): AdminCharacter[] {
 }
 
 export function adminTotals() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const start = new Date(platformDayStart());
   const users = db.prepare('SELECT COUNT(*) AS count FROM users').get() as { count: number };
   const today = db.prepare("SELECT COUNT(*) AS runs, COALESCE(SUM(total_tokens), 0) AS tokens FROM generation_events WHERE created_at >= ? AND status IN ('done','aborted')").get(start.getTime()) as { runs: number; tokens: number };
   const spend = db.prepare("SELECT COALESCE(SUM(-amount), 0) AS total FROM points_ledger WHERE amount < 0 AND created_at >= ?").get(start.getTime()) as { total: number };

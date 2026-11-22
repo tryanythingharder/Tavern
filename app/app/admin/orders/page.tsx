@@ -1,3 +1,4 @@
+import { paymentCurrency as __cur } from '@/lib/billing';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
@@ -28,7 +29,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
         </div>
       </header>
       <div className="p-acontent">
-        <AdminBilling orders={orders} />
+        <AdminBilling orders={orders} currency={__cur()} />
         <div className="p-table-foot" style={{ marginTop: 16 }}>
           <span className="p-foot-count">第 {current} / {pages} 页 · 共 {total} 笔订单</span>
           <div className="p-foot-right">

@@ -1,4 +1,6 @@
 'use client';
+import { LocalTime } from '@/components/local-time';
+import { formatMoney } from '@/lib/money';
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -7,9 +9,9 @@ import { ErrorLine, api } from '@/components/settings-ui';
 type Order = { id: number; points: number; priceCents: number; status: string; createdAt: number };
 
 const STATUS_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', cancelled: '已取消' };
-const yuan = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
 
-export function PointsActions({ orders, pricePerPointCents }: { orders: Order[]; pricePerPointCents: number }) {
+export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: { orders: Order[]; pricePerPointCents: number; currency?: string }) {
+  const yuan = (cents: number) => formatMoney(cents, currency);
   const router = useRouter();
   const [code, setCode] = useState('');
   const [points, setPoints] = useState('1000');
@@ -67,7 +69,7 @@ export function PointsActions({ orders, pricePerPointCents }: { orders: Order[];
             className="p-input"
             style={{ flex: '1 1 220px', textTransform: 'uppercase' }}
             value={code}
-            placeholder="TAV-XXXX-XXXX"
+            placeholder="YH-XXXX-XXXX"
             onChange={(event) => setCode(event.target.value)}
             aria-label="兑换码"
           />
@@ -106,7 +108,7 @@ export function PointsActions({ orders, pricePerPointCents }: { orders: Order[];
               <div className="res-row" key={order.id} style={{ padding: '10px 12px' }}>
                 <div className="res-row-main">
                   <div className="res-row-title" style={{ fontSize: 13.5 }}>#{order.id} · {order.points} 点 · {yuan(order.priceCents)}</div>
-                  <div className="res-row-sub">{new Date(order.createdAt).toLocaleString('zh-CN')}</div>
+                  <div className="res-row-sub"><LocalTime value={order.createdAt} /></div>
                 </div>
                 <span className="tag" style={{ height: 22, padding: '0 10px', fontSize: 11 }}>{STATUS_LABEL[order.status] ?? order.status}</span>
               </div>

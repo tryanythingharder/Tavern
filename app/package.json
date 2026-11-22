@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/build-css.mjs",
     "dev": "next dev -p 3100",
+    "css": "node scripts/build-css.mjs",
+    "css:watch": "node scripts/build-css.mjs --watch",
+    "prebuild": "node scripts/build-css.mjs",
     "build": "next build",
     "start": "next start -p 3100",
     "probe": "node scripts/production-probe.mjs",
-    "backup": "bash scripts/backup.sh",
+    "backup": "node scripts/backup.mjs",
     "admin": "node scripts/promote-admin.mjs",
     "check": "bash scripts/check.sh"
   },
@@ -16,8 +20,10 @@
   },
   "dependencies": {
     "next": "^15.5.29",
+    "quickjs-emscripten": "^0.32.0",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "unpdf": "^2.2.1"
   },
   "devDependencies": {
     "@types/node": "24.5.2",

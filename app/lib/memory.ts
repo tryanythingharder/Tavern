@@ -1,16 +1,40 @@
 import db, { touchChat, type DbChat, type DbMessage } from '@/lib/db';
+import { reasoningAt } from '@/lib/reasoning';
+import { metaAt } from '@/lib/msg-meta';
 
-// M3 长线能力：自动摘要、记忆检索（bigram 近似）、书签与聊天内搜索、备份恢复、导出。
-// 摘要与检索的语义对齐原型：摘要只覆盖「最近 8 条」之前的部分；检索只从更早的历史里挑片段。
+// M3 长线能力：自动摘要、记忆检索（bigram 近似）、作者注释、书签与聊天内搜索、备份恢复、导出。
+// 摘要对齐 ST 的 Summarize 扩展：默认用当前模型生成（lib/memory-llm.ts），提示词/字数/注入位置/注入模板可改，
+// 也有 {{summary}} 宏；模型不可用时可切回「抽取式」（只取每条第一行，不花点数）。
+// 作者注释对齐 ST 的 Author's Note：会话注释 + 角色注释，位置（主提示后/主提示前/聊天内 @深度）、角色、插入频率。
 
 export const RECENT_WINDOW = 8;
 const SUMMARY_INTERVAL_DEFAULT = 12;
 const RAG_TOPK_DEFAULT = 3;
 const BACKUP_LIMIT = 5;
 
-export type SummaryState = { text: string; covered: number; source: 'auto' | 'manual'; updatedAt: number };
-export type SummaryPrefs = { enabled: boolean; interval: number };
-export type RagPrefs = { enabled: boolean; topK: number };
+export type Role = 'system' | 'user' | 'assistant';
+export type SummaryState = { text: string; covered: number; source: 'auto' | 'manual'; updatedAt: number; error?: string };
+export type SummaryMode = 'llm' | 'extract';
+export type SummaryPosition = 'prompt' | 'depth' | 'none';
+export type SummaryPrefs = {
+  enabled: boolean;
+  interval: number;
+  mode: SummaryMode;
+  /** prompt = 预设里「自动摘要」块的位置；depth = 聊天内 @深度；none = 不自动注入，只能用 {{summary}} 宏 */
+  position: SummaryPosition;
+  depth: number;
+  role: Role;
+  /** 注入模板，{{summary}} 换成摘要正文（ST 默认 [Summary: {{summary}}]） */
+  template: string;
+  /** 生成摘要用的提示词，{{words}} 换成字数上限 */
+  prompt: string;
+  words: number;
+};
+export type RagPrefs = { enabled: boolean; topK: number; threshold: number; queryMessages: number; template: string };
+export const RAG_TEMPLATE_DEFAULT = '［相关的更早对话］\n{{text}}';
+
+export const SUMMARY_PROMPT_DEFAULT = '忽略之前的指令。用简洁的语言概括到目前为止故事里最重要的事实和事件：人物关系、关键事件、承诺与伏笔、当前所在地点与状态。如果已经有摘要，在它的基础上更新并补充新的内容，删掉已经过时的。控制在 {{words}} 字以内。只输出摘要正文，不要别的内容。';
+export const SUMMARY_TEMPLATE_DEFAULT = '[前情摘要：{{summary}}]';
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -21,31 +45,49 @@ function parseJson<T>(value: string | null | undefined, fallback: T): T {
   }
 }
 
-export function summaryState(chat: DbChat): SummaryState {
+const clampInt = (value: unknown, min: number, max: number, fallback: number) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, Math.round(n))) : fallback;
+};
+const roleOf = (value: unknown): Role => (value === 'user' || value === 'assistant' ? value : 'system');
+
+export function summaryState(chat: Pick<DbChat, 'summary'>): SummaryState {
   const source = parseJson<Partial<SummaryState>>(chat.summary, {});
   return {
     text: typeof source.text === 'string' ? source.text : '',
     covered: Number.isFinite(Number(source.covered)) ? Number(source.covered) : 0,
     source: source.source === 'manual' ? 'manual' : 'auto',
     updatedAt: Number(source.updatedAt) || 0,
+    ...(typeof source.error === 'string' && source.error ? { error: source.error } : {}),
   };
 }
 
-export function summaryPrefs(chat: DbChat): SummaryPrefs {
-  const source = parseJson<{ enabled?: boolean; interval?: number }>(chat.summary_prefs, {});
-  const interval = Number(source.interval);
+export function summaryPrefs(chat: Pick<DbChat, 'summary_prefs'>): SummaryPrefs {
+  const source = parseJson<Partial<SummaryPrefs>>(chat.summary_prefs, {});
   return {
     enabled: source.enabled !== false,
-    interval: Number.isFinite(interval) && interval >= 4 && interval <= 40 ? Math.round(interval) : SUMMARY_INTERVAL_DEFAULT,
+    interval: clampInt(source.interval, 4, 100, SUMMARY_INTERVAL_DEFAULT),
+    // 旧会话没有 mode：沿用抽取式，免得升级后突然开始扣点数
+    mode: source.mode === 'llm' ? 'llm' : source.mode === 'extract' ? 'extract' : chat.summary_prefs ? 'extract' : 'llm',
+    position: source.position === 'depth' || source.position === 'none' ? source.position : 'prompt',
+    depth: clampInt(source.depth, 0, 999, 2),
+    role: roleOf(source.role),
+    template: typeof source.template === 'string' ? source.template.slice(0, 2000) : SUMMARY_TEMPLATE_DEFAULT,
+    prompt: typeof source.prompt === 'string' && source.prompt.trim() ? source.prompt.slice(0, 4000) : SUMMARY_PROMPT_DEFAULT,
+    words: clampInt(source.words, 50, 2000, 300),
   };
 }
 
-export function ragPrefs(chat: DbChat): RagPrefs {
-  const source = parseJson<{ enabled?: boolean; topK?: number }>(chat.rag_prefs, {});
-  const topK = Number(source.topK);
+export function ragPrefs(chat: Pick<DbChat, 'rag_prefs'>): RagPrefs {
+  const source = parseJson<{ enabled?: boolean; topK?: number; threshold?: number; queryMessages?: number; template?: string }>(chat.rag_prefs, {});
+  const threshold = Number(source.threshold);
   return {
     enabled: source.enabled !== false,
-    topK: Number.isFinite(topK) && topK >= 1 && topK <= 5 ? Math.round(topK) : RAG_TOPK_DEFAULT,
+    topK: clampInt(source.topK, 1, 10, RAG_TOPK_DEFAULT),
+    // ST Vector Storage 默认 0.25；只在向量检索时生效
+    threshold: Number.isFinite(threshold) && threshold >= 0 && threshold <= 1 ? Math.round(threshold * 100) / 100 : 0.25,
+    queryMessages: clampInt(source.queryMessages, 1, 10, 2),
+    template: typeof source.template === 'string' && source.template.trim() ? source.template.slice(0, 1000) : RAG_TEMPLATE_DEFAULT,
   };
 }
 
@@ -55,7 +97,7 @@ export function generateSummaryText(characterName: string, messages: DbMessage[]
   for (let index = start; index < upTo; index += 1) {
     const message = messages[index];
     if (!message || message.role === 'system') continue;
-    const who = message.role === 'user' ? '你' : characterName;
+    const who = message.role === 'user' ? message.persona_name || '你' : characterName;
     const first = String(message.content || '')
       .split('\n')
       .map((line) => line.trim())
@@ -67,12 +109,13 @@ export function generateSummaryText(characterName: string, messages: DbMessage[]
   return `【摘要 · 抽取式】\n${lines.slice(-30).join('\n')}`;
 }
 
-// 需要时刷新摘要（消息增长到间隔才更新），返回最新状态。
+// 抽取式摘要：发送前按间隔同步刷新。模型摘要不在这里跑（见 lib/memory-llm.ts，回复落库后后台跑）。
 export function refreshSummary(chatId: number, characterName: string, messages: DbMessage[], force = false): SummaryState {
   const row = db.prepare('SELECT summary, summary_prefs FROM chats WHERE id = ?').get(chatId) as Pick<DbChat, 'summary' | 'summary_prefs'> | undefined;
   if (!row) return { text: '', covered: 0, source: 'auto', updatedAt: 0 };
-  const prefs = summaryPrefs(row as DbChat);
-  const current = summaryState(row as DbChat);
+  const prefs = summaryPrefs(row);
+  const current = summaryState(row);
+  if (prefs.mode === 'llm' && !force) return current;
   const covered = Math.min(current.covered || 0, messages.length);
   // 手改过的摘要不再被自动刷新覆盖（除非用户点「刷新摘要」）
   if (!force && (current.source === 'manual' || !prefs.enabled || messages.length - RECENT_WINDOW - covered < prefs.interval)) return current;
@@ -83,20 +126,90 @@ export function refreshSummary(chatId: number, characterName: string, messages: 
   return next;
 }
 
+export function saveSummaryState(chatId: number, state: SummaryState): void {
+  db.prepare('UPDATE chats SET summary = ? WHERE id = ?').run(JSON.stringify(state), chatId);
+}
+
 export function summaryStatus(chat: DbChat, messageCount: number) {
   const prefs = summaryPrefs(chat);
   const state = summaryState(chat);
   const covered = Math.min(state.covered, messageCount);
   return {
-    enabled: prefs.enabled,
-    interval: prefs.interval,
+    ...prefs,
     covered,
-    behind: Math.max(0, messageCount - RECENT_WINDOW - covered),
+    behind: Math.max(0, messageCount - (prefs.mode === 'llm' ? 0 : RECENT_WINDOW) - covered),
     text: state.text,
     source: state.source,
     updatedAt: state.updatedAt,
+    error: state.error ?? '',
   };
 }
+
+// ---------- 作者注释（ST Author's Note） ----------
+
+export type NotePosition = 'after' | 'before' | 'depth';
+export type AuthorNote = { text: string; position: NotePosition; depth: number; role: Role; interval: number };
+export type CharacterNoteMode = 'replace' | 'before' | 'after';
+export type CharacterNote = { text: string; mode: CharacterNoteMode };
+
+export function authorNote(chat: Pick<DbChat, 'author_note'>): AuthorNote {
+  const source = parseJson<Partial<AuthorNote>>(chat.author_note, {});
+  return {
+    text: typeof source.text === 'string' ? source.text.slice(0, 20000) : '',
+    // ST 默认：聊天内 @4，system，每 1 条都插入
+    position: source.position === 'after' || source.position === 'before' ? source.position : 'depth',
+    depth: clampInt(source.depth, 0, 999, 4),
+    role: roleOf(source.role),
+    interval: clampInt(source.interval, 0, 999, 1),
+  };
+}
+
+export function characterNote(userId: number, characterId: string): CharacterNote {
+  const row = db.prepare('SELECT text, mode FROM character_notes WHERE user_id = ? AND character_id = ?').get(userId, characterId) as { text: string; mode: string } | undefined;
+  return { text: row?.text ?? '', mode: row?.mode === 'before' || row?.mode === 'after' ? row.mode : 'replace' };
+}
+
+export function saveCharacterNote(userId: number, characterId: string, note: CharacterNote): void {
+  if (!note.text.trim()) {
+    db.prepare('DELETE FROM character_notes WHERE user_id = ? AND character_id = ?').run(userId, characterId);
+    return;
+  }
+  db.prepare(`INSERT INTO character_notes (user_id, character_id, text, mode, updated_at) VALUES (?,?,?,?,?)
+    ON CONFLICT(user_id, character_id) DO UPDATE SET text = excluded.text, mode = excluded.mode, updated_at = excluded.updated_at`)
+    .run(userId, characterId, note.text.slice(0, 20000), note.mode, Date.now());
+}
+
+/** ST：角色注释「替换」= 有角色注释时用它代替会话注释；「之前/之后」= 两段拼在一起 */
+export function combinedNoteText(chatNote: string, charNote: CharacterNote): string {
+  const own = chatNote.trim();
+  const other = charNote.text.trim();
+  if (!other) return own;
+  if (charNote.mode === 'replace' || !own) return other;
+  return charNote.mode === 'before' ? `${other}\n${own}` : `${own}\n${other}`;
+}
+
+// 组装提示词时要的记忆相关输入，四个生成入口共用
+export type PromptMemory = {
+  summary: string;
+  summaryPlacement: { position: SummaryPosition; depth: number; role: Role; template: string };
+  memory: string;
+  authorNote: AuthorNote;
+  ragTemplate: string;
+};
+
+export function promptMemory(chat: DbChat, userId: number): PromptMemory {
+  const prefs = summaryPrefs(chat);
+  const state = summaryState(chat);
+  const note = authorNote(chat);
+  return {
+    summary: prefs.enabled ? state.text : '',
+    summaryPlacement: { position: prefs.position, depth: prefs.depth, role: prefs.role, template: prefs.template },
+    memory: chat.memory ?? '',
+    authorNote: { ...note, text: combinedNoteText(note.text, characterNote(userId, chat.character_id)) },
+    ragTemplate: ragPrefs(chat).template,
+  };
+}
+
 
 // ---------- 记忆检索 ----------
 
@@ -113,7 +226,7 @@ export function ragChunks(messages: DbMessage[], query: string, topK = RAG_TOPK_
   const cutoff = messages.length - RECENT_WINDOW;
   const scored: { index: number; role: string; text: string; score: number }[] = [];
   messages.forEach((message, index) => {
-    if (index >= cutoff || message.role === 'system') return;
+    if (index >= cutoff || message.role === 'system' || message.hidden === 1) return;
     const content = String(message.content || '').toLowerCase().replace(/\s+/g, '');
     if (!content) return;
     let hits = 0;
@@ -126,39 +239,73 @@ export function ragChunks(messages: DbMessage[], query: string, topK = RAG_TOPK_
 
 // ---------- 会话记忆设置 ----------
 
+// ---------- 会话记忆设置 ----------
+
 export type MemorySettings = { summary: SummaryState; summaryPrefs: SummaryPrefs; ragPrefs: RagPrefs; memory: string };
 
 export function memorySettings(chat: DbChat): MemorySettings {
   return { summary: summaryState(chat), summaryPrefs: summaryPrefs(chat), ragPrefs: ragPrefs(chat), memory: chat.memory ?? '' };
 }
 
-export function updateMemorySettings(
-  chatId: number,
-  userId: number,
-  patch: { summaryEnabled?: boolean; summaryInterval?: number; summaryText?: string; ragEnabled?: boolean; ragTopK?: number; memory?: string },
-): boolean {
+export type MemoryPatch = {
+  summaryEnabled?: boolean;
+  summaryInterval?: number;
+  summaryText?: string;
+  summaryMode?: SummaryMode;
+  summaryPosition?: SummaryPosition;
+  summaryDepth?: number;
+  summaryRole?: Role;
+  summaryTemplate?: string;
+  summaryPrompt?: string;
+  summaryWords?: number;
+  ragEnabled?: boolean;
+  ragTopK?: number;
+  ragThreshold?: number;
+  ragQueryMessages?: number;
+  ragTemplate?: string;
+  memory?: string;
+  note?: Partial<AuthorNote>;
+};
+
+export function updateMemorySettings(chatId: number, userId: number, patch: MemoryPatch): boolean {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ? AND user_id = ?').get(chatId, userId) as DbChat | undefined;
   if (!chat) return false;
 
   const prefs = summaryPrefs(chat);
   const rag = ragPrefs(chat);
-  const nextSummaryPrefs: SummaryPrefs = {
-    enabled: patch.summaryEnabled ?? prefs.enabled,
-    interval: patch.summaryInterval === undefined ? prefs.interval : Math.max(4, Math.min(40, Math.round(patch.summaryInterval))),
-  };
-  const nextRag: RagPrefs = {
+  const nextSummaryPrefs: SummaryPrefs = summaryPrefs({
+    summary_prefs: JSON.stringify({
+      ...prefs,
+      enabled: patch.summaryEnabled ?? prefs.enabled,
+      interval: patch.summaryInterval ?? prefs.interval,
+      mode: patch.summaryMode ?? prefs.mode,
+      position: patch.summaryPosition ?? prefs.position,
+      depth: patch.summaryDepth ?? prefs.depth,
+      role: patch.summaryRole ?? prefs.role,
+      template: patch.summaryTemplate ?? prefs.template,
+      prompt: patch.summaryPrompt ?? prefs.prompt,
+      words: patch.summaryWords ?? prefs.words,
+    }),
+  });
+  const nextRag: RagPrefs = ragPrefs({ rag_prefs: JSON.stringify({
     enabled: patch.ragEnabled ?? rag.enabled,
-    topK: patch.ragTopK === undefined ? rag.topK : Math.max(1, Math.min(5, Math.round(patch.ragTopK))),
-  };
-  const summary = patch.summaryText === undefined
+    topK: patch.ragTopK ?? rag.topK,
+    threshold: patch.ragThreshold ?? rag.threshold,
+    queryMessages: patch.ragQueryMessages ?? rag.queryMessages,
+    template: patch.ragTemplate ?? rag.template,
+  }) });
+  const current = summaryState(chat);
+  const summary = patch.summaryText === undefined || patch.summaryText === current.text
     ? chat.summary
-    : JSON.stringify({ ...summaryState(chat), text: patch.summaryText, source: 'manual', updatedAt: Date.now() });
+    : JSON.stringify({ ...current, text: patch.summaryText, source: 'manual', updatedAt: Date.now(), error: undefined });
+  const note = patch.note ? JSON.stringify(authorNote({ author_note: JSON.stringify({ ...authorNote(chat), ...patch.note }) })) : chat.author_note ?? null;
 
-  db.prepare('UPDATE chats SET summary = ?, summary_prefs = ?, rag_prefs = ?, memory = ? WHERE id = ? AND user_id = ?').run(
+  db.prepare('UPDATE chats SET summary = ?, summary_prefs = ?, rag_prefs = ?, memory = ?, author_note = ? WHERE id = ? AND user_id = ?').run(
     summary,
     JSON.stringify(nextSummaryPrefs),
     JSON.stringify(nextRag),
     patch.memory === undefined ? chat.memory : patch.memory,
+    note,
     chatId,
     userId,
   );
@@ -190,7 +337,7 @@ export function searchMessages(chatId: number, query: string, bookmarksOnly = fa
 
 export type BackupRow = { id: number; message_count: number; created_at: number };
 
-type BackupPayloadRow = { role: string; content: string; candidates: string | null; selected: number; bookmark: number; attachment: string | null; created_at: number };
+type BackupPayloadRow = { role: string; content: string; candidates: string | null; selected: number; bookmark: number; attachment: string | null; created_at: number; persona_name?: string | null; persona_avatar?: string | null; reasoning?: string | null };
 
 export function listBackups(chatId: number, userId: number): BackupRow[] {
   return db.prepare(`
@@ -217,6 +364,9 @@ export function snapshotChat(chatId: number, userId: number, force = false): num
     selected: message.selected,
     bookmark: message.bookmark,
     attachment: message.attachment,
+    persona_name: message.persona_name ?? null,
+    persona_avatar: message.persona_avatar ?? null,
+    reasoning: message.reasoning ?? null,
     created_at: message.created_at,
   })));
   const result = db.prepare('INSERT INTO chat_backups (chat_id, user_id, message_count, payload, created_at) VALUES (?,?,?,?,?)').run(chatId, userId, messages.length, payload, Date.now());
@@ -238,10 +388,10 @@ export function restoreBackup(chatId: number, userId: number, backupId: number):
 
   snapshotChat(chatId, userId, true); // 恢复本身也可撤销
   const remove = db.prepare('DELETE FROM messages WHERE chat_id = ?');
-  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, created_at) VALUES (?,?,?,?,?,?,?,?)');
+  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, persona_name, persona_avatar, reasoning, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   remove.run(chatId);
   for (const row of rows) {
-    insert.run(chatId, row.role, row.content, row.candidates ?? null, row.selected ?? 0, row.bookmark ?? 0, row.attachment ?? null, row.created_at ?? Date.now());
+    insert.run(chatId, row.role, row.content, row.candidates ?? null, row.selected ?? 0, row.bookmark ?? 0, row.attachment ?? null, row.persona_name ?? null, row.persona_avatar ?? null, row.reasoning ?? null, row.created_at ?? Date.now());
   }
   touchChat(chatId);
   return true;
@@ -249,18 +399,60 @@ export function restoreBackup(chatId: number, userId: number, backupId: number):
 
 // ---------- 导出 ----------
 
-export function exportChat(chat: DbChat, characterName: string, messages: DbMessage[], format: 'txt' | 'jsonl'): string {
+// ST chat_metadata：聊天变量（{{setvar}} / 酒馆助手 chat 变量）与聊天世界书（按书名，ST 里世界书靠名字关联）
+function stChatMetadata(chat: DbChat): Record<string, unknown> {
+  const meta: Record<string, unknown> = {};
+  const vars = db.prepare("SELECT data FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?").get(chat.user_id, String(chat.id)) as { data: string } | undefined;
+  const variables = parseJson<Record<string, unknown>>(vars?.data, {});
+  if (Object.keys(variables).length) meta.variables = variables;
+  if (chat.chat_lorebook_id) {
+    const book = db.prepare('SELECT name FROM lorebooks WHERE id = ? AND user_id = ?').get(chat.chat_lorebook_id, chat.user_id) as { name: string } | undefined;
+    if (book) meta.world_info = book.name;
+  }
+  return meta;
+}
+
+export function exportChat(chat: DbChat, characterName: string, messages: DbMessage[], format: 'txt' | 'jsonl' | 'st', userName = '你'): string {
+  // SillyTavern 原生 .jsonl：首行元数据，之后每行一条（is_system = 隐藏，extra.type = narrator 是旁白）
+  if (format === 'st') {
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const header = JSON.stringify({ user_name: userName, character_name: characterName, create_date: iso(messages[0]?.created_at ?? Date.now()), chat_metadata: stChatMetadata(chat) });
+    const lines = messages.map((message) => {
+      const swipes = messageCandidatesOf(message);
+      const isUser = message.role === 'user';
+      const narrator = message.role === 'system';
+      return JSON.stringify({
+        name: isUser ? message.persona_name || userName : narrator ? 'System' : characterName,
+        is_user: isUser,
+        is_system: message.hidden === 1,
+        send_date: iso(message.created_at),
+        mes: message.content,
+        ...(swipes.length > 1 ? { swipes, swipe_id: message.selected } : {}),
+        extra: (() => {
+          const thought = message.role === 'assistant' ? reasoningAt(message.reasoning, message.selected) : null;
+          const meta = message.role === 'assistant' ? metaAt(message.meta, message.selected) : null;
+          return {
+            ...(narrator ? { type: 'narrator' } : {}),
+            ...(thought ? { reasoning: thought.t, reasoning_duration: thought.ms } : {}),
+            ...(meta ? { model: meta.model, token_count: meta.tokens } : {}),
+          };
+        })(),
+      });
+    });
+    return [header, ...lines].join('\n');
+  }
   if (format === 'jsonl') {
     return messages
       .map((message) =>
         JSON.stringify({
           chat: chat.title,
           role: message.role,
-          name: message.role === 'user' ? '你' : characterName,
+          name: message.role === 'user' ? message.persona_name || '你' : characterName,
           content: message.content,
           candidates: messageCandidatesOf(message),
           selected: message.selected,
           bookmark: message.bookmark === 1,
+          hidden: message.hidden === 1,
           attachment: message.attachment ? JSON.parse(message.attachment) : null,
           created_at: message.created_at,
         }),
@@ -272,7 +464,7 @@ export function exportChat(chat: DbChat, characterName: string, messages: DbMess
     header +
     messages
       .map((message) => {
-        const who = message.role === 'user' ? '你' : message.role === 'system' ? '系统' : characterName;
+        const who = message.role === 'user' ? message.persona_name || '你' : message.role === 'system' ? '系统' : characterName;
         const attachment = message.attachment ? (JSON.parse(message.attachment) as { kind?: string; url?: string }) : null;
         const suffix = attachment?.url ? `\n[${attachment.kind === 'audio' ? '语音' : '图片'}] ${attachment.url}` : '';
         return `${who}：${message.content}${suffix}`;

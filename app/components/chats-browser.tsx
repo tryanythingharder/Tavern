@@ -1,10 +1,13 @@
 'use client';
 
+import { LocalTime, formatTime } from '@/components/local-time';
+import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { coverSrc } from '@/components/proto-cover';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 type ChatItem = {
   id: number;
@@ -32,7 +35,7 @@ function relative(timestamp: number): string {
   if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`;
   if (diff < day) return `${Math.floor(diff / hour)} 小时前`;
   if (diff < day * 7) return `${Math.floor(diff / day)} 天前`;
-  return new Date(timestamp).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+  return formatTime(timestamp, 'md');
 }
 
 function MoreIcon() {
@@ -214,11 +217,11 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
             <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
             <input className="p-input" type="search" value={query} placeholder="搜索角色或对话内容" aria-label="搜索会话" onChange={(event) => setQuery(event.target.value)} />
           </label>
-          <select className="p-select" aria-label="按角色筛选" value={character} onChange={(event) => setCharacter(event.target.value)}>
+          <Select className="p-select" aria-label="按角色筛选" value={character} onChange={(event) => setCharacter(event.target.value)}>
             <option value="all">全部角色</option>
             {charactersInChats.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             <option value="rooms">多角色房间</option>
-          </select>
+          </Select>
           <span className="p-filterbar-count">{total} 个故事 · 最近更新优先</span>
         </div>
       </div>
@@ -232,11 +235,11 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
               </div>
               <div className="p-chat-row-main">
                 <div className="p-chat-row-title"><span className="p-chat-row-name">{room.name}</span><span className="p-chat-row-session">多角色房间</span></div>
-                <p className="p-chat-row-preview">{room.lastMessage ?? '还没有消息'}</p>
+                <p className="p-chat-row-preview">{room.lastMessage ? cleanPreview(room.lastMessage) : '还没有消息'}</p>
                 <div className="p-library-sub">房间 · {room.count} 条消息</div>
               </div>
             </Link>
-            <div className="p-chat-row-meta"><span>{relative(room.updatedAt)}</span><span>{room.count} 条</span></div>
+            <div className="p-chat-row-meta"><span><LocalTime value={room.updatedAt} style="md" render={relative} /></span><span>{room.count} 条</span></div>
           </div>
         ))}
 
@@ -250,11 +253,11 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
                 </div>
                 <div className="p-chat-row-main">
                   <div className="p-chat-row-title"><span className="p-chat-row-name">{chat.name}</span><span className="p-chat-row-session">{chat.title}</span></div>
-                  <p className="p-chat-row-preview">{chat.lastMessage ?? '还没有消息'}</p>
+                  <p className="p-chat-row-preview">{chat.lastMessage ? cleanPreview(chat.lastMessage) : '还没有消息'}</p>
                   <div className="p-library-sub">本地保存 · {chat.count} 条消息</div>
                 </div>
               </Link>
-              <div className="p-chat-row-meta"><span>{relative(chat.updatedAt)}</span><span>{chat.count} 条</span></div>
+              <div className="p-chat-row-meta"><span><LocalTime value={chat.updatedAt} style="md" render={relative} /></span><span>{chat.count} 条</span></div>
               <div className="p-chat-row-action">
                 <button className="p-btn p-btn--sm p-btn--icon" type="button" aria-label={`管理${chat.title}`} onClick={() => openManage(chat)}>
                   <MoreIcon />
@@ -302,7 +305,7 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
               <a className="p-choice" href={`/api/chats/${manage.id}/export?format=txt`} download>
                 <span className="p-choice-main"><span className="p-choice-title">导出阅读用 txt</span><span className="p-choice-sub">纯文本对白，方便外发阅读</span></span>
               </a>
-              <a className="p-choice" href={`/api/chats/${manage.id}/export?format=jsonl`} download>
+              <a className="p-choice" href={`/api/chats/${manage.id}/export?format=st`} download>
                 <span className="p-choice-main"><span className="p-choice-title">导出聊天记录</span><span className="p-choice-sub">SillyTavern 的 .jsonl，可直接导入 ST</span></span>
               </a>
               {manage.lastMessageId && (
@@ -344,13 +347,13 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
           <ErrorLine message={importError} />
           <div className="field">
             <label htmlFor="chat-import-character">属于哪个角色</label>
-            <select id="chat-import-character" className="select" value={importCharacter} onChange={(event) => setImportCharacter(event.target.value)}>
+            <Select id="chat-import-character" className="select" value={importCharacter} onChange={(event) => setImportCharacter(event.target.value)}>
               {characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            </Select>
           </div>
           <div className="field">
             <label htmlFor="chat-import-file">选择文件</label>
-            <input id="chat-import-file" className="input" type="file" accept=".jsonl,.json,application/json" onChange={(event) => void readImportFile(event.target.files?.[0])} />
+            <FileDrop id="chat-import-file" accept=".jsonl,.json,application/json" title="选择 .jsonl / .json 聊天记录" hint="点击选择，或把 SillyTavern 导出的聊天记录拖到这里" onFile={(file) => void readImportFile(file)} />
           </div>
           <div className="field">
             <label htmlFor="chat-import-text">或粘贴内容</label>
@@ -360,4 +363,8 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
       )}
     </>
   );
+}
+
+function cleanPreview(text: string) {
+  return text.replace(/\*([^*]+)\*/g, '$1').replace(/\(\(([^)]*)\)\)/g, '').replace(/\s+/g, ' ').trim();
 }

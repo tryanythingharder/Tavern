@@ -1,0 +1,90 @@
+/* 站内下拉框（components/ui-select.tsx）。触发器沿用各主题给 select/.select/.p-input 的外观（postcss-select.cjs 把 select 选择器也套到 .ui-select），
+   这里只补原生 select 自带的行为外观：箭头、单行省略、指针；弹出列表按三套主题各自的面板风格。 */
+.ui-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ui-select.is-disabled { cursor: not-allowed; opacity: .55; }
+.ui-select-value { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-select-caret { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .6; transition: transform .18s ease; }
+.ui-select.is-open .ui-select-caret { transform: rotate(180deg); }
+
+.ui-select-pop {
+  --pop-bg: var(--surface, #ffffff);
+  --pop-line: var(--border-strong, #d5d5d9);
+  --pop-ink: var(--text, #1b1b1d);
+  --pop-muted: var(--muted, #6b6b73);
+  --pop-hover: var(--surface-2, #f0f0f1);
+  --pop-accent: var(--u-accent, var(--accent, #c9401f));
+  --pop-r: 12px;
+  --pop-opt-r: 8px;
+  position: fixed;
+  z-index: 2147483000;
+  box-sizing: border-box;
+  max-width: min(420px, calc(100vw - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  border: 1px solid var(--pop-line);
+  border-radius: var(--pop-r);
+  background: var(--pop-bg);
+  color: var(--pop-ink);
+  box-shadow: 0 1px 0 rgba(27, 27, 29, .04), 0 16px 40px -12px rgba(27, 27, 29, .28);
+  font-size: 14px;
+  line-height: 1.4;
+  animation: ui-select-in .14s ease-out;
+  transform-origin: top center;
+}
+.ui-select-pop.is-up { transform-origin: bottom center; }
+@keyframes ui-select-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.ui-select-pop.is-up { animation-name: ui-select-in-up; }
+@keyframes ui-select-in-up { from { opacity: 0; transform: translateY(4px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ui-select-pop, .ui-select-pop.is-up { animation: none; } .ui-select-caret { transition: none; } }
+
+.ui-select-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--pop-opt-r);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ui-select-opt > span { overflow: hidden; text-overflow: ellipsis; }
+.ui-select-opt.is-active { background: var(--pop-hover); }
+.ui-select-opt.is-selected { color: var(--pop-accent); font-weight: 600; }
+.ui-select-opt[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.ui-select-opt svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ui-select-group { padding: 8px 10px 4px; font-size: 11px; letter-spacing: .06em; color: var(--pop-muted); }
+.ui-select-group:not(:first-child) { border-top: 1px solid var(--pop-line); margin-top: 4px; }
+
+/* folio：纸面、直角、墨色细边 */
+body[data-theme="folio"] .ui-select-pop {
+  --pop-bg: var(--fo-card); --pop-line: var(--fo-ink); --pop-ink: var(--fo-ink); --pop-muted: var(--fo-muted); --pop-hover: var(--fo-hover); --pop-accent: var(--u-accent, var(--fo-accent));
+  --pop-r: 0; --pop-opt-r: 0;
+  box-shadow: 4px 4px 0 rgba(27, 27, 29, .12);
+  font-family: var(--fo-sans);
+}
+/* nocturne：玻璃面板 */
+body[data-theme="nocturne"] .ui-select-pop {
+  --pop-bg: var(--noc-paper); --pop-line: var(--noc-line); --pop-ink: var(--noc-text); --pop-muted: var(--noc-muted); --pop-hover: var(--noc-accent-soft); --pop-accent: var(--u-accent, var(--noc-accent));
+  --pop-r: 14px; --pop-opt-r: 9px;
+  font-family: var(--noc-sans);
+}
+/* stage：大圆角卡片 */
+body[data-theme="stage"] .ui-select-pop {
+  --pop-bg: var(--stg-card); --pop-line: var(--stg-line-strong); --pop-ink: var(--stg-ink); --pop-muted: var(--stg-muted); --pop-hover: var(--stg-hover); --pop-accent: var(--u-accent, var(--stg-accent));
+  --pop-r: 18px; --pop-opt-r: 12px;
+  padding: 6px;
+  box-shadow: var(--stg-shadow-lg);
+  font-family: var(--stg-sans);
+}
+.ui-date { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; }

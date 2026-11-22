@@ -300,6 +300,11 @@ body[data-page="admin"] .p-aside .p-nav-item[aria-current="page"] .p-icon { colo
     cursor: pointer;
 }
 
+/* 对话头：原型第三列固定 44px，但右侧有 搜索/设定/外观 三个按钮；所有宽度都改 auto，避免平板/小笔记本被挤出屏幕 */
+.p-chat-head-in { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.p-chat-head-in > div:last-child { flex-wrap: nowrap; white-space: nowrap; }
+.p-chat-head-in .p-chat-title { min-width: 0; }
+
 /* 手机对话头：标题可收缩，右侧搜索/设定不再被挤出屏幕 */
 @media (max-width: 720px) {
     /* 原型三列固定 44px，但实际右侧有两个按钮，第三列改 auto 让标题让位 */
@@ -463,7 +468,7 @@ body[data-page] .p-empty { border-style: solid; background: var(--surface); }
 .p-btn--primary:disabled { background: #e9e9eb; border-color: #e9e9eb; color: #6b6b73; }
 
 /* 对话里玩家气泡用轻底色区分，不改变左右布局 */
-body[data-page="chat"] .p-msg-user { background: #f1f2fb; border-color: transparent; }
+body[data-page="chat"] .p-msg-user { background: #f5efe9; border-color: transparent; }
 body[data-page="chat"] .p-msg-user .p-msg-name { color: var(--ca-muted, var(--muted)); font-size: 12px; }
 
 /* 320 级窄屏：顶栏只保留通知/点数/头像，避免控件互相挤压 */
@@ -855,4 +860,131 @@ body[data-page]:not(.p-cinema) .ca-scene-cover.p-cover:not(.has-portrait):not(.p
     body[data-page="chats"]:not(.p-cinema) .p-filterbar-main .p-select { grid-column: 1; justify-self: start; }
     body[data-page="chats"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count,
     body[data-page="library"]:not(.p-cinema) .p-filterbar-main .p-filterbar-count { grid-column: 2; justify-self: end; margin-left: 0; }
+}
+
+/* 分支导航：来源 + 从这里分出的分支/检查点 */
+.p-branch-links { display: inline-flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+.p-branch-menu { position: relative; }
+.p-branch-menu > summary { cursor: pointer; list-style: none; color: var(--text); font-weight: var(--fw-semi, 600); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.p-branch-menu > summary::-webkit-details-marker { display: none; }
+.p-branch-menu > summary::after { content: " ▾"; font-size: 10px; }
+.p-branch-menu[open] > summary::after { content: " ▴"; }
+.p-branch-menu ul { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; margin: 0; padding: 6px; list-style: none; min-width: 240px; max-width: min(360px, 86vw); max-height: 320px; overflow: auto; background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, .14); }
+.p-branch-menu li a { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; text-decoration: none; font-weight: 400; white-space: normal; }
+.p-branch-menu li a:hover, .p-branch-menu li a:focus-visible { background: var(--surface-2); }
+.p-branch-name { color: var(--text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.p-branch-meta { color: var(--text-3, var(--text-2)); font-size: 11px; }
+.p-msg-checkpoint { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); font-size: 12px; text-decoration: none; }
+.p-msg-checkpoint:hover { color: var(--text); border-color: var(--text-3, var(--border)); }
+.p-msg-checkpoint .p-icon { width: 13px; height: 13px; }
+html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-msg-checkpoint { justify-self: start; width: auto; }
+
+/* 舞台主题窄屏：单聊的布局围绕顶部封面卡（头部绝对定位、滚动区留 322px），群聊房间没有封面卡，恢复成普通的顶栏 + 分支条 */
+@media (max-width: 1023px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-head { position: relative; top: auto; right: auto; left: auto; z-index: 21; padding: 10px 14px 4px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-title { display: flex; min-width: 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-chat-scroll { padding-top: 12px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-branch-note { position: static; margin: 4px 14px 0; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-rp-workbench[data-room] .p-rp-status { position: static; }
+}
+
+/* ST 推理折叠块：消息正文上方，「思考了 N 秒」 */
+.p-thought { margin: 2px 0 8px; font-size: 13px; color: var(--text-2); }
+.p-thought-summary { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; list-style: none; user-select: none; font-size: 12px; line-height: 1.5; }
+.p-thought-summary::-webkit-details-marker { display: none; }
+.p-thought-summary:hover { color: var(--text); border-color: var(--text-3, var(--border)); }
+.p-thought-summary:focus-visible { outline: 2px solid var(--accent, #c9401f); outline-offset: 2px; }
+.p-thought-icon { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.p-thought.is-live .p-thought-summary span { animation: p-thought-pulse 1.4s ease-in-out infinite; }
+@keyframes p-thought-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .p-thought.is-live .p-thought-summary span { animation: none; } }
+.p-thought-body { margin-top: 8px; padding: 8px 12px; border-left: 2px solid var(--border); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; max-height: 320px; overflow: auto; }
+.p-thought-foot { margin-top: 4px; padding-left: 12px; }
+.p-thought-edit-btn { border: 0; background: none; padding: 2px 0; font: inherit; font-size: 12px; color: var(--muted, #8a8178); cursor: pointer; }
+.p-thought-edit-btn:hover, .p-thought-edit-btn:focus-visible { color: var(--accent, #c9401f); text-decoration: underline; }
+.p-thought-edit { margin-bottom: 8px; }
+.p-thought-edit label { display: block; margin-bottom: 4px; }
+.p-thought-edit .p-textarea { font-size: 13px; opacity: .92; }
+html body[data-theme="stage"] .p-chat-scroll article.p-msg .p-thought { justify-self: start; width: auto; max-width: 100%; }
+
+/* 生成行为（全局）设置 */
+.p-gen-prefs-head { margin-top: 32px; }
+.p-gen-prefs .p-check { margin: 6px 0; }
+.p-gen-prefs-inline { max-width: 220px; margin: 4px 0 8px 26px; }
+.p-gen-prefs-import { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; margin-bottom: 12px; border: 1px dashed var(--border); border-radius: 10px; }
+.p-gen-prefs-import .p-btn { flex: none; }
+.p-gen-prefs-imported { margin: -4px 0 12px; color: var(--accent, #c9401f); }
+@media (max-width: 560px) { .p-gen-prefs-import { flex-direction: column; align-items: stretch; } }
+.p-gen-prefs-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+
+/* 年龄门槛（backlog 9） */
+.p-age-field { display: grid; gap: 6px; font-size: 13px; }
+.p-age-field .p-input { max-width: 220px; }
+.p-age-wall { max-width: 560px; margin-inline: auto; text-align: center; display: grid; gap: 10px; justify-items: center; padding: 40px 24px; }
+.p-age-wall h1 { margin: 4px 0 0; font-size: 26px; }
+.p-age-wall p { margin: 0; }
+.p-notice--warn { border-color: #d9a441; background: #fbf3e2; margin-bottom: 16px; }
+
+/* ST 对齐：隐藏消息（幽灵）、旁白、楼层号/生成信息、斜杠命令帮助 */
+.p-msg.is-hidden > div > .p-msg-copy,
+.p-msg.is-hidden .p-msg-text,
+.p-msg.is-hidden > .p-avatar { opacity: .5; }
+.p-msg-ghost { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-size: 11px; color: var(--muted, #8a8580); }
+.p-msg-ghost .p-icon { width: 13px; height: 13px; }
+.p-msg-tools .p-msg-meta { display: inline-flex; align-items: center; margin-left: 4px; padding: 0 4px; font-size: 11px; color: var(--muted, #8a8580); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
+.p-msg-narrator { grid-template-columns: 1fr !important; text-align: center; }
+.p-msg-narrator .p-msg-name { justify-content: center; }
+.p-msg-narrator .p-msg-who { font-style: italic; letter-spacing: .08em; }
+.p-msg-narrator .p-msg-copy { font-style: italic; color: var(--muted, #6f6a64); max-width: 60ch; margin-inline: auto; }
+.p-msg-confirm { font-size: 12px; color: var(--muted, #6f6a64); padding: 0 4px; white-space: nowrap; }
+.p-chat-notice { margin: 0 0 8px; font-size: 13px; color: var(--muted, #6f6a64); white-space: pre-line; max-height: 40vh; overflow: auto; }
+.p-slash-help { margin: 0 0 10px; padding: 12px 14px; border: 1px solid var(--border, #e5e0da); border-radius: 12px; background: var(--surface, #fff); font-size: 13px; max-height: 260px; overflow: auto; }
+.p-slash-help-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.p-slash-help-head .p-btn { margin-left: auto; }
+.p-slash-help dl { margin: 0; display: grid; gap: 4px; }
+.p-slash-help dl > div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; }
+.p-slash-help dt, .p-slash-help dd { margin: 0; }
+.p-slash-help code { font-size: 12px; }
+body[data-theme="stage"] .p-msg-narrator { display: flex !important; justify-content: center; }
+body[data-theme="stage"] .p-msg-narrator > div { display: flex !important; flex-direction: column; align-items: center; width: 100%; }
+body[data-theme="stage"] .p-msg-narrator .p-msg-name { order: 0; margin-bottom: 4px; }
+
+/* 聊天设置 · 世界书绑定（聊天世界书 / 角色附加 / 本次生效） */
+.cs-book-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cs-book-row .ui-select { flex: 1 1 220px; min-width: 0; }
+.cs-books > .hint { display: block; margin-top: 6px; }
+.cs-active-books { display: flex; flex-wrap: wrap; gap: 6px; }
+.cs-book-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border: 1px solid var(--line, #e4ddd5); border-radius: 999px; font-size: 13px; }
+.cs-book-chip small { font-size: 11px; color: var(--muted, #6f6a64); }
+.lb-global { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; margin-right: 4px; }
+/* 世界书「插入策略」 */
+.lb-strategy { display: grid; grid-template-columns: auto minmax(160px, 220px) 1fr; align-items: center; gap: 6px 12px; margin: 0 0 16px; }
+.lb-strategy > label { font-size: var(--f-xs, 12px); font-weight: 600; color: var(--text-2); }
+.lb-strategy > .hint { line-height: 1.5; }
+.lb-strategy > .p-error, .lb-strategy > [role="alert"] { grid-column: 1 / -1; }
+@media (max-width: 640px) { .lb-strategy { grid-template-columns: 1fr; } }
+.lb-vectors { display: grid; gap: 6px; margin: -6px 0 16px; }
+.lb-vectors > .p-check { margin: 0; font-weight: 600; }
+.lb-vectors > .hint { line-height: 1.5; }
+.lb-vectors-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.lb-vectors-row > .p-check { margin: 0; }
+.lb-vectors-num { display: inline-flex; align-items: center; gap: 6px; font-size: var(--f-xs, 12px); color: var(--text-2); }
+.lb-vectors-num > .p-input { width: 88px; padding-block: 4px; }
+
+/* 资料库（Data Bank） */
+.db-template { display: grid; gap: 4px; font-size: var(--f-xs, 12px); color: var(--text-2); max-width: 560px; }
+.db-template > .p-textarea { font-size: var(--f-sm, 13px); }
+.db-add { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 4px 0 12px; }
+.db-add-scope { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 320px; }
+.db-add-scope > * { flex: 1 1 180px; max-width: 280px; }
+.db-add-actions { display: flex; gap: 8px; }
+.db-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.p-room-card.is-off .p-room-title, .p-room-card.is-off .p-room-last { opacity: .55; }
+.db-view { width: 100%; min-height: 50vh; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; line-height: 1.6; }
+
+/* 长会话性能：屏幕外的消息跳过样式/布局/绘制（上千楼时发送不再卡 1 秒）。
+   最新、正在生成、展开操作的消息照常渲染；auto 记住已渲染过的高度，滚动不跳 */
+article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
 }

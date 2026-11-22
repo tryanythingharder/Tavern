@@ -1,8 +1,12 @@
+import { formatMoney } from '@/lib/money';
+import { paymentCurrency } from '@/lib/billing';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import { adminUserDetail } from '@/lib/admin';
 import { AdminUserActions } from '@/components/admin-user-actions';
+import { AdminUserAge } from '@/components/admin-user-age';
+import { getAgeRecord } from '@/lib/age-gate';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +15,7 @@ const ROLE_LABEL: Record<string, string> = { admin: '管理员', user: '普通�
 const ORDER_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', refunded: '已退款', cancelled: '已取消' };
 const KIND_LABEL: Record<string, string> = { grant: '赠送', spend: '消耗', adjust: '调整', recharge: '充值', checkin: '签到' };
 const date = (value: number | null) => (value ? new Date(value).toLocaleString('zh-CN') : '—');
-const yuan = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
+const yuan = (cents: number) => formatMoney(cents, paymentCurrency());
 
 export default async function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
   const admin = await getCurrentUser();
@@ -42,6 +46,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
         </div>
 
         <AdminUserActions id={user.id} nickname={user.nickname} status={user.status} role={user.role} />
+        {(() => { const age = getAgeRecord(user.id); return <AdminUserAge id={user.id} birthDate={age.birthDate} verifiedAt={age.verifiedAt} method={age.verifyMethod} />; })()}
 
         <section className="p-card" style={{ marginTop: 16 }}>
           <div className="p-block-head"><h2>最近订单</h2><Link className="p-btn p-btn--sm" href="/admin/orders">全部订单</Link></div>

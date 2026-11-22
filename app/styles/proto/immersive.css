@@ -15,8 +15,8 @@
     --ca-muted: #77777e;
     --ca-line: #e6e6e8;
     --ca-line-strong: #d5d5d9;
-    --ca-accent: #4b5bf5;
-    --ca-accent-soft: #eceefe;
+    --ca-accent: #c9401f;
+    --ca-accent-soft: #f9e8e4;
     --ca-danger: #d9483f;
     --ca-r-pill: 999px;
     --ca-r-card: 24px;
@@ -169,7 +169,7 @@ body[data-page]:not(.p-cinema) .p-search {
 body[data-page]:not(.p-cinema) .p-search:focus-within {
     background: #fff;
     border-color: var(--ca-line-strong);
-    box-shadow: 0 0 0 3px rgba(75, 91, 245, .12);
+    box-shadow: 0 0 0 3px rgba(201, 64, 31, .12);
 }
 
 body[data-page]:not(.p-cinema) .p-search .p-input,
@@ -236,7 +236,7 @@ body[data-page]:not(.p-cinema) .p-btn--danger {
 
 body[data-page]:not(.p-cinema) .p-btn--sm { min-height: 34px; padding-inline: 14px; font-size: 13px; }
 body[data-page]:not(.p-cinema) .p-text-btn { color: var(--ca-accent); font-weight: 600; }
-body[data-page]:not(.p-cinema) .p-text-btn:hover { color: #3546e0; }
+body[data-page]:not(.p-cinema) .p-text-btn:hover { color: #a8331a; }
 
 /* 5 / 页面标题与列表 ------------------------------------------------------- */
 body[data-page]:not(.p-cinema):is([data-page="chats"], [data-page="library"], [data-page="create"], [data-page="settings"], [data-page="rooms"], [data-page="notifications"]) .p-page { padding-top: 28px; }
@@ -545,7 +545,7 @@ body[data-page="chat"] .p-chat-compose textarea {
 body[data-page="chat"] .p-chat-input:focus,
 body[data-page="chat"] .p-chat-compose textarea:focus {
     border-color: var(--ca-line-strong);
-    box-shadow: 0 0 0 3px rgba(75, 91, 245, .1);
+    box-shadow: 0 0 0 3px rgba(201, 64, 31, .1);
 }
 
 body[data-page="chat"] .p-chat-input::placeholder { color: var(--ca-muted); }
@@ -624,7 +624,7 @@ body[data-page="chat"] .p-rp-context-action {
     text-decoration: none;
 }
 
-body[data-page="chat"] .p-rp-context-action:hover { color: #3546e0; }
+body[data-page="chat"] .p-rp-context-action:hover { color: #a8331a; }
 
 /* 9 / 弹窗、表单、提示 ----------------------------------------------------- */
 body[data-page]:not(.p-cinema) .p-modal-root { background: rgba(24, 24, 28, .38); backdrop-filter: blur(3px); }
@@ -658,7 +658,7 @@ body[data-page]:not(.p-cinema) :is(.p-input, .p-textarea, .p-select) {
 
 body[data-page]:not(.p-cinema) :is(.p-input, .p-textarea, .p-select):focus {
     border-color: var(--ca-accent);
-    box-shadow: 0 0 0 3px rgba(75, 91, 245, .12);
+    box-shadow: 0 0 0 3px rgba(201, 64, 31, .12);
     outline: none;
 }
 

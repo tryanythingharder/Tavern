@@ -1,0 +1,113 @@
+/* 对话页余额小标 + 扣点动效 */
+html body:not(#a) .pc-chip {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; flex: none;
+  height: 28px; padding: 0 10px 0 4px; margin: 0 6px 0 4px; border-radius: 999px;
+  border: 1px solid var(--ca-line, #e3e0db); background: var(--ca-card, #fff);
+  color: var(--ca-ink, #1b1b1d); font-size: 13px; font-weight: 700; text-decoration: none;
+  font-variant-numeric: tabular-nums; white-space: nowrap; transition: border-color .2s, background .2s;
+}
+html body:not(#a) .pc-chip:hover { border-color: var(--ca-line-strong, #cfcac3); }
+html body:not(#a) .pc-coin {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: #c9401f; color: #fff; font-size: 11px; font-weight: 800; line-height: 1;
+}
+html body:not(#a) .pc-chip.is-low { border-color: #e2a08f; background: #fbeee9; color: #a8331a; }
+html body:not(#a) .pc-bursts { position: absolute; right: -12px; top: -13px; pointer-events: none; z-index: 2; }
+html body:not(#a) .pc-burst {
+  position: absolute; right: 0; top: 0; padding: 1px 6px; border-radius: 999px;
+  background: #c9401f; color: #fff; font-size: 11px; font-weight: 800; line-height: 15px; white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(201, 64, 31, .3);
+  animation: pc-burst 1.5s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+html body:not(#a) .pc-burst.is-free { background: #2f7a74; box-shadow: none; }
+html body:not(#a) .pc-chip:has(.pc-burst) .pc-num { animation: pc-tick .5s ease; }
+@keyframes pc-burst {
+  0% { opacity: 0; transform: translateY(4px) scale(.7); }
+  14% { opacity: 1; transform: translateY(0) scale(1.06); }
+  24% { transform: scale(1); }
+  72% { opacity: 1; transform: translateY(-3px); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+@keyframes pc-tick { 0% { color: inherit; } 30% { color: #c9401f; } 100% { color: inherit; } }
+html body:not(#a) .pc-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html body:not(#a) .pc-float {
+  position: fixed; left: 18px; top: 16px; z-index: 80; display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 12px 0 6px; border-radius: 999px;
+  background: rgba(27, 27, 29, .82); color: #fff; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .18); backdrop-filter: blur(8px);
+  animation: pc-float 2.6s ease forwards; pointer-events: none;
+}
+html body:not(#a) .pc-float-cost { color: #ff9b80; }
+html body:not(#a) .pc-float-left { opacity: .8; font-weight: 600; }
+@keyframes pc-float {
+  0% { opacity: 0; transform: translateY(-8px); }
+  10%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+/* 沉浸模式更淡，不抢阅读 */
+html[data-chat-focus] body:not(#a) .pc-chip { opacity: .72; }
+html[data-chat-focus] body:not(#a) .pc-chip:hover { opacity: 1; }
+html body[data-theme="folio"]:not(#a) .pc-chip { border-radius: 0; border-color: var(--fo-ink, #1b1b1d); background: transparent; }
+html body[data-theme="folio"]:not(#a) .pc-coin { border-radius: 0; background: var(--fo-ink, #1b1b1d); }
+html body[data-theme="nocturne"]:not(#a) .pc-chip { background: rgba(255, 255, 255, .06); border-color: var(--noc-line, rgba(255, 255, 255, .14)); color: var(--noc-text, #f3efe8); }
+@media (max-width: 520px) { html body:not(#a) .pc-chip { margin: 0 4px 0 2px; padding-right: 8px; } html body:not(#a) .pc-chip .pc-coin { width: 18px; height: 18px; } }
+@media (prefers-reduced-motion: reduce) {
+  html body:not(#a) :is(.pc-burst, .pc-float) { animation-duration: .01s; animation-iteration-count: 1; }
+  html body:not(#a) .pc-float { animation: none; }
+}
+
+/* 对话头是三栏 grid（返回 | 标题 | 操作）的主题：小标叠在标题栏左端，不挤占标题 */
+html body:not(#a) .p-chat-head-in > .pc-chip { width: max-content; max-width: max-content; }
+html body:not(#a) .p-chat-head-in:has(> .pc-chip) { --pc-grid: 1; }
+html body[data-theme="folio"]:not(#a) .p-chat-head-in > .p-chat-icon:first-child { grid-column: 1; grid-row: 1; }
+html body[data-theme="folio"]:not(#a) .p-chat-head-in > .pc-chip { grid-column: 2; grid-row: 1; justify-self: start; align-self: center; z-index: 1; }
+html body[data-theme="folio"]:not(#a) .p-chat-head-in > .p-chat-title { grid-column: 2; grid-row: 1; }
+html body[data-theme="folio"]:not(#a) .p-chat-head-in > div:last-child { grid-column: 3; grid-row: 1; }
+/* nocturne：标题行左侧是头像+标题，小标放在这一行右端 */
+html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .pc-chip { grid-row: 1; grid-column: 2; justify-self: end; align-self: center; margin: 0 4px 0 0; }
+/* 标题与小标同在第 2 栏、按钮固定第 3 栏；不写明的话标题会被自动排到第 3 栏，按钮掉到第二行盖住下面的状态条 */
+html body[data-theme="nocturne"]:not(#a) .p-chat-head-in:has(> .pc-chip) > .p-chat-title { grid-row: 1; grid-column: 2; min-width: 0; }
+html body[data-theme="nocturne"]:not(#a) .p-chat-head-in:has(> .pc-chip) > div:last-child { grid-row: 1; grid-column: 3; }
+/* stage 手机：标题叠在左侧，小标挪到操作按钮前 */
+@media (max-width: 640px) {
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in,
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in,
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in { position: relative; }
+  /* folio 手机：标题居中占满中间一栏，小标和标题挤在一起会盖住字，同样挪到标题栏下方右侧 */
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > .pc-chip,
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in > .pc-chip,
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .pc-chip { position: absolute; right: 10px; top: calc(100% + 8px); margin: 0; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+}
+/* folio 手机：标题和副标题限制在中间一栏内，超出用省略号（群聊副标题较长，之前会向两侧溢出盖住按钮） */
+@media (max-width: 640px) {
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in > .p-chat-title { min-width: 0; overflow: hidden; }
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in .p-chat-title-text { min-width: 0; max-width: 100%; }
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in .p-chat-name,
+  html body[data-theme="folio"]:not(#a) .p-chat-head-in .p-chat-sub { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* nocturne 手机：小标挪出标题行后，标题和按钮各占一栏，按钮不再挤到第二行盖住下面的状态条 */
+@media (max-width: 640px) {
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in:has(> .pc-chip) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .p-chat-title { grid-column: 2; grid-row: 1; min-width: 0; overflow: hidden; }
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > div:last-child { grid-column: 3; grid-row: 1; }
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in .p-chat-name,
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in .p-chat-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 640px) {
+  /* nocturne 对话页标题下方有一条固定的进度条（.noc-strip），小标放到它下面 */
+  html body[data-theme="nocturne"]:not(#a) .p-chat-head-in > .pc-chip { top: calc(100% + 30px); }
+  html body[data-theme="nocturne"]:not(#a):has(.p-rp-status) .p-chat-head-in > .pc-chip { top: calc(100% + 8px); }
+}
+@media (max-width: 640px) {
+  /* stage 手机（群聊等无封面的页面）：标题吃满剩余宽度，超长省略 */
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > .p-chat-title { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in .p-chat-name,
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in .p-chat-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 640px) {
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > div:last-child { gap: 2px; }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > div:last-child > :is(.p-chat-icon, .ua-trigger) { width: 36px; min-width: 36px; height: 36px; }
+  html body[data-theme="stage"]:not(#a) .p-chat-head-in > div:last-child > .btn { padding: 0 10px; }
+}
+/* 手机上没有实体键盘，快捷键提示没意义，统一隐藏（对话页和群聊） */
+@media (max-width: 640px) { html body:not(#a) :is(.p-chat-meta, .p-compose-meta) > .p-chat-hint { display: none; } }

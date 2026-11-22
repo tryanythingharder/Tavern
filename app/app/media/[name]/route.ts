@@ -17,7 +17,7 @@ type Params = { params: Promise<{ name: string }> };
 export async function GET(_request: Request, context: Params) {
   const { name } = await context.params;
   const user = await getCurrentUser();
-  const file = readMedia(name, user?.id ?? null);
+  const file = await readMedia(name, user?.id ?? null);
   if (!file) return new Response('Not found', { status: 404 });
   const privateFile = file.visibility === 'private';
   return new Response(new Uint8Array(file.buffer), {

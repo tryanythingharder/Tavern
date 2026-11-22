@@ -1,4 +1,5 @@
 import db, { countGenerationsSince, usageSummary } from '@/lib/db';
+import { platformDayStart } from '@/lib/tz';
 
 // 生成配额：先堵住「无限打模型」这件事，再谈定价。
 // 两个阈值都走环境变量，默认值保守但够正常聊天用。
@@ -8,12 +9,11 @@ export const DAILY_TOKEN_CAP = Math.max(0, Number(process.env.TAVERN_DAILY_TOKEN
 export const GLOBAL_DAILY_TOKEN_CAP = Math.max(0, Number(process.env.TAVERN_GLOBAL_DAILY_TOKEN_CAP ?? 0));
 
 function globalTokensToday(): number {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const start = platformDayStart();
   const row = db.prepare(`
         SELECT COALESCE(SUM(total_tokens), 0) AS tokens
         FROM generation_events WHERE created_at >= ? AND status IN ('done','aborted')
-    `).get(start.getTime()) as { tokens: number };
+    `).get(start) as { tokens: number };
   return row.tokens;
 }
 

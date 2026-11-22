@@ -64,7 +64,7 @@ export function verifyTotp(secret: string, code: string, window = 1): boolean {
   return false;
 }
 
-export function otpauthUrl(secret: string, email: string, issuer = '酒馆'): string {
+export function otpauthUrl(secret: string, email: string, issuer = '夜话'): string {
   const label = `${encodeURIComponent(issuer)}:${encodeURIComponent(email)}`;
   const params = new URLSearchParams({ secret, issuer, algorithm: 'SHA1', digits: '6', period: '30' });
   return `otpauth://totp/${label}?${params.toString()}`;

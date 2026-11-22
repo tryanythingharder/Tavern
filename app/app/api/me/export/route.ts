@@ -1,7 +1,8 @@
 import { fail, requireUser } from '@/lib/api';
 import { listChats, listMessages } from '@/lib/db';
 import { listOwnedCharacters, listFavoriteCharacters, listAddedCharacters } from '@/lib/characters';
-import { listLorebooks, listPersonas, listPresets, listQuickReplies, listRegexRules } from '@/lib/resources-db';
+import { listQrSets } from '@/lib/quick-replies-db';
+import { listLorebooks, listPersonas, listPresets, listRegexRules } from '@/lib/resources-db';
 import { listOverrides } from '@/lib/cards';
 import { listNotifications } from '@/lib/notifications';
 import { listReportsByReporter } from '@/lib/moderation';
@@ -42,7 +43,7 @@ export async function GET() {
     presets: listPresets(user.id),
     lorebooks: listLorebooks(user.id),
     regexRules: listRegexRules(user.id),
-    quickReplies: listQuickReplies(user.id),
+    quickReplySets: listQrSets(user.id),
     cardOverrides: listOverrides(user.id),
     notifications: listNotifications(user.id, 200),
     reports: listReportsByReporter(user.id, 100),

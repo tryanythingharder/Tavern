@@ -1,5 +1,6 @@
 import db from '@/lib/db';
 import type { LoreRole } from '@/lib/resources';
+import { loadExtras } from '@/lib/card-extras';
 
 // 角色卡覆盖：对应 ST 角色卡的 system_prompt / post_history_instructions / mes_example / depth_prompt。
 // 种子角色是共享的，覆盖按 (user_id, character_id) 存，不污染角色本身。
@@ -36,6 +37,15 @@ function fromRow(row: Row): CharacterOverride {
 }
 
 export function getOverride(userId: number, characterId: string): CharacterOverride | null {
+  const row = db.prepare('SELECT * FROM character_overrides WHERE user_id = ? AND character_id = ?').get(userId, characterId) as Row | undefined;
+  if (row) return fromRow(row);
+  // 玩家没改过：用卡自带的深度提示（extensions.depth_prompt）
+  const depth = loadExtras(characterId).depth;
+  return depth ? { characterId, systemPrompt: '', postHistory: '', mesExample: '', depthPrompt: depth.prompt, depthDepth: depth.depth, depthRole: depth.role } : null;
+}
+
+// 仅玩家自己存的覆盖（编辑界面用，不带卡自带的默认值）
+export function getSavedOverride(userId: number, characterId: string): CharacterOverride | null {
   const row = db.prepare('SELECT * FROM character_overrides WHERE user_id = ? AND character_id = ?').get(userId, characterId) as Row | undefined;
   return row ? fromRow(row) : null;
 }

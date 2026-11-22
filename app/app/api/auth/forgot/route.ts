@@ -31,8 +31,8 @@ export async function POST(request: Request) {
     const link = authLink('/reset', token, request);
     const result = await sendMail({
       to: email,
-      subject: '重置你的酒馆密码',
-      text: `你（或有人用这个邮箱）请求重置酒馆密码。\n\n在 1 小时内打开这个链接设置新密码：\n${link}\n\n如果不是你本人操作，可以忽略这封邮件，密码不会改变。`,
+      subject: '重置你的夜话密码',
+      text: `你（或有人用这个邮箱）请求重置夜话密码。\n\n在 1 小时内打开这个链接设置新密码：\n${link}\n\n如果不是你本人操作，可以忽略这封邮件，密码不会改变。`,
     });
     // 邮件失败也返回成功，避免通过 502/200 判断邮箱是否存在；失败写服务端日志。
     if (!result.ok) console.error('[mail] password reset failed:', result.error);

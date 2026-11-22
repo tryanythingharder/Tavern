@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '@/components/settings-ui';
+import { PasswordInput } from '@/components/password-input';
 
 function Field({ id, label, type, value, onChange, autoComplete, placeholder }: {
   id: string; label: string; type: string; value: string; onChange: (value: string) => void; autoComplete?: string; placeholder?: string;
@@ -10,15 +11,19 @@ function Field({ id, label, type, value, onChange, autoComplete, placeholder }: 
   return (
     <div className="p-auth-field">
       <label className="p-auth-label" htmlFor={id}>{label}</label>
-      <input
-        className="p-auth-input"
-        id={id}
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      {type === 'password' ? (
+        <PasswordInput className="p-auth-input" id={id} value={value} autoComplete={autoComplete} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      ) : (
+        <input
+          className="p-auth-input"
+          id={id}
+          type={type}
+          value={value}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
     </div>
   );
 }

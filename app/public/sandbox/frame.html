@@ -1,0 +1,69 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>card</title><style>html,body{margin:0;background:transparent}</style></head>
+<body><script>
+(function () {
+  // 角色卡美化 / 状态栏的沙盒：无同源权限（拿不到 cookie、改不了外层页面），只把内容高度报给外层
+  var done = false;
+  // 沙盒没有 allow-same-origin，卡里脚本一碰 localStorage 就抛错中断；换成只在本页有效的内存版
+  var STORAGE = "(function(){function mem(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}['localStorage','sessionStorage'].forEach(function(n){try{window[n].getItem('x')}catch(e){try{Object.defineProperty(window,n,{value:mem(),configurable:true})}catch(_){}}})})();";
+  addEventListener('message', function (event) {
+    var data = event.data;
+    if (done || !data || data.type !== 'tavern-html' || event.source !== parent) return;
+    done = true;
+    var base = '<base target="_blank"><script>window.__tavernScheme=' + JSON.stringify(data.scheme === 'dark' ? 'dark' : 'light') + ';' + STORAGE + '<\/script><style>:root{color-scheme:' + (data.scheme === 'dark' ? 'dark' : 'light') + '}' +
+      'html{height:auto}body{margin:0;background:transparent;display:flow-root;color:' + data.color + ';font:' + data.font + ';overflow-wrap:anywhere}' +
+      'img,video,svg{max-width:100%;height:auto}:where(img,video,canvas,iframe){vertical-align:bottom}</style>';
+    var reporter = '<script>(function(){var b=document.body;function s(){if(!b)b=document.body;if(!b)return;var h=Math.max(b.scrollHeight,b.offsetHeight);parent.postMessage({type:"tavern-height",h:Math.ceil(h)},"*")}' +
+      'try{new ResizeObserver(s).observe(document.body)}catch(e){}addEventListener("load",s);setTimeout(s,30);setTimeout(s,400);setTimeout(s,1500);})()<\/script>';
+    var html = String(data.html || '');
+    // 酒馆助手 / MVU 兼容层：状态栏脚本常直接用 $、_、getVariables、Mvu.getMvuData、getCurrentMessageId。
+    // 变量是外层按楼层算好传进来的只读快照（lib/mvu.ts）；脚本里改变量只改本地副本，不会写回。
+    var helper = '';
+    if (/<script/i.test(String(data.html || ''))) {
+      var vendor = function (name) { return new URL('vendor/' + name, location.href).href; };
+      var payload = JSON.stringify({ vars: data.vars || null, names: data.names || {} }).replace(/</g, '\\u003c');
+      helper = '<script src="' + vendor('jquery.min.js') + '"><\/script><script src="' + vendor('lodash.min.js') + '"><\/script><script>(function(){' +
+        'var P=' + payload + ';var V=P.vars||{stat_data:{},display_data:{},delta_data:{},index:0};var N=P.names||{};' +
+        'function cp(x){return JSON.parse(JSON.stringify(x==null?{}:x))}' +
+        'var local={stat_data:cp(V.stat_data),display_data:cp(V.display_data),delta_data:cp(V.delta_data)};' +
+        'function gv(o){var t=(o&&o.type)||"chat";return(t==="message"||t==="chat")?cp(local):{}}' +
+        'function noop(){return{stop:function(){}}}' +
+        'window.getVariables=gv;window.getAllVariables=function(){return cp(local)};' +
+        'window.replaceVariables=function(v,o){if(!o||o.type==="message"||o.type==="chat")local=cp(v)};' +
+        'window.insertOrAssignVariables=function(v){_.merge(local,cp(v))};window.updateVariablesWith=function(f){var r=f(local);if(r)local=r;return local};' +
+        'window.deleteVariable=function(p){_.unset(local,p)};' +
+        'window.getCurrentMessageId=function(){return V.index||0};window.getLastMessageId=window.getCurrentMessageId;' +
+        'window.getChatMessages=function(){return[{message_id:V.index||0,role:"assistant",name:N.char||"",message:"",data:cp(local),swipe_id:0,swipes:[""],is_hidden:false}]};' +
+        'window.getMessageId=function(){return V.index||0};' +
+        'window.substitudeMacros=function(s){return String(s).replace(/\\{\\{char\\}\\}/gi,N.char||"").replace(/\\{\\{user\\}\\}/gi,N.user||"")};' +
+        'window.triggerSlash=function(){return Promise.resolve("")};window.waitGlobalInitialized=function(){return Promise.resolve()};' +
+        'window.eventOn=noop;window.eventOnce=noop;window.eventMakeFirst=noop;window.eventMakeLast=noop;window.eventOff=function(){};window.eventEmit=function(){return Promise.resolve()};' +
+        'window.tavern_events={};window.iframe_events={};' +
+        'window.Mvu={getMvuData:function(){return cp(local)},getMvuVariable:function(d,p,o){var v=_.get(d&&d.stat_data?d.stat_data:d,p);if(Array.isArray(v)&&v.length===2&&typeof v[1]==="string")v=v[0];return v===undefined&&o?o.default_value:v},' +
+        'replaceMvuData:function(){return Promise.resolve()},setMvuVariable:function(d,p,v){_.set(d.stat_data||d,p,v);return Promise.resolve(true)},events:{}};' +
+        'if(!window.toastr)window.toastr={info:function(){},success:function(){},warning:function(){},error:function(){}};' +
+        'window.SillyTavern={getContext:function(){return{chat:[],name1:N.user||"",name2:N.char||"",characters:[],chatMetadata:{variables:{}}}}};' +
+        'window.TavernHelper={getVariables:gv,getCurrentMessageId:window.getCurrentMessageId,getChatMessages:window.getChatMessages,substitudeMacros:window.substitudeMacros,triggerSlash:window.triggerSlash};' +
+        '})()<\/script>';
+    }
+    var doc;
+    if (/<html[\s>]/i.test(html)) {
+      doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + base + helper; }) : html.replace(/<html[^>]*>/i, function (m) { return m + '<head>' + base + helper + '</head>'; });
+    } else {
+      doc = '<!doctype html><html><head><meta charset="utf-8">' + base + helper + '</head><body>' + html + '</body></html>';
+    }
+    // 配色适配（深色模式下把卡里写死的浅底换深、深字换浅；两种模式都做字色兜底），见 adapt.js
+    var fixer = '<script src="' + new URL('adapt.js', location.href).href + '"><\/script>';
+    // 插图上报：卡里的大图（排除图标、头像）报给外层，沉浸模式左侧画廊收集（components/chat-stage.tsx）
+    var gallery = '<script>(function(){var big=[];' +
+      'function scan(){var list=[];var imgs=document.images;for(var i=0;i<imgs.length;i++){var im=imgs[i];if(!im.complete||!im.naturalWidth)continue;' +
+      'if(im.naturalWidth>=240&&im.naturalHeight>=160&&im.getBoundingClientRect().width>=140)list.push(im.currentSrc||im.src)}' +
+      'if(list.join("|")!==big.join("|")){big=list;parent.postMessage({type:"tavern-images",list:list},"*")}}' +
+      'addEventListener("load",scan);setTimeout(scan,80);setTimeout(scan,800);document.addEventListener("load",function(e){if(e.target&&e.target.tagName==="IMG")scan()},true);})()<\/script>';
+    document.open();
+    document.write(doc + fixer + gallery + reporter);
+    document.close();
+  });
+  parent.postMessage({ type: 'tavern-ready' }, '*');
+})();
+</script></body></html>

@@ -1,6 +1,12 @@
 import db from '@/lib/db';
 import type { ModelRoute } from '@/lib/model';
 
+// 接口类型：chat = /chat/completions（默认）；text = /completions 文本补全，按 Instruct 模板拼 prompt（lib/instruct.ts）
+for (const [column, ddl] of [['api_mode', "TEXT NOT NULL DEFAULT 'chat'"], ['text_template', "TEXT NOT NULL DEFAULT ''"]] as const) {
+  const cols = db.prepare('PRAGMA table_info(model_channels)').all() as { name: string }[];
+  if (!cols.some((col) => col.name === column)) db.exec(`ALTER TABLE model_channels ADD COLUMN ${column} ${ddl}`);
+}
+
 // 上游文本渠道：后台可建多条，按 priority 从大到小依次尝试。
 // 与 new-api 的渠道类似：名称、Base URL、密钥、模型列表、默认模型、优先级、启停、连通性测试。
 export type Channel = {
@@ -12,6 +18,8 @@ export type Channel = {
   defaultModel: string;
   priority: number;
   enabled: boolean;
+  apiMode: 'chat' | 'text';
+  textTemplate: string;
   lastTestAt: number | null;
   lastTestOk: boolean | null;
   lastTestNote: string;
@@ -28,6 +36,8 @@ type Row = {
   default_model: string;
   priority: number;
   enabled: number;
+  api_mode?: string;
+  text_template?: string;
   last_test_at: number | null;
   last_test_ok: number | null;
   last_test_note: string | null;
@@ -56,6 +66,8 @@ function toChannel(row: Row): Channel {
     defaultModel: row.default_model && models.includes(row.default_model) ? row.default_model : (models[0] ?? ''),
     priority: row.priority,
     enabled: row.enabled === 1,
+    apiMode: row.api_mode === 'text' ? 'text' : 'chat',
+    textTemplate: row.text_template ?? '',
     lastTestAt: row.last_test_at,
     lastTestOk: row.last_test_ok === null ? null : row.last_test_ok === 1,
     lastTestNote: row.last_test_note ?? '',
@@ -94,6 +106,8 @@ export type ChannelInput = {
   defaultModel?: string;
   priority?: number;
   enabled?: boolean;
+  apiMode?: string;
+  textTemplate?: string;
 };
 
 function normalize(input: ChannelInput, fallbackName = '新渠道') {
@@ -112,6 +126,8 @@ function normalize(input: ChannelInput, fallbackName = '新渠道') {
     defaultModel: defaultModel && models.includes(defaultModel) ? defaultModel : (models[0] ?? ''),
     priority: Math.max(-1000, Math.min(1000, priority)),
     enabled,
+    apiMode: input.apiMode === 'text' ? 'text' as const : 'chat' as const,
+    textTemplate: String(input.textTemplate ?? '').trim().slice(0, 8000),
   };
 }
 
@@ -127,9 +143,9 @@ export function createChannel(input: ChannelInput): Channel {
   if (!apiKey) throw new Error('API Key 不能为空');
   const now = Date.now();
   const result = db.prepare(`
-        INSERT INTO model_channels (name, base_url, api_key, models, default_model, priority, enabled, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?)
-    `).run(value.name, value.baseUrl, apiKey, JSON.stringify(value.models), value.defaultModel, value.priority, value.enabled ? 1 : 0, now, now);
+        INSERT INTO model_channels (name, base_url, api_key, models, default_model, priority, enabled, api_mode, text_template, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    `).run(value.name, value.baseUrl, apiKey, JSON.stringify(value.models), value.defaultModel, value.priority, value.enabled ? 1 : 0, value.apiMode, value.textTemplate, now, now);
   return getChannel(Number(result.lastInsertRowid))!;
 }
 
@@ -144,13 +160,15 @@ export function updateChannel(id: number, input: ChannelInput): Channel | null {
     defaultModel: input.defaultModel ?? current.defaultModel,
     priority: input.priority === undefined ? current.priority : input.priority,
     enabled: input.enabled === undefined ? current.enabled : input.enabled,
+    apiMode: input.apiMode === undefined ? current.apiMode : input.apiMode,
+    textTemplate: input.textTemplate === undefined ? current.textTemplate : input.textTemplate,
   }, current.name);
   if (!value.baseUrl) throw new Error('Base URL 不能为空');
   assertHttpUrl(value.baseUrl);
   const apiKey = String(input.apiKey ?? '').trim() || current.apiKey;
   db.prepare(`
-        UPDATE model_channels SET name=?, base_url=?, api_key=?, models=?, default_model=?, priority=?, enabled=?, updated_at=? WHERE id=?
-    `).run(value.name, value.baseUrl, apiKey, JSON.stringify(value.models), value.defaultModel, value.priority, value.enabled ? 1 : 0, Date.now(), id);
+        UPDATE model_channels SET name=?, base_url=?, api_key=?, models=?, default_model=?, priority=?, enabled=?, api_mode=?, text_template=?, updated_at=? WHERE id=?
+    `).run(value.name, value.baseUrl, apiKey, JSON.stringify(value.models), value.defaultModel, value.priority, value.enabled ? 1 : 0, value.apiMode, value.textTemplate, Date.now(), id);
   return getChannel(id);
 }
 
@@ -177,7 +195,31 @@ export function recordChannelTest(id: number, ok: boolean, note: string): void {
 export function channelRoutes(): ModelRoute[] {
   return listChannels()
     .filter((channel) => channel.enabled && channel.baseUrl && channel.apiKey && channel.defaultModel)
-    .map((channel) => ({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, model: channel.defaultModel }));
+    .map((channel) => ({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, model: channel.defaultModel, api: channel.apiMode, template: channel.textTemplate }));
+}
+
+// 玩家可选的模型：所有启用渠道的模型列表去重，记录来自哪些渠道（不暴露地址和密钥）。
+export type SelectableModel = { id: string; channels: string[]; isDefault: boolean };
+export function channelModels(): SelectableModel[] {
+  const map = new Map<string, SelectableModel>();
+  const usable = listChannels().filter((channel) => channel.enabled && channel.baseUrl && channel.apiKey);
+  usable.forEach((channel, index) => {
+    for (const model of channel.models.length ? channel.models : [channel.defaultModel]) {
+      if (!model) continue;
+      const item = map.get(model) ?? { id: model, channels: [], isDefault: false };
+      if (!item.channels.includes(channel.name)) item.channels.push(channel.name);
+      if (index === 0 && model === channel.defaultModel) item.isDefault = true;
+      map.set(model, item);
+    }
+  });
+  return [...map.values()];
+}
+
+// 指定模型的线路：只走「模型列表里有它」的启用渠道，按优先级排；没有则返回空数组（调用方回落默认）。
+export function channelRoutesFor(model: string): ModelRoute[] {
+  return listChannels()
+    .filter((channel) => channel.enabled && channel.baseUrl && channel.apiKey && (channel.models.includes(model) || channel.defaultModel === model))
+    .map((channel) => ({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, model, api: channel.apiMode, template: channel.textTemplate }));
 }
 
 // GET {baseUrl}/models：兼容 data[] / models[] / 顶层数组三种返回。

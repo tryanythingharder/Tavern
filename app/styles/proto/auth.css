@@ -256,13 +256,17 @@ html {
 }
 
 .p-auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     margin-top: 26px;
     text-align: left;
 }
 
-.p-auth-field + .p-auth-field {
-    margin-top: 12px;
-}
+.p-auth-form > .p-auth-hint { margin-top: -6px; }
+.p-auth-form > .p-auth-button { margin-top: 6px; }
+.p-auth-form > .p-check { margin: 0; }
+.p-auth-form + .p-auth-hint { margin-top: 18px; text-align: center; }
 
 .p-auth-field {
     display: flex;
@@ -529,6 +533,12 @@ html {
     text-align: left;
 }
 
+/* 表单卡压在场景图左侧：文案放到右下，避免被遮住 */
+@media (min-width: 960px) {
+    .p-auth-scene-copy { left: auto; right: 40px; max-width: 46%; text-align: right; }
+    .p-auth-scene-copy h2 { margin-left: auto; }
+}
+
 .p-auth-scene-label {
     color: rgba(255, 255, 255, 0.7);
     font-size: 12px;
@@ -593,7 +603,7 @@ html {
     .p-auth-stage { grid-template-columns: 400px minmax(0, 1fr); }
     .p-auth-scene { left: 300px; }
     .p-auth-panel { padding-top: 32px; }
-    .p-auth-scene-copy { left: 28px; right: 28px; }
+    .p-auth-scene-copy { left: auto; right: 28px; }
 }
 
 @media (max-width: 959px) {
@@ -694,3 +704,4 @@ html {
     font-size: 12px;
     line-height: 1.65;
 }
+.p-auth-nav { display: flex; align-items: center; gap: 8px; }

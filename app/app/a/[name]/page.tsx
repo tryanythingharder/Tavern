@@ -2,16 +2,30 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { listCharacterViews } from '@/lib/characters';
+import { nsfwAccess } from '@/lib/age-gate';
 import { getBlockedAuthors } from '@/lib/blocked';
 import { authorBio } from '@/lib/authors';
+import { tr } from '@/lib/i18n/runtime';
+import { NOINDEX, alternates, ogImage } from '@/lib/seo';
 import { AuthorActions } from '@/components/author-actions';
 import { ProtoWorkCard } from '@/components/proto-work-card';
+import { getCurrentUser } from '@/lib/auth';
+import { followerCount, isFollowing } from '@/lib/follows';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
-  return { title: decodeURIComponent(name) };
+  const author = decodeURIComponent(name);
+  const works = listCharacterViews(undefined, { hideNsfw: true }).filter((c) => c.author === author);
+  const description = (authorBio(author) || tr('{0} 在夜话发布的 {1} 个角色').replace('{0}', author).replace('{1}', String(works.length))).slice(0, 160);
+  return {
+    title: author,
+    description,
+    alternates: alternates(`/a/${encodeURIComponent(author)}`),
+    robots: works.length ? undefined : NOINDEX,
+    openGraph: { type: 'profile', title: author, description, images: [ogImage()] },
+  };
 }
 
 function heat(value: string): number {
@@ -22,13 +36,17 @@ function heat(value: string): number {
 export default async function AuthorPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
   const author = decodeURIComponent(name);
-  const works = listCharacterViews().filter((character) => character.author === author);
+  const viewerAccess = await nsfwAccess((await getCurrentUser())?.id ?? null);
+  const works = listCharacterViews(undefined, { hideNsfw: !viewerAccess.allowed }).filter((character) => character.author === author);
   if (!works.length) notFound();
   const blocked = (await getBlockedAuthors()).includes(author);
   const totalChats = works.reduce((sum, character) => sum + heat(character.chats), 0);
   const joined = works.reduce((min, character) => (character.createdAt && (!min || character.createdAt < min) ? character.createdAt : min), 0);
   const joinedText = joined ? ` · 加入于 ${new Date(joined).getFullYear()} 年 ${new Date(joined).getMonth() + 1} 月` : '';
   const bio = authorBio(author);
+  const viewer = await getCurrentUser();
+  const followers = followerCount(author);
+  const following = viewer ? isFollowing(viewer.id, author) : false;
 
   return (
     <div className="p-inner">
@@ -44,11 +62,12 @@ export default async function AuthorPage({ params }: { params: Promise<{ name: s
           <p>@{author} · 创作者{joinedText}</p>
           <div className="p-author-stats">
             <span><strong>{works.length}</strong> 个公开作品</span>
+            <span><strong>{followers}</strong> 人关注</span>
             <span><strong>{totalChats >= 10000 ? `${(totalChats / 10000).toFixed(1)} 万` : totalChats}</strong> 人聊过</span>
           </div>
         </div>
         <div className="p-author-actions">
-          <AuthorActions author={author} initialBlocked={blocked} />
+          <AuthorActions author={author} initialBlocked={blocked} initialFollowing={following} initialFollowers={followers} signedIn={Boolean(viewer)} />
         </div>
       </section>
 

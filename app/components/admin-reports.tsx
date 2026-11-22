@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -93,7 +94,7 @@ export function AdminReports({ reports }: { reports: Report[] }) {
                   <div className="p-small" style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{report.target.detail}</div>
                 </details>
               )}
-              <div className="p-room-last">举报人：{report.reporterName} · {new Date(report.createdAt).toLocaleString('zh-CN')}</div>
+              <div className="p-room-last">举报人：{report.reporterName} · <LocalTime value={report.createdAt} /></div>
             </div>
             <div className="p-library-actions">
               {report.target.link && <Link className="p-btn p-btn--sm" href={report.target.link}>查看内容</Link>}

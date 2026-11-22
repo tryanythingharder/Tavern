@@ -1,13 +1,16 @@
+import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { searchCharacterViews } from '@/lib/characters';
 import { searchAuthors } from '@/lib/authors';
 import { getCurrentUser } from '@/lib/auth';
 import { getBlockedAuthors } from '@/lib/blocked';
-import { hideNsfw } from '@/lib/prefs';
+import { nsfwAccess } from '@/lib/age-gate';
 import { ProtoWorkCard } from '@/components/proto-work-card';
 
-export const metadata: Metadata = { title: '搜索' };
+export async function generateMetadata(): Promise<Metadata> {
+  return trMeta({ title: '搜索' });
+}
 export const dynamic = 'force-dynamic';
 
 const CATEGORIES = ['全部', '奇幻', '现代', '悬疑', '治愈'];
@@ -33,7 +36,7 @@ export default async function SearchPage({
   const sort = SORTS.some((item) => item.value === params.sort) ? (params.sort as 'relevance' | 'hot' | 'new') : 'relevance';
   const view = params.view === 'list' ? 'list' : 'grid';
   const user = await getCurrentUser();
-  const hide = hideNsfw(user?.id ?? null);
+  const hide = !(await nsfwAccess(user?.id ?? null)).show;
   const blocked = await getBlockedAuthors();
 
   const characters = query

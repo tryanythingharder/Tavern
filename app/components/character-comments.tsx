@@ -1,5 +1,6 @@
 'use client';
 
+import { LocalTime } from '@/components/local-time';
 import { useState } from 'react';
 import { ReportButton } from '@/components/report-button';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -83,7 +84,7 @@ export function CharacterComments({
           <div key={comment.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontWeight: 650, fontSize: 13 }}>{comment.nickname}</span>
-              <span className="small" style={{ fontSize: 11 }}>{new Date(comment.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="small" style={{ fontSize: 11 }}><LocalTime value={comment.createdAt} style="mdhm" /></span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
                 {(currentUserId === comment.userId || isAdmin) && (
                   <button className="msg-action" type="button" onClick={() => void remove(comment.id)}>删除</button>

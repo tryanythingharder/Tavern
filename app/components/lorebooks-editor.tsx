@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { LORE_LOGICS, LORE_POSITIONS, type LoreEntry, type Lorebook } from '@/lib/resources';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
+import type { LoreVectorPrefs } from '@/lib/gen-prefs';
 
 const positionLabel = (key: string) => LORE_POSITIONS.find(([value]) => value === key)?.[1] ?? key;
 
@@ -31,8 +33,114 @@ function blankEntry(): LoreEntry {
   };
 }
 
-export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
+const STRATEGY_HINT: Record<string, string> = {
+  evenly: '角色和全局世界书的条目混在一起，只按「顺序」排。',
+  character_first: '先排角色附加的世界书和卡内世界书，再排全局世界书（ST 默认）。',
+  global_first: '先排全局世界书，再排角色附加的世界书和卡内世界书。',
+};
+
+// ST「插入策略」：决定预算不够时谁先进上下文；聊天世界书、身份世界书总是排在最前。写进提示词的顺序仍只看条目的「顺序」
+function LoreStrategyField({ initial }: { initial: string }) {
+  const [value, setValue] = useState(initial);
+  const [error, setError] = useState('');
+  const save = async (next: string) => {
+    const before = value;
+    setValue(next);
+    setError('');
+    try {
+      await api('/api/me/gen-prefs', { method: 'PATCH', body: JSON.stringify({ loreStrategy: next }) });
+    } catch (caught) {
+      setValue(before);
+      setError((caught as Error).message);
+    }
+  };
+  return (
+    <div className="lb-strategy">
+      <label htmlFor="lb-strategy">插入策略</label>
+      <Select id="lb-strategy" className="p-input" value={value} onChange={(event) => void save(event.target.value)}>
+        <option value="evenly">均匀排序</option>
+        <option value="character_first">角色优先</option>
+        <option value="global_first">全局优先</option>
+      </Select>
+      <span className="hint">{STRATEGY_HINT[value]} 预算不够时排在前面的先进；聊天世界书和身份世界书永远最先。</span>
+      <ErrorLine message={error} />
+    </div>
+  );
+}
+
+// ST Vector Storage 的世界书部分：开了之后标「向量匹配」的条目（或全部条目）按语义相似度激活，关键词照常生效
+function LoreVectorField({ initial, ready }: { initial: LoreVectorPrefs; ready: boolean }) {
+  const [value, setValue] = useState(initial);
+  const [error, setError] = useState('');
+  const save = async (patch: Partial<LoreVectorPrefs>) => {
+    const before = value;
+    const next = { ...value, ...patch };
+    setValue(next);
+    setError('');
+    try {
+      const result = await api<{ prefs: { loreVectors: LoreVectorPrefs } }>('/api/me/gen-prefs', { method: 'PATCH', body: JSON.stringify({ loreVectors: patch }) });
+      setValue(result.prefs.loreVectors);
+    } catch (caught) {
+      setValue(before);
+      setError((caught as Error).message);
+    }
+  };
+  return (
+    <div className="lb-vectors">
+      <label className="p-check">
+        <input type="checkbox" checked={value.enabled} onChange={(event) => void save({ enabled: event.target.checked })} />
+        <span>世界书向量匹配</span>
+      </label>
+      <span className="hint">
+        {ready ? '标了「向量匹配」的条目按和最近对话的语义相似度激活，不必写中关键词（关键词照常有效）。' : '站点还没配置向量接口，开了也暂时只按关键词匹配。'}
+      </span>
+      {value.enabled && (
+        <div className="lb-vectors-row">
+          <label className="p-check">
+            <input type="checkbox" checked={value.allEntries} onChange={(event) => void save({ allEntries: event.target.checked })} />
+            <span>对所有条目生效</span>
+          </label>
+          <label className="lb-vectors-num">
+            <span>最多激活</span>
+            <input className="p-input" type="number" min={1} max={50} value={value.maxEntries} onChange={(event) => setValue({ ...value, maxEntries: Number(event.target.value) || 1 })} onBlur={() => void save({ maxEntries: value.maxEntries })} />
+            <span>条</span>
+          </label>
+          <label className="lb-vectors-num">
+            <span>相似度阈值</span>
+            <input className="p-input" type="number" min={0} max={1} step={0.05} value={value.threshold} onChange={(event) => setValue({ ...value, threshold: Number(event.target.value) })} onBlur={() => void save({ threshold: value.threshold })} />
+          </label>
+          <label className="lb-vectors-num">
+            <span>查询最近</span>
+            <input className="p-input" type="number" min={1} max={10} value={value.queryMessages} onChange={(event) => setValue({ ...value, queryMessages: Number(event.target.value) || 1 })} onBlur={() => void save({ queryMessages: value.queryMessages })} />
+            <span>条消息</span>
+          </label>
+        </div>
+      )}
+      <ErrorLine message={error} />
+    </div>
+  );
+}
+
+export function LorebooksEditor({ initial, initialGlobal = null, chatBound = [], initialStrategy = 'character_first', initialVectors, vectorsReady = false }: { initial: Lorebook[]; initialGlobal?: number[] | null; chatBound?: number[]; initialStrategy?: string; initialVectors?: LoreVectorPrefs; vectorsReady?: boolean }) {
   const [books, setBooks] = useState<Lorebook[]>(initial);
+  // 全局世界书（ST 的 Active World(s)）：null = 全部
+  const [globalIds, setGlobalIds] = useState<number[] | null>(initialGlobal);
+  // 「全部」不含聊天世界书
+  const isGlobal = (id: number) => (globalIds === null ? !chatBound.includes(id) : globalIds.includes(id));
+  const toggleGlobal = async (id: number, on: boolean) => {
+    const base = globalIds === null ? books.map((book) => book.id).filter((item) => !chatBound.includes(item)) : globalIds;
+    const next = on ? [...new Set([...base, id])] : base.filter((item) => item !== id);
+    // 全部都勾上 = 回到「全部」（之后新建的书也自动全局）
+    const value = books.every((book) => next.includes(book.id) || chatBound.includes(book.id)) && !next.some((item) => chatBound.includes(item)) ? null : next;
+    const before = globalIds;
+    setGlobalIds(value);
+    try {
+      await api('/api/lorebooks/global', { method: 'PUT', body: JSON.stringify({ ids: value }) });
+    } catch (caught) {
+      setGlobalIds(before);
+      setError((caught as Error).message);
+    }
+  };
   const [draft, setDraft] = useState<Lorebook | null>(null);
   const [entryIndex, setEntryIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -109,6 +217,8 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
         <button className="btn btn--primary btn--sm" type="button" onClick={() => void create()}>新建世界书</button>
         <button className="p-btn p-btn--sm" type="button" onClick={() => setImportOpen(true)}>导入 ST 世界书</button>
       </div>
+      <LoreStrategyField initial={initialStrategy} />
+      {initialVectors && <LoreVectorField initial={initialVectors} ready={vectorsReady} />}
       <ErrorLine message={error} />
 
       <div className="p-rows">
@@ -117,10 +227,15 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
             <div className="p-room-main">
               <div className="p-room-title">{book.name}</div>
               <div className="p-room-last">
+                {chatBound.includes(book.id) && <span className="lb-tag">聊天世界书 · </span>}
                 {book.entries.length} 条条目 · {book.entries.filter((item) => item.enabled).length} 条启用 · {book.entries.filter((item) => item.constant).length} 条常驻
               </div>
             </div>
             <div className="p-library-actions">
+              <label className="check lb-global" title="对所有聊天生效（ST：全局世界书）">
+                <input type="checkbox" checked={isGlobal(book.id)} onChange={(event) => void toggleGlobal(book.id, event.target.checked)} />
+                <span>全局</span>
+              </label>
               {confirmId === book.id ? (
                 <>
                   <button className="p-btn p-btn--sm p-btn--danger" type="button" onClick={() => void remove(book.id)}>确认删除</button>
@@ -176,6 +291,10 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                 <span>常驻（不需要关键词，每轮都进入上下文）</span>
               </label>
               <label className="p-check" style={{ marginBottom: 10 }}>
+                <input type="checkbox" checked={entry.vectorized === true} disabled={entry.constant} onChange={(event) => updateEntry(entryIndex, { vectorized: event.target.checked || undefined })} />
+                <span>向量匹配（按语义相似度激活，需开启「世界书向量匹配」，即 ST 的 Vectorized）</span>
+              </label>
+              <label className="p-check" style={{ marginBottom: 10 }}>
                 <input type="checkbox" checked={entry.selective} onChange={(event) => updateEntry(entryIndex, { selective: event.target.checked })} />
                 <span>需要次要关键词（ST 的 selective）</span>
               </label>
@@ -191,9 +310,9 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                   </div>
                   <div className="p-field">
                     <label>逻辑</label>
-                    <select className="p-select" value={entry.logic} onChange={(event) => updateEntry(entryIndex, { logic: event.target.value as LoreEntry['logic'] })}>
+                    <Select className="p-select" value={entry.logic} onChange={(event) => updateEntry(entryIndex, { logic: event.target.value as LoreEntry['logic'] })}>
                       {LORE_LOGICS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                    </select>
+                    </Select>
                   </div>
                 </div>
               )}
@@ -204,9 +323,9 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
               <div className="p-field-row">
                 <div className="p-field">
                   <label>插入位置</label>
-                  <select className="p-select" value={entry.position} onChange={(event) => updateEntry(entryIndex, { position: event.target.value as LoreEntry['position'] })}>
+                  <Select className="p-select" value={entry.position} onChange={(event) => updateEntry(entryIndex, { position: event.target.value as LoreEntry['position'] })}>
                     {LORE_POSITIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                  </select>
+                  </Select>
                 </div>
                 {entry.position === 'depth' && (
                   <>
@@ -215,12 +334,12 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                       <input className="p-input" type="number" min={0} max={999} value={entry.depth} onChange={(event) => updateEntry(entryIndex, { depth: Number(event.target.value) })} />
                     </div>
                     <div className="p-field">
-                      <label>身份</label>
-                      <select className="p-select" value={entry.role} onChange={(event) => updateEntry(entryIndex, { role: event.target.value as LoreEntry['role'] })}>
+                      <label>发言身份</label>
+                      <Select className="p-select" value={entry.role} onChange={(event) => updateEntry(entryIndex, { role: event.target.value as LoreEntry['role'] })}>
                         <option value="system">系统</option>
                         <option value="user">玩家</option>
                         <option value="assistant">角色</option>
-                      </select>
+                      </Select>
                     </div>
                   </>
                 )}
@@ -236,7 +355,7 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
               <div className="p-field-row">
                 <div className="p-field">
                   <label>大小写</label>
-                  <select
+                  <Select
                     className="p-select"
                     value={entry.caseSensitive === null ? '' : entry.caseSensitive ? 'yes' : 'no'}
                     onChange={(event) => updateEntry(entryIndex, { caseSensitive: event.target.value === '' ? null : event.target.value === 'yes' })}
@@ -244,11 +363,11 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                     <option value="">跟随全局</option>
                     <option value="yes">区分</option>
                     <option value="no">不区分</option>
-                  </select>
+                  </Select>
                 </div>
                 <div className="p-field">
                   <label>整词匹配</label>
-                  <select
+                  <Select
                     className="p-select"
                     value={entry.matchWholeWords === null ? '' : entry.matchWholeWords ? 'yes' : 'no'}
                     onChange={(event) => updateEntry(entryIndex, { matchWholeWords: event.target.value === '' ? null : event.target.value === 'yes' })}
@@ -256,12 +375,45 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                     <option value="">跟随全局</option>
                     <option value="yes">是</option>
                     <option value="no">否</option>
-                  </select>
+                  </Select>
                 </div>
                 <label className="p-check" style={{ alignSelf: 'end', marginBottom: 14 }}>
                   <input type="checkbox" checked={entry.enabled} onChange={(event) => updateEntry(entryIndex, { enabled: event.target.checked })} />
                   <span>启用</span>
                 </label>
+              </div>
+              {/* ST 定时效果与包含组：按消息条数计 */}
+              <div className="p-field-row">
+                <div className="p-field">
+                  <label>黏性（触发后保持 N 条）</label>
+                  <input className="p-input" type="number" min={0} max={1000} value={entry.sticky ?? 0} onChange={(event) => updateEntry(entryIndex, { sticky: Number(event.target.value) || undefined })} />
+                </div>
+                <div className="p-field">
+                  <label>冷却（之后 N 条不触发）</label>
+                  <input className="p-input" type="number" min={0} max={1000} value={entry.cooldown ?? 0} onChange={(event) => updateEntry(entryIndex, { cooldown: Number(event.target.value) || undefined })} />
+                </div>
+                <div className="p-field">
+                  <label>延迟（满 N 条才触发）</label>
+                  <input className="p-input" type="number" min={0} max={1000} value={entry.delay ?? 0} onChange={(event) => updateEntry(entryIndex, { delay: Number(event.target.value) || undefined })} />
+                </div>
+              </div>
+              <div className="p-field-row">
+                <div className="p-field">
+                  <label>包含组（同组只取一条，逗号分隔）</label>
+                  <input className="p-input" value={entry.group ?? ''} maxLength={200} onChange={(event) => updateEntry(entryIndex, { group: event.target.value || undefined })} />
+                </div>
+                {entry.group ? (
+                  <>
+                    <div className="p-field">
+                      <label>组内权重</label>
+                      <input className="p-input" type="number" min={0} max={10000} value={entry.groupWeight ?? 100} onChange={(event) => updateEntry(entryIndex, { groupWeight: Number(event.target.value) })} />
+                    </div>
+                    <label className="p-check" style={{ alignSelf: 'end', marginBottom: 14 }}>
+                      <input type="checkbox" checked={entry.groupOverride === true} onChange={(event) => updateEntry(entryIndex, { groupOverride: event.target.checked || undefined })} />
+                      <span>组内优先</span>
+                    </label>
+                  </>
+                ) : null}
               </div>
               <button
                 className="p-btn p-btn--sm p-btn--danger"
@@ -286,7 +438,7 @@ export function LorebooksEditor({ initial }: { initial: Lorebook[] }) {
                     <div className="p-room-main">
                       <div className="p-room-title" style={{ fontSize: 13.5 }}>{item.title || '未命名'}</div>
                       <div className="p-room-last">
-                        {item.constant ? '常驻' : item.keywords.join('、') || '没有关键词'} · {positionLabel(item.position)}
+                        {item.constant ? '常驻' : `${item.vectorized ? '向量 · ' : ''}${item.keywords.join('、') || (item.vectorized ? '只靠向量匹配' : '没有关键词')}`} · {positionLabel(item.position)}
                         {item.position === 'depth' ? ` · 深度 ${item.depth}` : ''} · {item.enabled ? '启用' : '停用'}
                       </div>
                     </div>

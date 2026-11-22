@@ -1,0 +1,64 @@
+/* 「我的」分区：主导航收起，换成「返回」+ 我的菜单（页内设置目录充当侧栏） */
+html body:not(#a) .p-shell[data-section="me"] .p-side-me { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 26px; width: 100%; }
+html body:not(#a) .p-side-back,
+html body:not(#a) .p-topbar-back {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  height: 36px; padding: 0 14px 0 8px; border-radius: 999px;
+  border: 1px solid var(--ca-line, #e3e0db); background: var(--ca-card, #fff);
+  color: var(--ca-ink, #1b1b1d); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap;
+  transition: background .2s, border-color .2s;
+}
+html body:not(#a) :is(.p-side-back, .p-topbar-back):hover { border-color: var(--ca-line-strong, #cfcac3); background: var(--ca-sunken, #f5f3f0); }
+html body:not(#a) :is(.p-side-back, .p-topbar-back) .p-icon { width: 18px; height: 18px; }
+html body:not(#a) .p-side-me-title { font-size: 15px; font-weight: 700; color: var(--ca-ink, #1b1b1d); letter-spacing: .04em; }
+html body:not(#a) .p-topbar .p-topbar-back { margin-right: 10px; }
+
+/* folio：竖排刊尺整条收起，设置目录就是左侧导航；返回放顶栏 */
+html body[data-theme="folio"][data-page]:not(#a) .p-shell[data-section="me"] { grid-template-columns: minmax(0, 1fr); }
+html body[data-theme="folio"][data-page]:not(#a) .p-shell[data-section="me"] .p-side { display: none; }
+html body[data-theme="folio"]:not(#a) :is(.p-side-back, .p-topbar-back) { border-radius: 0; border-color: var(--fo-ink, #1b1b1d); background: transparent; }
+
+/* nocturne / stage 桌面：顶部导航胶囊里的主导航换成「返回 · 我的」 */
+@media (min-width: 1024px) {
+  html body:is([data-theme="nocturne"], [data-theme="stage"]):not(#a) .p-shell[data-section="me"] .p-side-me { flex-direction: row; align-items: center; margin: 0 0 0 8px; width: auto; gap: 12px; }
+  html body:is([data-theme="nocturne"], [data-theme="stage"]):not(#a) .p-shell[data-section="me"] .p-topbar-back { display: none; }
+  html body[data-theme="nocturne"]:not(#a) .p-side-back { background: rgba(255, 255, 255, .06); border-color: var(--noc-line, rgba(255, 255, 255, .14)); color: var(--noc-text, #f3efe8); }
+  html body[data-theme="nocturne"]:not(#a) .p-side-me-title { color: var(--noc-text, #f3efe8); font-family: var(--noc-serif, inherit); letter-spacing: .14em; }
+  html body[data-theme="nocturne"]:not(#a) .p-side-me { padding-right: 12px; }
+  html body[data-theme="stage"]:not(#a) .p-side-me-title { font-size: 16px; color: var(--stg-ink, #111); }
+}
+@media (max-width: 1023px) {
+  html body:is([data-theme="nocturne"], [data-theme="stage"]):not(#a) .p-shell[data-section="me"] .p-side .p-side-back { display: none; }
+}
+@media (max-width: 640px) {
+  html body:not(#a) .p-topbar .p-topbar-back { padding: 0 8px; margin-right: 4px; }
+  html body:not(#a) .p-topbar .p-topbar-back span { display: none; }
+  html body:not(#a) .p-shell[data-section="me"] .p-topbar .p-topbar-brand { display: none; }
+}
+
+/* 「我的」桌面：去掉页内大标题，设置目录贴左当侧栏，右侧内容放宽 */
+html body:not(#a) .p-toc-head { display: none; }
+@media (min-width: 1024px) {
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-inner { max-width: none; width: 100%; padding: 0; margin: 0; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-page-title { display: none; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 0; align-items: start; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings .p-toc {
+    position: sticky; top: calc(var(--topbar-h, 72px) + 8px); align-self: start;
+    max-height: calc(100vh - var(--topbar-h, 72px) - 16px); overflow-y: auto; scrollbar-width: thin;
+    padding: 22px 18px 24px 28px; margin: 0;
+  }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-toc-head {
+    display: block; margin: 0 0 18px; font-size: 13px; font-weight: 700; letter-spacing: .16em; color: var(--ca-muted, #77726b);
+  }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main {
+    max-width: none; min-height: calc(100vh - var(--topbar-h, 72px)); padding: 26px 44px 64px;
+    border-left: 1px solid var(--ca-line, #e3e0db);
+  }
+  html body[data-theme="folio"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main { border-left-color: var(--fo-line-strong, #cfcac3); }
+  html body[data-theme="folio"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-toc-head { font-family: var(--fo-italic, serif); font-style: italic; letter-spacing: .08em; font-size: 15px; }
+  html body[data-theme="nocturne"][data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main { border-left-color: var(--noc-line, rgba(255,255,255,.14)); }
+}
+@media (min-width: 1024px) {
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings-main > * { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
+  html body[data-page]:not(#a):not(#b) .p-shell[data-section="me"] .p-settings .p-toc :is(button, a) { white-space: normal; }
+}

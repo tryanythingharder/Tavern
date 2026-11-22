@@ -1,0 +1,162 @@
+/* ==========================================================================
+   对话页 · 沉浸模式（<html data-chat-focus>）
+   收起站点侧栏/底栏和各主题的左右栏，对话单栏铺满并加宽，
+   角色封面虚化铺底。给外部卡自带的立绘、插图、状态栏（HTML 沙盒）留出位置。
+   选择器带两个 :not(#_) 压过主题里的高特异性规则。
+   ========================================================================== */
+/* 只在宽屏生效：窄屏本来就是单栏 */
+@media (min-width: 901px) {
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) {
+  --focus-col: min(920px, calc(100vw - 240px));
+  --fo-measure: 920px;
+}
+
+/* 站点导航：侧栏、手机底栏、影院顶栏 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-side, .p-tabbar, .cinema-nav) { display: none !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-shell { grid-template-columns: minmax(0, 1fr) !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-main { margin-left: 0 !important; padding-left: 0 !important; grid-column: 1 / -1 !important; }
+
+/* 主题两侧栏（书版/旁注、导轨/档案、角色卡/章节）与通用「故事设定」栏 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > :not(.p-chat):not(.fo-ctool) { display: none !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench {
+  grid-template-columns: minmax(0, 1fr) !important; column-gap: 0 !important;
+  background: transparent !important;
+}
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > .p-chat,
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench > .fo-ctool { grid-column: 1 !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-rp-workbench > .p-chat, .p-chat-scroll) { background: transparent !important; box-shadow: none !important; }
+/* 舞台主题的输入框是浮在底部的卡片，保留底色；其它主题输入区去底色 */
+html[data-chat-focus] body[data-page="chat"]:not([data-theme="stage"]):not(#_):not(#__) .p-chat-compose { background: transparent !important; box-shadow: none !important; }
+
+/* 消息列与输入框加宽 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-chat-scroll .p-chat-col, .p-chat-compose > .p-chat-col, .p-chat-compose .p-chat-col, .p-chat-compose) {
+  width: var(--focus-col) !important; max-width: none !important; margin-left: auto !important; margin-right: auto !important;
+}
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-chat-compose { width: auto !important; }
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .fo-ctool { width: var(--focus-col); margin-inline: auto; }
+
+/* 不再强制铺封面底色（会把整页染成封面的颜色）；外观里开了「立绘背景」才铺，见 shared.css */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) :is(.p-main, .p-inner, .p-shell) { background: transparent; }
+
+/* 顶栏：对话自己的那一条保留（搜索、设定、外观、退出沉浸），去掉分隔线 */
+html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-chat-head {
+  border-bottom-color: transparent !important; position: relative; z-index: 3;
+  transition: margin-top .28s ease, opacity .2s ease;
+}
+/* 自动收起：往下读时收起，鼠标到顶部或往上滚时出现 */
+html[data-chat-focus][data-chat-head-hide] body[data-page="chat"]:not(#_):not(#__) .p-chat-head {
+  margin-top: calc(-1 * var(--chat-head-h, 52px)) !important; opacity: 0; pointer-events: none;
+}
+
+.chat-head-hotzone { display: none; }
+html[data-chat-focus][data-chat-head-hide] .chat-head-hotzone { display: block; position: fixed; z-index: 50; left: 0; right: 0; top: 0; height: 28px; }
+
+}
+
+/* 画廊（components/chat-stage.tsx）：宽屏（≥1200）沉浸时固定在左侧，收集故事里的插图（去重）。
+   <html data-chat-stage="open|rail">；宽度 --stage-open-w 由拖动设置。整个对话区往右让出画面栏的宽度。 */
+.chat-stage { display: none; color-scheme: light; }
+@media (min-width: 1200px) {
+html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) {
+  --stage-w: var(--stage-open-w, clamp(260px, 22vw, 360px));
+  --focus-col: min(860px, calc(100vw - var(--stage-w) - 220px));
+}
+html[data-chat-focus][data-chat-stage="rail"] body[data-page="chat"]:not(#_):not(#__) {
+  --stage-w: 56px;
+  --focus-col: min(920px, calc(100vw - 56px - 160px));
+}
+html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .chat-stage {
+  display: block; position: fixed; z-index: 4; left: 0; top: 0; bottom: 0; width: var(--stage-w);
+  transition: width .3s cubic-bezier(.2,.7,.2,1);
+}
+html[data-chat-stage-drag] body[data-page="chat"] .chat-stage { transition: none !important; }
+html[data-chat-stage-drag] body { cursor: col-resize; user-select: none; }
+html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench {
+  margin-left: var(--stage-w) !important; width: calc(100% - var(--stage-w)) !important; max-width: none !important; box-sizing: border-box; transition: margin-left .3s cubic-bezier(.2,.7,.2,1);
+}
+html[data-chat-stage-drag] body[data-page="chat"]:not(#_):not(#__) .p-rp-workbench { transition: none !important; }
+
+/* 画廊：深墨底，头部标题 + 两列瀑布流；读到的那张加强调色圈 */
+.chat-stage { background: #15110e; color: #f3ece5; }
+.chat-gallery-head { position: absolute; left: 0; right: 0; top: 0; height: 76px; padding: 18px 20px 0 24px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,.08); }
+.chat-gallery-title { font-family: var(--font-serif, "Noto Serif SC", serif); font-size: 20px; letter-spacing: .2em; }
+.chat-gallery-sub { margin-top: 4px; font-size: 12px; color: rgba(243,236,229,.62); }
+.chat-gallery-grid { position: absolute; left: 0; right: 0; top: 76px; bottom: 0; overflow-y: auto; padding: 16px 20px 28px 20px; box-sizing: border-box;
+  columns: 2 150px; column-gap: 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
+.chat-stage .chat-gallery-tile:not(#_) { position: relative; display: block; width: 100%; margin: 0 0 10px; padding: 0; border: 0; border-radius: 8px; overflow: hidden;
+  background: rgba(255,255,255,.04); cursor: zoom-in; break-inside: avoid; box-shadow: 0 0 0 1px rgba(255,255,255,.08); transition: box-shadow .2s, transform .2s; min-height: 0; height: auto; }
+.chat-stage .chat-gallery-tile:not(#_):hover { box-shadow: 0 0 0 1px rgba(255,255,255,.3); }
+.chat-stage .chat-gallery-tile:not(#_):focus-visible { outline: 2px solid #f0714f; outline-offset: 2px; }
+.chat-stage .chat-gallery-tile.is-current:not(#_) { box-shadow: 0 0 0 2px #f0714f; }
+.chat-gallery-tile img { display: block; width: 100%; height: auto; min-height: 96px; object-fit: cover; }
+.chat-gallery-tile.is-cover img { aspect-ratio: 3 / 4; object-fit: cover; object-position: center 18%; }
+.chat-gallery-badge { position: absolute; left: 8px; top: 8px; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(15,11,9,.66); color: #fff; }
+.chat-gallery-empty { column-span: all; margin: 4px 2px 0; font-size: 12px; line-height: 1.7; color: rgba(243,236,229,.5); }
+.chat-stage-fold { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); background: transparent; color: #fff; display: grid; place-items: center; cursor: pointer; flex: none; }
+.chat-stage-fold:hover { background: rgba(255,255,255,.08); }
+.chat-stage svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* 拖动条：右边缘 10px，悬停显示一条细线 */
+.chat-stage-grip { position: absolute; top: 0; bottom: 0; right: -5px; width: 10px; cursor: col-resize; z-index: 2; touch-action: none; }
+.chat-stage-grip::after { content: ""; position: absolute; top: 50%; left: 4px; width: 2px; height: 56px; margin-top: -28px; border-radius: 2px; background: var(--ca-accent, #c9401f); opacity: 0; transition: opacity .2s; }
+.chat-stage-grip:hover::after, .chat-stage-grip:focus-visible::after, html[data-chat-stage-drag] .chat-stage-grip::after { opacity: 1; }
+/* 收成窄条：竖排「画廊」+ 插图数 */
+.chat-stage .chat-stage-rail:not(#_) { position: absolute; inset: 0; border: 0; padding: 18px 0 0; background: #15110e; color: #f3ece5; display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; cursor: pointer; min-height: 0; height: auto; border-radius: 0; box-shadow: none; }
+.chat-stage .chat-stage-rail:not(#_):hover { background: #1f1915; }
+.chat-stage-rail-label { writing-mode: vertical-rl; letter-spacing: .4em; font-size: 13px; color: rgba(243,236,229,.8); }
+.chat-stage-rail-count { min-width: 22px; height: 22px; border-radius: 11px; background: #c9401f; color: #fff; font-size: 12px; line-height: 22px; text-align: center; padding: 0 6px; box-sizing: border-box; }
+
+/* 从画廊跳回原文时，那条消息闪一下 */
+.p-msg.is-gallery-hit { animation: chat-gallery-hit 1.6s ease; border-radius: 10px; }
+@keyframes chat-gallery-hit { 0%, 40% { box-shadow: 0 0 0 2px var(--ca-accent, #c9401f); } 100% { box-shadow: 0 0 0 2px transparent; } }
+
+/* 顶栏让开左缘 */
+html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .p-chat-head-in { padding-left: 20px; }
+}
+@media (min-width: 901px) and (max-width: 1199.98px) {
+  html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .chat-stage { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .p-msg.is-gallery-hit { animation: none; outline: 2px solid var(--ca-accent, #c9401f); }
+  html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) :is(.chat-stage, .p-rp-workbench) { transition: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-chat-focus] body[data-page="chat"]:not(#_):not(#__) .p-chat-head { transition: none; }
+}
+
+.chat-focus-btn { display: inline-flex; align-items: center; gap: 4px; }
+.chat-focus-btn .p-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.chat-focus-btn[aria-pressed="true"] { color: var(--ca-accent, #c9401f); }
+/* 手机和窄屏对话页本来就没有站点导航和侧栏，不需要这个开关 */
+@media (max-width: 900px) { .chat-focus-btn { display: none !important; } }
+
+/* 舞台主题输入卡自带内边距：里面那一列跟着卡宽，别再撑到列宽溢出 */
+@media (min-width: 901px) {
+  html[data-chat-focus] body[data-page="chat"][data-theme="stage"]:not(#_):not(#__) .p-chat > .p-chat-compose > .p-chat-col { width: auto !important; margin: 0 !important; }
+}
+
+/* 带 HTML 美化的卡：沉浸时卡里的立绘、插图、状态栏框比正文列再宽一些。
+   夜幕：居中外扩；书版：左边有页码/署名栏，只向右外扩，左缘和正文对齐；舞台是气泡，不外扩 */
+@media (min-width: 1200px) {
+  html[data-chat-focus][data-chat-rich]:not([data-chat-stage="open"]) body[data-page="chat"][data-theme="nocturne"]:not(#_):not(#__) .rp-html-frame {
+    --frame-w: min(1120px, calc(100vw - 160px));
+    width: var(--frame-w); max-width: none; margin-left: calc(50% - var(--frame-w) / 2); margin-right: 0;
+  }
+  html[data-chat-focus][data-chat-rich]:not([data-chat-stage="open"]) body[data-page="chat"][data-theme="folio"]:not(#_):not(#__) .rp-html-frame {
+    width: min(calc(100% + 180px), calc(100% + (100vw - var(--focus-col)) / 2 - 72px)); max-width: none; margin-left: 0; margin-right: 0;
+  }
+}
+
+/* 画廊大图 */
+.chat-lightbox { color-scheme: light; position: fixed; inset: 0; z-index: 200; background: rgba(10,8,7,.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; box-sizing: border-box; }
+.chat-lightbox img { max-width: 100%; max-height: calc(100vh - 140px); object-fit: contain; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.chat-lightbox-bar { display: flex; align-items: center; gap: 10px; color: #f3ece5; font-size: 13px; }
+.chat-lightbox-bar button { font: inherit; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; min-width: 34px; height: 34px; padding: 0 12px; cursor: pointer; }
+.chat-lightbox-bar button:disabled { opacity: .35; cursor: default; }
+.chat-lightbox-bar button:not(:disabled):hover { background: rgba(255,255,255,.2); }
+.chat-lightbox-bar .chat-lightbox-jump { background: #c9401f; border-color: #c9401f; }
+/* 没有封面的角色：立绘格显示首字占位（点开添加表情立绘），不留空白 */
+.chat-stage .chat-gallery-tile.is-empty:not(#_) { aspect-ratio: 3 / 4; display: grid; place-items: center; align-content: center; gap: 10px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.chat-gallery-ph { font-size: 56px; line-height: 1; color: rgba(243,236,229,.78); font-family: var(--fo-display, serif); }
+.chat-gallery-ph-tip { font-size: 12px; color: rgba(243,236,229,.55); }
+.chat-stage .chat-gallery-tile.is-empty:not(#_):hover .chat-gallery-ph-tip { color: #f0714f; }

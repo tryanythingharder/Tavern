@@ -2,14 +2,38 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '@/components/settings-ui';
+import { cardFileBody, describeExtras, type ImportExtras } from '@/lib/card-file';
+import { CompatList } from '@/components/compat-list';
+import type { CompatReport } from '@/lib/card-compat';
 
 export function WorkActions({ characterId, status }: { characterId: string; status: string }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [compat, setCompat] = useState<CompatReport | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  // 外部工具改完卡后重新导入：覆盖这个角色（保留评论、收藏、会话和版本历史）
+  const reimport = async (file: File) => {
+    setBusy(true);
+    setMessage('');
+    setCompat(null);
+    try {
+      const body = await cardFileBody(file);
+      const result = await api<{ extras?: ImportExtras; compat?: CompatReport }>('/api/characters/import', { method: 'POST', body: JSON.stringify({ ...body, characterId }) });
+      setMessage(`已更新。${describeExtras(result.extras)}`);
+      setCompat(result.compat && (result.compat.partial || result.compat.no) ? result.compat : null);
+      router.refresh();
+    } catch (caught) {
+      setMessage((caught as Error).message);
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   const remove = async () => {
     setBusy(true);
@@ -33,7 +57,10 @@ export function WorkActions({ characterId, status }: { characterId: string; stat
       </span>
       <Link className="p-btn p-btn--sm" href={`/c/${characterId}`}>查看</Link>
       <Link className="p-btn p-btn--sm" href={`/create?edit=${characterId}`}>继续编辑</Link>
-      <a className="p-btn p-btn--sm" href={`/api/characters/${characterId}/export`} download>导出卡</a>
+      <button className="p-btn p-btn--sm" type="button" disabled={busy} onClick={() => fileRef.current?.click()}>导入新版</button>
+      <input ref={fileRef} type="file" accept="image/png,.png,.json,application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void reimport(file); }} />
+      <a className="p-btn p-btn--sm" href={`/api/characters/${characterId}/export?format=png`} download>导出 PNG</a>
+      <a className="p-btn p-btn--sm" href={`/api/characters/${characterId}/export`} download>导出 JSON</a>
       {confirming ? (
         <>
           <button className="p-btn p-btn--sm p-btn--danger" type="button" disabled={busy} onClick={() => void remove()}>{busy ? '删除中…' : '确认删除'}</button>
@@ -43,6 +70,7 @@ export function WorkActions({ characterId, status }: { characterId: string; stat
         <button className="p-btn p-btn--sm" type="button" onClick={() => setConfirming(true)}>删除</button>
       )}
       {message && <span className="p-small">{message}</span>}
+      {compat && <CompatList report={compat} />}
     </div>
   );
 }

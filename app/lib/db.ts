@@ -1,3 +1,5 @@
+import { withReasoning } from '@/lib/reasoning';
+import { addMeta as _addMeta, withMeta as _withMeta, type GenMeta } from '@/lib/msg-meta';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -375,6 +377,15 @@ db.exec(`
         updated_at INTEGER NOT NULL,
         PRIMARY KEY (user_id, character_id)
     );
+    -- 角色作者注释（ST 的 Character Author's Note）：玩家给某个角色设的注释，对这个角色的所有会话生效
+    CREATE TABLE IF NOT EXISTS character_notes (
+        user_id INTEGER NOT NULL,
+        character_id TEXT NOT NULL,
+        text TEXT NOT NULL DEFAULT '',
+        mode TEXT NOT NULL DEFAULT 'replace',
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (user_id, character_id)
+    );
 `);
 
 // 旧库补列：M1 后半段加了候选与分支来源。SQLite 的 ADD COLUMN 带默认值是安全的。
@@ -387,20 +398,47 @@ ensureColumn('messages', 'selected', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('chats', 'branch_from_chat_id', 'INTEGER');
 ensureColumn('chats', 'branch_from_message_id', 'INTEGER');
 ensureColumn('chats', 'preset_id', 'INTEGER');
+ensureColumn('rooms', 'model', 'TEXT');
 ensureColumn('chats', 'persona_id', 'INTEGER');
+// 卡内世界书条目的会话级开关 {条目id: true|false}，只存和卡默认值不同的（卡作者常让玩家自己开插图、选状态栏）
+ensureColumn('chats', 'card_lore', 'TEXT');
+// 作者注释（ST Author's Note），JSON：{ text, position, depth, role, interval }
+ensureColumn('chats', 'author_note', 'TEXT');
 ensureColumn('chats', 'lorebook_ids', 'TEXT');
 ensureColumn('chats', 'summary', 'TEXT');
 ensureColumn('chats', 'summary_prefs', 'TEXT');
 ensureColumn('characters', 'review_note', 'TEXT');
 ensureColumn('chats', 'rag_prefs', 'TEXT');
 ensureColumn('chats', 'memory', 'TEXT');
+ensureColumn('chats', 'model', 'TEXT');
 ensureColumn('messages', 'bookmark', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'attachment', 'TEXT');
+// ST 检查点：这条消息分出的检查点会话
+ensureColumn('messages', 'checkpoint_chat_id', 'INTEGER');
+// 酒馆助手变量表（lib/helper-vars.ts 也建同一张表；这里先建，分支复制/删除会话时用得到）
+db.exec(`CREATE TABLE IF NOT EXISTS helper_vars (
+    user_id INTEGER NOT NULL, scope TEXT NOT NULL, scope_id TEXT NOT NULL, data TEXT NOT NULL, updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, scope, scope_id));`);
 ensureColumn('room_messages', 'attachment', 'TEXT');
+// 群聊对齐 ST：候选（滑动换版）、检查点；房间分支来源
+ensureColumn('room_messages', 'candidates', 'TEXT');
+ensureColumn('room_messages', 'selected', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('room_messages', 'checkpoint_room_id', 'INTEGER');
+ensureColumn('rooms', 'parent_room_id', 'INTEGER');
+ensureColumn('rooms', 'parent_message_id', 'INTEGER');
+ensureColumn('rooms', 'is_checkpoint', 'INTEGER NOT NULL DEFAULT 0');
+// 群聊作者注释 / 记忆摘要（形状同 chats.author_note / summary / summary_prefs）
+ensureColumn('rooms', 'author_note', 'TEXT');
+ensureColumn('rooms', 'summary', 'TEXT');
+ensureColumn('rooms', 'summary_prefs', 'TEXT');
 ensureColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user'");
 ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
 ensureColumn('users', 'age_confirmed_at', 'INTEGER');
 ensureColumn('users', 'hide_nsfw', 'INTEGER NOT NULL DEFAULT 0');
+// 年龄（lib/age-gate.ts）：出生日期 YYYY-MM-DD、年龄验证服务通过时间与方式
+ensureColumn('users', 'birth_date', 'TEXT');
+ensureColumn('users', 'age_verified_at', 'INTEGER');
+ensureColumn('users', 'age_verify_method', 'TEXT');
 ensureColumn('users', 'chat_font', 'INTEGER NOT NULL DEFAULT 100');
 ensureColumn('users', 'chat_bg', "TEXT NOT NULL DEFAULT 'default'");
 ensureColumn('users', 'author_bio', 'TEXT');
@@ -408,6 +446,8 @@ ensureColumn('users', 'email_verified_at', 'INTEGER');
 ensureColumn('users', 'totp_secret', 'TEXT');
 ensureColumn('users', 'totp_recovery', 'TEXT');
 ensureColumn('users', 'totp_enabled_at', 'INTEGER');
+// 跟账号走的界面偏好（语言、主题、玩法模式、外观），JSON
+ensureColumn('users', 'ui_prefs', 'TEXT');
 ensureColumn('sessions', 'created_at', 'INTEGER');
 ensureColumn('sessions', 'user_agent', 'TEXT');
 ensureColumn('sessions', 'ip', 'TEXT');
@@ -416,10 +456,47 @@ ensureColumn('characters', 'owner_id', 'INTEGER');
 ensureColumn('characters', 'status', "TEXT NOT NULL DEFAULT 'published'");
 ensureColumn('characters', 'created_at', 'INTEGER');
 ensureColumn('characters', 'alternate_greetings', 'TEXT');
+// ST V2 卡的高级字段（personality / scenario / mes_example / system_prompt / post_history / creator_notes），JSON
+ensureColumn('characters', 'card_fields', 'TEXT');
 ensureColumn('characters', 'cover_image', 'TEXT');
 ensureColumn('characters', 'avatar_image', 'TEXT');
+// 外部角色卡里平台表单不覆盖的部分：内嵌世界书、正则脚本、深度提示、原始卡 JSON（无损导出用）
+ensureColumn('characters', 'card_extras', 'TEXT');
+// 玩家在模型广场选的默认模型（新开对话用）
+ensureColumn('users', 'default_model', 'TEXT');
 ensureColumn('rooms', 'auto_mode', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('rooms', 'speaker_id', 'TEXT');
+// ST 身份（Persona）：头像、默认身份、身份世界书；玩家消息记下发送时的身份名与头像（ST 每条消息存 name / force_avatar）
+ensureColumn('personas', 'avatar', 'TEXT');
+ensureColumn('personas', 'is_default', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('personas', 'lorebook_id', 'INTEGER');
+ensureColumn('messages', 'persona_name', 'TEXT');
+ensureColumn('messages', 'persona_avatar', 'TEXT');
+ensureColumn('room_messages', 'persona_name', 'TEXT');
+ensureColumn('room_messages', 'persona_avatar', 'TEXT');
+ensureColumn('rooms', 'persona_id', 'INTEGER');
+// ST 的生成行为设置（高级格式化 / 用户设置里的全局项）：自定义停止词、裁剪不完整句子、自动继续、思考内容
+ensureColumn('users', 'gen_prefs', 'TEXT');
+// ST 世界书绑定：全局启用的书（JSON 数组；NULL = 全部，兼容旧行为）、聊天世界书（Chat Lore，每个会话/群聊一本）、
+// 角色附加世界书（ST Character Lore 的 Additional，按玩家各自绑定，表 character_lore_links）
+ensureColumn('users', 'global_lorebooks', 'TEXT');
+ensureColumn('chats', 'chat_lorebook_id', 'INTEGER');
+ensureColumn('rooms', 'chat_lorebook_id', 'INTEGER');
+db.exec(`CREATE TABLE IF NOT EXISTS character_lore_links (
+  user_id INTEGER NOT NULL,
+  character_id TEXT NOT NULL,
+  lorebook_ids TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, character_id)
+);`);
+// 模型的思考过程，按候选序号存：{"0":{"t":"…","ms":1234}}（ST 存在 extra.reasoning / swipe_info）
+ensureColumn('messages', 'reasoning', 'TEXT');
+// ST 对齐：隐藏消息（/hide，幽灵图标，不发给模型）与每个候选的生成信息（lib/msg-meta.ts）
+ensureColumn('messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('messages', 'meta', 'TEXT');
+ensureColumn('messages', 'translations', 'TEXT');
+ensureColumn('room_messages', 'translations', 'TEXT');
+ensureColumn('room_messages', 'reasoning', 'TEXT');
 
 // 首次启动把种子角色写入数据库；之后以数据库为准。
 const seeded = db.prepare('SELECT COUNT(*) AS count FROM characters').get() as { count: number };
@@ -437,18 +514,24 @@ export type DbCharacter = {
   id: string; name: string; author: string; initial: string; hue: number; category: string;
   tags: string; nsfw: number; chats: string; greeting: string; hook: string; description: string; pace: string;
   owner_id: number | null; status: string; created_at: number | null; alternate_greetings: string | null; cover_image: string | null; avatar_image: string | null; review_note: string | null;
+  card_fields?: string | null;
 };
 
 export type DbChat = {
   id: number; user_id: number; character_id: string; title: string;
   branch_from_chat_id: number | null; branch_from_message_id: number | null;
-  preset_id: number | null; persona_id: number | null; lorebook_ids: string | null;
+  preset_id: number | null; persona_id: number | null; lorebook_ids: string | null; chat_lorebook_id?: number | null;
   summary: string | null; summary_prefs: string | null; rag_prefs: string | null; memory: string | null;
+  model?: string | null;
+  card_lore?: string | null;
+  author_note?: string | null;
   created_at: number; updated_at: number;
 };
 export type DbMessage = {
   id: number; chat_id: number; role: 'user' | 'assistant' | 'system'; content: string;
-  candidates: string | null; selected: number; bookmark: number; attachment: string | null; created_at: number;
+  candidates: string | null; selected: number; bookmark: number; attachment: string | null; checkpoint_chat_id?: number | null; created_at: number; reasoning?: string | null;
+  persona_name?: string | null; persona_avatar?: string | null;
+  hidden?: number; meta?: string | null; translations?: string | null;
 };
 
 export function getCharacterById(id: string): DbCharacter | undefined {
@@ -461,7 +544,9 @@ export function listCharacters(): DbCharacter[] {
 
 export function createChat(userId: number, characterId: string, title: string): number {
   const now = Date.now();
-  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, created_at, updated_at) VALUES (?,?,?,?,?)').run(userId, characterId, title, now, now);
+  // 新会话默认用玩家在模型广场选的模型（没选则走后台默认线路）
+  const preferred = (db.prepare('SELECT default_model FROM users WHERE id = ?').get(userId) as { default_model: string | null } | undefined)?.default_model || null;
+  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, model, created_at, updated_at) VALUES (?,?,?,?,?,?)').run(userId, characterId, title, preferred, now, now);
   return Number(result.lastInsertRowid);
 }
 
@@ -491,6 +576,8 @@ export function deleteChat(chatId: number, userId: number): boolean {
   db.prepare('DELETE FROM messages WHERE chat_id = ?').run(chatId);
   db.prepare('DELETE FROM chat_backups WHERE chat_id = ?').run(chatId);
   db.prepare('UPDATE chats SET branch_from_chat_id = NULL WHERE branch_from_chat_id = ?').run(chatId);
+  db.prepare('UPDATE messages SET checkpoint_chat_id = NULL WHERE checkpoint_chat_id = ?').run(chatId);
+  db.prepare("DELETE FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?").run(userId, String(chatId));
   db.prepare('DELETE FROM chats WHERE id = ? AND user_id = ?').run(chatId, userId);
   return true;
 }
@@ -513,22 +600,38 @@ export function listMessagesPage(chatId: number, beforeId: number | null, limit 
 }
 
 // 重新生成某条消息时，上下文只取它之前的消息（不含它本身）。
+// 这一页第一条之前还有多少条（ST 楼层号 = 偏移 + 页内序号）
+export function messageOffset(chatId: number, firstId: number | undefined): number {
+  if (!firstId) return 0;
+  const row = db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND id < ?').get(chatId, firstId) as { n: number };
+  return Number(row.n) || 0;
+}
+
 export function listMessagesBefore(chatId: number, messageId: number, limit = 200): DbMessage[] {
   const rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND id < ? ORDER BY id DESC LIMIT ?').all(chatId, messageId, limit) as DbMessage[];
   return rows.reverse();
 }
 
-export function addMessage(chatId: number, role: DbMessage['role'], content: string, candidates?: string[], selectedIndex?: number): DbMessage {
+export function addMessage(chatId: number, role: DbMessage['role'], content: string, candidates?: string[], selectedIndex?: number, sender?: { name: string; avatar: string | null } | null): DbMessage {
   const now = Date.now();
   const list = candidates?.length ? JSON.stringify(candidates) : null;
   const selected = list ? Math.min(Math.max(selectedIndex ?? candidates!.length - 1, 0), candidates!.length - 1) : 0;
-  const result = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, created_at) VALUES (?,?,?,?,?,?)').run(chatId, role, content, list, selected, now);
+  const personaName = sender?.name ?? null;
+  const personaAvatar = sender?.avatar ?? null;
+  const result = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?,?)').run(chatId, role, content, list, selected, personaName, personaAvatar, now);
   db.prepare('UPDATE chats SET updated_at = ? WHERE id = ?').run(now, chatId);
-  return { id: Number(result.lastInsertRowid), chat_id: chatId, role, content, candidates: list, selected, bookmark: 0, attachment: null, created_at: now };
+  return { id: Number(result.lastInsertRowid), chat_id: chatId, role, content, candidates: list, selected, bookmark: 0, attachment: null, created_at: now, persona_name: personaName, persona_avatar: personaAvatar };
 }
 
 export function touchChat(chatId: number) {
   db.prepare('UPDATE chats SET updated_at = ? WHERE id = ?').run(Date.now(), chatId);
+}
+
+// 思考内容按候选序号存
+export function setMessageReasoning(messageId: number, index: number, value: { t: string; ms: number } | null): void {
+  const row = db.prepare('SELECT reasoning FROM messages WHERE id = ?').get(messageId) as { reasoning: string | null } | undefined;
+  if (!row) return;
+  db.prepare('UPDATE messages SET reasoning = ? WHERE id = ?').run(withReasoning(row.reasoning, index, value), messageId);
 }
 
 export function getMessage(messageId: number): DbMessage | undefined {
@@ -606,34 +709,98 @@ export function selectCandidate(messageId: number, index: number): { index: numb
   return { index, count: list.length, content: list[index] };
 }
 
-// 从某条消息分支：新会话复制到这条（含）为止的消息，原会话不动。
-export function branchChat(chatId: number, userId: number, messageId: number): { id: number; title: string } | null {
-  const source = getChat(chatId, userId);
+// 从某条消息分支（ST「创建分支 / 检查点」）：新会话复制到这条（含）为止的消息，原会话不动。
+// 会话设置（预设、身份、模型、世界书、卡内世界书开关、作者注释、记忆设置、手动记忆、助手 chat 变量）一起带过去；
+// 摘要只在它没覆盖到分支点之后时保留，否则清空让新分支重新总结（不然会把原故事后面的剧情带进分支）。
+// checkpoint=true：ST 的检查点，原会话这条消息记下检查点会话 id，原会话继续用。
+const BRANCH_COPY_COLUMNS = ['preset_id', 'persona_id', 'model', 'card_lore', 'author_note', 'lorebook_ids', 'chat_lorebook_id', 'summary_prefs', 'rag_prefs', 'memory'] as const;
+
+export function branchChat(chatId: number, userId: number, messageId: number, options: { checkpoint?: boolean; name?: string } = {}): { id: number; title: string } | null {
+  const source = getChat(chatId, userId) as (DbChat & Record<string, unknown>) | undefined;
   if (!source) return null;
   const rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND id <= ? ORDER BY id').all(chatId, messageId) as DbMessage[];
   if (!rows.length || rows[rows.length - 1].id !== messageId) return null;
 
   const now = Date.now();
-  const title = `${source.title}（分支）`;
-  const result = db.prepare('INSERT INTO chats (user_id, character_id, title, branch_from_chat_id, branch_from_message_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?)').run(userId, source.character_id, title, chatId, messageId, now, now);
+  const name = String(options.name ?? '').trim().slice(0, 80);
+  let title: string;
+  if (options.checkpoint) {
+    const count = (db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND checkpoint_chat_id IS NOT NULL').get(chatId) as { n: number }).n;
+    title = name || `${source.title} · 检查点 ${count + 1}`;
+  } else {
+    title = name || `${source.title}（分支）`;
+  }
+  let summary: string | null = source.summary ?? null;
+  if (summary) {
+    try {
+      const state = JSON.parse(summary) as { covered?: number };
+      if (Number(state.covered) > rows.length) summary = null;
+    } catch {
+      summary = null;
+    }
+  }
+  const values = BRANCH_COPY_COLUMNS.map((column) => (source[column] ?? null) as string | number | null);
+  const result = db.prepare(
+    `INSERT INTO chats (user_id, character_id, title, branch_from_chat_id, branch_from_message_id, summary, ${BRANCH_COPY_COLUMNS.join(', ')}, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,${BRANCH_COPY_COLUMNS.map(() => '?').join(',')},?,?)`,
+  ).run(userId, source.character_id, title, chatId, messageId, summary, ...values, now, now);
   const newId = Number(result.lastInsertRowid);
-  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, created_at) VALUES (?,?,?,?,?,?)');
-  for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.created_at);
+  const insert = db.prepare('INSERT INTO messages (chat_id, role, content, candidates, selected, bookmark, attachment, persona_name, persona_avatar, reasoning, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  db.exec('BEGIN');
+  try {
+    for (const row of rows) insert.run(newId, row.role, row.content, row.candidates, row.selected, row.bookmark ?? 0, row.attachment ?? null, row.persona_name ?? null, row.persona_avatar ?? null, row.reasoning ?? null, row.created_at);
+    // 酒馆助手 / EJS 的 chat 变量随分支复制（ST 复制 chat_metadata.variables）
+    db.prepare(`INSERT OR IGNORE INTO helper_vars (user_id, scope, scope_id, data, updated_at)
+      SELECT user_id, scope, ?, data, ? FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?`).run(String(newId), now, userId, String(chatId));
+    if (options.checkpoint) db.prepare('UPDATE messages SET checkpoint_chat_id = ? WHERE id = ?').run(newId, messageId);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
   return { id: newId, title };
+}
+
+export type ChatBranchInfo = {
+  parent: { id: number; title: string; messageIndex: number; exists: boolean } | null;
+  children: { id: number; title: string; messageId: number; messageIndex: number; updatedAt: number; checkpoint: boolean }[];
+};
+
+// 分支关系：这段故事从哪里分出来、从这里又分出了哪些（含检查点）
+export function chatBranches(chatId: number, userId: number): ChatBranchInfo {
+  const chat = getChat(chatId, userId);
+  if (!chat) return { parent: null, children: [] };
+  let parent: ChatBranchInfo['parent'] = null;
+  if (chat.branch_from_chat_id) {
+    const row = getChat(chat.branch_from_chat_id, userId);
+    const index = row && chat.branch_from_message_id
+      ? (db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND id <= ?').get(row.id, chat.branch_from_message_id) as { n: number }).n
+      : 0;
+    if (row) parent = { id: row.id, title: row.title, messageIndex: index, exists: true };
+  }
+  const rows = db.prepare('SELECT id, title, branch_from_message_id AS messageId, updated_at AS updatedAt FROM chats WHERE user_id = ? AND branch_from_chat_id = ? ORDER BY created_at DESC').all(userId, chatId) as { id: number; title: string; messageId: number; updatedAt: number }[];
+  const checkpoints = new Set((db.prepare('SELECT checkpoint_chat_id AS id FROM messages WHERE chat_id = ? AND checkpoint_chat_id IS NOT NULL').all(chatId) as { id: number }[]).map((row) => row.id));
+  const indexOf = db.prepare('SELECT COUNT(*) AS n FROM messages WHERE chat_id = ? AND id <= ?');
+  const children = rows.map((row) => ({
+    ...row,
+    messageIndex: (indexOf.get(chatId, row.messageId) as { n: number }).n,
+    checkpoint: checkpoints.has(row.id),
+  }));
+  return { parent, children };
 }
 
 // ---------- 生成计量 ----------
 
 export type GenerationStatus = 'pending' | 'done' | 'aborted' | 'error';
 
-export function startGeneration(userId: number, chatId: number | null, kind: 'send' | 'regenerate' | 'room' | 'image' | 'tts', model: string): number {
+export function startGeneration(userId: number, chatId: number | null, kind: 'send' | 'regenerate' | 'continue' | 'impersonate' | 'room' | 'image' | 'tts' | 'summary' | 'translate', model: string): number {
   const result = db.prepare('INSERT INTO generation_events (user_id, chat_id, kind, model, status, created_at) VALUES (?,?,?,?,?,?)').run(userId, chatId, kind, model, 'pending', Date.now());
   return Number(result.lastInsertRowid);
 }
 
 export function finishGeneration(
   id: number,
-  patch: { status: GenerationStatus; promptTokens?: number; completionTokens?: number; totalTokens?: number; estimated?: boolean; error?: string | null },
+  patch: { status: GenerationStatus; promptTokens?: number; completionTokens?: number; totalTokens?: number; estimated?: boolean; error?: string | null; model?: string },
 ) {
   const promptTokens = patch.promptTokens ?? 0;
   const completionTokens = patch.completionTokens ?? 0;
@@ -643,6 +810,8 @@ export function finishGeneration(
         SET status = ?, prompt_tokens = ?, completion_tokens = ?, total_tokens = ?, estimated = ?, error = ?, finished_at = ?
         WHERE id = ?
     `).run(patch.status, promptTokens, completionTokens, totalTokens, patch.estimated ? 1 : 0, patch.error ?? null, Date.now(), id);
+  // 记下实际接通的模型（failover 后可能与选中的不同）
+  if (patch.model) db.prepare('UPDATE generation_events SET model = ? WHERE id = ?').run(patch.model, id);
 }
 
 export function countGenerationsSince(userId: number, since: number): number {
@@ -651,9 +820,18 @@ export function countGenerationsSince(userId: number, since: number): number {
 }
 
 function startOfToday(): number {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
+  // 平台日（lib/tz.ts）；这里不 import tz 以免循环，逻辑相同
+  const tz = process.env.TAVERN_TIMEZONE || 'UTC';
+  try {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const now = Date.now();
+    const o: Record<string, number> = {};
+    for (const p of f.formatToParts(new Date(now))) if (p.type !== 'literal') o[p.type] = Number(p.value);
+    const off = Date.UTC(o.year, o.month - 1, o.day, o.hour % 24, o.minute, o.second) - Math.floor(now / 1000) * 1000;
+    return Date.UTC(o.year, o.month - 1, o.day) - off;
+  } catch {
+    const date = new Date(); date.setUTCHours(0, 0, 0, 0); return date.getTime();
+  }
 }
 
 export function usageSummary(userId: number) {
@@ -703,3 +881,37 @@ export function transaction<T>(fn: () => T): T {
 }
 
 export default db;
+
+// ---- ST 对齐：隐藏 / 批量删除 / 生成信息 ----
+
+export function setMessagesHidden(chatId: number, ids: number[], hidden: boolean): number {
+  if (!ids.length) return 0;
+  const stmt = db.prepare('UPDATE messages SET hidden = ? WHERE chat_id = ? AND id = ?');
+  let count = 0;
+  for (const id of ids) count += Number(stmt.run(hidden ? 1 : 0, chatId, id).changes);
+  if (count) touchChat(chatId);
+  return count;
+}
+
+// 删除这一条及之后的全部消息（ST 删除模式选到最后一条）
+export function deleteMessagesFrom(chatId: number, fromId: number): number {
+  const result = db.prepare('DELETE FROM messages WHERE chat_id = ? AND id >= ?').run(chatId, fromId);
+  if (result.changes) touchChat(chatId);
+  return Number(result.changes);
+}
+
+export function recordMessageMeta(messageId: number, index: number, meta: GenMeta, accumulate = false): void {
+  const row = db.prepare('SELECT meta FROM messages WHERE id = ?').get(messageId) as { meta: string | null } | undefined;
+  if (!row) return;
+  db.prepare('UPDATE messages SET meta = ? WHERE id = ?').run(accumulate ? _addMeta(row.meta, index, meta) : _withMeta(row.meta, index, meta), messageId);
+}
+
+// 一次性迁移：旧版预设默认回复长度 400 tokens 太短（中文长回复会被截断），只把还停在旧默认 400 的预设改成新默认 1024；
+// 玩家自己改过的其它值不动。用 app_settings 记已执行，避免玩家之后故意设回 400 又被改掉。
+{
+  const done = db.prepare("SELECT 1 FROM app_settings WHERE key = 'migrate.preset_max_tokens_1024'").get();
+  if (!done) {
+    db.prepare("UPDATE presets SET params = json_set(params, '$.maxTokens', 1024) WHERE json_valid(params) AND json_extract(params, '$.maxTokens') = 400").run();
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value, updated_at) VALUES ('migrate.preset_max_tokens_1024', '1', ?)").run(Date.now());
+  }
+}

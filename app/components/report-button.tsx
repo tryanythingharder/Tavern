@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Select } from '@/components/ui-select';
 
 const REASONS = ['色情或暴力', '侵犯版权', '骚扰或仇恨', '欺诈或误导', '其他'];
 
@@ -10,11 +11,14 @@ export function ReportButton({
   targetId,
   label = '举报',
   className = 'btn btn--sm btn--ghost',
+  icon,
 }: {
   targetType: 'character' | 'message' | 'user' | 'comment';
   targetId: string | number;
   label?: string;
   className?: string;
+  /** 给了图标就只显示图标（和消息工具栏其它按钮一致），文字进 aria-label / title */
+  icon?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(REASONS[0]);
@@ -38,8 +42,14 @@ export function ReportButton({
 
   return (
     <>
-      <button className={className} type="button" onClick={() => { setOpen(true); setDone(false); setNote(''); }}>
-        {label}
+      <button
+        className={className}
+        type="button"
+        aria-label={icon ? label : undefined}
+        title={icon ? label : undefined}
+        onClick={() => { setOpen(true); setDone(false); setNote(''); }}
+      >
+        {icon ?? label}
       </button>
       {open && (
         <Modal
@@ -63,9 +73,9 @@ export function ReportButton({
             <>
               <div className="field">
                 <label>原因</label>
-                <select className="select" value={reason} onChange={(event) => setReason(event.target.value)}>
+                <Select className="select" value={reason} onChange={(event) => setReason(event.target.value)}>
                   {REASONS.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
+                </Select>
               </div>
               <div className="field">
                 <label>补充说明（可选）</label>
