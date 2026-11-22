@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { platformToday } from '@/lib/tz';
 import db, { transaction } from '@/lib/db';
 import { getSetting } from '@/lib/settings';
 import { balance, grantPoints, spendPoints } from '@/lib/points';
@@ -53,9 +54,9 @@ export function growthConfig() {
   };
 }
 
-// 「今天」按北京时间算，零点刷新
+// 「今天」按平台日算（lib/tz.ts，默认 UTC，TAVERN_TIMEZONE 可改）
 function today(): string {
-  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  return platformToday();
 }
 
 // ─── 每日免费额度 ───

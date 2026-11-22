@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { tr } from '@/lib/i18n/runtime';
 
 // 登录 / 注册「五扇门」：照 Thorgal（Awwwards SOTD 2026-05-19，Caracal / REEPLE）的首页复刻版式与动效，画面是我们自己画的墨线插画。
 // 满屏一个世界、中间一扇门；顶栏是一条描边胶囊，中间凹下去放品牌；左侧菱形计数；门下黑色按钮「推开这扇门」，
@@ -73,7 +74,7 @@ function drawScene(ctx: CanvasRenderingContext2D, img: HTMLImageElement, W: numb
 function Letters({ text }: { text: string }) {
   return (
     <>
-      {Array.from(text).map((ch, i) => (
+      {Array.from(tr(text)).map((ch, i) => (
         <span className="p-door-ch" key={i} style={{ ['--c' as string]: i }}><span>{ch === ' ' ? '\u00a0' : ch}</span></span>
       ))}
     </>

@@ -1,7 +1,8 @@
 import db from '@/lib/db';
+import { PLATFORM_TZ, dayKeyIn, shiftDayKey, startOfDayIn } from '@/lib/tz';
 
 // 创作者数据：只统计作者本人以外的玩家（作者自测的对话不算）。
-// 按天分桶用服务器时区；展示时标注「近 N 天」，不承诺精确到某个时区的自然日。
+// 按天分桶用玩家浏览器上报的时区（lib/tz.ts requestTimeZone，页面传进来）。
 
 export type WorkStats = {
   id: string;
@@ -23,22 +24,19 @@ export type CreatorStats = {
   works: WorkStats[];
 };
 
-const DAY = 86_400_000;
 
-function dayKey(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
-export function creatorStats(ownerId: number, days: 7 | 30 = 7): CreatorStats {
+
+export function creatorStats(ownerId: number, days: 7 | 30 = 7, tz: string = PLATFORM_TZ): CreatorStats {
+  const dayKey = (ms: number) => dayKeyIn(ms, tz);
   const works = db.prepare("SELECT id, name, status, author FROM characters WHERE owner_id = ? AND status != 'deleted' ORDER BY created_at DESC")
     .all(ownerId) as { id: string; name: string; status: string; author: string }[];
   const ids = works.map((w) => w.id);
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const since = todayStart.getTime() - (days - 1) * DAY;
+  const todayKey = dayKeyIn(Date.now(), tz);
+  const since = startOfDayIn(Date.parse(shiftDayKey(todayKey, -(days - 1)) + 'T12:00:00Z'), tz);
 
   const emptyTotals = { players: 0, chats: 0, playerMessages: 0, favorites: 0, comments: 0, followers: 0, newChats: 0, newFavorites: 0, newPlayers: 0 };
-  const daily = Array.from({ length: days }, (_, i) => ({ day: dayKey(since + i * DAY), chats: 0, messages: 0 }));
+  const daily = Array.from({ length: days }, (_, i) => ({ day: shiftDayKey(dayKey(since + 12 * 3600_000), i), chats: 0, messages: 0 }));
   if (!ids.length) return { days, totals: emptyTotals, daily, works: [] };
 
   const ph = ids.map(() => '?').join(',');

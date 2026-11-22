@@ -99,6 +99,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `(function(){var r=document.documentElement,q=window.matchMedia('(prefers-color-scheme: dark)');function a(){var p=r.dataset.schemePref||'system';r.dataset.scheme=p==='dark'||(p==='system'&&q.matches)?'dark':'light'}a();try{q.addEventListener('change',a)}catch(e){q.addListener&&q.addListener(a)}})();` }} />
         {/* 界面语言：英文时在 hydration 前加载词典，客户端渲染与服务端一致 */}
         <script dangerouslySetInnerHTML={{ __html: `window.__TAVERN_LANG=${JSON.stringify(locale)};` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var z=Intl.DateTimeFormat().resolvedOptions().timeZone;if(z&&document.cookie.indexOf('tavern_tz='+encodeURIComponent(z))<0)document.cookie='tavern_tz='+encodeURIComponent(z)+';path=/;max-age=31536000;samesite=lax'}catch(e){}` }} />
         {locale === 'en' ? <Script src={`/i18n-en.js?v=${dictVersion()}`} strategy="beforeInteractive" /> : null}
         {/* 层叠顺序：Next 打包的样式（precedence=next）→ 当前主题 → 主题之后的样式 */}
         {themeCssHref(theme) ? <link rel="stylesheet" href={themeCssHref(theme)} precedence="yh-theme" /> : null}

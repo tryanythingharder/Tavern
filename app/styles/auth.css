@@ -341,3 +341,13 @@ html[data-scheme] body[data-theme]:not(#a) .p-door-panel .p-auth-locked code { c
   html[data-scheme] body[data-theme]:not(#a) .p-door *::after { animation: none !important; transition: none !important; }
   html[data-scheme] body[data-theme]:not(#a) .p-door-scene { transform: none; }
 }
+
+/* 英文：标题改为大写衬线（Thorgal 原样），字距收窄 */
+html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-name { font-family: "Instrument Serif", "Noto Serif", Georgia, serif; font-size: clamp(48px, min(7vw, 13vh), 112px); letter-spacing: .04em; padding-left: .04em; text-transform: uppercase; }
+html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-sub,
+html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-scroll { letter-spacing: .08em; }
+html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-cta-label { letter-spacing: .1em; text-transform: uppercase; }
+html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-panel .p-auth-tabs a { letter-spacing: .02em; }
+@media (max-width: 639px) {
+  html[data-scheme][lang="en"] body[data-theme]:not(#a) .p-door-name { font-size: clamp(36px, 11vw, 56px); white-space: normal; }
+}

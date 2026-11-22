@@ -820,9 +820,18 @@ export function countGenerationsSince(userId: number, since: number): number {
 }
 
 function startOfToday(): number {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
+  // 平台日（lib/tz.ts）；这里不 import tz 以免循环，逻辑相同
+  const tz = process.env.TAVERN_TIMEZONE || 'UTC';
+  try {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const now = Date.now();
+    const o: Record<string, number> = {};
+    for (const p of f.formatToParts(new Date(now))) if (p.type !== 'literal') o[p.type] = Number(p.value);
+    const off = Date.UTC(o.year, o.month - 1, o.day, o.hour % 24, o.minute, o.second) - Math.floor(now / 1000) * 1000;
+    return Date.UTC(o.year, o.month - 1, o.day) - off;
+  } catch {
+    const date = new Date(); date.setUTCHours(0, 0, 0, 0); return date.getTime();
+  }
 }
 
 export function usageSummary(userId: number) {

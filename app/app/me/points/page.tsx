@@ -1,6 +1,7 @@
 import { paymentCurrency as __cur } from '@/lib/billing';
 import Link from 'next/link';
-import { tr } from '@/lib/i18n/runtime';
+import { currentLocale, tr } from '@/lib/i18n/runtime';
+import { dayKeyIn, requestTimeZone, shiftDayKey } from '@/lib/tz';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { listLedger, pointsSummary } from '@/lib/points';
@@ -36,16 +37,17 @@ function humanNote(raw: string | null | undefined): { text: string; chatId?: num
 
 type LedgerRow = { id: number; kind: string; note: string | null; amount: number; balanceAfter: number; createdAt: number };
 
-function groupByDay(rows: LedgerRow[]) {
-  const today = new Date();
-  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+function groupByDay(rows: LedgerRow[], tz: string) {
+  const todayKey = dayKeyIn(Date.now(), tz);
+  const yesterdayKey = shiftDayKey(todayKey, -1);
+  const locale = currentLocale() === 'en' ? 'en-US' : 'zh-CN';
   const out: { key: string; label: string; net: number; rows: LedgerRow[] }[] = [];
   for (const row of rows) {
-    const d = new Date(row.createdAt);
-    const key = d.toDateString();
+    const key = dayKeyIn(row.createdAt, tz);
     let day = out[out.length - 1];
     if (!day || day.key !== key) {
-      const label = key === today.toDateString() ? '今天' : key === yesterday.toDateString() ? '昨天' : `${d.getFullYear() === today.getFullYear() ? '' : `${d.getFullYear()}年`}${d.getMonth() + 1}月${d.getDate()}日`;
+      const label = key === todayKey ? '今天' : key === yesterdayKey ? '昨天'
+        : new Date(row.createdAt).toLocaleDateString(locale, { timeZone: tz, month: 'long', day: 'numeric', ...(key.slice(0, 4) === todayKey.slice(0, 4) ? {} : { year: 'numeric' }) });
       day = { key, label, net: 0, rows: [] };
       out.push(day);
     }
@@ -60,7 +62,7 @@ export default async function PointsPage() {
   if (!user) redirect('/login');
   const summary = pointsSummary(user.id);
   const ledger = listLedger(user.id, 100);
-  const days = groupByDay(ledger as LedgerRow[]);
+  const days = groupByDay(ledger as LedgerRow[], await requestTimeZone());
   const growth = growthConfig();
   const inviteOn = growth.inviteReward > 0 || growth.inviteeBonus > 0 || growth.rebatePct > 0;
   const stats = inviteOn ? referralStats(user.id) : { joined: 0, active: 0 };

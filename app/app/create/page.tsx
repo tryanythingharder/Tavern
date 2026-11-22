@@ -8,6 +8,7 @@ import { ProtoCover } from '@/components/proto-cover';
 import { WorkActions } from '@/components/work-actions';
 import { CreatorStatsView } from '@/components/creator-stats-view';
 import { creatorStats } from '@/lib/creator-stats';
+import { requestTimeZone } from '@/lib/tz';
 import { CardImportPanel } from '@/components/card-import-panel';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,7 @@ export default async function CreatePage({ searchParams }: { searchParams: Promi
             {worksNav('stats')}
           </div>
         </header>
-        <CreatorStatsView stats={creatorStats(user.id, days === '30' ? 30 : 7)} />
+        <CreatorStatsView stats={creatorStats(user.id, days === '30' ? 30 : 7, await requestTimeZone())} />
       </div>
     );
   }

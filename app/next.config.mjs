@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 /** @type {import('next').NextConfig} */
 // 开发模式下 React/Next 需要 eval 才能做调试与热更新；生产仍然禁止
 const isDev = process.env.NODE_ENV !== 'production';
@@ -49,6 +50,8 @@ const sandboxHeaders = [
 ];
 
 const nextConfig = {
+  // 锁定项目根目录：服务器上层目录若有别的 lockfile，Next 会猜错根目录，standalone 产物缺文件
+  outputFileTracingRoot: fileURLToPath(new URL('.', import.meta.url)),
   reactStrictMode: true,
   poweredByHeader: false,
   // EJS 沙盒（lib/ejs.ts）：QuickJS 的 WASM 加载方式不适合被打包，按原样从 node_modules 载入
