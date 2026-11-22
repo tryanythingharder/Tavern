@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -197,8 +198,8 @@ export function HelperRunner({ chatId, names, actions }: { chatId: number; names
   if (!scripts.length && !skipped.length) return null;
   const visible = off ? [] : scripts.flatMap((script) => (buttons[script.id] ?? []).filter((b) => b.visible).map((b) => ({ script: script.id, name: b.name })));
   const title = [
-    scripts.length ? `卡内脚本：${scripts.map((s) => s.name).join('、')}` : '',
-    skipped.length ? `已由平台内置 MVU 接管：${skipped.map((s) => s.name).join('、')}` : '',
+    scripts.length ? `卡内脚本：${joinList(scripts.map((s) => s.name))}` : '',
+    skipped.length ? `已由平台内置 MVU 接管：${joinList(skipped.map((s) => s.name))}` : '',
   ].filter(Boolean).join('\n');
 
   return (

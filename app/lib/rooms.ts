@@ -11,6 +11,7 @@ import { resolveVariableMacros, type MvuState } from '@/lib/mvu';
 import { applyStVarMacros, makeVarStore } from '@/lib/st-vars';
 import { persistVarStore } from '@/lib/st-vars-server';
 import { expandStMacros } from '@/lib/st-macros';
+import { fallbackUserName } from './prompt-lang';
 
 // M4 房间/群聊：多个角色共享一段对话。发言者按策略挑选（自然/轮流/手动/随机池），
 // 提示词里同时给出所有成员的人设，并要求本轮只以被选中的角色回应。
@@ -413,7 +414,7 @@ export function roomLoreEntries(room: Room, loreEntries: LoreEntry[], cardLoreLa
 export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): ChatMessage[] {
   const { room, messages, speaker, preset, persona, regexRules, variables, memory } = input;
   const summary = (memory?.summary ?? '').trim();
-  const userName = input.userName || persona?.name || '你';
+  const userName = input.userName || persona?.name || fallbackUserName();
   const personaText = (persona?.description.trim() ?? '').replace(/\{\{user\}\}/gi, userName).replace(/\{\{char\}\}/gi, speaker.name);
   // 玩家消息用发送时的身份名（ST 每条消息的 name）
   const userOf = (message: RoomMessage) => message.personaName || userName;

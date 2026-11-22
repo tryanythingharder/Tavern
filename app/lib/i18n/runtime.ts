@@ -60,3 +60,9 @@ export function trMeta<T extends Record<string, any>>(meta: T): T {
   };
   return walk(meta);
 }
+
+/** 列表拼接：中文用「、」「；」「，」，英文统一换成半角逗号/分号 */
+export function joinList(items: readonly string[], sep: '、' | '；' | '，' = '、'): string {
+  if (currentLocale() !== 'en') return items.join(sep);
+  return items.join(sep === '；' ? '; ' : ', ');
+}

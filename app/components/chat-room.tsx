@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { emitPoints } from '@/lib/points-bus';
 import { langLabel as langName } from '@/lib/translation';
@@ -851,10 +852,10 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             const set = state.sets.find((item) => item.name === arg);
             if (!set) throw new Error(`没有叫「${arg}」的快捷回复集`);
             pipe = JSON.stringify(set.replies.map((item) => item.label));
-            setNotice(`${set.name}：${set.replies.map((item) => item.label).join('、') || '（空）'}`);
+            setNotice(`${set.name}：${joinList(set.replies.map((item) => item.label)) || '（空）'}`);
           } else {
             pipe = JSON.stringify(state.sets.map((item) => item.name));
-            setNotice(`快捷回复集：${state.sets.map((item) => `${item.name}${state.globalIds.includes(item.id) ? '（全局）' : ''}${state.scopeIds.includes(item.id) ? '（本聊天）' : ''}`).join('、') || '（无）'}`);
+            setNotice(`快捷回复集：${joinList(state.sets.map((item) => `${item.name}${state.globalIds.includes(item.id) ? '（全局）' : ''}${state.scopeIds.includes(item.id) ? '（本聊天）' : ''}`)) || '（无）'}`);
           }
         } else if (name.startsWith('qr-set') || name.startsWith('qr-chatset')) {
           const state = qrRef.current;

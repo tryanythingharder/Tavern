@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -14,8 +15,8 @@ const toDraft = (row: Row): Draft => ({
   id: row.id, source: row.source, isDefault: row.isDefault,
   mode: row.rule ? row.rule.mode : 'inherit',
   price: row.rule ? String(row.rule.price) : '',
-  tiers: row.rule ? row.rule.tiers.map((tier) => `${fmtK(tier.above)}=${tier.price}`).join('，') : '',
-  name: row.meta.name, summary: row.meta.summary, tags: row.meta.tags.join('，'), context: row.meta.context,
+  tiers: row.rule ? joinList(row.rule.tiers.map((tier) => `${fmtK(tier.above)}=${tier.price}`), '，') : '',
+  name: row.meta.name, summary: row.meta.summary, tags: joinList(row.meta.tags, '，'), context: row.meta.context,
   featured: row.meta.featured, hidden: row.meta.hidden, sort: String(row.meta.sort || ''),
 });
 

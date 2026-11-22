@@ -1,4 +1,5 @@
 'use client';
+import { joinList } from '@/lib/i18n/runtime';
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
@@ -235,7 +236,7 @@ export function AdminSettings() {
         <div className="p-field">
           <label htmlFor="model-prices">按模型定价（每行 模型id=每千 tokens 点数；没写的模型用上面的统一价）</label>
           <textarea id="model-prices" className="p-textarea" rows={5} value={form.billing.modelPrices} placeholder={'claude-sonnet-4.5=6\ndeepseek-r1=3\ngpt-4o-mini=1'} onChange={(event) => setForm({ ...form, billing: { ...form.billing, modelPrices: event.target.value } })} />
-          {status?.billing.models?.length ? <span className="p-small">当前可选模型：{status.billing.models.join('、')}</span> : null}
+          {status?.billing.models?.length ? <span className="p-small">当前可选模型：{joinList(status.billing.models)}</span> : null}
         </div>
         <h3 className="p-form-section-title" style={{ margin: '18px 0 4px', fontSize: 14 }}>上下文长度</h3>
         <p className="small" style={{ marginTop: 0 }}>每个模型的上限在「模型广场」里填（如 200K）。玩家可在预设里把 context_size 调小，不会超过模型上限。可写 32K、1M 或纯数字，留空用默认。</p>
