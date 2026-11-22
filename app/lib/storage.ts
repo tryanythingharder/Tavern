@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import db from '@/lib/db';
 import { reportError } from '@/lib/monitor';
+import { serviceSwitch } from '@/lib/service-config';
 import { activeDriver, localDriver } from '@/lib/storage-drivers';
 
 // 运行时生成的文件（生图、语音、导入的角色卡封面）不能放 public/：
@@ -24,7 +25,7 @@ export function saveMedia(buffer: Buffer, extension: string, meta: MediaMeta = {
   if (driver.id !== localDriver.id) {
     void local
       .then(() => driver.put(name, buffer, MIME[extension] ?? 'application/octet-stream'))
-      .then(() => (process.env.TAVERN_STORAGE_KEEP_LOCAL === '1' ? undefined : localDriver.delete(name)))
+      .then(() => (serviceSwitch('storage.keepLocal') ? undefined : localDriver.delete(name)))
       .catch((error: Error) => reportError({ source: 'server', message: `媒体上传到 ${driver.id} 失败（本地副本保留）：${error.message}`, path: 'storage' }));
   } else {
     void local.catch((error: Error) => reportError({ source: 'server', message: `媒体写入失败：${error.message}`, path: 'storage' }));

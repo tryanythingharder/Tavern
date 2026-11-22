@@ -1,6 +1,7 @@
 import { localDriver } from '@/lib/storage-drivers/local';
 import { s3Driver } from '@/lib/storage-drivers/s3';
 import type { StorageDriver } from '@/lib/storage-drivers/types';
+import { serviceValue } from '@/lib/service-config';
 
 export type { StorageDriver } from '@/lib/storage-drivers/types';
 export { localDriver, mediaDir } from '@/lib/storage-drivers/local';
@@ -10,7 +11,7 @@ export const DRIVERS: StorageDriver[] = [s3Driver, localDriver];
 
 // 当前驱动：TAVERN_STORAGE_DRIVER 指定且已配置就用它，否则自动选第一个已配置的。
 export function activeDriver(): StorageDriver {
-  const wanted = (process.env.TAVERN_STORAGE_DRIVER ?? '').trim().toLowerCase();
+  const wanted = serviceValue('storage.driver').toLowerCase();
   const chosen = DRIVERS.find((item) => item.id === wanted);
   if (chosen?.configured()) return chosen;
   return DRIVERS.find((item) => item.configured()) ?? localDriver;

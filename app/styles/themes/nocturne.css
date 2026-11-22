@@ -884,7 +884,7 @@ html body[data-theme="nocturne"]:not(#noc) .p-aside .p-nav-item[aria-current="pa
 html body[data-theme="nocturne"]:not(#noc) .p-amain { background: #0b0b0e; }
 html body[data-theme="nocturne"]:not(#noc) .p-atabs { background: rgba(11, 11, 14, .9); border-color: var(--noc-line); }
 html body[data-theme="nocturne"]:not(#noc) .p-atabs a { color: var(--noc-muted); }
-html body[data-theme="nocturne"]:not(#noc) .p-atabs a[aria-current="page"] { color: var(--noc-text); border-color: var(--noc-accent); }
+html body[data-theme="nocturne"]:not(#noc) .p-atabs a[aria-current="page"] { color: var(--noc-text); border-color: var(--noc-accent); background: color-mix(in srgb, var(--noc-accent) 16%, transparent); }
 html body[data-theme="nocturne"]:not(#noc) :is(.p-admin table, .p-table) { color: var(--noc-copy); }
 html body[data-theme="nocturne"]:not(#noc) :is(.p-admin th, .p-table th) { color: var(--noc-muted); background: #141418; border-color: var(--noc-line); }
 html body[data-theme="nocturne"]:not(#noc) :is(.p-admin td, .p-table td) { border-color: var(--noc-line); }

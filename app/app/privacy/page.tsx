@@ -1,6 +1,9 @@
 import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
+import { legalInfo } from '@/lib/service-config';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '隐私政策' });
@@ -8,12 +11,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // 模板文本：上线前按实际部署地区（如个人信息保护法 / GDPR）补充数据保留期与处理者清单。
 export default function PrivacyPage() {
+  const info = legalInfo();
+  const updated = info.updated || '2026-11-09';
   return (
     <LegalPage
       title="隐私政策"
-      meta="最后更新：2026-11-09 · 本页是模板文本，正式上线前需经法务审核"
-      notice={<><strong>这是模板文本。</strong>上线前需要按实际部署地区补充数据保留期、处理者清单与联系方式。</>}
-      footer={<>隐私相关问题请联系站点管理员；你也可以在「我的 · 安全与隐私」导出或删除数据。</>}
+      meta={info.reviewed ? `最后更新：${updated}` : `最后更新：${updated} · 本页是模板文本，正式上线前需经法务审核`}
+      notice={info.reviewed ? undefined : <><strong>这是模板文本。</strong>上线前需要按实际部署地区补充数据保留期、处理者清单与联系方式。</>}
+      footer={<>你也可以在「我的 · 安全与隐私」导出或删除数据。</>}
     >
       <h2>1. 我们收集什么</h2>
       <p>账号信息（邮箱、昵称、密码哈希）、你创建的角色与评论、对话内容与生成用量（token 数、点数流水）、必要的会话 Cookie。</p>
@@ -32,6 +37,12 @@ export default function PrivacyPage() {
 
       <h2>6. 数据保留</h2>
       <p>账号存续期间保留你的数据；删除账号后按法律要求的最短期限保留必要的账务记录。聊天快照最多保留每会话 5 份。</p>
+
+      <h2>7. 联系我们</h2>
+      {info.operator && <p>你的个人信息由 {info.operator} 负责处理。</p>}
+      {info.legalEmail
+        ? <p>隐私问题、数据访问或删除请求，请发邮件到 <a href={`mailto:${info.legalEmail}`}>{info.legalEmail}</a>，我们会在 30 天内答复。</p>
+        : <p>隐私相关问题请联系站点管理员。</p>}
     </LegalPage>
   );
 }

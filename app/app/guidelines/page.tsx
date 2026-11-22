@@ -1,17 +1,22 @@
 import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
+import { legalInfo } from '@/lib/service-config';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '社区准则' });
 }
 
 export default function GuidelinesPage() {
+  const info = legalInfo();
+  const updated = info.updated || '2026-11-09';
   return (
     <LegalPage
       title="社区准则"
-      meta="最后更新：2026-11-09 · 本页是模板文本，正式上线前需经法务审核"
-      notice={<><strong>这是模板文本。</strong>社区准则会随运营情况调整；重大变更会在站内通知。</>}
+      meta={info.reviewed ? `最后更新：${updated}` : `最后更新：${updated} · 本页是模板文本，正式上线前需经法务审核`}
+      notice={info.reviewed ? undefined : <><strong>这是模板文本。</strong>社区准则会随运营情况调整；重大变更会在站内通知。</>}
       footer={<>相关条款：<a href="/terms">用户协议</a> · <a href="/privacy">隐私政策</a></>}
     >
       <h2>允许的</h2>

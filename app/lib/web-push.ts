@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import db from '@/lib/db';
 import { getSetting, setSetting } from '@/lib/settings';
 import { reportError } from '@/lib/monitor';
+import { serviceValue } from '@/lib/service-config';
 
 // PWA 推送：标准 Web Push（RFC 8030），载荷加密 RFC 8291（aes128gcm），身份 VAPID RFC 8292。
 // 不依赖第三方包。VAPID 密钥优先读环境变量 TAVERN_VAPID_PUBLIC / TAVERN_VAPID_PRIVATE（base64url），
@@ -25,9 +26,36 @@ const fromB64u = (text: string) => Buffer.from(text, 'base64url');
 type Vapid = { publicKey: string; privateKey: string; subject: string };
 let cached: Vapid | null = null;
 
+function vapidSubject(): string {
+  const own = serviceValue('push.subject');
+  if (own) return /^(mailto:|https:)/.test(own) ? own : `mailto:${own}`;
+  return `mailto:${serviceValue('site.supportEmail') || 'admin@tavern.local'}`;
+}
+
+export function vapidStatus() {
+  const v = vapidKeys();
+  const source = process.env.TAVERN_VAPID_PUBLIC && process.env.TAVERN_VAPID_PRIVATE ? 'env' : 'auto';
+  return { publicKey: v.publicKey, subject: vapidSubject(), source, subscriptions: (db.prepare('SELECT COUNT(*) AS n FROM push_subscriptions').get() as { n: number }).n };
+}
+
+// 重新生成会让所有已订阅设备失效（需要用户重新打开通知）；环境变量指定的密钥不能在后台改
+export function regenerateVapid(): boolean {
+  if (process.env.TAVERN_VAPID_PUBLIC && process.env.TAVERN_VAPID_PRIVATE) return false;
+  const ecdh = crypto.createECDH('prime256v1');
+  ecdh.generateKeys();
+  setSetting('push.vapid', JSON.stringify({ publicKey: b64u(ecdh.getPublicKey()), privateKey: b64u(ecdh.getPrivateKey()) }));
+  db.prepare('DELETE FROM push_subscriptions').run();
+  cached = null;
+  return true;
+}
+
+export function resetVapidCache(): void {
+  cached = null;
+}
+
 export function vapidKeys(): Vapid {
   if (cached) return cached;
-  const subject = process.env.TAVERN_VAPID_SUBJECT || `mailto:${process.env.TAVERN_SUPPORT_EMAIL || 'admin@tavern.local'}`;
+  const subject = vapidSubject();
   if (process.env.TAVERN_VAPID_PUBLIC && process.env.TAVERN_VAPID_PRIVATE) {
     cached = { publicKey: process.env.TAVERN_VAPID_PUBLIC, privateKey: process.env.TAVERN_VAPID_PRIVATE, subject };
     return cached;

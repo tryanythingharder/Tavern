@@ -1,16 +1,16 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { getSetting } from '@/lib/settings';
+import { serviceValue } from '@/lib/service-config';
 import type { Order } from '@/lib/billing';
 import type { PaymentProvider, WebhookResult } from '@/lib/payments/types';
 
 // Stripe Checkout（零依赖，直接调 REST）。配置 TAVERN_STRIPE_SECRET_KEY + TAVERN_STRIPE_WEBHOOK_SECRET 即启用，
 // Webhook 地址：/api/payments/stripe，订阅 checkout.session.completed。
 function stripeKey(): string {
-  return getSetting('payment.stripeKey', process.env.TAVERN_STRIPE_SECRET_KEY ?? '');
+  return serviceValue('payment.stripeKey');
 }
 
 function stripeWebhookSecret(): string {
-  return getSetting('payment.stripeWebhookSecret', process.env.TAVERN_STRIPE_WEBHOOK_SECRET ?? '');
+  return serviceValue('payment.stripeWebhookSecret');
 }
 
 function stripeEnabled(): boolean {
@@ -64,7 +64,7 @@ export function verifyStripeSignature(rawBody: string, header: string | null, se
 export const stripeProvider: PaymentProvider = {
   id: 'stripe',
   label: 'Stripe Checkout',
-  configHint: 'TAVERN_STRIPE_SECRET_KEY + TAVERN_STRIPE_WEBHOOK_SECRET；webhook 订阅 checkout.session.completed',
+  configHint: '在「站点与服务 → Stripe 收款」填写，或用 TAVERN_STRIPE_* 环境变量；webhook 订阅 checkout.session.completed',
   configured: stripeEnabled,
   createCheckout: (order, ctx) => stripeCheckout(order, ctx.currency, ctx.siteUrl, ctx.email),
   async parseWebhook(request): Promise<WebhookResult> {

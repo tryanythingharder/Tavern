@@ -42,6 +42,7 @@ const ADMIN_SECTIONS = [
   { href: '/admin/users', label: '玩家' },
   { href: '/admin/orders', label: '订单与兑换码' },
   { href: '/admin/settings', label: '接口配置' },
+  { href: '/admin/services', label: '站点与服务' },
 ];
 
 const ADMIN_NAV: { label: string; items: { href: string; label: string; path: string }[] }[] = [
@@ -71,6 +72,7 @@ const ADMIN_NAV: { label: string; items: { href: string; label: string; path: st
       { href: '/admin/models', label: '模型广场', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
       { href: '/admin/model', label: '单线路配置', path: 'M4 7h16v10H4zM8 12h8' },
       { href: '/admin/settings', label: '接口配置', path: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-3 2-1-2-4-2 .5-1.5-1L15 4h-6l-.5 2.5-1.5 1L5 7l-2 4 2 1-2 1 2 4 2-.5 1.5 1L9 20h6l.5-2.5 1.5-1 2 .5 2-4z' },
+      { href: '/admin/services', label: '站点与服务', path: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01' },
     ],
   },
   {

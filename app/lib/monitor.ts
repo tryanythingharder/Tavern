@@ -1,5 +1,6 @@
 import { appendFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { serviceValue } from '@/lib/service-config';
 
 // 轻量监控：错误写 .data/logs/errors.log（JSON Lines），可选推送到告警 webhook
 // （TAVERN_ALERT_WEBHOOK，飞书/钉钉/Slack/Discord 的「接收 JSON」机器人都行）。
@@ -7,6 +8,23 @@ import { join } from 'path';
 const logDir = join(process.cwd(), '.data', 'logs');
 const recent = new Map<string, number>();
 const THROTTLE_MS = 5 * 60 * 1000;
+
+// 告警地址：后台「站点与服务」> TAVERN_ALERT_WEBHOOK；数据库读不了时退回环境变量
+function alertWebhook(): string {
+  try { return serviceValue('alert.webhook'); } catch { return process.env.TAVERN_ALERT_WEBHOOK?.trim() ?? ''; }
+}
+
+export function sendAlert(text: string): Promise<boolean> {
+  const hook = alertWebhook();
+  if (!hook) return Promise.resolve(false);
+  return fetch(hook, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // 兼容多家机器人：text / content / msg_type+content
+    body: JSON.stringify({ text, content: text, msg_type: 'text', msgtype: 'text', markdown: undefined }),
+    signal: AbortSignal.timeout(4000),
+  }).then((res) => res.ok).catch(() => false);
+}
 
 export type ErrorReport = { source: 'server' | 'client'; message: string; stack?: string; path?: string; digest?: string; extra?: Record<string, unknown> };
 
@@ -20,7 +38,7 @@ export function reportError(report: ErrorReport): void {
   }
   console.error('[tavern:error]', entry.source, entry.path ?? '', entry.message);
 
-  const hook = process.env.TAVERN_ALERT_WEBHOOK?.trim();
+  const hook = alertWebhook();
   if (!hook) return;
   const key = `${report.source}|${report.path ?? ''}|${entry.message.slice(0, 120)}`;
   const now = Date.now();
@@ -28,11 +46,5 @@ export function reportError(report: ErrorReport): void {
   recent.set(key, now);
   if (recent.size > 500) recent.clear();
   const text = `【夜话告警】${report.source === 'client' ? '前端' : '服务端'}错误\n${report.path ?? ''}\n${entry.message}`;
-  void fetch(hook, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    // 兼容多家机器人：text / content / msg_type+content
-    body: JSON.stringify({ text, content: text, msg_type: 'text', msgtype: 'text', markdown: undefined }),
-    signal: AbortSignal.timeout(4000),
-  }).catch(() => {});
+  void sendAlert(text);
 }

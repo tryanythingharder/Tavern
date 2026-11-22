@@ -1,4 +1,4 @@
-import { getSetting } from '@/lib/settings';
+import { serviceValue } from '@/lib/service-config';
 import { reportError } from '@/lib/monitor';
 
 // 自动内容审核（可选）：配置 TAVERN_MODERATION_KEY（OpenAI API key）即启用，调用免费的 omni-moderation 接口。
@@ -11,11 +11,11 @@ export function moderationEnabled(): boolean {
 }
 
 function moderationKey(): string {
-  return getSetting('moderation.key', process.env.TAVERN_MODERATION_KEY ?? '');
+  return serviceValue('moderation.key');
 }
 
 function blockedCategories(): string[] {
-  return getSetting('moderation.block', process.env.TAVERN_MODERATION_BLOCK ?? DEFAULT_BLOCK)
+  return (serviceValue('moderation.block') || DEFAULT_BLOCK)
     .split(',').map((item) => item.trim()).filter(Boolean);
 }
 
@@ -25,12 +25,12 @@ export async function moderateText(text: string): Promise<ModerationVerdict> {
   const key = moderationKey();
   const input = text.trim().slice(0, 20000);
   if (!key || !input) return { ok: true };
-  const base = (process.env.TAVERN_MODERATION_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
+  const base = (serviceValue('moderation.url') || 'https://api.openai.com/v1').replace(/\/$/, '');
   try {
     const res = await fetch(`${base}/moderations`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: process.env.TAVERN_MODERATION_MODEL || 'omni-moderation-latest', input }),
+      body: JSON.stringify({ model: serviceValue('moderation.model') || 'omni-moderation-latest', input }),
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) throw new Error(`moderation ${res.status}`);

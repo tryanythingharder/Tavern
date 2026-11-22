@@ -1,14 +1,16 @@
 import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
-import { getSetting } from '@/lib/settings';
+import { serviceValue } from '@/lib/service-config';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '帮助与申诉' });
 }
 
 export default function SupportPage() {
-  const email = getSetting('site.supportEmail', process.env.TAVERN_SUPPORT_EMAIL ?? '').trim();
+  const email = serviceValue('site.supportEmail');
   return (
     <LegalPage
       title="帮助与申诉"
