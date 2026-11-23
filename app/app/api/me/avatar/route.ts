@@ -2,7 +2,7 @@ import { fail, json, requireUser } from '@/lib/api';
 import { getProfileMedia, setProfileMedia } from '@/lib/auth';
 import { imageExt } from '@/lib/image-ext';
 import { rateLimit } from '@/lib/rate-limit';
-import { saveMedia } from '@/lib/storage';
+import { deleteMediaUrl, saveMedia } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +32,10 @@ export async function POST(request: Request) {
   const ext = imageExt(data);
   if (!ext) return fail('只支持 PNG、JPG、WebP 或 GIF 图片');
   if (data.length > LIMIT[kind]) return fail(`图片太大了，${kind === 'avatar' ? '头像' : '背景图'}最多 ${LIMIT[kind] / 1024 / 1024} MB`);
+  const previous = getProfileMedia(user.id)[kind];
   const url = saveMedia(data, ext, { ownerId: user.id, visibility: 'public' });
   setProfileMedia(user.id, kind, url);
+  deleteMediaUrl(previous, user.id); // 旧图不再被引用，顺手清掉
   return json(getProfileMedia(user.id));
 }
 
@@ -43,6 +45,8 @@ export async function DELETE(request: Request) {
   if (!user) return fail('未登录', 401);
   const kind = kindOf(new URL(request.url).searchParams.get('kind'));
   if (!kind) return fail('参数不对');
+  const previous = getProfileMedia(user.id)[kind];
   setProfileMedia(user.id, kind, null);
+  deleteMediaUrl(previous, user.id);
   return json(getProfileMedia(user.id));
 }

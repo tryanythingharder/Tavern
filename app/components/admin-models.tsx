@@ -7,12 +7,15 @@ import { Select } from '@/components/ui-select';
 
 type Meta = { name: string; summary: string; tags: string[]; context: string; featured: boolean; hidden: boolean; sort: number };
 type Rule = { mode: 'token' | 'call'; price: number; tiers: { above: number; price: number }[] };
-type Row = { id: string; source: string; isDefault: boolean; rule: Rule | null; priceLabel: string; meta: Meta };
+// 非对话模型的价格不在这里：生图/语音在「接口配置」各自的页面里设每次扣点
+const KIND_NOTE: Record<string, string> = { image: '生图模型 · 价格在「接口配置 › 生图」里设（每张扣点）', tts: '语音模型 · 价格在「接口配置 › 语音」里设（每次扣点）', embedding: '向量模型 · 系统自动调用，不单独扣点' };
+
+type Row = { id: string; kind?: string; source: string; isDefault: boolean; rule: Rule | null; priceLabel: string; meta: Meta };
 type Mode = 'inherit' | 'token' | 'call';
-type Draft = { id: string; source: string; isDefault: boolean; mode: Mode; price: string; tiers: string; name: string; summary: string; tags: string; context: string; featured: boolean; hidden: boolean; sort: string };
+type Draft = { id: string; kind: string; source: string; isDefault: boolean; mode: Mode; price: string; tiers: string; name: string; summary: string; tags: string; context: string; featured: boolean; hidden: boolean; sort: string };
 
 const toDraft = (row: Row): Draft => ({
-  id: row.id, source: row.source, isDefault: row.isDefault,
+  id: row.id, kind: row.kind ?? 'chat', source: row.source, isDefault: row.isDefault,
   mode: row.rule ? row.rule.mode : 'inherit',
   price: row.rule ? String(row.rule.price) : '',
   tiers: row.rule ? joinList(row.rule.tiers.map((tier) => `${fmtK(tier.above)}=${tier.price}`), '，') : '',
@@ -64,7 +67,7 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
     setBusy(true);
     setError('');
     setNotice('');
-    const bad = rows.find((row) => draftRule(row) === 'bad');
+    const bad = rows.find((row) => row.kind === 'chat' && draftRule(row) === 'bad');
     if (bad) {
       setBusy(false);
       setError(`「${bad.id}」的价格或分档格式不对（分档写法：272K=6，1M=10）`);
@@ -76,7 +79,7 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
         body: JSON.stringify({
           models: rows.map((row) => ({
             id: row.id,
-            rule: draftRule(row),
+            rule: row.kind === 'chat' ? draftRule(row) : null,
             meta: { name: row.name, summary: row.summary, tags: row.tags, context: row.context, featured: row.featured, hidden: row.hidden, sort: Number(row.sort) || 0 },
           })),
         }),
@@ -113,6 +116,12 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
             {rows.map((row) => (
               <tr key={row.id}>
                 <td className="am-id">{row.id}<div className="p-small">{row.source}{row.isDefault ? ' · 默认' : ''}</div></td>
+                {row.kind !== 'chat' ? (
+                  <td colSpan={3} className="am-kind-note">
+                    <span className="p-small">{KIND_NOTE[row.kind] ?? '非对话模型'}</span>
+                  </td>
+                ) : (
+                  <>
                 <td>
                   <Select className="p-input am-mode" aria-label={`${row.id} 计费方式`} value={row.mode} onChange={(event) => patch(row.id, { mode: event.target.value as Mode, price: row.price || (event.target.value === 'inherit' ? '' : String(basePrice)) })}>
                     <option value="inherit">跟随全局</option>
@@ -125,10 +134,12 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
                   <input className="p-input" aria-label={`${row.id} 上下文分档`} value={row.mode === 'inherit' ? '' : row.tiers} disabled={row.mode === 'inherit'} placeholder="272K=6" onChange={(event) => patch(row.id, { tiers: event.target.value })} />
                   <div className={`p-small${draftRule(row) === 'bad' ? ' am-bad' : ''}`}>{preview(row, basePrice)}</div>
                 </td>
+                  </>
+                )}
                 <td><input className="p-input" aria-label={`${row.id} 展示名`} value={row.name} maxLength={40} placeholder={row.id} onChange={(event) => patch(row.id, { name: event.target.value })} /></td>
                 <td><input className="p-input" aria-label={`${row.id} 介绍`} value={row.summary} maxLength={160} placeholder="文笔细腻，适合长篇剧情" onChange={(event) => patch(row.id, { summary: event.target.value })} /></td>
                 <td><input className="p-input" aria-label={`${row.id} 标签`} value={row.tags} placeholder="文笔，长上下文" onChange={(event) => patch(row.id, { tags: event.target.value })} /></td>
-                <td><input className="p-input am-num" aria-label={`${row.id} 上下文`} value={row.context} maxLength={16} placeholder="200K" onChange={(event) => patch(row.id, { context: event.target.value })} /></td>
+                <td><input className="p-input am-num" aria-label={`${row.id} 上下文`} disabled={row.kind !== 'chat'} value={row.kind !== 'chat' ? '' : row.context} maxLength={16} placeholder="200K" onChange={(event) => patch(row.id, { context: event.target.value })} /></td>
                 <td><input className="p-input am-num" inputMode="numeric" aria-label={`${row.id} 排序`} value={row.sort} placeholder="0" onChange={(event) => patch(row.id, { sort: event.target.value })} /></td>
                 <td><input type="checkbox" aria-label={`${row.id} 推荐`} checked={row.featured} onChange={(event) => patch(row.id, { featured: event.target.checked })} /></td>
                 <td><input type="checkbox" aria-label={`${row.id} 下架`} checked={row.hidden} onChange={(event) => patch(row.id, { hidden: event.target.checked })} /></td>

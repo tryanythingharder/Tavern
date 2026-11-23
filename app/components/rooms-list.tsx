@@ -10,7 +10,7 @@ type RoomItem = {
   id: number; name: string; characterIds: string[]; muted: string[]; strategy: string;
   autoMode: boolean; speakerId: string | null; lastMessage: string | null; updatedAt: number;
 };
-type CharacterItem = { id: string; name: string; initial: string; hue: number };
+type CharacterItem = { id: string; name: string; initial: string; hue: number; avatar?: string | null };
 
 const STRATEGY_LABEL: Record<string, string> = {
   natural: '自然（叫到名字的人先答）',
@@ -143,7 +143,7 @@ export function RoomsList({ rooms, characters }: { rooms: RoomItem[]; characters
                     <div className="p-room-members">
                       {members.map((member) => (
                         <span key={member.id}>
-                          <span className="p-avatar" style={{ ['--size' as string]: '22px', ['--h' as string]: member.hue }}>{member.initial}</span>
+                          <span className={`p-avatar${member.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '22px', ['--h' as string]: member.hue }}>{member.avatar ? <img src={member.avatar} alt="" loading="lazy" /> : member.initial}</span>
                           {member.name}
                         </span>
                       ))}

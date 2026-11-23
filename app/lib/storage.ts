@@ -48,6 +48,18 @@ export async function readMedia(name: string, requesterId: number | null = null)
   return buffer ? { buffer, extension, visibility } : null;
 }
 
+/** 删掉一个媒体文件（只删属于 ownerId 的；url 形如 /media/<name>）。换头像/背景时清理旧图用 */
+export function deleteMediaUrl(url: string | null | undefined, ownerId: number): void {
+  const name = String(url ?? '').replace(/^\/media\//, '');
+  if (!name || name === url || !/^[a-zA-Z0-9-]+\.[a-z0-9]+$/.test(name)) return;
+  const row = db.prepare('SELECT owner_id FROM media_files WHERE name = ?').get(name) as { owner_id: number | null } | undefined;
+  if (!row || row.owner_id !== ownerId) return;
+  db.prepare('DELETE FROM media_files WHERE name = ?').run(name);
+  void localDriver.delete(name);
+  const driver = activeDriver();
+  if (driver.id !== localDriver.id) void driver.delete(name).catch(() => undefined);
+}
+
 export function deleteMediaByOwner(ownerId: number): void {
   const rows = db.prepare('SELECT name FROM media_files WHERE owner_id = ?').all(ownerId) as { name: string }[];
   const driver = activeDriver();

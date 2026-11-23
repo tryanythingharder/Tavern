@@ -17,7 +17,13 @@ export function authorBio(name: string): string {
   return custom || AUTHOR_BIOS[name] || '';
 }
 
-export type AuthorResult = { name: string; works: number; chats: number; latest: number; bio: string; hue: number };
+// 作者头像（账号自己上传的；种子作者没有）
+export function authorAvatar(name: string): string | null {
+  const row = db.prepare('SELECT avatar_url FROM users WHERE nickname = ? ORDER BY id LIMIT 1').get(name) as { avatar_url: string | null } | undefined;
+  return row?.avatar_url || null;
+}
+
+export type AuthorResult = { name: string; works: number; chats: number; latest: number; bio: string; hue: number; avatar: string | null };
 
 function heat(value: string): number {
   const number = Number(String(value).replace(/[^\d.]/g, '')) || 0;
@@ -45,6 +51,6 @@ export function searchAuthors(query: string, options: { hideNsfw?: boolean } = {
   }
   return [...map.entries()]
     .filter(([name, entry]) => name.toLowerCase().includes(q) || entry.matched)
-    .map(([name, entry]) => ({ name, works: entry.works, chats: entry.chats, latest: entry.latest, bio: authorBio(name), hue: 210 }))
+    .map(([name, entry]) => ({ name, works: entry.works, chats: entry.chats, latest: entry.latest, bio: authorBio(name), hue: 210, avatar: authorAvatar(name) }))
     .sort((a, b) => b.works - a.works || a.name.localeCompare(b.name));
 }

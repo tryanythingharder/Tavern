@@ -148,3 +148,22 @@ html body[data-theme="stage"]:not(#m) .ms-hero h1 { font-size: 40px; font-weight
 html body[data-theme="stage"]:not(#m) .ms-card { box-shadow: 0 1px 0 rgba(0, 0, 0, .02); }
 html body[data-theme="stage"]:not(#m) .ms-drawer { border-radius: 26px 0 0 26px; }
 html body:not(#a) .ms-ctx-def { margin-left: 4px; font-style: normal; opacity: .7; }
+
+/* 模型类别 / 能力（生图、语音、向量模型也在广场展示） */
+html body:not(#m) .ms-kind-ico { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 7px; font-size: 11px; font-weight: 700; background: var(--ms-ink); color: var(--ca-bg, #fff); }
+html body:not(#m) .ms-kind-ico--chat { background: #c9401f; color: #fff; }
+html body:not(#m) .ms-kind-ico--image { background: #d9822b; color: #fff; }
+html body:not(#m) .ms-kind-ico--tts { background: #2f8f6b; color: #fff; }
+html body:not(#m) .ms-kind-ico--embedding { background: #6b6f76; color: #fff; }
+html body:not(#m) .ms-fopts button:disabled { opacity: .42; cursor: default; }
+html body:not(#m) .ms-fopts button:disabled:hover { background: transparent; }
+html body:not(#m) .ms-fopts--chips button em { margin-left: 4px; font-size: 11px; }
+html body:not(#m) .ms-badge--kind { border-color: transparent; color: #fff; }
+html body:not(#m) .ms-badge--image { background: #d9822b; }
+html body:not(#m) .ms-badge--tts { background: #2f8f6b; }
+html body:not(#m) .ms-badge--embedding { background: #6b6f76; }
+html body:not(#m) .ms-price-free { font-size: 15px; font-weight: 700; color: var(--ms-ink); }
+html body:not(#m) .ms-price--big .ms-price-free { font-size: 20px; }
+html body:not(#m) .ms-auto-use { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--ms-muted); background: var(--ms-sunk); white-space: nowrap; }
+html body[data-theme="folio"]:not(#m) :is(.ms-kind-ico, .ms-auto-use) { border-radius: 0; }
+html body:not(#w) .am-kind-note { max-width: 340px; color: var(--ca-muted, #77777e); }

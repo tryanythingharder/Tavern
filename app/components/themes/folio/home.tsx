@@ -169,7 +169,7 @@ export function FolioHome({ data }: { data: HomeData }) {
               const chapter = Math.max(1, Math.ceil(chat.messageCount / 12));
               return (
                 <Link className="fo-bm fo-reveal" key={chat.id} href={`/chats/${chat.id}`} style={{ ['--d' as string]: i * 120 }}>
-                  {src ? <img src={src} alt="" /> : <span className="fo-bm-initial" aria-hidden="true">{chat.characterInitial}</span>}
+                  {src ? <img src={src} alt="" loading="lazy" decoding="async" /> : <span className="fo-bm-initial" aria-hidden="true">{chat.characterInitial}</span>}
                   <div className="fo-bm-main">
                     <div className="fo-ch"><span>第{cnNumber(chapter)}章 · {chat.title}</span><span className="fo-it">p. {pad(chat.messageCount)}</span></div>
                     <h3>{chat.characterName}{character?.hook && <small>{character.category}</small>}</h3>

@@ -98,7 +98,7 @@ export function NocDeck({ cards }: { cards: DeckCard[] }) {
             const hidden = Math.abs(pos) > 2;
             const inner = (
               <>
-                {card.cover ? <img src={card.cover} alt="" draggable={false} /> : <span className="noc-card-blank">{card.initial}</span>}
+                {card.cover ? <img src={card.cover} alt="" draggable={false} loading="lazy" decoding="async" /> : <span className="noc-card-blank">{card.initial}</span>}
                 <span className="noc-sheen" aria-hidden="true" />
                 <span className="noc-card-badge noc-latin">Feature {pad2(card.no)}</span>
                 <span className="noc-card-rating">{card.nsfw ? 'R18' : '全年龄'}</span>

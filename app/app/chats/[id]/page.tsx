@@ -2,7 +2,7 @@ import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getProfileMedia } from '@/lib/auth';
 import { pageCssHref } from '@/lib/css-assets';
 import { chatBranches, getChat, getCharacterById, listMessagesPage, messageOffset } from '@/lib/db';
 import { ChatBranches } from '@/components/chat-branches';
@@ -111,6 +111,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
           </header>
           <ChatBranches info={branches} justCreated={Boolean(branchFrom && branchFrom === branches.parent?.id)} />
           <ChatRoom
+            accountAvatar={getProfileMedia(user.id).avatar}
             chatId={chat.id}
             characterName={character.name}
             initialMessages={messages}

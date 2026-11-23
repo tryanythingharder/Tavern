@@ -27,7 +27,7 @@ export function ProtoAvatar({ character, size = 20 }: { character: CoverItem; si
   const src = coverSrc(character);
   return (
     <span className={`p-avatar${src ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: `${size}px`, ['--h' as string]: character.hue }}>
-      {src ? <img src={src} alt="" /> : character.initial}
+      {src ? <img src={src} alt="" loading="lazy" decoding="async" /> : character.initial}
     </span>
   );
 }

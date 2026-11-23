@@ -23,6 +23,6 @@ export function useLiveSprite() {
 // 没有封面时传 fallback（首字占位）：有表情立绘就显示立绘，否则显示占位
 export function LiveCover({ src, className, draggable, fallback = null }: { src: string | null; className?: string; draggable?: boolean; fallback?: ReactNode }) {
   const sprite = useLiveSprite();
-  if (!sprite) return src ? <img src={src} alt="" className={className} draggable={draggable} /> : <>{fallback}</>;
+  if (!sprite) return src ? <img src={src} alt="" className={className} draggable={draggable} loading="lazy" decoding="async" /> : <>{fallback}</>;
   return <img key={sprite.src} src={sprite.src} alt="" title={sprite.label} className={`${className ?? ''} is-live-sprite`.trim()} draggable={draggable} />;
 }

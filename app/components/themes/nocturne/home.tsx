@@ -141,7 +141,7 @@ export function NocturneHome({ data }: { data: HomeData }) {
               return (
                 <Link className="noc-reel noc-reveal" href={`/chats/${chat.id}`} key={chat.id}>
                   <div className="noc-reel-img">
-                    {cover ? <img src={cover} alt="" /> : <div className="noc-reel-blank">{chat.characterInitial}</div>}
+                    {cover ? <img src={cover} alt="" loading="lazy" decoding="async" /> : <div className="noc-reel-blank">{chat.characterInitial}</div>}
                     <span className="noc-reel-play" aria-hidden="true" />
                     <div className="noc-reel-ov">
                       <span className="noc-caps">第{cnNumber(info.act)}幕 · {chat.title}</span>

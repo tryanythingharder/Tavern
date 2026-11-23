@@ -164,7 +164,7 @@ export default async function SearchPage({
           <div className={`p-author-results${view === 'list' ? ' is-list' : ''}`}>
             {authors.map((author) => (
               <Link className="p-card p-author-result" href={`/a/${encodeURIComponent(author.name)}`} key={author.name}>
-                <span className="p-avatar" style={{ ['--size' as string]: '48px', ['--h' as string]: author.hue }}>{Array.from(author.name)[0]}</span>
+                <span className={`p-avatar${author.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '48px', ['--h' as string]: author.hue }}>{author.avatar ? <img src={author.avatar} alt="" loading="lazy" /> : Array.from(author.name)[0]}</span>
                 <span className="p-author-result-main">
                   <strong>{author.name}</strong>
                   <span className="p-small">@{author.name} · {author.works} 个公开作品 · {formatChats(author.chats)} 人聊过</span>

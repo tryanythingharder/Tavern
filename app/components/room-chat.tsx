@@ -19,9 +19,11 @@ import { showAlert } from '@/components/ui-dialog';
 import { langLabel } from '@/lib/translation';
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null; translation?: { lang: string; text: string; original: boolean } | null };
-type Member = { id: string; name: string; initial: string; hue: number; muted?: boolean };
+type Member = { id: string; name: string; initial: string; hue: number; avatar?: string | null; muted?: boolean };
 
 type Props = {
+  /** 账号头像：身份没设头像时，玩家消息用它（只影响显示） */
+  accountAvatar?: string | null;
   roomId: number;
   strategy: string;
   members: Member[];
@@ -54,7 +56,7 @@ const STRATEGY_HINT: Record<string, string> = {
 const NO_RULES: RegexRule[] = [];
 const NO_MEMBER_RULES: Record<string, RegexRule[]> = {};
 
-export function RoomChat({ roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = NO_RULES, memberRules = NO_MEMBER_RULES, quickReplies: qrInitial }: Props) {
+export function RoomChat({ accountAvatar = null, roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = NO_RULES, memberRules = NO_MEMBER_RULES, quickReplies: qrInitial }: Props) {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -563,10 +565,10 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
             } : undefined}
           >
             {isUser ? (
-              <UserAvatar name={message.personaName || userName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
+              <UserAvatar name={message.personaName || userName} avatar={(message.personaName ? message.personaAvatar : persona.avatar) || accountAvatar} />
             ) : (
-              <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: member?.hue ?? 212 }}>
-                {member?.initial ?? '·'}
+              <span className={`p-avatar${member?.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: member?.hue ?? 212 }}>
+                {member?.avatar ? <img src={member.avatar} alt="" loading="lazy" /> : member?.initial ?? '·'}
               </span>
             )}
             <div>
@@ -691,7 +693,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
     removeTranslation: typeof removeTranslation; remove: typeof remove; copy: typeof copy; branch: typeof branch;
   }, []);
   const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
-  const rowEnv = [members, rulesFor, macrosFor, userName, persona.avatar, thoughtsOpen, roomId, streaming, streamingId === null];
+  const rowEnv = [members, rulesFor, macrosFor, userName, persona.avatar, accountAvatar, thoughtsOpen, roomId, streaming, streamingId === null];
   const rowEnvRef = useRef<unknown[]>(rowEnv);
   if (rowEnv.some((v, i) => v !== rowEnvRef.current[i])) { rowEnvRef.current = rowEnv; rowCache.current.clear(); }
   const cachedRow = (message: (typeof messages)[number], index: number) => {
@@ -726,7 +728,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
               <div className="room-empty-cast">
                 {members.filter((member) => !member.muted).map((member) => (
                   <button key={member.id} type="button" className="room-empty-chip" title={`让${member.name}先开口`} disabled={streaming} onClick={() => forceTalk(member.id)}>
-                    <span className="p-avatar" style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.initial}</span>
+                    <span className={`p-avatar${member.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.avatar ? <img src={member.avatar} alt="" loading="lazy" /> : member.initial}</span>
                     {member.name}
                   </button>
                 ))}
@@ -757,7 +759,7 @@ export function RoomChat({ roomId, strategy, members, initialMessages, userName:
                   disabled={streaming || impersonating}
                   onClick={() => forceTalk(member.id)}
                 >
-                  <span className="p-avatar" style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.initial}</span>
+                  <span className={`p-avatar${member.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.avatar ? <img src={member.avatar} alt="" loading="lazy" /> : member.initial}</span>
                 </button>
               ))}
             </span>

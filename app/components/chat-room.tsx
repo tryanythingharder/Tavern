@@ -50,6 +50,8 @@ export type ChatMessageView = {
 };
 
 type Props = {
+  /** 账号头像：身份没设头像时，玩家消息用它（只影响显示） */
+  accountAvatar?: string | null;
   chatId: number;
   characterName: string;
   initialMessages: ChatMessageView[];
@@ -123,7 +125,7 @@ function friendlyError(message: string): string {
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
 const NO_RULES: RegexRule[] = [];
 
-export function ChatRoom({ chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = NO_RULES, macros }: Props) {
+export function ChatRoom({ accountAvatar = null, chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = NO_RULES, macros }: Props) {
   const router = useRouter();
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
   const [personaLock, setPersonaLock] = useState<number | null>(personaInit?.lockedId ?? null);
@@ -1103,7 +1105,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
             } : undefined}
           >
             {isNarrator ? null : isUser ? (
-              <UserAvatar name={message.personaName || personaName} avatar={message.personaName ? message.personaAvatar ?? null : persona.avatar} />
+              <UserAvatar name={message.personaName || personaName} avatar={(message.personaName ? message.personaAvatar : persona.avatar) || accountAvatar} />
             ) : (
               <span className={`p-avatar${characterCover ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: characterHue }}>
                 {characterCover ? <img src={characterCover} alt="" /> : Array.from(characterName)[0]}
@@ -1303,7 +1305,7 @@ export function ChatRoom({ chatId, characterName, initialMessages, initialHasMor
     speak: typeof speak; toggleBookmark: typeof toggleBookmark; branch: typeof branch; toggleHidden: typeof toggleHidden; streaming: boolean; editing: typeof editing;
   }, []);
   const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
-  const rowEnv = [displayRules, displayMacros, characterCover, characterName, characterHue, personaName, persona.avatar, thoughtsOpen, media?.tts, chatId];
+  const rowEnv = [displayRules, displayMacros, characterCover, characterName, characterHue, personaName, persona.avatar, accountAvatar, thoughtsOpen, media?.tts, chatId];
   const rowEnvRef = useRef<unknown[]>(rowEnv);
   if (rowEnv.some((v, i) => v !== rowEnvRef.current[i])) { rowEnvRef.current = rowEnv; rowCache.current.clear(); }
   const depthMatters = usesDepth(displayRules);
