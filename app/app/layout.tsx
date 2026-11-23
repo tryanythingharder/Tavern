@@ -2,7 +2,7 @@ import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { SiteShell } from '@/components/site-shell';
-import { getCurrentUser, isAdmin } from '@/lib/auth';
+import { getCurrentUser, getProfileMedia, isAdmin } from '@/lib/auth';
 import { balance, ensureStartingPoints } from '@/lib/points';
 import { unreadCount } from '@/lib/notifications';
 import { listChats } from '@/lib/db';
@@ -127,7 +127,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             __html: `(function(){var p=location.pathname;var k=p==='/'?'home':p.indexOf('/c/')===0?'character':p.indexOf('/chats/')===0?'chat':p.indexOf('/chats')===0?'chats':p.indexOf('/a/')===0?'author':p.indexOf('/rooms/')===0?'chat':p.indexOf('/rooms')===0?'rooms':p.indexOf('/create')===0?'create':p.indexOf('/library')===0?'library':p.indexOf('/notifications')===0?'notifications':p.indexOf('/me')===0?'settings':p.indexOf('/admin')===0?'admin':(p.split('/')[1]||'home');var cinema=${JSON.stringify(view)}==='cinema'&&['home','plaza','character','author'].indexOf(k)>=0;document.body.dataset.page=k;document.body.dataset.view=cinema?'cinema':'classic';document.body.classList.toggle('p-cinema',cinema);try{var at=${JSON.stringify(announcement.trim()).replace(/</g, '\\u003c')};var ah=5381;for(var i=0;i<at.length;i++)ah=((ah<<5)+ah+at.charCodeAt(i))|0;if(localStorage.getItem('tavern-announcement-dismissed')===(ah>>>0).toString(36))document.body.classList.add('announcement-off')}catch(e){}})();`,
           }}
         />
-        <SiteShell userName={user?.nickname} userEmail={user?.email} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} appearance={custom} announcement={announcement} checkin={checkin} wallet={wallet}>
+        <SiteShell userName={user?.nickname} userEmail={user?.email} userAvatar={user ? getProfileMedia(user.id).avatar : null} points={points} unread={unread} admin={user ? isAdmin(user) : false} recents={recents} costs={costs} view={view} theme={theme} appearance={custom} announcement={announcement} checkin={checkin} wallet={wallet}>
           {children}
         </SiteShell>
         {user && !playMode ? <PlayModeChooser /> : null}

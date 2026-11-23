@@ -44,6 +44,7 @@ export function SiteShell({
   children,
   userName,
   userEmail,
+  userAvatar = null,
   points: initialPoints = 0,
   unread = 0,
   admin = false,
@@ -59,6 +60,7 @@ export function SiteShell({
   children: ReactNode;
   userName?: string;
   userEmail?: string;
+  userAvatar?: string | null;
   points?: number;
   unread?: number;
   admin?: boolean;
@@ -249,7 +251,7 @@ export function SiteShell({
           <AdminSideNav pathname={pathname} />
           <div className="p-side-foot">
             <Link className="p-user-row" href="/me">
-              <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: 28 }}>{userName ? Array.from(userName)[0] : 'A'}</span>
+              <span className={`p-avatar${userAvatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: 28 }}>{userAvatar ? <img src={userAvatar} alt="" /> : userName ? Array.from(userName)[0] : 'A'}</span>
               <span><span className="p-user-name">{userName ?? '管理员'}</span><br /><span className="p-user-sub">超级管理员</span></span>
             </Link>
             <Link className="p-btn p-btn--sm p-btn--block" href="/">返回前台</Link>
@@ -286,7 +288,7 @@ export function SiteShell({
               </Link>
             )}
             {pointsMenu}
-            <AccountMenu userName={userName} email={userEmail} points={points} admin={admin} triggerClassName="cinema-account" />
+            <AccountMenu userName={userName} email={userEmail} avatar={userAvatar} points={points} admin={admin} triggerClassName="cinema-account" />
           </div>
         </header>
         <main className="cinema-main" id="main-content" tabIndex={-1}>{children}</main>
@@ -353,7 +355,7 @@ export function SiteShell({
 
         <div className="p-side-foot">
           <Link className="p-user-row" href={userName ? '/me' : '/login'}>
-            <span className="p-avatar" style={{ ['--size' as string]: '32px', ['--h' as string]: 28 }}>{userName ? Array.from(userName)[0] : '林'}</span>
+            <span className={`p-avatar${userAvatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: 28 }}>{userAvatar ? <img src={userAvatar} alt="" /> : userName ? Array.from(userName)[0] : '林'}</span>
             <span><span className="p-user-name">{userName ?? '未登录'}</span><br /><span className="p-user-sub">{userName ? `${points} 点` : '点击登录'}</span></span>
           </Link>
         </div>
@@ -387,7 +389,7 @@ export function SiteShell({
             </Link>
           )}
           {pointsMenu}
-          <AccountMenu userName={userName} email={userEmail} points={points} admin={admin} triggerStyle={{ ['--size' as string]: '36px', ['--h' as string]: 28 }} />
+          <AccountMenu userName={userName} email={userEmail} avatar={userAvatar} points={points} admin={admin} triggerStyle={{ ['--size' as string]: '36px', ['--h' as string]: 28 }} />
         </header>
         {!adminPage && !pathname.startsWith('/chats/') && !pathname.startsWith('/rooms/') && <AnnouncementBar text={announcement} />}
         <span id="main-content" tabIndex={-1} className="main-anchor" />

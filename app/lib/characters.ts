@@ -396,16 +396,16 @@ export function deleteCharacter(ownerId: number, id: string): 'deleted' | 'archi
 
 // ---------- 评论 ----------
 
-export type Comment = { id: number; characterId: string; userId: number; nickname: string; content: string; createdAt: number };
+export type Comment = { id: number; characterId: string; userId: number; nickname: string; avatar: string | null; content: string; createdAt: number };
 
 export function listComments(characterId: string, limit = 50): Comment[] {
   const rows = db.prepare(`
-        SELECT c.id, c.character_id, c.user_id, c.content, c.created_at, u.nickname
+        SELECT c.id, c.character_id, c.user_id, c.content, c.created_at, u.nickname, u.avatar_url
         FROM comments c JOIN users u ON u.id = c.user_id
         WHERE c.character_id = ? AND c.status = 'visible'
         ORDER BY c.id DESC LIMIT ?
-    `).all(characterId, limit) as { id: number; character_id: string; user_id: number; content: string; created_at: number; nickname: string }[];
-  return rows.map((row) => ({ id: row.id, characterId: row.character_id, userId: row.user_id, nickname: row.nickname, content: row.content, createdAt: row.created_at }));
+    `).all(characterId, limit) as { id: number; character_id: string; user_id: number; content: string; created_at: number; nickname: string; avatar_url: string | null }[];
+  return rows.map((row) => ({ id: row.id, characterId: row.character_id, userId: row.user_id, nickname: row.nickname, avatar: row.avatar_url || null, content: row.content, createdAt: row.created_at }));
 }
 
 export function addComment(characterId: string, userId: number, content: string): Comment | null {
@@ -413,8 +413,9 @@ export function addComment(characterId: string, userId: number, content: string)
   if (!text) return null;
   const now = Date.now();
   const result = db.prepare('INSERT INTO comments (character_id, user_id, content, created_at) VALUES (?,?,?,?)').run(characterId, userId, text, now);
-  const nickname = (db.prepare('SELECT nickname FROM users WHERE id = ?').get(userId) as { nickname: string } | undefined)?.nickname ?? '旅人';
-  return { id: Number(result.lastInsertRowid), characterId, userId, nickname, content: text, createdAt: now };
+  const who = db.prepare('SELECT nickname, avatar_url FROM users WHERE id = ?').get(userId) as { nickname: string; avatar_url: string | null } | undefined;
+  const nickname = who?.nickname ?? '旅人';
+  return { id: Number(result.lastInsertRowid), characterId, userId, nickname, avatar: who?.avatar_url || null, content: text, createdAt: now };
 }
 
 export function deleteComment(commentId: number, userId: number, isAdmin: boolean): boolean {

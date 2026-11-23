@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ReportButton } from '@/components/report-button';
 import { ErrorLine, api } from '@/components/settings-ui';
 
-type Comment = { id: number; userId: number; nickname: string; content: string; createdAt: number };
+type Comment = { id: number; userId: number; nickname: string; avatar?: string | null; content: string; createdAt: number };
 
 export function CharacterComments({
   characterId,
@@ -82,7 +82,8 @@ export function CharacterComments({
       <div style={{ display: 'grid', gap: 10 }}>
         {comments.slice(0, visible).map((comment) => (
           <div key={comment.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface)' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className={`p-avatar p-comment-face${comment.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '26px', ['--h' as string]: 28 }} aria-hidden="true">{comment.avatar ? <img src={comment.avatar} alt="" /> : Array.from(comment.nickname || '旅')[0]}</span>
               <span style={{ fontWeight: 650, fontSize: 13 }}>{comment.nickname}</span>
               <span className="small" style={{ fontSize: 11 }}><LocalTime value={comment.createdAt} style="mdhm" /></span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>

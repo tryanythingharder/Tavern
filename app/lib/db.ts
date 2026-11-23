@@ -443,6 +443,9 @@ ensureColumn('users', 'age_verify_method', 'TEXT');
 ensureColumn('users', 'chat_font', 'INTEGER NOT NULL DEFAULT 100');
 ensureColumn('users', 'chat_bg', "TEXT NOT NULL DEFAULT 'default'");
 ensureColumn('users', 'author_bio', 'TEXT');
+// 个人头像 / 主页背景图（站内裁剪后上传，存 /media/ 地址）
+ensureColumn('users', 'avatar_url', 'TEXT');
+ensureColumn('users', 'banner_url', 'TEXT');
 ensureColumn('users', 'email_verified_at', 'INTEGER');
 ensureColumn('users', 'totp_secret', 'TEXT');
 ensureColumn('users', 'totp_recovery', 'TEXT');

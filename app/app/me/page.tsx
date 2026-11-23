@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getAuthorBio, getCurrentUser, isEmailVerified } from '@/lib/auth';
+import { getAuthorBio, getCurrentUser, getProfileMedia, isEmailVerified } from '@/lib/auth';
 import { usageSummary } from '@/lib/db';
 import { DAILY_TOKEN_CAP, RATE_PER_MIN } from '@/lib/usage';
 import { hideNsfw } from '@/lib/prefs';
@@ -24,7 +24,7 @@ export default async function MePage() {
     <section className="p-section" id="account">
       <h2>账号</h2>
       <p>昵称会用于新作品署名和评论展示；历史内容保留发布时的名字。</p>
-      <ProfileForm nickname={user.nickname} email={user.email} bio={getAuthorBio(user.id)} />
+      <ProfileForm nickname={user.nickname} email={user.email} bio={getAuthorBio(user.id)} {...getProfileMedia(user.id)} />
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">邮箱验证</h2>
         <EmailStatus email={user.email} verified={isEmailVerified(user.id)} />

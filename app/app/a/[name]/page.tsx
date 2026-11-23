@@ -9,7 +9,7 @@ import { tr } from '@/lib/i18n/runtime';
 import { NOINDEX, alternates, ogImage } from '@/lib/seo';
 import { AuthorActions } from '@/components/author-actions';
 import { ProtoWorkCard } from '@/components/proto-work-card';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, profileMediaByName } from '@/lib/auth';
 import { followerCount, isFollowing } from '@/lib/follows';
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +44,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ name: s
   const joined = works.reduce((min, character) => (character.createdAt && (!min || character.createdAt < min) ? character.createdAt : min), 0);
   const joinedText = joined ? ` · 加入于 ${new Date(joined).getFullYear()} 年 ${new Date(joined).getMonth() + 1} 月` : '';
   const bio = authorBio(author);
+  const media = profileMediaByName(author);
   const viewer = await getCurrentUser();
   const followers = followerCount(author);
   const following = viewer ? isFollowing(viewer.id, author) : false;
@@ -55,8 +56,9 @@ export default async function AuthorPage({ params }: { params: Promise<{ name: s
         返回广场
       </Link>
 
-      <section className="p-card p-card--pad p-author-hero">
-        <span className="p-avatar" style={{ ['--size' as string]: '80px', ['--h' as string]: 210 }}>{Array.from(author)[0]}</span>
+      <section className={`p-card p-card--pad p-author-hero${media.banner ? ' has-banner' : ''}`}>
+        {media.banner && <div className="p-author-banner" style={{ backgroundImage: `url(${media.banner})` }} aria-hidden="true" />}
+        <span className={`p-avatar${media.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '80px', ['--h' as string]: 210 }}>{media.avatar ? <img src={media.avatar} alt="" /> : Array.from(author)[0]}</span>
         <div className="p-author-main">
           <h1>{author}</h1>
           <p>@{author} · 创作者{joinedText}</p>

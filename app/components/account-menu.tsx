@@ -43,6 +43,7 @@ const ic = (d: string) => (
 export function AccountMenu({
   userName,
   email,
+  avatar = null,
   points,
   admin = false,
   triggerClassName = 'p-avatar',
@@ -50,6 +51,7 @@ export function AccountMenu({
 }: {
   userName?: string;
   email?: string;
+  avatar?: string | null;
   points: number;
   admin?: boolean;
   triggerClassName?: string;
@@ -116,7 +118,7 @@ export function AccountMenu({
     <>
       <button
         ref={triggerRef}
-        className={`${triggerClassName} p-acct-trigger`}
+        className={`${triggerClassName} p-umenu-trigger${avatar ? ' p-avatar--art' : ''}`}
         style={triggerStyle}
         type="button"
         aria-label="我的账号"
@@ -126,55 +128,55 @@ export function AccountMenu({
         data-open={open ? '' : undefined}
         onClick={() => setOpen((value) => !value)}
       >
-        {initial}
+        {avatar ? <img src={avatar} alt="" /> : initial}
       </button>
       {open && (
         <div
           ref={panelRef}
-          className="p-points-panel p-acct"
+          className="p-points-panel p-umenu"
           id="account-menu"
           role="menu"
           aria-label="我的账号"
           style={pos ? { top: pos.top, right: pos.right } : { visibility: 'hidden' }}
           onKeyDown={onPanelKey}
         >
-          <Link className="p-acct-head" href="/me" role="menuitem" onClick={close}>
-            <span className="p-acct-avatar" aria-hidden="true">{initial}</span>
-            <span className="p-acct-id">
+          <Link className="p-umenu-head" href="/me" role="menuitem" onClick={close}>
+            <span className={`p-umenu-avatar${avatar ? ' has-image' : ''}`} aria-hidden="true">{avatar ? <img src={avatar} alt="" /> : initial}</span>
+            <span className="p-umenu-id">
               <b>{userName}</b>
-              {email && <span className="p-acct-mail">{email}</span>}
+              {email && <span className="p-umenu-mail">{email}</span>}
             </span>
           </Link>
-          <div className="p-acct-meta">
+          <div className="p-umenu-meta">
             <span>点数余额 <b>{fmt(points)}</b></span>
             {admin && <em>管理员</em>}
           </div>
-          <div className="p-acct-list">
-            <Link className="p-acct-item" href="/me" role="menuitem" onClick={close}>
+          <div className="p-umenu-list">
+            <Link className="p-umenu-item" href="/me" role="menuitem" onClick={close}>
               {ic('M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5 20a7 7 0 0 1 14 0')}
               <span>个人信息</span>
             </Link>
-            <Link className="p-acct-item" href="/me/security" role="menuitem" onClick={close}>
+            <Link className="p-umenu-item" href="/me/security" role="menuitem" onClick={close}>
               {ic('M12 3 4 7v6c0 4 3.4 7.4 8 8 4.6-.6 8-4 8-8V7z')}
               <span>账号与安全</span>
             </Link>
-            <Link className="p-acct-item" href="/me/appearance" role="menuitem" onClick={close}>
+            <Link className="p-umenu-item" href="/me/appearance" role="menuitem" onClick={close}>
               {ic('M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z')}
               <span>设置</span>
             </Link>
-            <Link className="p-acct-item" href="/me/points" role="menuitem" onClick={close}>
+            <Link className="p-umenu-item" href="/me/points" role="menuitem" onClick={close}>
               {ic('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 7v10M9 9.5h4.5a1.75 1.75 0 0 1 0 3.5h-3a1.75 1.75 0 0 0 0 3.5H15')}
               <span>点数与充值</span>
             </Link>
             {admin && (
-              <Link className="p-acct-item" href="/admin" role="menuitem" onClick={close}>
+              <Link className="p-umenu-item" href="/admin" role="menuitem" onClick={close}>
                 {ic('M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z')}
                 <span>管理后台</span>
               </Link>
             )}
           </div>
-          <div className="p-acct-foot">
-            <button className="p-acct-item p-acct-out" type="button" role="menuitem" onClick={() => { close(); void confirmLogout(); }}>
+          <div className="p-umenu-foot">
+            <button className="p-umenu-item p-umenu-out" type="button" role="menuitem" onClick={() => { close(); void confirmLogout(); }}>
               {ic('M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4')}
               <span>退出登录</span>
             </button>

@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Modal, api } from '@/components/settings-ui';
+import { ProfileMediaHeader } from '@/components/profile-media';
 
-export function ProfileForm({ nickname, email, bio }: { nickname: string; email: string; bio: string }) {
+export function ProfileForm({ nickname, email, bio, avatar = null, banner = null }: { nickname: string; email: string; bio: string; avatar?: string | null; banner?: string | null }) {
   const router = useRouter();
   const [value, setValue] = useState(nickname);
   const [bioValue, setBioValue] = useState(bio);
@@ -94,8 +95,7 @@ export function ProfileForm({ nickname, email, bio }: { nickname: string; email:
   return (
     <>
     <div className="p-card p-card--pad">
-      <div className="p-acct">
-        <span className="p-avatar" style={{ ['--size' as string]: '64px', ['--h' as string]: 28 }}>{Array.from(nickname)[0] ?? '我'}</span>
+      <ProfileMediaHeader nickname={nickname} avatar={avatar} banner={banner}>
         <div className="p-acct-id">
           <strong>{nickname}</strong>
           <span>{email} · 已登录</span>
@@ -104,7 +104,7 @@ export function ProfileForm({ nickname, email, bio }: { nickname: string; email:
           <button className="p-btn p-btn--sm" type="button" onClick={() => { setEmailOpen(true); setEmailSent(false); setEmailError(''); setNewEmail(''); }}>更换邮箱</button>
           <button className="p-btn p-btn--sm" type="button" onClick={() => { setPasswordOpen(true); setPasswordDone(false); setPasswordError(''); }}>修改密码</button>
         </div>
-      </div>
+      </ProfileMediaHeader>
       <div className="p-field" style={{ marginTop: 20 }}>
         <label className="p-label" htmlFor="profile-nickname">昵称</label>
         <input

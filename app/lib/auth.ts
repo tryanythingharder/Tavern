@@ -124,6 +124,23 @@ export function updateAuthorBio(userId: number, bio: string): void {
   db.prepare('UPDATE users SET author_bio = ? WHERE id = ?').run(value || null, userId);
 }
 
+export type ProfileMedia = { avatar: string | null; banner: string | null };
+
+export function getProfileMedia(userId: number): ProfileMedia {
+  const row = db.prepare('SELECT avatar_url, banner_url FROM users WHERE id = ?').get(userId) as { avatar_url: string | null; banner_url: string | null } | undefined;
+  return { avatar: row?.avatar_url || null, banner: row?.banner_url || null };
+}
+
+/** 按作者昵称查头像与背景（作者页、评论用；昵称不唯一时取最早注册的账号，与 authorBio 一致） */
+export function profileMediaByName(nickname: string): ProfileMedia {
+  const row = db.prepare('SELECT avatar_url, banner_url FROM users WHERE nickname = ? ORDER BY id LIMIT 1').get(nickname) as { avatar_url: string | null; banner_url: string | null } | undefined;
+  return { avatar: row?.avatar_url || null, banner: row?.banner_url || null };
+}
+
+export function setProfileMedia(userId: number, kind: 'avatar' | 'banner', url: string | null): void {
+  db.prepare(`UPDATE users SET ${kind === 'avatar' ? 'avatar_url' : 'banner_url'} = ? WHERE id = ?`).run(url, userId);
+}
+
 export function getPasswordHash(userId: number): string | null {
   const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as { password_hash: string } | undefined;
   return row?.password_hash ?? null;
@@ -258,7 +275,7 @@ export function deleteAccountData(userId: number): void {
     db.prepare(`
             UPDATE users
             SET email = ?, nickname = '已注销用户', password_hash = '', status = 'deleted',
-                role = 'user', author_bio = NULL, email_verified_at = NULL, hide_nsfw = 1
+                role = 'user', author_bio = NULL, avatar_url = NULL, banner_url = NULL, email_verified_at = NULL, hide_nsfw = 1
             WHERE id = ?
         `).run(`deleted-${userId}@invalid.local`, userId);
   });
