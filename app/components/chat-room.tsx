@@ -1083,6 +1083,8 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
         const isLatest = index === messages.length - 1;
         // ST：第一条开场白只能在备选开场白之间切换，不生成新版
         const isGreeting = !hasMore && index === 0 && !isUser;
+        // 插图消息：没有「回复版本」，重新生成=按同一段画面描述再画一张
+        const isImage = message.attachment?.kind === 'image';
         const numericId = typeof message.id === 'number' ? message.id : null;
         const isEditing = editing !== null && editing.id === message.id;
         const isStreamingThis = streamingId === message.id;
@@ -1217,7 +1219,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
                   ) : null}
                 </>
               )}
-              {!isEditing && !isUser && isLatest && numericId !== null && !isStreamingThis && message.content && (
+              {!isEditing && !isUser && !isImage && isLatest && numericId !== null && !isStreamingThis && message.content && (
                 <div className="rp-swipe" role="group" aria-label="回复版本">
                   <button type="button" aria-label="上一版回复" disabled={message.selected <= 0 || switching === numericId || streaming} onClick={() => void L.switchCandidate(message, message.selected - 1)}><Ico name="prev" /></button>
                   <span className="rp-swipe-index" aria-live="polite">{Math.max(1, message.selected + 1)} / {Math.max(1, message.candidateCount)}</span>
@@ -1262,21 +1264,23 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
                         </span>
                       )}
                       <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void L.copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
-                      {numericId !== null && !isStreamingThis && message.content && !message.translation && (
+                      {!isImage && numericId !== null && !isStreamingThis && message.content && !message.translation && (
                         <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}><Ico name="translate" /></button>
                       )}
-                      {numericId !== null && !isStreamingThis && (
+                      {!isImage && numericId !== null && !isStreamingThis && (
                         <button type="button" aria-label="编辑消息" title="编辑消息" onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
                       )}
-                      {!isUser && numericId !== null && !isStreamingThis && media?.tts && (
+                      {!isUser && !isImage && numericId !== null && !isStreamingThis && media?.tts && (
                         <button type="button" aria-label="朗读" title="朗读" onClick={() => void L.speak(message)}><Ico name="play" /></button>
                       )}
                       {numericId !== null && !isStreamingThis && (
                         <button type="button" data-act="bookmark" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void L.toggleBookmark(message)}><Ico name="star" /></button>
                       )}
-                      {!isUser && !isGreeting && numericId !== null && !isStreamingThis && (
+                      {!isUser && !isGreeting && numericId !== null && !isStreamingThis && (isImage ? (
+                        <button type="button" data-act="regen" aria-label="按这段描述再画一张" title="再画一张" disabled={streaming || imageBusy} onClick={() => { setImageMode('custom'); setImagePrompt(message.attachment?.prompt ?? ''); setImageOpen(true); }}><Ico name="regen" /></button>
+                      ) : (
                         <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={isLatest && streaming} onClick={() => void L.regenerate(message)}><Ico name="regen" /></button>
-                      )}
+                      ))}
                       {numericId !== null && !isStreamingThis && (
                         <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" onClick={() => void L.branch(message)}><Ico name="branch" /></button>
                       )}

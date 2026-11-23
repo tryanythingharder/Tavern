@@ -4450,5 +4450,7 @@
  "创建订单后会跳到支付页面，付款成功自动到账。": "You'll go to the payment page, and points arrive as soon as payment succeeds.",
  "已创建订单：{0} 点 / {1}。请联系客服确认到账。": "Order created: {0} pts / {1}. Contact support to confirm payment.",
  "余额不多了，用完后生成会暂停，可以在下方充值或兑换。": "You're running low. Generation pauses at zero, so top up or redeem a code below.",
- "§每天 {0} 点，生成时优先抵扣，每天 {1}（当地时间）刷新，不累积。": "{0} pts a day, used first when you generate. Resets daily at {1} your time and doesn't roll over."
+ "§每天 {0} 点，生成时优先抵扣，每天 {1}（当地时间）刷新，不累积。": "{0} pts a day, used first when you generate. Resets daily at {1} your time and doesn't roll over.",
+ "按这段描述再画一张": "Draw another from this description",
+ "再画一张": "Draw again"
 }
