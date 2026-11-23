@@ -821,7 +821,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-quick .p-
   html body[data-theme="stage"]:not(.p-cinema) .stg-qa-sp, html body[data-theme="stage"]:not(.p-cinema) .stg-persona { display: none; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-compose-row { border-radius: 22px; padding: 8px 6px 6px 14px; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose .p-chat-send { width: 42px; height: 42px; flex-basis: 42px; border-radius: 50%; }
-  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > div[style]:not(.stg-qa) { display: none !important; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-compose > .p-chat-col > div[style]:not(.stg-qa):not(.p-img-entry) { display: none !important; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg:not(.p-msg-user) > .p-avatar { display: block; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg .p-msg-more { top: -2px; right: 0; }
   html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll article.p-msg.p-msg-user .p-msg-more { right: 56px; left: auto; }

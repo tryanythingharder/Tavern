@@ -31,7 +31,9 @@ function humanNote(raw: string | null | undefined): { text: string; chatId?: num
     .replace(/chat:(\d+)/g, (_m, n) => tr('对话 #{n}', { n }))
     .replace(/room:(\d+)/g, (_m, n) => tr('群聊 #{n}', { n }))
     .replace(/\s*·\s*$/, '')
-    .replace(/^代写(?=\s|·|$)/, () => tr('代写'));
+    .replace(/^代写(?=\s|·|$)/, () => tr('代写'))
+    .replace(/^生图描述(?=\s|·|$)/, () => tr('生图描述'))
+    .replace(/^生图(?=\s|·|$)/, () => tr('生图'));
   return { text, chatId: chat ? Number(chat[1]) : undefined };
 }
 

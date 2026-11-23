@@ -4423,5 +4423,21 @@
  "面具": "Mask",
  "远山": "Mountains",
  "清酒": "Sake",
- "盆景": "Bonsai"
+ "盆景": "Bonsai",
+ "画什么": "What to draw",
+ "当前场景": "Current scene",
+ "按最近几轮对话画出眼下的画面": "Draws what's happening now, from the last few turns",
+ "最后一条回复": "Last reply",
+ "把角色刚说的那一幕画出来": "Draws the moment in the latest reply",
+ "按角色设定画一张人物像": "A portrait based on the character card",
+ "自己描述": "Describe it myself",
+ "完全按你写的内容画": "Draws exactly what you write",
+ "补充要求（可不填）": "Extra details (optional)",
+ "例如：水彩风、侧脸、雨夜": "e.g. watercolor, side profile, rainy night",
+ "构思画面并生成…": "Composing and generating…",
+ "对话模型未配置，没法自动写画面描述": "No chat model is set up, so the scene can't be described automatically",
+ "点数不足，没法写画面描述": "Not enough points to describe the scene",
+ "模型没写出画面描述，换个方式再试": "The model didn't return a description. Try another option.",
+ "生图还没开通：请管理员在后台「接口配置 · 生图」里填好": "Image generation isn't set up yet. An admin needs to fill it in under Settings › Image.",
+ "生图描述": "Image prompt"
 }

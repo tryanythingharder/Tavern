@@ -160,3 +160,15 @@ html[data-chat-focus][data-chat-stage] body[data-page="chat"]:not(#_):not(#__) .
 .chat-gallery-ph { font-size: 56px; line-height: 1; color: rgba(243,236,229,.78); font-family: var(--fo-display, serif); }
 .chat-gallery-ph-tip { font-size: 12px; color: rgba(243,236,229,.55); }
 .chat-stage .chat-gallery-tile.is-empty:not(#_):hover .chat-gallery-ph-tip { color: #f0714f; }
+
+/* 生图弹窗：画什么 */
+html body:not(#w) .p-img-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+html body:not(#w) .p-img-mode { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--ca-line, rgba(0,0,0,.12)); border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+html body:not(#w) .p-img-mode strong { font-size: 13.5px; font-weight: 650; }
+html body:not(#w) .p-img-mode span { font-size: 12px; line-height: 1.45; color: var(--ca-muted, #77777e); }
+html body:not(#w) .p-img-mode:hover { border-color: color-mix(in srgb, var(--ca-accent, #c9401f) 45%, transparent); }
+html body:not(#w) .p-img-mode.is-on { border-color: var(--ca-accent, #c9401f); background: color-mix(in srgb, var(--ca-accent, #c9401f) 9%, transparent); }
+html body:not(#w) .p-img-mode.is-on strong { color: var(--ca-accent, #c9401f); }
+html body:not(#w) .p-img-mode:disabled { cursor: progress; opacity: .7; }
+@media (max-width: 420px) { html body:not(#w) .p-img-modes { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { html body:not(#w) .p-img-mode { transition: none; } }

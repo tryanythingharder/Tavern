@@ -192,6 +192,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [openActions, setOpenActions] = useState<number | string | null>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
+  const [imageMode, setImageMode] = useState<'scene' | 'last' | 'character' | 'custom'>('scene');
   const [imageBusy, setImageBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const autoContinueRef = useRef<{ id: number; content: string } | null>(null);
@@ -1042,14 +1043,14 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
 
   const makeImage = useCallback(async () => {
     const prompt = imagePrompt.trim();
-    if (!prompt) return;
+    if (imageMode === 'custom' && !prompt) return;
     setImageBusy(true);
     setError('');
     try {
       const response = await fetch(`/api/chats/${chatId}/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(imageMode === 'custom' ? { mode: 'custom', prompt } : { mode: imageMode, hint: prompt }),
       });
       const data = (await response.json().catch(() => ({}))) as { message?: string };
       if (!response.ok) throw new Error(data.message || '生图失败');
@@ -1061,7 +1062,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
     } finally {
       setImageBusy(false);
     }
-  }, [chatId, imagePrompt, resync]);
+  }, [chatId, imagePrompt, imageMode, resync]);
 
   const copy = useCallback(async (message: ChatMessageView) => {
     try {
@@ -1394,7 +1395,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
             </div>
           )}
           {media?.image && (
-            <div style={{ marginBottom: 8 }}>
+            <div className="p-img-entry" style={{ marginBottom: 8 }}>
               <button className="p-text-btn" type="button" onClick={() => setImageOpen(true)}>生图</button>
             </div>
           )}
@@ -1461,23 +1462,39 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
           footer={
             <>
               <button className="btn btn--sm" type="button" onClick={() => setImageOpen(false)}>取消</button>
-              <button className="btn btn--sm btn--primary" type="button" disabled={imageBusy || !imagePrompt.trim()} onClick={() => void makeImage()}>
-                {imageBusy ? '生成中…' : '生成'}
+              <button className="btn btn--sm btn--primary" type="button" disabled={imageBusy || (imageMode === 'custom' && !imagePrompt.trim())} onClick={() => void makeImage()}>
+                {imageBusy ? (imageMode === 'custom' ? '生成中…' : '构思画面并生成…') : '生成'}
               </button>
             </>
           }
         >
           <div className="field">
-            <label>画面描述</label>
+            <label>画什么</label>
+            <div className="p-img-modes" role="radiogroup" aria-label="画什么">
+              {([
+                ['scene', '当前场景', '按最近几轮对话画出眼下的画面'],
+                ['last', '最后一条回复', '把角色刚说的那一幕画出来'],
+                ['character', '角色立绘', '按角色设定画一张人物像'],
+                ['custom', '自己描述', '完全按你写的内容画'],
+              ] as const).map(([value, label, desc]) => (
+                <button key={value} type="button" role="radio" aria-checked={imageMode === value} className={`p-img-mode${imageMode === value ? ' is-on' : ''}`} disabled={imageBusy} onClick={() => setImageMode(value)}>
+                  <strong>{label}</strong><span>{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>{imageMode === 'custom' ? '画面描述' : '补充要求（可不填）'}</label>
             <textarea
               className="textarea"
-              rows={4}
+              rows={imageMode === 'custom' ? 4 : 2}
               value={imagePrompt}
-              placeholder="例如：民国报馆的雨夜，暖黄台灯下两个人对坐，窗外雨幕"
+              maxLength={imageMode === 'custom' ? 900 : 200}
+              placeholder={imageMode === 'custom' ? '例如：民国报馆的雨夜，暖黄台灯下两个人对坐，窗外雨幕' : '例如：水彩风、侧脸、雨夜'}
               onChange={(event) => setImagePrompt(event.target.value)}
             />
           </div>
-          <p className="small" style={{ margin: 0 }}>会消耗 {media?.imageCost ?? 0} 点，生成后作为一条消息插入对话。</p>
+          <p className="small" style={{ margin: 0 }}>{imageMode === 'custom' ? `会消耗 ${media?.imageCost ?? 0} 点` : `会先让对话模型按剧情写画面描述（按字数少量扣点），再消耗 ${media?.imageCost ?? 0} 点生图`}，生成后作为一条消息插入对话。</p>
         </Modal>
       )}
     </>
