@@ -1,4 +1,5 @@
 'use client';
+import { fetchGenPrefs } from '@/lib/gen-prefs-client';
 import { emitPoints } from '@/lib/points-bus';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
@@ -113,10 +114,10 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
   const [flipped, setFlipped] = useState<Set<number | string>>(() => new Set());
   const autoTranslateRef = useRef(false);
   useEffect(() => {
-    void fetch('/api/me/gen-prefs').then((response) => (response.ok ? response.json() : null)).then((data) => {
-      const auto = data?.prefs?.translate?.auto;
+    void fetchGenPrefs().then((prefs) => {
+      const auto = prefs?.translate?.auto;
       autoTranslateRef.current = auto === 'responses' || auto === 'both';
-    }).catch(() => undefined);
+    });
   }, []);
   const translateMessage = useCallback(async (id: number, quiet = false) => {
     setTranslating(id);

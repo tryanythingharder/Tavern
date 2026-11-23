@@ -4441,5 +4441,14 @@
  "生图还没开通：请管理员在后台「接口配置 · 生图」里填好": "Image generation isn't set up yet. An admin needs to fill it in under Settings › Image.",
  "生图描述": "Image prompt",
  "还没有角色卡？填名字、简介和开场白就能发布。": "No character card yet? Add a name, a hook and an opening line, and you can publish.",
- "直接写一张": "Write one now"
+ "直接写一张": "Write one now",
+ "公开角色": "Public character",
+ "未发布": "Unpublished",
+ "§单价：1 点 = {0}。{1}": "Price: 1 pt = {0}. {1}",
+ "单价：1 点 = {0}。": "Price: 1 pt = {0}.",
+ "创建订单后请联系客服确认到账。": "After you place the order, contact support to confirm payment.",
+ "创建订单后会跳到支付页面，付款成功自动到账。": "You'll go to the payment page, and points arrive as soon as payment succeeds.",
+ "已创建订单：{0} 点 / {1}。请联系客服确认到账。": "Order created: {0} pts / {1}. Contact support to confirm payment.",
+ "余额不多了，用完后生成会暂停，可以在下方充值或兑换。": "You're running low. Generation pauses at zero, so top up or redeem a code below.",
+ "§每天 {0} 点，生成时优先抵扣，每天 {1}（当地时间）刷新，不累积。": "{0} pts a day, used first when you generate. Resets daily at {1} your time and doesn't roll over."
 }

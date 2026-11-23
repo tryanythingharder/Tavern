@@ -10,7 +10,7 @@ type Order = { id: number; points: number; priceCents: number; status: string; c
 
 const STATUS_LABEL: Record<string, string> = { pending: '待支付', paid: '已到账', cancelled: '已取消' };
 
-export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: { orders: Order[]; pricePerPointCents: number; currency?: string }) {
+export function PointsActions({ orders, pricePerPointCents, currency = 'USD', manual = true }: { orders: Order[]; pricePerPointCents: number; currency?: string; manual?: boolean }) {
   const yuan = (cents: number) => formatMoney(cents, currency);
   const router = useRouter();
   const [code, setCode] = useState('');
@@ -46,7 +46,7 @@ export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: 
         window.location.href = result.payUrl;
         return;
       }
-      setNotice(`已创建订单：${value} 点 / ${yuan(value * pricePerPointCents)}。请联系管理员确认到账。`);
+      setNotice(`已创建订单：${value} 点 / ${yuan(value * pricePerPointCents)}。请联系客服确认到账。`);
       router.refresh();
     } catch (caught) {
       setError((caught as Error).message);
@@ -81,7 +81,7 @@ export function PointsActions({ orders, pricePerPointCents, currency = 'USD' }: 
 
       <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>
         <h2 className="p-form-section-title">充值订单</h2>
-        <p className="small" style={{ marginTop: 0 }}>单价：1 点 = {pricePerPointCents} 分。创建订单后联系管理员确认到账（支付网关接入后会自动回调）。</p>
+        <p className="small" style={{ marginTop: 0 }}>单价：1 点 = {yuan(pricePerPointCents)}。{manual ? '创建订单后请联系客服确认到账。' : '创建订单后会跳到支付页面，付款成功自动到账。'}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <input
             className="p-input"

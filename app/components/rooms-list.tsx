@@ -10,7 +10,7 @@ type RoomItem = {
   id: number; name: string; characterIds: string[]; muted: string[]; strategy: string;
   autoMode: boolean; speakerId: string | null; lastMessage: string | null; updatedAt: number;
 };
-type CharacterItem = { id: string; name: string; initial: string; hue: number; avatar?: string | null };
+type CharacterItem = { id: string; name: string; author?: string; initial: string; hue: number; avatar?: string | null };
 
 const STRATEGY_LABEL: Record<string, string> = {
   natural: '自然（叫到名字的人先答）',
@@ -228,7 +228,7 @@ export function RoomsList({ rooms, characters }: { rooms: RoomItem[]; characters
                     checked={selected.includes(character.id)}
                     onChange={(event) => setSelected((prev) => (event.target.checked ? [...prev, character.id] : prev.filter((id) => id !== character.id)))}
                   />
-                  <span>{character.name}</span>
+                  <span>{character.name}{character.author ? <span className="p-small" style={{ marginLeft: 6, opacity: 0.7 }}>{character.author}</span> : null}</span>
                 </label>
               ))}
             </div>
@@ -272,7 +272,7 @@ export function RoomsList({ rooms, characters }: { rooms: RoomItem[]; characters
                       if (!next.includes(character.id)) setEditMuted((prev) => prev.filter((id) => id !== character.id));
                     }}
                   />
-                  <span>{character.name}</span>
+                  <span>{character.name}{character.author ? <span className="p-small" style={{ marginLeft: 6, opacity: 0.7 }}>{character.author}</span> : null}</span>
                 </label>
               ))}
             </div>

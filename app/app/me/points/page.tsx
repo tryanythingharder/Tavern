@@ -1,7 +1,8 @@
 import { paymentCurrency as __cur } from '@/lib/billing';
 import Link from 'next/link';
+import { activeProvider } from '@/lib/payments';
 import { currentLocale, tr } from '@/lib/i18n/runtime';
-import { dayKeyIn, requestTimeZone, shiftDayKey } from '@/lib/tz';
+import { dayKeyIn, platformDayStart, requestTimeZone, shiftDayKey } from '@/lib/tz';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { listLedger, pointsSummary } from '@/lib/points';
@@ -85,12 +86,13 @@ export default async function PointsPage() {
           <div className="p-stat"><div className="p-stat-n">{summary.spent.toLocaleString('zh-CN')}</div><div className="p-stat-l">累计消耗</div></div>
           <div className="p-stat"><div className="p-stat-n">{summary.gained.toLocaleString('zh-CN')}</div><div className="p-stat-l">累计获得</div></div>
         </div>
-        {summary.low && <p className="p-form-error">余额不多了，生成会被暂停。请联系管理员充值。</p>}
+        {summary.low && <p className="p-form-error">余额不多了，用完后生成会暂停，可以在下方充值或兑换。</p>}
       </div>
       <div style={{ marginTop: 16 }}><CheckinCard initial={checkinStatus(user.id)} /></div>
       <div style={{ marginTop: 16 }}>
         <GrowthCard
           dailyFree={growth.dailyFree}
+          resetTime={new Intl.DateTimeFormat('en-GB', { timeZone: await requestTimeZone(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(platformDayStart() + 86400000))}
           dailyLeft={dailyFreeRemaining(user.id)}
           firstTopupPct={growth.firstTopupPct}
           firstTopup={firstTopupEligible(user.id)}
@@ -107,7 +109,7 @@ export default async function PointsPage() {
           <span aria-hidden="true">→</span>
         </Link>
       )}
-      <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} currency={__cur()} /></div>
+      <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} currency={__cur()} manual={activeProvider().id === 'manual'} /></div>
       <section id="ledger" className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">点数记录</h2>
         <p className="p-small">每次生成结束后按网关返回的 usage 扣费，账本逐笔可对。</p>

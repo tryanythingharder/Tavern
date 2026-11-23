@@ -543,6 +543,12 @@ export function getCharacterById(id: string): DbCharacter | undefined {
   return row ? localizeSeedRow(row) : undefined;
 }
 
+/** 这个玩家能不能拿这张卡开故事 / 拉进房间：内置卡、自己的卡、已公开的卡。别人的草稿、审核中、已下架都不行。 */
+export function canUseCharacter(userId: number, row: Pick<DbCharacter, 'owner_id' | 'status'> | null | undefined): boolean {
+  if (!row) return false;
+  return row.owner_id === null || row.owner_id === userId || row.status === 'published';
+}
+
 export function listCharacters(): DbCharacter[] {
   return (db.prepare('SELECT * FROM characters ORDER BY rowid').all() as DbCharacter[]).map((row) => localizeSeedRow(row));
 }

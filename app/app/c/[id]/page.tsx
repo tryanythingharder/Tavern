@@ -162,7 +162,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
             </div>
             <div className="p-detail-title">
               <h1>{character.name}{character.nsfw && <span className="p-pill p-pill--sm" style={{ marginLeft: 8, verticalAlign: 'middle' }}>18+</span>}</h1>
-              <p className="p-detail-by"><Link className="p-link" href={`/a/${encodeURIComponent(character.author)}`}>@{character.author}</Link> · 公开角色</p>
+              <p className="p-detail-by"><Link className="p-link" href={`/a/${encodeURIComponent(character.author)}`}>@{character.author}</Link> · {tr(character.status === 'published' ? '公开角色' : character.status === 'pending' ? '审核中' : character.status === 'archived' ? '已下架' : '未发布')}</p>
               <div className="p-detail-tags">
                 {character.tags.map((tag) => <span key={tag} className="p-pill p-pill--sm p-pill--outline">{tag}</span>)}
               </div>

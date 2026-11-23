@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { addMessage, createChat, getCharacterById } from '@/lib/db';
+import { addMessage, canUseCharacter, createChat, getCharacterById } from '@/lib/db';
 import { resolvePersona, setChatPersona } from '@/lib/resources-db';
 import { parseOpenings } from '@/lib/characters';
 import { nsfwBlock } from '@/lib/age-gate';
@@ -12,7 +12,7 @@ export async function startStory(characterId: string, formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const character = getCharacterById(characterId);
-  if (!character) redirect('/plaza');
+  if (!character || !canUseCharacter(user.id, character)) redirect('/plaza');
   if (await nsfwBlock(user.id, character)) redirect(`/c/${characterId}`);
   const personaId = Number(formData.get('personaId')) || null;
   const openingId = String(formData.get('openingId') ?? 'default');

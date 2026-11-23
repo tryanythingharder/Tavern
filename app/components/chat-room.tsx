@@ -1,4 +1,5 @@
 'use client';
+import { fetchGenPrefs } from '@/lib/gen-prefs-client';
 import { joinList } from '@/lib/i18n/runtime';
 
 import { emitPoints } from '@/lib/points-bus';
@@ -330,9 +331,9 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [flipped, setFlipped] = useState<Set<number | string>>(() => new Set());
   const translatePrefsRef = useRef<{ target: string; auto: 'none' | 'responses' | 'inputs' | 'both'; modelLang: string }>({ target: 'zh-CN', auto: 'none', modelLang: 'en' });
   useEffect(() => {
-    void fetch('/api/me/gen-prefs').then((response) => (response.ok ? response.json() : null)).then((data) => {
-      if (data?.prefs?.translate) translatePrefsRef.current = data.prefs.translate;
-    }).catch(() => undefined);
+    void fetchGenPrefs().then((prefs) => {
+      if (prefs?.translate) translatePrefsRef.current = prefs.translate;
+    });
   }, []);
   const translateMessage = useCallback(async (id: number, quiet = false) => {
     setTranslating(id);

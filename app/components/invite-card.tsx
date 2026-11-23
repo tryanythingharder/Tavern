@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 // 「我的 · 点数」里的增长卡：今日免费额度、首充赠送、邀请好友链接。数值由服务端算好传入。
 export function GrowthCard(props: {
   dailyFree: number;
+  resetTime?: string;
   dailyLeft: number;
   firstTopupPct: number;
   firstTopup: boolean;
@@ -51,7 +52,7 @@ export function GrowthCard(props: {
         <div className="gr-row">
           <div>
             <b>今日免费额度</b>
-            <p className="p-small">每天 {props.dailyFree} 点，生成时优先抵扣，北京时间零点刷新，不累积。</p>
+            <p className="p-small">每天 {props.dailyFree} 点，生成时优先抵扣，每天 {props.resetTime ?? '00:00'}（当地时间）刷新，不累积。</p>
           </div>
           <div className="gr-meter" role="meter" aria-valuemin={0} aria-valuemax={props.dailyFree} aria-valuenow={props.dailyLeft} aria-label="今日免费额度剩余">
             <span><b>{props.dailyLeft}</b> / {props.dailyFree}</span>

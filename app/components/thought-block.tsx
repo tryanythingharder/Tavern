@@ -1,5 +1,6 @@
 'use client';
 
+import { fetchGenPrefs } from '@/lib/gen-prefs-client';
 import { useEffect, useState } from 'react';
 
 export type ThoughtView = { t: string; ms: number };
@@ -33,13 +34,10 @@ export function useThoughtsOpen(): boolean {
   useEffect(() => {
     if (cached !== null) return;
     let alive = true;
-    fetch('/api/me/gen-prefs', { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { prefs?: { reasoning?: { autoExpand?: boolean } } } | null) => {
-        cached = Boolean(data?.prefs?.reasoning?.autoExpand);
-        if (alive) setOpen(cached);
-      })
-      .catch(() => undefined);
+    void fetchGenPrefs().then((prefs) => {
+      cached = Boolean(prefs?.reasoning?.autoExpand);
+      if (alive) setOpen(cached);
+    });
     return () => { alive = false; };
   }, []);
   return open;

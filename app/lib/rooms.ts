@@ -1,6 +1,6 @@
 import { translationFor, withTranslation, type TranslationView } from '@/lib/translation';
 import { reasoningAt, withReasoning, type Reasoning } from '@/lib/reasoning';
-import db, { getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
+import db, { canUseCharacter, getCharacterById, type ChatBranchInfo, type DbCharacter } from '@/lib/db';
 import { applyRegex, scanLore, summaryText } from '@/lib/prompt';
 import type { RoomPromptMemory } from '@/lib/room-memory';
 import { promptKey, promptTriggered, renderContextTemplate, type LoreEntry, type Persona, type Preset, type RegexRule } from '@/lib/resources';
@@ -111,7 +111,7 @@ export function getRoom(roomId: number, userId: number): Room | undefined {
 
 export function createRoom(userId: number, input: { name?: string; characterIds?: unknown; strategy?: string }): Room | null {
   const ids = Array.isArray(input.characterIds)
-    ? [...new Set(input.characterIds.filter((value): value is string => typeof value === 'string' && Boolean(getCharacterById(value))))]
+    ? [...new Set(input.characterIds.filter((value): value is string => typeof value === 'string' && canUseCharacter(userId, getCharacterById(value))))]
     : [];
   if (!ids.length) return null;
   const now = Date.now();
@@ -140,7 +140,7 @@ export function updateRoom(
   const room = getRoom(roomId, userId);
   if (!room) return undefined;
   const nextIds = Array.isArray(patch.characterIds)
-    ? [...new Set(patch.characterIds.filter((value): value is string => typeof value === 'string' && Boolean(getCharacterById(value))))]
+    ? [...new Set(patch.characterIds.filter((value): value is string => typeof value === 'string' && (room.characterIds.includes(value) ? Boolean(getCharacterById(value)) : canUseCharacter(userId, getCharacterById(value)))))]
     : room.characterIds;
   if (!nextIds.length) return undefined;
   const nextMuted = Array.isArray(patch.muted) ? patch.muted.filter((value): value is string => typeof value === 'string' && nextIds.includes(value)) : room.muted;
