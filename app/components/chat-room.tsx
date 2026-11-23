@@ -1394,11 +1394,6 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
               </div>
             </div>
           )}
-          {media?.image && (
-            <div className="p-img-entry" style={{ marginBottom: 8 }}>
-              <button className="p-text-btn" type="button" onClick={() => setImageOpen(true)}>生图</button>
-            </div>
-          )}
           <QuickReplyBar state={qr} scope={{ chatId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />
           <HelperRunner chatId={chatId} names={{ char: characterName, user: personaName || macros?.user || '' }} actions={helperActions} />
           <NewbieTip />
@@ -1438,6 +1433,9 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
               {translatingInput && <span className="p-chat-tr-busy" role="status">正在把输入翻译成{langName(translatePrefsRef.current.modelLang)}…</span>}
               <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
+              {media?.image && (
+                <button className="p-chat-act p-chat-img" type="button" disabled={streaming || imageBusy} onClick={() => setImageOpen(true)} title="按当前剧情生成一张插图，作为消息插入对话">✦ 生图</button>
+              )}
               {personaInit && (
                 <PersonaSwitch
                   endpoint={`/api/chats/${chatId}/persona`}

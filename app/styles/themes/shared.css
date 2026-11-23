@@ -470,7 +470,7 @@ body[data-u-backdrop][data-page="chat"] .chat-backdrop ~ .p-rp-workbench { posit
 @media (max-width: 1023px) {
   html body[data-theme="stage"]:not(.p-cinema):not(#stg)[data-page="chat"] .p-chat-compose > .p-chat-col > .p-chat-meta { display: flex !important; margin: 4px 0 0 !important; }
   html body[data-theme="stage"]:not(#stg)[data-page="chat"] .p-chat-meta > .p-chat-hint { display: none; }
-  html body[data-theme="stage"]:not(#stg)[data-page="chat"] .p-chat-acts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  html body:is([data-theme="stage"], [data-theme="nocturne"]):not(#stg)[data-page="chat"] .p-chat-acts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
 }
 
 /* ─── 记忆示意条（对话设定 → 记忆） ─── */
