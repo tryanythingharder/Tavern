@@ -4358,7 +4358,6 @@
  "这张图片打不开，换一张试试": "Couldn't open this image. Try another one.",
  "拖动图片调整位置，滚轮或滑杆缩放。": "Drag to reposition. Scroll or use the slider to zoom. ",
  "圆圈里的部分就是头像。": "The circle is your avatar.",
- "会显示在你的作者主页顶部，比例 3:1。": "Shown at the top of your creator page, 3:1.",
  "恢复成默认头像（昵称首字）？": "Reset to the default avatar (your initial)?",
  "移除主页背景图？": "Remove your profile cover?",
  "请选择 PNG、JPG、WebP 或 GIF 图片": "Please choose a PNG, JPG, WebP or GIF image",
@@ -4368,5 +4367,6 @@
  "请选择图片": "Please choose an image",
  "拖动调整位置，滚轮或方向键微调": "Drag to reposition; scroll or arrow keys to fine-tune",
  "向左旋转 90 度": "Rotate left 90°",
- "向右旋转 90 度": "Rotate right 90°"
+ "向右旋转 90 度": "Rotate right 90°",
+ "比例 5:2，下方约一半会渐隐成透明，头像和昵称压在上面。": "5:2. The lower half fades out, with your avatar and name on top."
 }

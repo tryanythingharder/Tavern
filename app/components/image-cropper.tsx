@@ -5,7 +5,7 @@ import { Modal } from '@/components/settings-ui';
 
 /**
  * 站内图片编辑器：拖动定位、滚轮/滑杆缩放、90° 旋转、水平翻转、亮度/对比度/饱和度。
- * 预览用 canvas 实时画；导出时按同一套变换画到目标尺寸（头像 512²，背景 1500×500）。
+ * 预览用 canvas 实时画；导出时按同一套变换画到目标尺寸（头像 512²，背景 1500×600）。
  */
 export type CropShape = 'circle' | 'banner';
 
@@ -19,7 +19,7 @@ type Props = {
   onDone: (blob: Blob) => void;
 };
 
-const OUTPUT = { circle: { w: 512, h: 512 }, banner: { w: 1500, h: 500 } } as const;
+const OUTPUT = { circle: { w: 512, h: 512 }, banner: { w: 1500, h: 600 } } as const;
 const FILTERS = [
   { key: 'brightness', label: '亮度' },
   { key: 'contrast', label: '对比度' },
@@ -33,7 +33,7 @@ export function ImageCropper({ file, shape, title, busy = false, error = '', onC
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [view, setView] = useState({ w: 320, h: shape === 'circle' ? 320 : 107 });
+  const [view, setView] = useState({ w: 320, h: shape === 'circle' ? 320 : 128 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [flip, setFlip] = useState(false);
@@ -57,7 +57,7 @@ export function ImageCropper({ file, shape, title, busy = false, error = '', onC
     if (!stage) return;
     const measure = () => {
       const width = Math.min(stage.clientWidth, shape === 'circle' ? 340 : 560);
-      setView({ w: width, h: shape === 'circle' ? width : Math.round(width / 3) });
+      setView({ w: width, h: shape === 'circle' ? width : Math.round(width / 2.5) });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -181,6 +181,7 @@ export function ImageCropper({ file, shape, title, busy = false, error = '', onC
           >
             <canvas ref={canvasRef} style={{ width: view.w, height: view.h }} />
             <span className="p-crop-mask" aria-hidden="true" />
+            {shape === 'banner' && <span className="p-crop-fade" aria-hidden="true" />}
             <span className="p-crop-grid" aria-hidden="true" />
             {!img && !loadError && <span className="p-crop-loading">正在读取图片…</span>}
           </div>
@@ -192,7 +193,7 @@ export function ImageCropper({ file, shape, title, busy = false, error = '', onC
             </div>
           )}
         </div>
-        <p className="p-crop-tip">拖动图片调整位置，滚轮或滑杆缩放。{shape === 'circle' ? '圆圈里的部分就是头像。' : '会显示在你的作者主页顶部，比例 3:1。'}</p>
+        <p className="p-crop-tip">拖动图片调整位置，滚轮或滑杆缩放。{shape === 'circle' ? '圆圈里的部分就是头像。' : '比例 5:2，下方约一半会渐隐成透明，头像和昵称压在上面。'}</p>
 
         <div className="p-crop-tools">
           <div className="p-crop-row">

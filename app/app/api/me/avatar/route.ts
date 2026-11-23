@@ -6,7 +6,7 @@ import { saveMedia } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
-// 浏览器端已裁剪压缩（头像 512²、背景 1500×500），这里只兜底校验
+// 浏览器端已裁剪压缩（头像 512²、背景 1500×600），这里只兜底校验
 const LIMIT = { avatar: 2 * 1024 * 1024, banner: 4 * 1024 * 1024 } as const;
 type Kind = keyof typeof LIMIT;
 const kindOf = (value: unknown): Kind | null => (value === 'avatar' || value === 'banner' ? value : null);
