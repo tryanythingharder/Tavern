@@ -23,7 +23,7 @@
     "quickjs-emscripten": "^0.32.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "unpdf": "^2.2.1"
   },
   "devDependencies": {
@@ -31,5 +31,8 @@
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
     "typescript": "5.9.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.33"
   }
 }
