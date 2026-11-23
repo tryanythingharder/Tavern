@@ -23,6 +23,7 @@
     "quickjs-emscripten": "^0.32.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
+    "sharp": "^0.34.5",
     "unpdf": "^2.2.1"
   },
   "devDependencies": {
