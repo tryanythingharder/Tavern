@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, getProfileMedia } from '@/lib/auth';
 import { pageCssHref } from '@/lib/css-assets';
-import { chatBranches, getChat, getCharacterById, listMessagesPage, messageOffset } from '@/lib/db';
+import { chatBranches, getChat, getCharacterById, getCharacterLook, listMessagesPage, messageOffset } from '@/lib/db';
+import { characterHasImage } from '@/lib/image-ref';
 import { ChatBranches } from '@/components/chat-branches';
 import { toMessageView } from '@/lib/chat-view';
 import { ChatRoom } from '@/components/chat-room';
@@ -14,7 +15,7 @@ import { AppearanceButton } from '@/components/appearance-drawer';
 import { qrState } from '@/lib/quick-replies-db';
 import { chatSettings, listLorebooks, listPersonas, loadGenerationConfig } from '@/lib/resources-db';
 import { summaryStatus } from '@/lib/memory';
-import { imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
+import { imageConfig, imageConfigured, imageCost, ttsConfigured } from '@/lib/media';
 import { getTheme } from '@/lib/theme';
 import { ThemeChatChrome } from '@/components/themes/chat-chrome';
 import { ChatNavSheet } from '@/components/chat-nav-sheet';
@@ -118,7 +119,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
             initialHasMore={messagePage.hasMore}
             initialOffset={messageOffset(chat.id, messagePage.messages[0]?.id)}
             quickReplies={quickReplies}
-            media={{ image: imageConfigured(), tts: ttsConfigured(), imageCost: imageCost() }}
+            media={{ image: imageConfigured(), tts: ttsConfigured(), imageCost: imageCost(), reference: imageConfig().reference, lookUrl: getCharacterLook(user.id, character.id), characterHasImage: characterHasImage(character) }}
             title={chat.title}
             personaName={config.userName}
             persona={{

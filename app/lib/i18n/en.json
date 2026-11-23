@@ -4456,5 +4456,15 @@
  "人物一致（参考图）": "Character consistency (reference image)",
  "开：带上角色图，保持长相一致": "On: send the character's image so they look the same",
  "关：只按文字生成": "Off: text prompt only",
- "开启后，角色有封面或头像时会把它当参考图传给 /images/edits，画出来的人和角色图长得一样；没有图的角色，以对话里第一张「角色立绘」为准。上游不支持编辑接口时自动退回普通生图。": "When on, a character's cover or avatar is sent to /images/edits as a reference, so pictures show the same face. Characters without an image use the first portrait drawn in that chat. If the provider doesn't support edits, it falls back to normal generation."
+ "开启后，角色有封面或头像时会把它当参考图传给 /images/edits，画出来的人和角色图长得一样；没有图的角色，以对话里第一张「角色立绘」为准。上游不支持编辑接口时自动退回普通生图。": "When on, a character's cover or avatar is sent to /images/edits as a reference, so pictures show the same face. Characters without an image use the first portrait drawn in that chat. If the provider doesn't support edits, it falls back to normal generation.",
+ "定妆照": "Reference look",
+ "设为定妆照": "Set as reference look",
+ "已是定妆照（点一下取消）": "Reference look (tap to unset)",
+ "设为定妆照：以后生图照这张的长相画": "Set as reference look: future pictures keep this face",
+ "人物长相参考：": "Face reference: ",
+ "你设的定妆照": "your reference look",
+ "本对话第一张角色立绘": "first portrait in this chat",
+ "暂无，建议先画一张「角色立绘」，之后的图都会照它画": "none yet; draw a character portrait first and later pictures will follow it",
+ "只有对话里生成的插图能设为定妆照": "Only pictures generated in this chat can be set as the reference look",
+ "没设成功": "Couldn't set it"
 }

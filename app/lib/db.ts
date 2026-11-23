@@ -340,6 +340,15 @@ db.exec(`
     );
     CREATE INDEX IF NOT EXISTS idx_media_owner ON media_files(owner_id);
 
+    -- 定妆照：玩家给某个角色指定的「长这样」的图，生图时优先当参考图（每人每角色一张）
+    CREATE TABLE IF NOT EXISTS character_looks (
+        user_id INTEGER NOT NULL,
+        character_id TEXT NOT NULL,
+        url TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (user_id, character_id)
+    );
+
     -- 收藏（角色库）
     -- 作品版本（每次保存前留一版，最多 5 版）
     CREATE TABLE IF NOT EXISTS character_versions (
@@ -684,6 +693,16 @@ export function updateMessageContent(messageId: number, content: string): DbMess
   }
   touchChat(row.chat_id);
   return getMessage(messageId);
+}
+
+export function getCharacterLook(userId: number, characterId: string): string | null {
+  const row = db.prepare('SELECT url FROM character_looks WHERE user_id = ? AND character_id = ?').get(userId, characterId) as { url: string } | undefined;
+  return row?.url ?? null;
+}
+
+export function setCharacterLook(userId: number, characterId: string, url: string | null): void {
+  if (!url) db.prepare('DELETE FROM character_looks WHERE user_id = ? AND character_id = ?').run(userId, characterId);
+  else db.prepare('INSERT INTO character_looks (user_id, character_id, url, updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id, character_id) DO UPDATE SET url = excluded.url, updated_at = excluded.updated_at').run(userId, characterId, url, Date.now());
 }
 
 export function setMessageAttachment(messageId: number, attachment: string | null): DbMessage | undefined {

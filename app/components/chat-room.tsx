@@ -25,7 +25,7 @@ import { QuickReplyBar } from '@/components/quick-reply-bar';
 import { activeQrSets, findQuickReply, planQuickReply, type QrItem, type QrSet, type QrState, type QrAuto } from '@/lib/quick-replies';
 import { askChoice, askPrompt, showAlert } from '@/components/ui-dialog';
 
-export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; width?: number; height?: number; createdAt: number };
+export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; mode?: string; width?: number; height?: number; createdAt: number };
 
 export type ChatMessageView = {
   id: number | string;
@@ -60,7 +60,7 @@ type Props = {
   /** 第一条已加载消息之前还有几条（ST 楼层号 = 偏移 + 序号） */
   initialOffset?: number;
   quickReplies?: QrState;
-  media?: { image: boolean; tts: boolean; imageCost: number };
+  media?: { image: boolean; tts: boolean; imageCost: number; reference?: boolean; lookUrl?: string | null; characterHasImage?: boolean };
   title?: string;
   personaName?: string;
   /** 身份切换：当前生效身份、可选身份、锁定在本对话的身份 */
@@ -89,7 +89,7 @@ type StreamEvent = {
 };
 
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "portrait": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20a8 8 0 0 1 16 0", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
 function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
@@ -195,6 +195,8 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageMode, setImageMode] = useState<'scene' | 'last' | 'character' | 'custom'>('scene');
   const [imageBusy, setImageBusy] = useState(false);
+  // 定妆照：这个角色以后生图都照它的长相画
+  const [lookUrl, setLookUrl] = useState<string | null>(media?.lookUrl ?? null);
   const abortRef = useRef<AbortController | null>(null);
   const autoContinueRef = useRef<{ id: number; content: string } | null>(null);
   const thoughtsOpen = useThoughtsOpen();
@@ -1065,6 +1067,22 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
     }
   }, [chatId, imagePrompt, imageMode, resync]);
 
+  const toggleLook = useCallback(async (message: ChatMessageView) => {
+    const url = message.attachment?.url;
+    if (!url || typeof message.id !== 'number') return;
+    const unset = lookUrl === url;
+    try {
+      const response = await fetch(`/api/chats/${chatId}/look`, unset
+        ? { method: 'DELETE' }
+        : { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId: message.id }) });
+      const data = (await response.json().catch(() => ({}))) as { message?: string; lookUrl?: string | null };
+      if (!response.ok) throw new Error(data.message || '没设成功');
+      setLookUrl(data.lookUrl ?? null);
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [chatId, lookUrl]);
+
   const copy = useCallback(async (message: ChatMessageView) => {
     try {
       await navigator.clipboard.writeText(message.content);
@@ -1180,6 +1198,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
                         decoding="async"
                         style={message.attachment.width && message.attachment.height ? { aspectRatio: `auto ${message.attachment.width} / ${message.attachment.height}` } : undefined}
                       />
+                      {media?.reference && lookUrl === message.attachment.url && <span className="p-msg-look">定妆照</span>}
                       {message.attachment.prompt && (
                         <details className="p-msg-imgprompt">
                           <summary>画面描述</summary>
@@ -1276,6 +1295,9 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
                       {numericId !== null && !isStreamingThis && (
                         <button type="button" data-act="bookmark" aria-label="书签" title="书签" aria-pressed={message.bookmark === true} onClick={() => void L.toggleBookmark(message)}><Ico name="star" /></button>
                       )}
+                      {isImage && media?.reference && numericId !== null && (
+                        <button type="button" data-act="look" aria-label={lookUrl === message.attachment?.url ? '已是定妆照（点一下取消）' : '设为定妆照：以后生图照这张的长相画'} title={lookUrl === message.attachment?.url ? '定妆照' : '设为定妆照'} aria-pressed={lookUrl === message.attachment?.url} onClick={() => void L.toggleLook(message)}><Ico name="portrait" /></button>
+                      )}
                       {!isUser && !isGreeting && numericId !== null && !isStreamingThis && (isImage ? (
                         <button type="button" data-act="regen" aria-label="按这段描述再画一张" title="再画一张" disabled={streaming || imageBusy} onClick={() => { setImageMode('custom'); setImagePrompt(message.attachment?.prompt ?? ''); setImageOpen(true); }}><Ico name="regen" /></button>
                       ) : (
@@ -1314,14 +1336,14 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   // 长会话（上千楼）性能：每楼的渲染结果按「会影响这一楼的值」缓存，没变就复用同一个 React 元素，
   // 流式更新时只重画正在写的那一楼。楼里的事件处理一律通过 L 读最新的函数和状态，避免缓存住旧闭包。
   const live = useRef<Record<string, unknown>>({});
-  live.current = { switchCandidate, regenerate, saveEdit, translateMessage, removeTranslation, continueLast, removeFrom, remove, copy, speak, toggleBookmark, branch, toggleHidden, streaming, editing };
+  live.current = { switchCandidate, regenerate, saveEdit, translateMessage, removeTranslation, continueLast, removeFrom, remove, copy, speak, toggleBookmark, branch, toggleHidden, toggleLook, streaming, editing };
   const L = useMemo(() => new Proxy({}, { get: (_t, k: string) => live.current[k] }) as {
     switchCandidate: typeof switchCandidate; regenerate: typeof regenerate; saveEdit: typeof saveEdit; translateMessage: typeof translateMessage;
     removeTranslation: typeof removeTranslation; continueLast: typeof continueLast; removeFrom: typeof removeFrom; remove: typeof remove; copy: typeof copy;
-    speak: typeof speak; toggleBookmark: typeof toggleBookmark; branch: typeof branch; toggleHidden: typeof toggleHidden; streaming: boolean; editing: typeof editing;
+    speak: typeof speak; toggleBookmark: typeof toggleBookmark; branch: typeof branch; toggleHidden: typeof toggleHidden; toggleLook: typeof toggleLook; streaming: boolean; editing: typeof editing;
   }, []);
   const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
-  const rowEnv = [displayRules, displayMacros, characterCover, characterName, characterHue, personaName, persona.avatar, accountAvatar, thoughtsOpen, media?.tts, chatId];
+  const rowEnv = [displayRules, displayMacros, characterCover, characterName, characterHue, personaName, persona.avatar, accountAvatar, thoughtsOpen, media?.tts, media?.reference, lookUrl, imageBusy, chatId];
   const rowEnvRef = useRef<unknown[]>(rowEnv);
   if (rowEnv.some((v, i) => v !== rowEnvRef.current[i])) { rowEnvRef.current = rowEnv; rowCache.current.clear(); }
   const depthMatters = usesDepth(displayRules);
@@ -1507,6 +1529,11 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
               onChange={(event) => setImagePrompt(event.target.value)}
             />
           </div>
+          {media?.reference && (
+            <p className="small p-img-ref" style={{ margin: 0 }}>
+              人物长相参考：{lookUrl ? '你设的定妆照' : media.characterHasImage ? '角色封面' : messages.some((item) => item.attachment?.kind === 'image' && item.attachment.mode === 'character') ? '本对话第一张角色立绘' : '暂无，建议先画一张「角色立绘」，之后的图都会照它画'}
+            </p>
+          )}
           <p className="small" style={{ margin: 0 }}>{imageMode === 'custom' ? `会消耗 ${media?.imageCost ?? 0} 点` : `会先让对话模型按剧情写画面描述（按字数少量扣点），再消耗 ${media?.imageCost ?? 0} 点生图`}，生成后作为一条消息插入对话。</p>
         </Modal>
       )}

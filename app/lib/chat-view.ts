@@ -4,7 +4,7 @@ import { messageCandidates, type DbMessage } from '@/lib/db';
 import { translationFor, type TranslationView } from '@/lib/translation';
 
 // 客户端需要的消息视图：正文 + 候选数量（>1 才显示切换）。
-export type ChatAttachment = { kind: 'image' | 'audio'; url: string; prompt?: string; width?: number; height?: number; createdAt: number };
+export type ChatAttachment = { kind: 'image' | 'audio'; url: string; prompt?: string; mode?: string; width?: number; height?: number; createdAt: number };
 
 export type ChatMessageView = {
   id: number;
@@ -38,6 +38,7 @@ function parseAttachment(raw: string | null): ChatAttachment | null {
       kind: value.kind === 'audio' ? 'audio' : 'image',
       url: value.url,
       prompt: typeof value.prompt === 'string' ? value.prompt : undefined,
+      mode: typeof value.mode === 'string' ? value.mode : undefined,
       width: Number(value.width) > 0 ? Number(value.width) : undefined,
       height: Number(value.height) > 0 ? Number(value.height) : undefined,
       createdAt: Number(value.createdAt) || 0,

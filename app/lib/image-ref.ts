@@ -1,13 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { listMessages, type DbCharacter } from '@/lib/db';
+import { getCharacterLook, listMessages, type DbCharacter } from '@/lib/db';
 import { readMedia } from '@/lib/storage';
 
 // 生图的人物一致性：找一张「这个角色长什么样」的图，作为参考图传给生图模型。
-// 顺序：角色封面 → 角色头像 → 内置角色自带的立绘 → 这段对话里第一张「角色立绘」插图。
+// 顺序：玩家设的定妆照 → 角色封面 → 角色头像 → 内置角色自带的立绘 → 这段对话里第一张「角色立绘」插图。
 // 都没有就返回 null（第一张立绘画出来之后，后面的图就会以它为准）。
 
-export type CharacterReference = { buffer: Buffer; source: 'cover' | 'avatar' | 'builtin' | 'chat' };
+export type CharacterReference = { buffer: Buffer; source: 'look' | 'cover' | 'avatar' | 'builtin' | 'chat' };
 
 async function loadUrl(url: string | null | undefined, requesterId: number): Promise<Buffer | null> {
   const value = (url ?? '').trim();
@@ -47,8 +47,14 @@ export function chatImages(chatId: number): ImageAttachment[] {
   return listMessages(chatId).map((message) => parseAttachment(message.attachment)).filter((item): item is ImageAttachment => Boolean(item));
 }
 
+/** 角色本身有没有图（封面/头像/内置立绘）——给对话页显示「人物参考」用，不读文件 */
+export function characterHasImage(character: DbCharacter): boolean {
+  return Boolean(character.cover_image?.trim() || character.avatar_image?.trim() || character.owner_id === null);
+}
+
 export async function characterReference(character: DbCharacter, chatId: number, requesterId: number): Promise<CharacterReference | null> {
   const candidates: [CharacterReference['source'], string | null][] = [
+    ['look', getCharacterLook(requesterId, character.id)],
     ['cover', character.cover_image],
     ['avatar', character.avatar_image],
     ['builtin', character.owner_id === null ? `/characters/${character.id}.jpg` : null],
