@@ -24,7 +24,7 @@ import { QuickReplyBar } from '@/components/quick-reply-bar';
 import { activeQrSets, findQuickReply, planQuickReply, type QrItem, type QrSet, type QrState, type QrAuto } from '@/lib/quick-replies';
 import { askChoice, askPrompt, showAlert } from '@/components/ui-dialog';
 
-export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; createdAt: number };
+export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; width?: number; height?: number; createdAt: number };
 
 export type ChatMessageView = {
   id: number | string;
@@ -1166,13 +1166,23 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
               ) : (
                 <>
                   {message.attachment?.kind === 'image' ? (
-                    <figure style={{ margin: '4px 0 0' }}>
+                    <figure className="p-msg-figure">
                       <img
+                        className="p-msg-img"
                         src={message.attachment.url}
                         alt={message.attachment.prompt ?? '生成的图片'}
-                        style={{ display: 'block', width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid var(--border)' }}
+                        width={message.attachment.width}
+                        height={message.attachment.height}
+                        loading="lazy"
+                        decoding="async"
+                        style={message.attachment.width && message.attachment.height ? { aspectRatio: `auto ${message.attachment.width} / ${message.attachment.height}` } : undefined}
                       />
-                      {message.attachment.prompt && <figcaption className="p-small" style={{ marginTop: 6 }}>{message.attachment.prompt}</figcaption>}
+                      {message.attachment.prompt && (
+                        <details className="p-msg-imgprompt">
+                          <summary>画面描述</summary>
+                          <p>{message.attachment.prompt}</p>
+                        </details>
+                      )}
                     </figure>
                   ) : (
                     <>

@@ -172,3 +172,13 @@ html body:not(#w) .p-img-mode.is-on strong { color: var(--ca-accent, #c9401f); }
 html body:not(#w) .p-img-mode:disabled { cursor: progress; opacity: .7; }
 @media (max-width: 420px) { html body:not(#w) .p-img-modes { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { html body:not(#w) .p-img-mode { transition: none; } }
+
+/* 对话里的插图：加载前按宽高留出占位，画面描述默认收起 */
+html body:not(#w) .p-msg-figure { margin: 4px 0 0; max-width: 420px; }
+html body:not(#w) .p-msg-img { display: block; width: 100%; height: auto; aspect-ratio: auto 1 / 1; border-radius: 12px; border: 1px solid var(--border); background: color-mix(in srgb, var(--ca-accent, #c9401f) 6%, var(--surface, #f4f1ec)); }
+html body:not(#w) .p-msg-imgprompt { margin-top: 6px; font-size: 12px; color: var(--muted, #6b6b6b); }
+html body:not(#w) .p-msg-imgprompt > summary { cursor: pointer; width: max-content; list-style: none; opacity: .8; }
+html body:not(#w) .p-msg-imgprompt > summary::-webkit-details-marker { display: none; }
+html body:not(#w) .p-msg-imgprompt > summary::before { content: "▸ "; }
+html body:not(#w) .p-msg-imgprompt[open] > summary::before { content: "▾ "; }
+html body:not(#w) .p-msg-imgprompt > p { margin: 4px 0 0; line-height: 1.6; }

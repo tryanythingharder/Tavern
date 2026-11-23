@@ -23,7 +23,7 @@ export async function GET(_request: Request, context: Params) {
   return new Response(new Uint8Array(file.buffer), {
     headers: {
       'Content-Type': TYPES[file.extension] ?? 'application/octet-stream',
-      'Cache-Control': privateFile ? 'private, no-store' : 'public, max-age=31536000, immutable',
+      'Cache-Control': privateFile ? 'private, max-age=31536000, immutable' : 'public, max-age=31536000, immutable',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
   });

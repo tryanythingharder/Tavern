@@ -43,7 +43,18 @@ export function ttsConfigured(): boolean {
   return Boolean(config.baseUrl && config.apiKey && config.model);
 }
 
-export async function generateImage(prompt: string, ownerId: number): Promise<{ url: string; prompt: string }> {
+// 上游多半回 1–3MB 的 PNG；能用 sharp 就转成 webp（体积约 1/8），并记下宽高给前端占位，转不了就原样存 PNG
+async function compactImage(buffer: Buffer): Promise<{ buffer: Buffer; ext: string; width?: number; height?: number }> {
+  try {
+    const sharp = (await import('sharp')).default;
+    const out = await sharp(buffer).rotate().resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
+    return { buffer: out.data, ext: 'webp', width: out.info.width, height: out.info.height };
+  } catch {
+    return { buffer, ext: 'png' };
+  }
+}
+
+export async function generateImage(prompt: string, ownerId: number): Promise<{ url: string; prompt: string; width?: number; height?: number }> {
   const config = imageConfig();
   if (!config.baseUrl || !config.apiKey || !config.model) throw new Error('生图未配置：请到后台「扩展能力 → 生图」填写');
   const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/images/generations`, {
@@ -69,7 +80,8 @@ export async function generateImage(prompt: string, ownerId: number): Promise<{ 
     throw new Error('生图返回里没有图片数据');
   }
   if (buffer.length > MAX_MEDIA_BYTES) throw new Error('生图返回的图片太大');
-  return { url: saveMedia(buffer, 'png', { ownerId, visibility: 'private' }), prompt };
+  const compact = await compactImage(buffer);
+  return { url: saveMedia(compact.buffer, compact.ext, { ownerId, visibility: 'private' }), prompt, width: compact.width, height: compact.height };
 }
 
 export async function generateSpeech(text: string, ownerId: number): Promise<{ url: string }> {

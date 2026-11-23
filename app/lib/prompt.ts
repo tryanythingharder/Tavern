@@ -317,10 +317,15 @@ function overridePrompt(base: string, override: string | undefined, allowed: boo
   return value.replace(/\{\{original\}\}/gi, () => base);
 }
 
+function isImageMessage(message: { attachment?: string | null }): boolean {
+  return Boolean(message.attachment && /"kind"\s*:\s*"image"/.test(message.attachment));
+}
+
 export function assemblePrompt(input: AssembleInput): AssembleResult {
   const { character, preset, persona, loreEntries, regexRules } = input;
   // ST：隐藏的消息（/hide、幽灵图标）不发给模型，也不参与世界书扫描
-  const history = input.history.filter((message) => message.hidden !== 1);
+  // 插图消息（对话页生图）的正文是英文画面描述，不发给模型，免得模型学着写提示词
+  const history = input.history.filter((message) => message.hidden !== 1 && !isImageMessage(message));
   // 作者写在卡里的高级字段；玩家自己的覆盖（/me/cards）优先
   const cardFields = parseCardFields(character.card_fields);
   const triggered = input.trigger ?? 'normal';

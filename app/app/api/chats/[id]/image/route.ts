@@ -54,7 +54,7 @@ export async function POST(request: Request, context: Params) {
   try {
     const image = await generateImage(prompt, user.id);
     const saved = addMessage(chat.id, 'assistant', prompt, [prompt]);
-    setMessageAttachment(saved.id, JSON.stringify({ kind: 'image', url: image.url, prompt, createdAt: Date.now() }));
+    setMessageAttachment(saved.id, JSON.stringify({ kind: 'image', url: image.url, prompt, width: image.width, height: image.height, createdAt: Date.now() }));
     finishGeneration(generationId, { status: 'done', promptTokens: 0, completionTokens: 0, totalTokens: 0 });
     const updated = getMessage(saved.id)!;
     return Response.json({ message: toMessageView(updated), cost: cost + writerCost, prompt });
