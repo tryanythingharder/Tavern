@@ -1,3 +1,4 @@
+import { convertImagesToWebp, pendingImages } from '@/lib/media-webp';
 import { fail, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import { deleteSetting, getSetting, setSetting } from '@/lib/settings';
@@ -27,7 +28,7 @@ function status() {
   return {
     groups,
     state: {
-      storage: { active: activeDriver().id, s3Ready: Boolean(s3Config()) },
+      storage: { active: activeDriver().id, s3Ready: Boolean(s3Config()), oldImages: pendingImages().length },
       stripe: { ready: Boolean(serviceValue('payment.stripeKey') && serviceValue('payment.stripeWebhookSecret')), active: paymentProviders().find((item) => item.active)?.id ?? null },
       moderation: { enabled: moderationEnabled() },
       alert: { ready: Boolean(serviceValue('alert.webhook')) },
@@ -97,6 +98,12 @@ export async function POST(request: Request) {
     } catch (error) {
       return fail(`连接失败：${(error as Error).message.slice(0, 160)}`, 400);
     }
+  }
+  if (action === 'convertWebp') {
+    const r = await convertImagesToWebp(100);
+    if (r.converted) logAdmin(g.user.id, '旧图转 webp', `${r.converted} 张，省 ${Math.round(r.savedBytes / 1024)} KB`);
+    const mb = (r.savedBytes / 1024 / 1024).toFixed(1);
+    return json({ ok: true, webp: r, message: r.converted || r.skipped || r.failed ? `转了 ${r.converted} 张，省下 ${mb} MB${r.skipped ? `，${r.skipped} 张转了不更小已跳过` : ''}${r.failed ? `，${r.failed} 张失败：${r.errors[0] ?? ''}` : ''}${r.remaining ? `，还剩 ${r.remaining} 张` : ''}` : '没有需要转换的旧图' });
   }
   if (action === 'regenVapid') {
     if (!regenerateVapid()) return fail('推送密钥由环境变量指定，请在服务器上修改', 400);

@@ -50,7 +50,12 @@ export async function GET(request: Request, context: Params) {
     const cover = character.coverImage ?? '';
     const name = cover.startsWith('/media/') ? cover.slice('/media/'.length) : '';
     const file = name ? await readMedia(name, user?.id ?? null) : null;
-    const png = file ? embedPngCard(file.buffer, { chara: v2, ccv3: { spec: 'chara_card_v3', spec_version: '3.0', data } }) : null;
+    // 封面可能已经是 webp/jpg（新生成的图、旧图转换过）：导出 PNG 卡时现转一份 PNG
+    let pngBuffer = file?.buffer ?? null;
+    if (file && file.extension !== 'png') {
+      try { const sharp = (await import('sharp')).default; pngBuffer = await sharp(file.buffer).png().toBuffer(); } catch { pngBuffer = null; }
+    }
+    const png = pngBuffer ? embedPngCard(pngBuffer, { chara: v2, ccv3: { spec: 'chara_card_v3', spec_version: '3.0', data } }) : null;
     if (!png) return fail('这个角色没有 PNG 封面，请导出 JSON', 400);
     return new Response(new Uint8Array(png), {
       headers: {

@@ -13,7 +13,7 @@ type Field = {
 type Group = { id: string; title: string; intro: string; fields: Field[] };
 type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
 type State = {
-  storage: { active: string; s3Ready: boolean };
+  storage: { active: string; s3Ready: boolean; oldImages?: number };
   stripe: { ready: boolean; active: string | null };
   moderation: { enabled: boolean };
   alert: { ready: boolean };
@@ -90,7 +90,11 @@ export function AdminServices({ only }: { only?: string } = {}) {
     }
   };
 
-  const action = async (name: 'testAlert' | 'testStorage' | 'regenVapid') => {
+  const action = async (name: 'testAlert' | 'testStorage' | 'regenVapid' | 'convertWebp') => {
+    if (name === 'convertWebp') {
+      const ok = await askConfirm({ title: '把旧图转成 webp？', message: '已有的 PNG/JPG 图片会转成 webp，站内引用自动换成新地址，旧链接会自动跳转。本地原图会先备份到 .data/media-original/，对象存储上的原图不删。转换期间可以正常使用。', confirmLabel: '开始转换' });
+      if (!ok) return;
+    }
     if (name === 'regenVapid') {
       const ok = await askConfirm({ title: '重新生成推送密钥？', message: '所有已开启通知的设备都会失效，用户需要重新打开通知。一般只在密钥泄露时这么做。', confirmLabel: '重新生成', danger: true });
       if (!ok) return;
@@ -99,7 +103,19 @@ export function AdminServices({ only }: { only?: string } = {}) {
     setError('');
     setNotice('');
     try {
-      const data = await api<{ message: string } & Partial<Status>>('/api/admin/services', { method: 'POST', body: JSON.stringify({ action: name }) });
+      let data = await api<{ message: string; webp?: { converted: number; savedBytes: number; remaining: number } } & Partial<Status>>('/api/admin/services', { method: 'POST', body: JSON.stringify({ action: name }) });
+      // 一次 100 张，有剩余就接着转，并累计结果
+      if (name === 'convertWebp' && data.webp) {
+        let converted = data.webp.converted; let saved = data.webp.savedBytes;
+        for (let round = 0; data.webp && data.webp.remaining > 0 && data.webp.converted > 0 && round < 200; round += 1) {
+          setNotice(`已转 ${converted} 张，还剩 ${data.webp.remaining} 张…`);
+          data = await api('/api/admin/services', { method: 'POST', body: JSON.stringify({ action: name }) });
+          converted += data.webp?.converted ?? 0; saved += data.webp?.savedBytes ?? 0;
+        }
+        if (converted) data = { ...data, message: `转好了 ${converted} 张，省下 ${(saved / 1024 / 1024).toFixed(1)} MB${data.webp?.remaining ? `，还剩 ${data.webp.remaining} 张没转（${data.message}）` : ''}` };
+        const fresh = await api<Partial<Status>>('/api/admin/services');
+        if (fresh.groups && fresh.state) setStatus({ groups: fresh.groups, state: fresh.state });
+      }
       if (data.groups && data.state) setStatus({ groups: data.groups, state: data.state });
       setNotice(data.message);
     } catch (caught) {
@@ -185,6 +201,7 @@ export function AdminServices({ only }: { only?: string } = {}) {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === group.id || !dirty} onClick={() => void save(group)}>{busy === group.id ? '保存中…' : '保存'}</button>
               {group.id === 'storage' && <button className="p-btn p-btn--sm" type="button" disabled={busy === 'testStorage' || !s.storage.s3Ready} onClick={() => void action('testStorage')}>{busy === 'testStorage' ? '测试中…' : '测试读写'}</button>}
+              {group.id === 'storage' && <button className="p-btn p-btn--sm" type="button" disabled={busy === 'convertWebp' || !s.storage.oldImages} title="把已有的 PNG/JPG 图片转成 webp，体积通常小很多" onClick={() => void action('convertWebp')}>{busy === 'convertWebp' ? '转换中…' : s.storage.oldImages ? `旧图转 webp（${s.storage.oldImages} 张）` : '旧图都已是 webp'}</button>}
               {group.id === 'alert' && <button className="p-btn p-btn--sm" type="button" disabled={busy === 'testAlert' || !s.alert.ready} onClick={() => void action('testAlert')}>{busy === 'testAlert' ? '发送中…' : '发一条测试告警'}</button>}
               {group.id === 'push' && s.push.source === 'auto' && <button className="p-btn p-btn--sm" type="button" disabled={busy === 'regenVapid'} onClick={() => void action('regenVapid')}>重新生成密钥</button>}
               {hasOwnSecret && (

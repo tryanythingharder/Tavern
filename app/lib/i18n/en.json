@@ -4479,5 +4479,13 @@
  "插图消息不能继续或重新生成，可以「再画一张」": "Picture messages can't be continued or regenerated; use Redraw instead",
  "✦ 生图中…": "✦ Drawing…",
  "例如：雨夜的茶馆，三个人围着一盏油灯，窗外是长街": "e.g. a teahouse on a rainy night, three people around an oil lamp, a long street outside",
- "例如：水彩风、远景、雨夜": "e.g. watercolour, wide shot, rainy night"
+ "例如：水彩风、远景、雨夜": "e.g. watercolour, wide shot, rainy night",
+ "「旧图转 webp」会动到什么？": "What does \"Convert old images to webp\" change?",
+ "把已有的 PNG/JPG 转成 webp，体积通常只剩几分之一；站内所有引用自动换成新地址，旧链接会跳转到新图。本地原图先备份到 .data/media-original/，对象存储上的原图不删。转了不更小的图会跳过。导出 PNG 角色卡时会现转一份 PNG，不受影响。": "Existing PNG/JPG files become webp, usually a fraction of the size. Every reference on the site switches to the new address and old links redirect. Local originals are backed up to .data/media-original/ first; originals in object storage are kept. Images that don't get smaller are skipped. PNG card export converts back to PNG on the fly.",
+ "把已有的 PNG/JPG 图片转成 webp，体积通常小很多": "Convert existing PNG/JPG images to webp, usually much smaller",
+ "转换中…": "Converting…",
+ "旧图都已是 webp": "All images are webp",
+ "把旧图转成 webp？": "Convert old images to webp?",
+ "开始转换": "Convert",
+ "没有需要转换的旧图": "No old images to convert"
 }

@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
 import { readMedia } from '@/lib/storage';
+import { mediaAlias } from '@/lib/media-webp';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,12 @@ export async function GET(_request: Request, context: Params) {
   const { name } = await context.params;
   const user = await getCurrentUser();
   const file = await readMedia(name, user?.id ?? null);
-  if (!file) return new Response('Not found', { status: 404 });
+  if (!file) {
+    // 转成 webp 的旧图：旧链接永久跳到新地址
+    const alias = mediaAlias(name);
+    if (alias) return new Response(null, { status: 301, headers: { Location: `/media/${alias}`, 'Cache-Control': 'public, max-age=31536000' } });
+    return new Response('Not found', { status: 404 });
+  }
   const privateFile = file.visibility === 'private';
   return new Response(new Uint8Array(file.buffer), {
     headers: {
