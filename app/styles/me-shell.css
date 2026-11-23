@@ -25,6 +25,10 @@ html body[data-theme="folio"]:not(#a) :is(.p-side-back, .p-topbar-back) { border
   html body[data-theme="nocturne"]:not(#a) .p-side-back { background: rgba(255, 255, 255, .06); border-color: var(--noc-line, rgba(255, 255, 255, .14)); color: var(--noc-text, #f3efe8); }
   html body[data-theme="nocturne"]:not(#a) .p-side-me-title { color: var(--noc-text, #f3efe8); font-family: var(--noc-serif, inherit); letter-spacing: .14em; }
   html body[data-theme="nocturne"]:not(#a) .p-side-me { padding-right: 12px; }
+  /* 胶囊里横排：去掉竖排时的外边距，返回按钮与「我的」同一中线；左右留白对称 */
+  html body:is([data-theme="nocturne"], [data-theme="stage"]):not(#a):not(#b) .p-shell[data-section="me"] .p-side-me .p-side-back { margin: 0; align-self: center; }
+  html body[data-theme="nocturne"]:not(#a) .p-shell[data-section="me"] .p-side-me { padding: 0 18px 0 6px; }
+  html body:is([data-theme="nocturne"], [data-theme="stage"]):not(#a) .p-side-me-title { line-height: 36px; }
   html body[data-theme="stage"]:not(#a) .p-side-me-title { font-size: 16px; color: var(--stg-ink, #111); }
 }
 @media (max-width: 1023px) {

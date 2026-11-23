@@ -7,3 +7,9 @@ export async function GET(request: Request) {
   await endSession();
   return Response.redirect(new URL('/login', request.url), 303);
 }
+
+// POST /logout —— 顶栏头像菜单二次确认后用它（不会被链接预取误触发）
+export async function POST() {
+  await endSession();
+  return new Response(null, { status: 204 });
+}

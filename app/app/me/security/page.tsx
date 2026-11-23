@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { LogoutButton } from '@/components/account-menu';
 import { redirect } from 'next/navigation';
 import { getCurrentUser, listSessions, twoFactorStatus } from '@/lib/auth';
 import { getBlockedAuthors } from '@/lib/blocked';
@@ -64,7 +64,7 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
           <span className="p-small">下载 JSON →</span>
         </a>
       </div>
-      <Link className="p-btn p-btn--danger" href="/logout" prefetch={false} style={{ marginTop: 20 }}>退出登录</Link>
+      <LogoutButton className="p-btn p-btn--danger" style={{ marginTop: 20 }} />
       <section className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h3 className="p-form-section-title">注销账号</h3>
         <p className="p-small" style={{ marginTop: 0 }}>永久删除账号与全部个人数据，无法恢复。建议先导出数据。</p>

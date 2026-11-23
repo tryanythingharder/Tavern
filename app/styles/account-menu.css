@@ -1,0 +1,58 @@
+/* 顶栏头像下拉：个人信息 / 设置 / 退出登录（面板复用 .p-points-panel 的主题底色与边框） */
+html body:not(#w) .p-acct-trigger { cursor: pointer; font: inherit; padding: 0; appearance: none; -webkit-appearance: none; }
+html body:not(#w) .p-acct-trigger[data-open] { box-shadow: 0 0 0 3px var(--ca-accent-soft, #f9e8e4); }
+html body:not(#w) .p-points-panel.p-acct {
+  position: fixed; z-index: 160; width: 272px; max-width: calc(100vw - 24px);
+  padding: 0; display: grid; gap: 0; overflow: hidden;
+  animation: p-acct-in .16s ease-out;
+}
+@keyframes p-acct-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { html body:not(#w) .p-points-panel.p-acct { animation: none; } }
+
+html body:not(#w) .p-acct-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px; color: inherit; text-decoration: none; }
+html body:not(#w) .p-acct-head:hover .p-acct-id b { text-decoration: underline; text-underline-offset: 3px; }
+html body:not(#w) .p-acct-avatar {
+  display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--ca-accent-soft, #f9e8e4); color: var(--ca-accent, #c9401f); font-size: 17px; font-weight: 700;
+}
+html body:not(#w) .p-acct-id { display: grid; gap: 2px; min-width: 0; }
+html body:not(#w) .p-acct-id b { font-size: 14.5px; font-weight: 700; color: var(--ca-ink, #1b1b1d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body:not(#w) .p-acct-mail { font-size: 12px; color: var(--ca-muted, #77777e); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body:not(#w) .p-acct-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 16px 10px; padding: 8px 12px; border-radius: 10px; background: var(--ca-sunken, #f5f3f0); font-size: 12.5px; color: var(--ca-copy, #55555c); }
+html body:not(#w) .p-acct-meta b { color: var(--ca-ink, #1b1b1d); font-variant-numeric: tabular-nums; margin-left: 4px; }
+html body:not(#w) .p-acct-meta em { font-style: normal; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 999px; background: var(--ca-accent, #c9401f); color: #fff; }
+html body:not(#w) .p-acct-list,
+html body:not(#w) .p-acct-foot { display: grid; padding: 6px; border-top: 1px solid var(--ca-line, #ebe8e3); }
+html body:not(#w) .p-acct-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ca-ink, #1b1b1d); font: inherit; font-size: 13.5px; text-align: left; text-decoration: none; cursor: pointer;
+}
+html body:not(#w) .p-acct-item .p-icon { width: 17px; height: 17px; flex: none; color: var(--ca-muted, #77777e); fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html body:not(#w) .p-acct-item:is(:hover, :focus-visible) { background: var(--ca-sunken, #f5f3f0); outline: none; }
+html body:not(#w) .p-acct-out,
+html body:not(#w) .p-acct-out .p-icon { color: var(--ca-danger, #c0392b); }
+
+/* folio：方角、墨线 */
+html body[data-theme="folio"]:not(#w) .p-points-panel.p-acct { padding: 0; }
+html body[data-theme="folio"]:not(#w) :is(.p-acct-avatar, .p-acct-meta, .p-acct-item, .p-acct-meta em) { border-radius: 0; }
+html body[data-theme="folio"]:not(#w) .p-acct-avatar { background: transparent; border: 1px solid var(--fo-ink, #1b1b1d); color: var(--fo-ink, #1b1b1d); font-family: var(--fo-italic, serif); }
+html body[data-theme="folio"]:not(#w) :is(.p-acct-list, .p-acct-foot) { border-top-color: var(--fo-line-strong, #d5d5d9); }
+html body[data-theme="folio"]:not(#w) .p-acct-trigger[data-open] { box-shadow: 0 0 0 2px var(--fo-ink, #1b1b1d); }
+
+/* nocturne：深色玻璃 */
+html body[data-theme="nocturne"]:not(#w) .p-acct-id b,
+html body[data-theme="nocturne"]:not(#w) .p-acct-meta b,
+html body[data-theme="nocturne"]:not(#w) .p-acct-item { color: var(--noc-text, #f3f3f6); }
+html body[data-theme="nocturne"]:not(#w) :is(.p-acct-mail, .p-acct-item .p-icon) { color: var(--noc-muted, #8b8b96); }
+html body[data-theme="nocturne"]:not(#w) .p-acct-meta { background: rgba(255, 255, 255, .05); color: var(--noc-copy, #c9c9d1); }
+html body[data-theme="nocturne"]:not(#w) .p-acct-avatar { background: rgba(240, 113, 79, .16); color: #f0714f; font-family: var(--noc-serif, inherit); }
+html body[data-theme="nocturne"]:not(#w) :is(.p-acct-list, .p-acct-foot) { border-top-color: var(--noc-line, #26262e); }
+html body[data-theme="nocturne"]:not(#w) .p-acct-item:is(:hover, :focus-visible) { background: rgba(255, 255, 255, .06); }
+html body[data-theme="nocturne"]:not(#w) .p-acct-out,
+html body[data-theme="nocturne"]:not(#w) .p-acct-out .p-icon { color: #f0714f; }
+html body[data-theme="nocturne"]:not(#w) .p-acct-trigger[data-open] { box-shadow: 0 0 0 3px rgba(240, 113, 79, .3); }
+
+/* stage：大圆角 */
+html body[data-theme="stage"]:not(#w) .p-points-panel.p-acct { padding: 0; border-radius: 20px; }
+html body[data-theme="stage"]:not(#w) .p-acct-item { border-radius: 12px; }
+html body[data-theme="stage"]:not(#w) .p-acct-meta { border-radius: 12px; }

@@ -42,6 +42,7 @@ export const BUNDLES = {
     'styles/ui-dialog.css',
     'styles/me-shell.css',
     'styles/wallet.css',
+    'styles/account-menu.css',
     'styles/points-chip.css',
     'styles/sprites.css',
     'styles/models.css',

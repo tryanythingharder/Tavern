@@ -4333,5 +4333,8 @@
  "部分地区（例如英国、美国部分州）法律要求成人内容先做强年龄验证。在「内容管理 → 内容分级」里列为「需要验证」的地区，玩家通过验证后才能看到 18+ 内容。": "Some regions (e.g. the UK and some US states) require strong age verification for adult content. In regions marked Requires verification under Content → Content rating, players see 18+ content only after verifying.",
  "先在「内容分级」里确定哪些地区完全不提供、哪些需要验证。": "First decide under Content rating which regions get no adult content and which require verification.",
  "目前没有接入验证服务商，需要验证地区的玩家只能由管理员在玩家详情里手动标记已验证。": "No verification provider is connected yet, so players in those regions can only be marked verified manually by an admin on their detail page.",
- "选定服务商（如 Yoti、Veriff、AgeChecked）后，在 lib/age-verify/ 加一个适配文件即可接入。": "Once you pick a provider (e.g. Yoti, Veriff, AgeChecked), connect it by adding one adapter file in lib/age-verify/."
+ "选定服务商（如 Yoti、Veriff、AgeChecked）后，在 lib/age-verify/ 加一个适配文件即可接入。": "Once you pick a provider (e.g. Yoti, Veriff, AgeChecked), connect it by adding one adapter file in lib/age-verify/.",
+ "个人信息": "Profile",
+ "账号与安全": "Account & security",
+ "设置": "Settings"
 }

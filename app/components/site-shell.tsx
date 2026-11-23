@@ -17,6 +17,7 @@ import { SwRegister } from '@/components/sw-register';
 import { ErrorReporter } from '@/components/error-reporter';
 import { onPoints } from '@/lib/points-bus';
 import { AdminMobileNav, AdminSideNav } from '@/components/admin-nav';
+import { AccountMenu } from '@/components/account-menu';
 
 // 图标：与原型一致的内联 SVG（class="p-icon"）
 const icon = (path: string) => (
@@ -42,6 +43,7 @@ type Recent = { id: number; characterId: string; name: string; initial: string; 
 export function SiteShell({
   children,
   userName,
+  userEmail,
   points: initialPoints = 0,
   unread = 0,
   admin = false,
@@ -56,6 +58,7 @@ export function SiteShell({
 }: {
   children: ReactNode;
   userName?: string;
+  userEmail?: string;
   points?: number;
   unread?: number;
   admin?: boolean;
@@ -283,9 +286,7 @@ export function SiteShell({
               </Link>
             )}
             {pointsMenu}
-            <Link className="cinema-account" href={userName ? '/me' : '/login'} aria-label={userName ? '我的账号' : '登录'} prefetch={false}>
-              {userName ? Array.from(userName)[0] : '林'}
-            </Link>
+            <AccountMenu userName={userName} email={userEmail} points={points} admin={admin} triggerClassName="cinema-account" />
           </div>
         </header>
         <main className="cinema-main" id="main-content" tabIndex={-1}>{children}</main>
@@ -386,9 +387,7 @@ export function SiteShell({
             </Link>
           )}
           {pointsMenu}
-          <Link className="p-avatar" href={userName ? '/me' : '/login'} style={{ ['--size' as string]: '36px', ['--h' as string]: 28 }} aria-label={userName ? '我的账号' : '登录'} prefetch={false}>
-            {userName ? Array.from(userName)[0] : '林'}
-          </Link>
+          <AccountMenu userName={userName} email={userEmail} points={points} admin={admin} triggerStyle={{ ['--size' as string]: '36px', ['--h' as string]: 28 }} />
         </header>
         {!adminPage && !pathname.startsWith('/chats/') && !pathname.startsWith('/rooms/') && <AnnouncementBar text={announcement} />}
         <span id="main-content" tabIndex={-1} className="main-anchor" />
