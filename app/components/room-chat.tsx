@@ -18,8 +18,9 @@ import { runBgCommand } from '@/lib/slash-media';
 import { useRouter } from 'next/navigation';
 import { showAlert } from '@/components/ui-dialog';
 import { langLabel } from '@/lib/translation';
+import { Modal } from '@/components/settings-ui';
 
-type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null; translation?: { lang: string; text: string; original: boolean } | null };
+type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null; translation?: { lang: string; text: string; original: boolean } | null; attachment?: { kind: 'image'; url: string; prompt?: string; mode?: string; width?: number; height?: number } | null };
 type Member = { id: string; name: string; initial: string; hue: number; avatar?: string | null; muted?: boolean };
 
 type Props = {
@@ -38,9 +39,13 @@ type Props = {
   displayRules?: RegexRule[];
   memberRules?: Record<string, RegexRule[]>;
   quickReplies?: QrState;
+  /** 群聊生图：开关、单价、人物参考开关、各成员的定妆照与有没有自带图 */
+  media?: { image: boolean; imageCost: number; reference: boolean; looks: Record<string, string | null>; hasImage: Record<string, boolean> };
 };
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"} as const;
+type ImageMode = 'scene' | 'last' | 'character' | 'custom';
+
+const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "portrait": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20a8 8 0 0 1 16 0"} as const;
 function Ico({ name }: { name: keyof typeof ICONS }) {
   return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 }
@@ -57,7 +62,7 @@ const STRATEGY_HINT: Record<string, string> = {
 const NO_RULES: RegexRule[] = [];
 const NO_MEMBER_RULES: Record<string, RegexRule[]> = {};
 
-export function RoomChat({ accountAvatar = null, roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = NO_RULES, memberRules = NO_MEMBER_RULES, quickReplies: qrInitial }: Props) {
+export function RoomChat({ accountAvatar = null, roomId, strategy, members, initialMessages, userName: initialUserName, persona: personaInit, autoMode = false, defaultSpeakerId, displayRules = NO_RULES, memberRules = NO_MEMBER_RULES, quickReplies: qrInitial, media }: Props) {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -107,6 +112,13 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
   const abortRef = useRef<AbortController | null>(null);
   const autoContinueRef = useRef<number | null>(null);
   const thoughtsOpen = useThoughtsOpen();
+  // ---- 群聊生图（人物参考与单聊同一套，见 lib/image-ref.ts）----
+  const [imageOpen, setImageOpen] = useState(false);
+  const [imageMode, setImageMode] = useState<ImageMode>('scene');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [imageChar, setImageChar] = useState('');
+  const [imageBusy, setImageBusy] = useState(false);
+  const [looks, setLooks] = useState<Record<string, string | null>>(media?.looks ?? {});
 
   // ---- 消息翻译（ST Translate，同单聊）----
   const [translating, setTranslating] = useState<number | null>(null);
@@ -417,7 +429,7 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
   // ST「继续」：最后一条是角色消息就接着写；否则让下一位角色接话（同群聊里的「推进」）
   const continueLast = useCallback(() => {
     const last = messages[messages.length - 1];
-    if (last && last.role === 'assistant' && typeof last.id === 'number') void run({ kind: 'continue', messageId: last.id });
+    if (last && last.role === 'assistant' && typeof last.id === 'number' && !last.attachment) void run({ kind: 'continue', messageId: last.id });
     else void run({ kind: 'auto' });
   }, [messages, run]);
 
@@ -534,6 +546,57 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
     void run({ kind: 'send', text });
   }, [draft, streaming, run]);
 
+  const lastSpeakerId = useMemo(() => [...messages].reverse().find((item) => item.role === 'assistant' && !item.attachment && item.speakerId)?.speakerId ?? null, [messages]);
+  const imageFocus = imageChar || (imageMode === 'scene' || imageMode === 'last' ? lastSpeakerId : null) || members[0]?.id || '';
+
+  const makeImage = useCallback(async () => {
+    const prompt = imagePrompt.trim();
+    if (imageMode === 'custom' && !prompt) return;
+    setImageBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: imageMode, characterId: imageChar || undefined, ...(imageMode === 'custom' ? { prompt } : { hint: prompt }) }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { message?: string; cost?: number; balance?: number };
+      if (!response.ok) throw new Error(data.message || '生图失败');
+      setImageOpen(false);
+      setImagePrompt('');
+      emitPoints(data);
+      await resync();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setImageBusy(false);
+    }
+  }, [roomId, imagePrompt, imageMode, imageChar, resync]);
+
+  const toggleLook = useCallback(async (message: RoomMessageView) => {
+    const url = message.attachment?.url;
+    const cid = message.speakerId;
+    if (!url || !cid || typeof message.id !== 'number') return;
+    const unset = looks[cid] === url;
+    try {
+      const response = await fetch(unset ? `/api/rooms/${roomId}/look?characterId=${encodeURIComponent(cid)}` : `/api/rooms/${roomId}/look`, unset
+        ? { method: 'DELETE' }
+        : { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId: message.id }) });
+      const data = (await response.json().catch(() => ({}))) as { message?: string; lookUrl?: string | null };
+      if (!response.ok) throw new Error(data.message || '没设成功');
+      setLooks((prev) => ({ ...prev, [cid]: data.lookUrl ?? null }));
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }, [roomId, looks]);
+
+  const redraw = useCallback((message: RoomMessageView) => {
+    setImageMode('custom');
+    setImagePrompt(message.attachment?.prompt ?? '');
+    setImageChar(message.speakerId ?? '');
+    setImageOpen(true);
+  }, []);
+
   const renderRow = (message: (typeof messages)[number], index: number) => {
             const member = memberOf(message.speakerId);
         const isUser = message.role === 'user';
@@ -543,7 +606,8 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
         const isEditing = editing !== null && editing.id === message.id;
         const count = message.candidateCount ?? 1;
         const selected = message.selected ?? 0;
-        const canSwipe = !isUser && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
+        const isImage = message.attachment?.kind === 'image';
+        const canSwipe = !isUser && !isImage && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
         // 开场白（玩家还没说过话之前的角色消息）：只在备选开场白之间切换，不生成新版（同单聊 / ST）
         const isOpening = !isUser && index <= firstUserIndex;
         const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
@@ -617,6 +681,27 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
                   </div>
                 </div>
               ) : (
+                isImage && message.attachment ? (
+                  <figure className="p-msg-figure">
+                    <img
+                      className="p-msg-img"
+                      src={message.attachment.url}
+                      alt={message.attachment.prompt ?? '生成的图片'}
+                      width={message.attachment.width}
+                      height={message.attachment.height}
+                      loading="lazy"
+                      decoding="async"
+                      style={message.attachment.width && message.attachment.height ? { aspectRatio: `auto ${message.attachment.width} / ${message.attachment.height}` } : undefined}
+                    />
+                    {media?.reference && message.speakerId && looks[message.speakerId] === message.attachment.url && <span className="p-msg-look">定妆照</span>}
+                    {message.attachment.prompt && (
+                      <details className="p-msg-imgprompt">
+                        <summary>画面描述</summary>
+                        <p>{message.attachment.prompt}</p>
+                      </details>
+                    )}
+                  </figure>
+                ) : (
                 <>
                   {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
                   <div className="p-msg-copy p-msg-text">
@@ -640,6 +725,7 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
                     </a>
                   ) : null}
                 </>
+                )
               )}
               {canSwipe && !(isOpening && count <= 1) && (
                 <div className="rp-swipe" role="group" aria-label="回复版本">
@@ -665,6 +751,18 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
                       <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
                     </>
                   ) : (
+                    isImage ? (
+                    <>
+                      {media?.reference && message.speakerId && (
+                        <button type="button" data-act="look" aria-label={looks[message.speakerId] === message.attachment?.url ? '已是定妆照（点一下取消）' : '设为定妆照：以后生图照这张的长相画'} title={looks[message.speakerId] === message.attachment?.url ? '定妆照' : '设为定妆照'} aria-pressed={looks[message.speakerId] === message.attachment?.url} onClick={() => void L.toggleLook(message)}><Ico name="portrait" /></button>
+                      )}
+                      {media?.image && (
+                        <button type="button" data-act="regen" aria-label="按这段描述再画一张" title="再画一张" disabled={streaming || imageBusy} onClick={() => L.redraw(message)}><Ico name="regen" /></button>
+                      )}
+                      <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void L.branch(message)}><Ico name="branch" /></button>
+                      <button type="button" aria-label="删除消息" title="删除" disabled={streaming} onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
+                    </>
+                    ) : (
                     <>
                       <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void L.copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
                       <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
@@ -678,6 +776,7 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
                       <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} disabled={streaming} onClick={() => void L.branch(message, true)}><Ico name="checkpoint" /></button>
                       <button type="button" aria-label="删除消息" title="删除" disabled={streaming} onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
                     </>
+                    )
                   )}
                 </div>
               )}
@@ -688,13 +787,13 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
 
   // 长会话性能（同单聊）：每楼渲染结果按影响它的值缓存，流式时只重画正在写的那一楼；处理函数经 L 取最新的。
   const live = useRef<Record<string, unknown>>({});
-  live.current = { switchCandidate, run, saveEdit, translateMessage, removeTranslation, remove, copy, branch };
+  live.current = { switchCandidate, run, saveEdit, translateMessage, removeTranslation, remove, copy, branch, toggleLook, redraw };
   const L = useMemo(() => new Proxy({}, { get: (_t, k: string) => live.current[k] }) as {
     switchCandidate: typeof switchCandidate; run: typeof run; saveEdit: typeof saveEdit; translateMessage: typeof translateMessage;
-    removeTranslation: typeof removeTranslation; remove: typeof remove; copy: typeof copy; branch: typeof branch;
+    removeTranslation: typeof removeTranslation; remove: typeof remove; copy: typeof copy; branch: typeof branch; toggleLook: typeof toggleLook; redraw: typeof redraw;
   }, []);
   const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
-  const rowEnv = [members, rulesFor, macrosFor, userName, persona.avatar, accountAvatar, thoughtsOpen, roomId, streaming, streamingId === null];
+  const rowEnv = [members, rulesFor, macrosFor, userName, persona.avatar, accountAvatar, thoughtsOpen, roomId, streaming, streamingId === null, looks, imageBusy, media];
   const rowEnvRef = useRef<unknown[]>(rowEnv);
   if (rowEnv.some((v, i) => v !== rowEnvRef.current[i])) { rowEnvRef.current = rowEnv; rowCache.current.clear(); }
   const cachedRow = (message: (typeof messages)[number], index: number) => {
@@ -799,6 +898,9 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
             <span className="p-chat-acts">
               <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={continueLast} title="不写台词，让角色接着上一条往下写；最后一条是你的话时，让下一位角色接话">▸ 继续</button>
               <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
+              {media?.image && (
+                <button className="p-chat-act p-chat-img" type="button" disabled={streaming || imageBusy} onClick={() => setImageOpen(true)} title="按当前剧情生成一张插图，作为消息插入群聊">{imageBusy ? '✦ 生图中…' : '✦ 生图'}</button>
+              )}
               {personaInit && (
                 <PersonaSwitch
                   endpoint={`/api/rooms/${roomId}/persona`}
@@ -815,6 +917,61 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
           </div>
         </div>
       </div>
+
+      {imageOpen && (
+        <Modal
+          title="生成一张插图"
+          onClose={() => setImageOpen(false)}
+          footer={
+            <>
+              <button className="btn btn--sm" type="button" onClick={() => setImageOpen(false)}>取消</button>
+              <button className="btn btn--sm btn--primary" type="button" disabled={imageBusy || (imageMode === 'custom' && !imagePrompt.trim())} onClick={() => void makeImage()}>
+                {imageBusy ? (imageMode === 'custom' ? '生成中…' : '构思画面并生成…') : '生成'}
+              </button>
+            </>
+          }
+        >
+          <div className="field">
+            <label>画什么</label>
+            <div className="p-img-modes" role="radiogroup" aria-label="画什么">
+              {([
+                ['scene', '当前场景', '按最近几轮画出眼下的画面，最近出场的角色（最多 3 位）一起入画'],
+                ['last', '最后一条回复', '把刚发言的角色那一幕画出来'],
+                ['character', '角色立绘', '给选中的角色画一张人物像'],
+                ['custom', '自己描述', '完全按你写的内容画'],
+              ] as const).map(([value, label, desc]) => (
+                <button key={value} type="button" role="radio" aria-checked={imageMode === value} className={`p-img-mode${imageMode === value ? ' is-on' : ''}`} disabled={imageBusy} onClick={() => setImageMode(value)}>
+                  <strong>{label}</strong><span>{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="room-img-char">{imageMode === 'scene' ? '主角' : '画谁'}</label>
+            <Select id="room-img-char" className="p-select" value={imageChar} disabled={imageBusy} onChange={(event) => setImageChar(event.target.value)}>
+              <option value="">{imageMode === 'scene' || imageMode === 'last' ? `自动（最近发言的${lastSpeakerId ? `：${members.find((member) => member.id === lastSpeakerId)?.name ?? ''}` : ''}）` : `自动（${members[0]?.name ?? ''}）`}</option>
+              {members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+            </Select>
+          </div>
+          <div className="field">
+            <label>{imageMode === 'custom' ? '画面描述' : '补充要求（可不填）'}</label>
+            <textarea
+              className="textarea"
+              rows={imageMode === 'custom' ? 4 : 2}
+              value={imagePrompt}
+              maxLength={imageMode === 'custom' ? 900 : 200}
+              placeholder={imageMode === 'custom' ? '例如：雨夜的茶馆，三个人围着一盏油灯，窗外是长街' : '例如：水彩风、远景、雨夜'}
+              onChange={(event) => setImagePrompt(event.target.value)}
+            />
+          </div>
+          {media?.reference && imageFocus && (
+            <p className="small p-img-ref" style={{ margin: 0 }}>
+              {members.find((member) => member.id === imageFocus)?.name ?? '角色'}的长相参考：{looks[imageFocus] ? '你设的定妆照' : media.hasImage[imageFocus] ? '角色封面' : messages.some((item) => item.attachment?.kind === 'image' && item.attachment.mode === 'character' && item.speakerId === imageFocus) ? '本群聊第一张 TA 的立绘' : '暂无，建议先给 TA 画一张「角色立绘」，之后的图都会照它画'}
+            </p>
+          )}
+          <p className="small" style={{ margin: 0 }}>{imageMode === 'custom' ? `会消耗 ${media?.imageCost ?? 0} 点` : `会先让对话模型按剧情写画面描述（按字数少量扣点），再消耗 ${media?.imageCost ?? 0} 点生图`}，生成后作为一条消息插入群聊，不会发给模型。</p>
+        </Modal>
+      )}
     </>
   );
 }

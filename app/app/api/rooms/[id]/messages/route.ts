@@ -59,6 +59,7 @@ async function handlePost(request: Request, context: Params) {
   if (!auto && !text) return fail('消息不能为空', 400);
   const target = mode ? getRoomMessage(room.id, Number(body.messageId)) : undefined;
   if (mode) {
+    if (target?.attachment) return fail('插图消息不能继续或重新生成，可以「再画一张」', 400);
     if (!target || target.role !== 'assistant' || !target.speakerId) return fail(mode === 'continue' ? '只能继续角色消息' : '只能重新生成角色消息', 400);
     if (!isLatestRoomMessage(room.id, target.id)) return fail(mode === 'continue' ? '只能继续最新一条消息' : '只能重新生成最新一条消息', 400);
     if (mode === 'regenerate' && !listRoomMessages(room.id).some((message) => message.role === 'user' && message.id < target.id)) return fail('开场白只能在备选开场白之间切换', 400);

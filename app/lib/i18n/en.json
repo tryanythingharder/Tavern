@@ -4466,5 +4466,18 @@
  "本对话第一张角色立绘": "first portrait in this chat",
  "暂无，建议先画一张「角色立绘」，之后的图都会照它画": "none yet; draw a character portrait first and later pictures will follow it",
  "只有对话里生成的插图能设为定妆照": "Only pictures generated in this chat can be set as the reference look",
- "没设成功": "Couldn't set it"
+ "没设成功": "Couldn't set it",
+ "按最近几轮画出眼下的画面，最近出场的角色（最多 3 位）一起入画": "Draw the current scene; the characters who spoke most recently (up to 3) appear together",
+ "把刚发言的角色那一幕画出来": "Draw the moment from the character who just spoke",
+ "给选中的角色画一张人物像": "A portrait of the selected character",
+ "主角": "Main character",
+ "画谁": "Who to draw",
+ "的长相参考：": "'s face reference: ",
+ "本群聊第一张 TA 的立绘": "their first portrait in this group chat",
+ "暂无，建议先给 TA 画一张「角色立绘」，之后的图都会照它画": "none yet; draw them a character portrait first and later pictures will follow it",
+ "只有群聊里生成的插图能设为定妆照": "Only pictures generated in this group chat can be set as the reference look",
+ "插图消息不能继续或重新生成，可以「再画一张」": "Picture messages can't be continued or regenerated; use Redraw instead",
+ "✦ 生图中…": "✦ Drawing…",
+ "例如：雨夜的茶馆，三个人围着一盏油灯，窗外是长街": "e.g. a teahouse on a rainy night, three people around an oil lamp, a long street outside",
+ "例如：水彩风、远景、雨夜": "e.g. watercolour, wide shot, rainy night"
 }

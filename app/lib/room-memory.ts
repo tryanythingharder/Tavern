@@ -38,7 +38,7 @@ function roomPrefs(source: RoomMemoryRow): SummaryPrefs {
 }
 
 function allMessages(roomId: number): RoomMsgRow[] {
-  return db.prepare('SELECT id, role, speaker_id, content, persona_name FROM room_messages WHERE room_id = ? ORDER BY id').all(roomId) as RoomMsgRow[];
+  return db.prepare(`SELECT id, role, speaker_id, content, persona_name FROM room_messages WHERE room_id = ? AND (attachment IS NULL OR attachment NOT LIKE '%"kind":"image"%') ORDER BY id`).all(roomId) as RoomMsgRow[];
 }
 
 export type RoomPromptMemory = {

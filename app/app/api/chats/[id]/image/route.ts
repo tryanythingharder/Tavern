@@ -42,7 +42,7 @@ export async function POST(request: Request, context: Params) {
   let writerCost = 0;
   const character = getCharacterById(chat.character_id);
   // 人物一致性：角色有图就当参考图；立绘模式且对话里还没有立绘时，这一张就是以后的基准
-  const reference = character && imageConfig().reference ? await characterReference(character, chat.id, user.id) : null;
+  const reference = character && imageConfig().reference ? await characterReference(character, chatImages(chat.id), user.id) : null;
   if (mode !== 'custom') {
     if (!character) { grantPoints(user.id, reservation.reserved, '生图失败退回', 'adjust'); return fail('角色不存在', 404); }
     const blocked18 = await nsfwBlock(user.id, character);

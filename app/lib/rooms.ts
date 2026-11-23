@@ -52,7 +52,28 @@ export type RoomMessage = {
   thought: Reasoning | null;
   /** 当前正文的译文（ST Translate；按正文哈希存，和单聊一样） */
   translation: TranslationView | null;
+  /** 插图消息：生图结果（content 是画面描述，不进提示词） */
+  attachment: RoomAttachment | null;
 };
+
+export type RoomAttachment = { kind: 'image'; url: string; prompt?: string; mode?: string; reference?: string; width?: number; height?: number };
+
+function parseRoomAttachment(raw: string | null | undefined): RoomAttachment | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<RoomAttachment>;
+    return value?.kind === 'image' && typeof value.url === 'string' ? (value as RoomAttachment) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 进提示词/调度用：去掉插图消息 */
+export const textRoomMessages = (messages: RoomMessage[]) => messages.filter((message) => !message.attachment);
+
+export function setRoomMessageAttachment(messageId: number, attachment: RoomAttachment | null): void {
+  db.prepare('UPDATE room_messages SET attachment = ? WHERE id = ?').run(attachment ? JSON.stringify(attachment) : null, messageId);
+}
 
 type RoomRow = {
   id: number; name: string; character_ids: string; muted: string; strategy: string;
@@ -195,6 +216,7 @@ function messageFromRow(row: RoomMessageRow): RoomMessage {
     personaAvatar: row.persona_avatar ?? null,
     thought: row.role === 'user' ? null : reasoningAt(row.reasoning, Math.min(Math.max(row.selected ?? 0, 0), count - 1)),
     translation: translationFor(row.translations, row.content),
+    attachment: parseRoomAttachment(row.attachment),
   };
 }
 
@@ -228,7 +250,7 @@ export function addRoomMessage(roomId: number, role: 'user' | 'assistant', speak
   const personaAvatar = sender?.avatar ?? null;
   const result = db.prepare('INSERT INTO room_messages (room_id, role, speaker_id, content, persona_name, persona_avatar, created_at) VALUES (?,?,?,?,?,?,?)').run(roomId, role, speakerId, content, personaName, personaAvatar, now);
   db.prepare('UPDATE rooms SET updated_at = ? WHERE id = ?').run(now, roomId);
-  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar, thought: null, translation: null };
+  return { id: Number(result.lastInsertRowid), roomId, role, speakerId, content, createdAt: now, candidateCount: 1, selected: 0, checkpoint: null, personaName, personaAvatar, thought: null, translation: null, attachment: null };
 }
 
 /**
@@ -363,7 +385,8 @@ export function roomFamily(userId: number, room: Room): ChatBranchInfo {
 }
 
 // 发言者调度：静音成员不参与；手动模式用指定的人；自然模式优先叫到名字的人，否则轮流。
-export function pickSpeaker(room: Room, messages: RoomMessage[], userText: string, preferredId?: string | null): string | null {
+export function pickSpeaker(room: Room, allMessages: RoomMessage[], userText: string, preferredId?: string | null): string | null {
+  const messages = textRoomMessages(allMessages);
   const members = room.characterIds.filter((id) => !room.muted.includes(id));
   if (!members.length) return null;
   if (room.strategy === 'manual') return preferredId && members.includes(preferredId) ? preferredId : members[0];
@@ -412,7 +435,8 @@ export function roomLoreEntries(room: Room, loreEntries: LoreEntry[], cardLoreLa
 }
 
 export function buildRoomPrompt(input: RoomPromptInput & { dryRun?: boolean }): ChatMessage[] {
-  const { room, messages, speaker, preset, persona, regexRules, variables, memory } = input;
+  const { room, speaker, preset, persona, regexRules, variables, memory } = input;
+  const messages = textRoomMessages(input.messages);
   const summary = (memory?.summary ?? '').trim();
   const userName = input.userName || persona?.name || fallbackUserName();
   const personaText = (persona?.description.trim() ?? '').replace(/\{\{user\}\}/gi, userName).replace(/\{\{char\}\}/gi, speaker.name);

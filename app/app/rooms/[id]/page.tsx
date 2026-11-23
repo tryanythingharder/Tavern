@@ -8,7 +8,10 @@ import { PointsChip } from '@/components/points-chip';
 import { resolveBackground } from '@/lib/backgrounds';
 import { ChatBackdropLayer, ChatBackgroundButton } from '@/components/chat-background';
 import { balance as pointsBalance } from '@/lib/points';
-import { getCharacterById } from '@/lib/db';
+import { getCharacterById, getCharacterLook } from '@/lib/db';
+import { pageCssHref } from '@/lib/css-assets';
+import { imageConfig, imageConfigured, imageCost } from '@/lib/media';
+import { characterHasImage } from '@/lib/image-ref';
 import { getRoom, insertRoomGreetings, listRoomMessages, roomFamily } from '@/lib/rooms';
 import { RoomMemoryButton } from '@/components/room-memory';
 import { ChatBranches } from '@/components/chat-branches';
@@ -53,6 +56,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
   const bg = resolveBackground('room', room.id, user.id);
   return (
     <main className="p-inner">
+      {pageCssHref('chat') ? <link rel="stylesheet" href={pageCssHref('chat')} precedence="yh-page" /> : null}
       <ChatBackdropLayer src={bg.src} />
       <div className="p-rp-workbench" data-room="">
         <div className="p-chat">
@@ -93,6 +97,13 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
             persona={personaProp}
             autoMode={room.autoMode}
             defaultSpeakerId={room.speakerId}
+            media={{
+              image: imageConfigured(),
+              imageCost: imageCost(),
+              reference: imageConfig().reference,
+              looks: Object.fromEntries(room.characterIds.map((cid) => [cid, getCharacterLook(user.id, cid)])),
+              hasImage: Object.fromEntries(room.characterIds.map((cid) => { const c = getCharacterById(cid); return [cid, c ? characterHasImage(c) : false]; })),
+            }}
             displayRules={listRegexRules(user.id).filter((rule) => rule.enabled && rule.scope !== 'send')}
             quickReplies={qrState(user.id, { roomId: room.id })}
             memberRules={Object.fromEntries(members.map((member) => [member.id, characterRegexRules(member.id).filter((rule) => rule.enabled && rule.scope !== 'send')]))}
