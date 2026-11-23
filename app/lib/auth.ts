@@ -1,4 +1,5 @@
 import { SYNCED_COOKIES, getUiPrefs, mergeUiPrefs } from './ui-prefs';
+import { randomDefaultAvatarUrl } from '@/lib/default-avatars';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import db, { transaction } from '@/lib/db';
@@ -96,7 +97,8 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 export function createUser(email: string, password: string, nickname: string): User {
   const now = Date.now();
-  const result = db.prepare('INSERT INTO users (email, password_hash, nickname, created_at) VALUES (?,?,?,?)').run(email, hashPassword(password), nickname, now);
+  // 新用户随机分一个默认头像，之后可以自己换
+  const result = db.prepare('INSERT INTO users (email, password_hash, nickname, created_at, avatar_url) VALUES (?,?,?,?,?)').run(email, hashPassword(password), nickname, now, randomDefaultAvatarUrl());
   return { id: Number(result.lastInsertRowid), email, nickname, role: 'user' };
 }
 

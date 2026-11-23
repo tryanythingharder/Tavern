@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState, type ReactNode } from 'react';
 import { ImageCropper, type CropShape } from '@/components/image-cropper';
 import { askConfirm, showAlert } from '@/components/ui-dialog';
+import { Modal } from '@/components/settings-ui';
+import { DEFAULT_AVATARS, defaultAvatarUrl } from '@/lib/default-avatars';
 
 type Kind = 'avatar' | 'banner';
 const MAX_INPUT = 20 * 1024 * 1024;
@@ -17,6 +19,8 @@ export function ProfileMediaHeader({ nickname, avatar, banner, children }: { nic
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [current, setCurrent] = useState({ avatar, banner });
+  const [presetOpen, setPresetOpen] = useState(false);
+  const [presetBusy, setPresetBusy] = useState<string | null>(null);
 
   const pick = (kind: Kind) => {
     setPicking(kind);
@@ -53,13 +57,28 @@ export function ProfileMediaHeader({ nickname, avatar, banner, children }: { nic
   };
 
   const remove = async (kind: Kind) => {
-    const ok = await askConfirm({ message: kind === 'avatar' ? '恢复成默认头像（昵称首字）？' : '移除主页背景图？', confirmLabel: kind === 'avatar' ? '恢复默认' : '移除', danger: kind === 'banner' });
+    const ok = await askConfirm({ message: kind === 'avatar' ? '去掉头像，改用昵称首字？' : '移除主页背景图？', confirmLabel: kind === 'avatar' ? '改用首字' : '移除', danger: kind === 'banner' });
     if (!ok) return;
     const response = await fetch('/api/me/avatar?kind=' + kind, { method: 'DELETE' });
     const data = (await response.json().catch(() => ({}))) as { message?: string; avatar?: string | null; banner?: string | null };
     if (!response.ok) { void showAlert(data.message || '操作失败'); return; }
     setCurrent({ avatar: data.avatar ?? null, banner: data.banner ?? null });
     router.refresh();
+  };
+
+  const choosePreset = async (id: string) => {
+    if (presetBusy) return;
+    setPresetBusy(id);
+    try {
+      const response = await fetch('/api/me/avatar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preset: id }) });
+      const data = (await response.json().catch(() => ({}))) as { message?: string; avatar?: string | null; banner?: string | null };
+      if (!response.ok) { void showAlert(data.message || '没换成功，再试一次'); return; }
+      setCurrent({ avatar: data.avatar ?? null, banner: data.banner ?? null });
+      setPresetOpen(false);
+      router.refresh();
+    } finally {
+      setPresetBusy(null);
+    }
   };
 
   const shape: CropShape = editing?.kind === 'banner' ? 'banner' : 'circle';
@@ -85,11 +104,28 @@ export function ProfileMediaHeader({ nickname, avatar, banner, children }: { nic
         {children}
       </div>
       <div className="p-pmedia-links">
-        <button type="button" onClick={() => pick('avatar')}>{current.avatar ? '更换头像' : '上传头像'}</button>
-        {current.avatar && <button type="button" onClick={() => void remove('avatar')}>恢复默认头像</button>}
+        <button type="button" onClick={() => pick('avatar')}>上传头像</button>
+        <button type="button" onClick={() => setPresetOpen(true)}>选默认头像</button>
+        {current.avatar && <button type="button" onClick={() => void remove('avatar')}>改用昵称首字</button>}
         <span>支持 PNG、JPG、WebP、GIF，可裁剪、旋转和调色</span>
       </div>
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(event) => onFile(event.target.files?.[0])} />
+      {presetOpen && (
+        <Modal title="选一个默认头像" onClose={() => { if (!presetBusy) setPresetOpen(false); }}>
+          <div className="p-pmedia-presets" role="list">
+            {DEFAULT_AVATARS.map((item) => {
+              const url = defaultAvatarUrl(item.id);
+              const selected = current.avatar === url;
+              return (
+                <button key={item.id} type="button" role="listitem" className={`p-pmedia-preset${selected ? ' is-selected' : ''}`} aria-pressed={selected} disabled={presetBusy !== null} onClick={() => void choosePreset(item.id)}>
+                  <img src={url} alt="" loading="lazy" decoding="async" />
+                  <span>{presetBusy === item.id ? '换上…' : item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
       {editing && (
         <ImageCropper
           file={editing.file}

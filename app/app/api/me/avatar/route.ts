@@ -3,6 +3,7 @@ import { getProfileMedia, setProfileMedia } from '@/lib/auth';
 import { imageExt } from '@/lib/image-ext';
 import { rateLimit } from '@/lib/rate-limit';
 import { deleteMediaUrl, saveMedia } from '@/lib/storage';
+import { defaultAvatarUrl, findDefaultAvatar } from '@/lib/default-avatars';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +20,21 @@ export async function GET() {
 }
 
 // POST multipart { kind: avatar|banner, file } —— 换头像 / 背景图
+// POST json { preset: <默认头像 id> } —— 换成默认头像
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
   const limited = rateLimit('profile-media', [String(user.id)], 20, 60 * 60 * 1000);
   if (!limited.ok) return fail('换得太频繁了，过一会儿再试', 429);
+  if ((request.headers.get('content-type') || '').includes('application/json')) {
+    const body = (await request.json().catch(() => ({}))) as { preset?: unknown };
+    const preset = findDefaultAvatar(body.preset);
+    if (!preset) return fail('没有这个默认头像');
+    const previous = getProfileMedia(user.id).avatar;
+    setProfileMedia(user.id, 'avatar', defaultAvatarUrl(preset.id));
+    deleteMediaUrl(previous, user.id);
+    return json(getProfileMedia(user.id));
+  }
   const form = await request.formData().catch(() => null);
   const kind = kindOf(form?.get('kind'));
   const file = form?.get('file');

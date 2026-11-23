@@ -118,3 +118,13 @@ html body[data-theme="nocturne"]:not(#w) .p-crop-frame { background: repeating-c
 html body[data-theme="nocturne"]:not(#w) :is(.p-crop-label, .p-crop-adjust summary) { color: var(--noc-text, #f3f3f6); }
 html body[data-theme="nocturne"]:not(#w) .p-crop-adjust { border-top-color: var(--noc-line, #26262e); }
 html body[data-theme="stage"]:not(#w) :is(.p-crop-frame, .p-author-banner) { border-radius: 20px; }
+
+/* 默认头像选择 */
+html body:not(#w) .p-pmedia-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 14px 10px; max-height: min(62vh, 520px); overflow-y: auto; padding: 4px 2px 6px; }
+html body:not(#w) .p-pmedia-preset { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 4px; border: 0; border-radius: 12px; background: none; color: var(--ca-muted, #77777e); font: inherit; font-size: 12px; cursor: pointer; }
+html body:not(#w) .p-pmedia-preset img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent); transition: transform .18s ease, box-shadow .18s ease; }
+html body:not(#w) .p-pmedia-preset:hover img, html body:not(#w) .p-pmedia-preset:focus-visible img { transform: translateY(-2px); }
+html body:not(#w) .p-pmedia-preset.is-selected { color: var(--ca-accent, #c9401f); font-weight: 600; }
+html body:not(#w) .p-pmedia-preset.is-selected img { box-shadow: 0 0 0 2px var(--ca-paper, #fff), 0 0 0 4px var(--ca-accent, #c9401f); }
+html body:not(#w) .p-pmedia-preset:disabled { cursor: progress; opacity: .7; }
+@media (prefers-reduced-motion: reduce) { html body:not(#w) .p-pmedia-preset img { transition: none; } html body:not(#w) .p-pmedia-preset:hover img { transform: none; } }
