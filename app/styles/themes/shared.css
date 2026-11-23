@@ -811,3 +811,15 @@ html body .p-chat-tr-busy { font-size: 12px; color: var(--muted, #8a7f78); align
   .iv-link-row { flex-wrap: wrap; }
   .iv-link-row .p-input { flex-basis: 100%; }
 }
+
+/* 角色页：主按钮在首屏以下时浮在底部 */
+.p-start-float { position: fixed; left: 0; right: 0; z-index: 30; display: flex; justify-content: center; padding: 12px 16px; bottom: calc(64px + env(safe-area-inset-bottom)); pointer-events: none; animation: p-start-float-in .18s ease-out; }
+.p-start-float .p-btn { pointer-events: auto; width: min(420px, 100%); justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+@media (min-width: 900px) { .p-start-float { left: auto; right: 32px; bottom: 24px; padding: 0; } .p-start-float .p-btn { width: auto; min-width: 220px; } }
+@keyframes p-start-float-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .p-start-float { animation: none; } }
+.ci-blank { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed currentColor; border-top-color: color-mix(in srgb, currentColor 18%, transparent); }
+/* 导入页的卡片在三套主题里都有边框/底色，platform-polish 的「左右 0 内边距」会让内容贴边 */
+body[data-page="create"] .ci-wrap .p-card--pad { padding: 20px 22px; }
+body[data-page="create"] .ci-wrap .ci-tool { padding: 16px 18px; align-content: start; }
+@media (max-width: 600px) { body[data-page="create"] .ci-wrap .p-card--pad { padding: 16px; } }

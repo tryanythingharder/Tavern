@@ -1202,7 +1202,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
                         {!message.translation.original && <button type="button" onClick={() => void L.removeTranslation(numericId)}>移除</button>}
                       </div>
                     )}
-                    {translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
+                    {numericId !== null && translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
                     </>
                   )}
                   {message.attachment?.kind === 'audio' && (

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { startStory } from '@/app/c/[id]/actions';
 import { Select } from '@/components/ui-select';
 
@@ -24,9 +25,23 @@ export function StartStoryForm({
   lowBalance?: boolean;
 }) {
   const [openingId, setOpeningId] = useState(openings[0]?.id ?? 'default');
+  const formId = `start-${useId().replace(/:/g, '')}`;
+  const actsRef = useRef<HTMLDivElement>(null);
+  // 主按钮常在首屏以下：它不在视口里、且还没滚过它时，底部浮一条同样的按钮
+  const [floating, setFloating] = useState(false);
+  useEffect(() => {
+    const el = actsRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([entry]) => {
+      setFloating(!entry.isIntersecting && entry.boundingClientRect.top > 0);
+    }, { rootMargin: '0px 0px -72px 0px' }); // 手机底部标签栏会盖住按钮
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const startLabel = openings.length > 1 ? '用这个开场开始新故事' : '开始新故事';
 
   return (
-    <form action={startStory.bind(null, characterId)} style={{ display: 'grid', gap: 10 }}>
+    <form id={formId} action={startStory.bind(null, characterId)} style={{ display: 'grid', gap: 10 }}>
       {personas.length > 0 && (
         <label className="small" style={{ display: 'grid', gap: 6 }}>
           以谁的身份进入
@@ -71,6 +86,7 @@ export function StartStoryForm({
       })()}
       <input type="hidden" name="openingId" value={openingId} />
 
+      <div ref={actsRef} data-start-acts style={{ display: 'grid', gap: 10 }}>
       {lowBalance ? (
         <div className="p-notice" style={{ margin: 0 }}>
           <div className="p-notice-main">
@@ -82,10 +98,19 @@ export function StartStoryForm({
       ) : recentChatId ? (
         <>
           <Link className="p-btn p-btn--primary p-btn--block" href={`/chats/${recentChatId}`}>继续最近对话</Link>
-          <button className="p-btn p-btn--block" type="submit">{openings.length > 1 ? '用这个开场开始新故事' : '开始新故事'}</button>
+          <button className="p-btn p-btn--block" type="submit">{startLabel}</button>
         </>
       ) : (
-        <button className="p-btn p-btn--primary p-btn--block" type="submit">{openings.length > 1 ? '用这个开场开始新故事' : '开始新故事'}</button>
+        <button className="p-btn p-btn--primary p-btn--block" type="submit">{startLabel}</button>
+      )}
+      </div>
+      {floating && !lowBalance && createPortal(
+        <div className="p-start-float">
+          {recentChatId
+            ? <Link className="p-btn p-btn--primary" href={`/chats/${recentChatId}`}>继续最近对话</Link>
+            : <button className="p-btn p-btn--primary" type="submit" form={formId}>{startLabel}</button>}
+        </div>,
+        document.body,
       )}
     </form>
   );

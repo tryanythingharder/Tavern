@@ -19,7 +19,13 @@ export function CheckinPopup({ initial }: { initial: Status }) {
     if (initial.todayDone) return;
     let dismissed = false;
     try { dismissed = localStorage.getItem(`tavern-checkin-dismissed-${initial.day}`) === '1'; } catch { /* 忽略 */ }
-    if (!dismissed) setOpen(true);
+    if (dismissed) return;
+    // 新用户先选玩法模式，选完再弹签到，避免两个弹窗叠在一起
+    const hasMode = () => /(?:^|; )tavern_mode=(newbie|simple|full)/.test(document.cookie);
+    if (hasMode()) { setOpen(true); return; }
+    const onMode = () => window.setTimeout(() => setOpen(true), 400);
+    window.addEventListener('tavern-mode-change', onMode, { once: true });
+    return () => window.removeEventListener('tavern-mode-change', onMode);
   }, [initial.todayDone, initial.day]);
 
   const dismiss = () => {

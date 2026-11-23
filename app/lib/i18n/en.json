@@ -4439,5 +4439,7 @@
  "点数不足，没法写画面描述": "Not enough points to describe the scene",
  "模型没写出画面描述，换个方式再试": "The model didn't return a description. Try another option.",
  "生图还没开通：请管理员在后台「接口配置 · 生图」里填好": "Image generation isn't set up yet. An admin needs to fill it in under Settings › Image.",
- "生图描述": "Image prompt"
+ "生图描述": "Image prompt",
+ "还没有角色卡？填名字、简介和开场白就能发布。": "No character card yet? Add a name, a hook and an opening line, and you can publish.",
+ "直接写一张": "Write one now"
 }

@@ -114,17 +114,16 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
         coverData: coverData.startsWith('data:image/') ? coverData : undefined,
         avatarData: avatarData.startsWith('data:image/') ? avatarData : undefined,
       };
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {
-        // 忽略
-      }
+      // 草稿要等保存成功才删，失败时用户写的内容还能恢复
+      const clearDraft = () => { try { localStorage.removeItem(draftKey); } catch { /* 忽略 */ } };
       if (initial) {
         await api(`/api/characters/${initial.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        clearDraft();
         if (status === 'published') router.push(`/c/${initial.id}`);
         else { setSaved(true); router.refresh(); }
       } else {
         const { character } = await api<{ character: CharacterView }>('/api/characters', { method: 'POST', body: JSON.stringify(payload) });
+        clearDraft();
         if (status === 'published') router.push(`/c/${character.id}`);
         else router.push(`/create?edit=${character.id}`);
       }

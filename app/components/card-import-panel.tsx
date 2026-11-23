@@ -76,6 +76,10 @@ export function CardImportPanel() {
               <textarea className="p-textarea cf-mono" rows={6} value={text} onChange={(event) => setText(event.target.value)} placeholder='{"spec":"chara_card_v2","data":{"name":"…"}}' />
               <button className="p-btn p-btn--sm" type="button" disabled={busy || !text.trim()} onClick={() => void send({ json: text })}>{busy ? '导入中…' : '导入'}</button>
             </details>
+            <div className="ci-blank">
+              <span className="p-small">还没有角色卡？填名字、简介和开场白就能发布。</span>
+              <Link className="p-btn p-btn--sm" href="/create?blank=1">直接写一张</Link>
+            </div>
           </>
         )}
       </section>
@@ -90,7 +94,6 @@ export function CardImportPanel() {
             </a>
           ))}
         </div>
-        <p className="p-small">只想快速写一张简单的卡？<Link href="/create?blank=1">用简易表单</Link></p>
       </section>
     </div>
   );
