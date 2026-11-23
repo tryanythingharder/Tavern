@@ -25,7 +25,7 @@ function status() {
   const tts = ttsConfig();
   return {
     image: {
-      baseUrl: image.baseUrl, model: image.model, size: image.size, cost: image.cost,
+      baseUrl: image.baseUrl, model: image.model, size: image.size, cost: image.cost, reference: image.reference ? 'on' : 'off',
       hasKey: Boolean(image.apiKey), keySource: keySource('image.apiKey', [process.env.TAVERN_IMAGE_API_KEY, process.env.TAVERN_MODEL_API_KEY]),
     },
     tts: {
@@ -103,7 +103,7 @@ export async function PATCH(request: Request) {
     }
   };
 
-  write(body.image, { baseUrl: 'image.baseUrl', apiKey: 'image.apiKey', model: 'image.model', size: 'image.size', cost: 'points.image' });
+  write(body.image, { baseUrl: 'image.baseUrl', apiKey: 'image.apiKey', model: 'image.model', size: 'image.size', cost: 'points.image', reference: 'image.reference' });
   write(body.tts, { baseUrl: 'tts.baseUrl', apiKey: 'tts.apiKey', model: 'tts.model', voice: 'tts.voice', cost: 'points.tts' });
   write(body.payment, { pricePerPointCents: 'billing.pricePerPointCents', provider: 'payment.provider', secret: 'payment.secret', checkoutUrl: 'payment.checkoutUrl', currency: 'payment.currency' });
   write(body.mail, { from: 'mail.from', resendKey: 'mail.resend_key' });

@@ -7,7 +7,7 @@ const MAX_MEDIA_BYTES = Math.max(1, Number(process.env.TAVERN_MAX_MEDIA_MB ?? 20
 
 // M4 生图 / TTS：走 OpenAI 兼容接口。配置优先读后台管理页（app_settings），其次环境变量。
 // 供应商没配置时接口返回 503，界面按钮也按配置隐藏。
-export type ImageConfig = { baseUrl: string; apiKey: string; model: string; size: string; cost: number };
+export type ImageConfig = { baseUrl: string; apiKey: string; model: string; size: string; cost: number; reference: boolean };
 export type TtsConfig = { baseUrl: string; apiKey: string; model: string; voice: string; cost: number };
 
 export function imageConfig(): ImageConfig {
@@ -17,6 +17,8 @@ export function imageConfig(): ImageConfig {
     model: getSetting('image.model', process.env.TAVERN_IMAGE_MODEL ?? ''),
     size: getSetting('image.size', process.env.TAVERN_IMAGE_SIZE ?? '1024x1024'),
     cost: Math.max(0, Number(getSetting('points.image', process.env.TAVERN_POINTS_IMAGE ?? '20'))),
+    // 参考图：有角色图时走 /images/edits 把它一起传上去，保持人物长相一致；上游不支持会自动退回 /images/generations
+    reference: getSetting('image.reference', process.env.TAVERN_IMAGE_REFERENCE ?? 'on') !== 'off',
   };
 }
 
@@ -54,10 +56,34 @@ async function compactImage(buffer: Buffer): Promise<{ buffer: Buffer; ext: stri
   }
 }
 
-export async function generateImage(prompt: string, ownerId: number): Promise<{ url: string; prompt: string; width?: number; height?: number }> {
+// 带参考图：OpenAI 兼容的 /images/edits（multipart，image[] 可多张）。返回 null 表示上游不支持，调用方退回普通生图
+async function requestWithReference(config: ImageConfig, prompt: string, references: Buffer[]): Promise<Response | null> {
+  const form = new FormData();
+  form.append('model', config.model);
+  form.append('prompt', prompt);
+  form.append('n', '1');
+  form.append('size', config.size);
+  references.forEach((buffer, index) => form.append('image[]', new Blob([new Uint8Array(buffer)], { type: 'image/png' }), `reference-${index + 1}.png`));
+  const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/images/edits`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${config.apiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+  });
+  if (response.ok) return response;
+  // 401/402/429/5xx 是真错误，照常报；其余（404/405/400/415/422/501…）多半是不支持编辑接口或这个模型不收图
+  if ([401, 402, 403, 429].includes(response.status) || response.status >= 502) return response;
+  console.warn(`[image] /images/edits 不可用（${response.status}），退回 /images/generations`);
+  return null;
+}
+
+export async function generateImage(prompt: string, ownerId: number, options: { references?: Buffer[] } = {}): Promise<{ url: string; prompt: string; width?: number; height?: number; usedReference: boolean }> {
   const config = imageConfig();
   if (!config.baseUrl || !config.apiKey || !config.model) throw new Error('生图未配置：请到后台「扩展能力 → 生图」填写');
-  const response = await fetch(`${config.baseUrl.replace(/\/$/, '')}/images/generations`, {
+  const references = config.reference ? (options.references ?? []).slice(0, 4) : [];
+  let response = references.length ? await requestWithReference(config, prompt, references) : null;
+  const usedReference = Boolean(response);
+  response ??= await fetch(`${config.baseUrl.replace(/\/$/, '')}/images/generations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
     body: JSON.stringify({ model: config.model, prompt, n: 1, size: config.size, response_format: 'b64_json' }),
@@ -81,7 +107,7 @@ export async function generateImage(prompt: string, ownerId: number): Promise<{ 
   }
   if (buffer.length > MAX_MEDIA_BYTES) throw new Error('生图返回的图片太大');
   const compact = await compactImage(buffer);
-  return { url: saveMedia(compact.buffer, compact.ext, { ownerId, visibility: 'private' }), prompt, width: compact.width, height: compact.height };
+  return { url: saveMedia(compact.buffer, compact.ext, { ownerId, visibility: 'private' }), prompt, width: compact.width, height: compact.height, usedReference };
 }
 
 export async function generateSpeech(text: string, ownerId: number): Promise<{ url: string }> {

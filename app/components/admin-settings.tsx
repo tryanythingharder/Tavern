@@ -8,7 +8,7 @@ import { AdminEmbedding } from '@/components/admin-embedding';
 
 type Plugin = { id: string; label: string; hint: string; configured: boolean; active: boolean };
 type Status = {
-  image: { baseUrl: string; model: string; size: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
+  image: { baseUrl: string; model: string; size: string; cost: number; reference: 'on' | 'off'; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   tts: { baseUrl: string; model: string; voice: string; cost: number; hasKey: boolean; keySource: 'own' | 'fallback' | 'none' };
   payment: { pricePerPointCents: number; provider: string; checkoutUrl: string; hasSecret: boolean; currency: string; providers: Plugin[]; storage: Plugin[] };
   billing: { textPer1k: number; upstreamCostPer1kCents: number; modelPrices?: string; models?: string[]; dailyFree?: number; firstTopupPct?: number; inviteReward?: number; inviteeBonus?: number; inviteMax?: number; rebatePct?: number; rebateDays?: number; defaultContext?: string; maxContext?: string };
@@ -16,7 +16,7 @@ type Status = {
 };
 
 type Form = {
-  image: { baseUrl: string; apiKey: string; model: string; size: string; cost: string };
+  image: { baseUrl: string; apiKey: string; model: string; size: string; cost: string; reference: 'on' | 'off' };
   tts: { baseUrl: string; apiKey: string; model: string; voice: string; cost: string };
   payment: { pricePerPointCents: string; provider: string; checkoutUrl: string; secret: string };
   billing: { textPer1k: string; upstreamCostPer1kCents: string; modelPrices: string; dailyFree: string; firstTopupPct: string; inviteReward: string; inviteeBonus: string; inviteMax: string; rebatePct: string; rebateDays: string; defaultContext: string; maxContext: string };
@@ -24,7 +24,7 @@ type Form = {
 };
 
 const EMPTY: Form = {
-  image: { baseUrl: '', apiKey: '', model: '', size: '1024x1024', cost: '20' },
+  image: { baseUrl: '', apiKey: '', model: '', size: '1024x1024', cost: '20', reference: 'on' },
   tts: { baseUrl: '', apiKey: '', model: '', voice: 'alloy', cost: '5' },
   payment: { pricePerPointCents: '1', provider: '', checkoutUrl: '', secret: '' },
   billing: { textPer1k: '2', upstreamCostPer1kCents: '0', modelPrices: '', dailyFree: '0', firstTopupPct: '0', inviteReward: '0', inviteeBonus: '0', inviteMax: '50', rebatePct: '0', rebateDays: '0', defaultContext: '', maxContext: '' },
@@ -58,7 +58,7 @@ export function AdminSettings({ only }: { only?: SettingsSection } = {}) {
       const data = await api<Status>('/api/admin/settings');
       setStatus(data);
       setForm({
-        image: { baseUrl: data.image.baseUrl, apiKey: '', model: data.image.model, size: data.image.size, cost: String(data.image.cost) },
+        image: { baseUrl: data.image.baseUrl, apiKey: '', model: data.image.model, size: data.image.size, cost: String(data.image.cost), reference: data.image.reference ?? 'on' },
         tts: { baseUrl: data.tts.baseUrl, apiKey: '', model: data.tts.model, voice: data.tts.voice, cost: String(data.tts.cost) },
         payment: { pricePerPointCents: String(data.payment.pricePerPointCents), provider: data.payment.provider, checkoutUrl: data.payment.checkoutUrl, secret: '' },
         billing: { textPer1k: String(data.billing.textPer1k), upstreamCostPer1kCents: String(data.billing.upstreamCostPer1kCents), modelPrices: data.billing.modelPrices ?? '', dailyFree: String(data.billing.dailyFree ?? 0), firstTopupPct: String(data.billing.firstTopupPct ?? 0), inviteReward: String(data.billing.inviteReward ?? 0), inviteeBonus: String(data.billing.inviteeBonus ?? 0), inviteMax: String(data.billing.inviteMax ?? 50), rebatePct: String(data.billing.rebatePct ?? 0), rebateDays: String(data.billing.rebateDays ?? 0), defaultContext: data.billing.defaultContext ?? '', maxContext: data.billing.maxContext ?? '' },
@@ -167,6 +167,12 @@ export function AdminSettings({ only }: { only?: SettingsSection } = {}) {
           </div>
           <div className="p-field"><label>尺寸</label><input aria-label="尺寸" className="p-input" value={form.image.size} onChange={(event) => setForm({ ...form, image: { ...form.image, size: event.target.value } })} /></div>
           <div className="p-field"><label>每张扣点</label><input aria-label="每张扣点" className="p-input" type="number" min={0} value={form.image.cost} onChange={(event) => setForm({ ...form, image: { ...form.image, cost: event.target.value } })} /></div>
+          <div className="p-field"><label>人物一致（参考图）</label>
+            <Select className="p-select" aria-label="人物一致（参考图）" value={form.image.reference} onChange={(event) => setForm({ ...form, image: { ...form.image, reference: event.target.value === 'off' ? 'off' : 'on' } })}>
+              <option value="on">开：带上角色图，保持长相一致</option>
+              <option value="off">关：只按文字生成</option>
+            </Select>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy === 'image'} onClick={() => void save('image')}>{busy === 'image' ? '保存中…' : '保存生图配置'}</button>

@@ -18,7 +18,9 @@ const TARGET: Record<Exclude<ImageMode, 'custom'>, (name: string) => string> = {
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
 
-function writerPrompt(mode: Exclude<ImageMode, 'custom'>, character: DbCharacter, chat: DbChat, userName: string, hint: string): ChatMessage[] {
+type Consistency = { hasReference: boolean; previousPrompt?: string };
+
+function writerPrompt(mode: Exclude<ImageMode, 'custom'>, character: DbCharacter, chat: DbChat, userName: string, hint: string, consistency: Consistency): ChatMessage[] {
   const history = listMessages(chat.id)
     .filter((message) => !message.attachment && message.role !== 'system' && message.content.trim())
     .slice(mode === 'character' ? -2 : -8)
@@ -32,6 +34,10 @@ function writerPrompt(mode: Exclude<ImageMode, 'custom'>, character: DbCharacter
         `Read the role-play below and write ONE English prompt for ${TARGET[mode](character.name)}.`,
         'Describe concrete visual details: appearance, clothing, setting, time of day, lighting, mood, colour palette, camera framing and art style that suits the story.',
         'Use comma-separated descriptive phrases, at most 90 words. No dialogue, no speech bubbles, no text in the image, keep it non-explicit.',
+        // 人物一致性：有参考图时脸交给参考图，别用文字重新捏一张脸；没有参考图时沿用上一张图的外貌写法
+        consistency.hasReference
+          ? `A reference image of ${character.name} is given to the image model. Call ${character.name} "the person from the reference image" and do not re-describe their face, hair or age; describe only outfit, expression, pose and everything else.`
+          : `Keep ${character.name}'s look stable across pictures: state their apparent age, hair, eyes and build the same way every time.${consistency.previousPrompt ? ' Reuse the appearance wording of the previous illustration prompt exactly.' : ''}`,
         'Output only the prompt, nothing else.',
       ].join(' '),
     },
@@ -41,6 +47,7 @@ function writerPrompt(mode: Exclude<ImageMode, 'custom'>, character: DbCharacter
         `Character: ${character.name}`,
         `Character description:\n${clip(character.description || character.hook || '', 1500)}`,
         history ? `Recent role-play:\n${history}` : '',
+        !consistency.hasReference && consistency.previousPrompt ? `Previous illustration prompt (keep ${character.name}'s appearance identical):\n${clip(consistency.previousPrompt, 700)}` : '',
         hint ? `Extra request from the player: ${hint}` : '',
       ].filter(Boolean).join('\n\n'),
     },
@@ -49,9 +56,9 @@ function writerPrompt(mode: Exclude<ImageMode, 'custom'>, character: DbCharacter
 
 export type ImagePromptResult = { ok: true; prompt: string; cost: number } | { ok: false; error: string; status: number };
 
-export async function writeImagePrompt(userId: number, chat: DbChat, character: DbCharacter, mode: Exclude<ImageMode, 'custom'>, options: { userName: string; hint?: string }): Promise<ImagePromptResult> {
+export async function writeImagePrompt(userId: number, chat: DbChat, character: DbCharacter, mode: Exclude<ImageMode, 'custom'>, options: { userName: string; hint?: string; consistency?: Consistency }): Promise<ImagePromptResult> {
   if (!modelConfigured()) return { ok: false, error: '对话模型未配置，没法自动写画面描述', status: 503 };
-  const prompt = writerPrompt(mode, character, chat, options.userName, (options.hint ?? '').trim().slice(0, 200));
+  const prompt = writerPrompt(mode, character, chat, options.userName, (options.hint ?? '').trim().slice(0, 200), options.consistency ?? { hasReference: false });
   const model = modelName(chat.model);
   const promptTokens = prompt.reduce((sum, item) => sum + estimateTokens(item.content) + 4, 0);
   const maxTokens = 400;

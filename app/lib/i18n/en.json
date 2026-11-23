@@ -4452,5 +4452,9 @@
  "余额不多了，用完后生成会暂停，可以在下方充值或兑换。": "You're running low. Generation pauses at zero, so top up or redeem a code below.",
  "§每天 {0} 点，生成时优先抵扣，每天 {1}（当地时间）刷新，不累积。": "{0} pts a day, used first when you generate. Resets daily at {1} your time and doesn't roll over.",
  "按这段描述再画一张": "Draw another from this description",
- "再画一张": "Draw again"
+ "再画一张": "Draw again",
+ "人物一致（参考图）": "Character consistency (reference image)",
+ "开：带上角色图，保持长相一致": "On: send the character's image so they look the same",
+ "关：只按文字生成": "Off: text prompt only",
+ "开启后，角色有封面或头像时会把它当参考图传给 /images/edits，画出来的人和角色图长得一样；没有图的角色，以对话里第一张「角色立绘」为准。上游不支持编辑接口时自动退回普通生图。": "When on, a character's cover or avatar is sent to /images/edits as a reference, so pictures show the same face. Characters without an image use the first portrait drawn in that chat. If the provider doesn't support edits, it falls back to normal generation."
 }

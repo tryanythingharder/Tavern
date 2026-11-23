@@ -4,7 +4,8 @@ import { imageModeOf, writeImagePrompt } from '@/lib/image-prompt';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { nsfwBlock } from '@/lib/age-gate';
 import { toMessageView } from '@/lib/chat-view';
-import { generateImage, imageConfigured, imageCost } from '@/lib/media';
+import { generateImage, imageConfig, imageConfigured, imageCost } from '@/lib/media';
+import { characterReference, chatImages, referenceLead } from '@/lib/image-ref';
 import { grantPoints, reservePoints } from '@/lib/points';
 import { checkQuota } from '@/lib/usage';
 
@@ -39,12 +40,15 @@ export async function POST(request: Request, context: Params) {
   if (!reservation.ok) return fail(`点数不足（生图需要 ${cost} 点）`, 402);
 
   let writerCost = 0;
+  const character = getCharacterById(chat.character_id);
+  // 人物一致性：角色有图就当参考图；立绘模式且对话里还没有立绘时，这一张就是以后的基准
+  const reference = character && imageConfig().reference ? await characterReference(character, chat.id, user.id) : null;
   if (mode !== 'custom') {
-    const character = getCharacterById(chat.character_id);
     if (!character) { grantPoints(user.id, reservation.reserved, '生图失败退回', 'adjust'); return fail('角色不存在', 404); }
     const blocked18 = await nsfwBlock(user.id, character);
     if (blocked18) { grantPoints(user.id, reservation.reserved, '生图失败退回', 'adjust'); return fail(blocked18, 403); }
-    const written = await writeImagePrompt(user.id, chat, character, mode, { userName: loadGenerationConfig(user.id, chat).userName, hint: body.hint });
+    const previousPrompt = chatImages(chat.id).filter((item) => item.prompt).pop()?.prompt;
+    const written = await writeImagePrompt(user.id, chat, character, mode, { userName: loadGenerationConfig(user.id, chat).userName, hint: body.hint, consistency: { hasReference: Boolean(reference), previousPrompt } });
     if (!written.ok) { if (reservation.reserved > 0) grantPoints(user.id, reservation.reserved, '生图失败退回', 'adjust'); return fail(written.error, written.status); }
     prompt = written.prompt;
     writerCost = written.cost;
@@ -52,9 +56,9 @@ export async function POST(request: Request, context: Params) {
 
   const generationId = startGeneration(user.id, chat.id, 'image', 'image');
   try {
-    const image = await generateImage(prompt, user.id);
+    const image = await generateImage(reference && character ? `${referenceLead(character.name)}\n\n${prompt}` : prompt, user.id, { references: reference ? [reference.buffer] : [] });
     const saved = addMessage(chat.id, 'assistant', prompt, [prompt]);
-    setMessageAttachment(saved.id, JSON.stringify({ kind: 'image', url: image.url, prompt, width: image.width, height: image.height, createdAt: Date.now() }));
+    setMessageAttachment(saved.id, JSON.stringify({ kind: 'image', url: image.url, prompt, mode, reference: image.usedReference ? reference?.source : undefined, width: image.width, height: image.height, createdAt: Date.now() }));
     finishGeneration(generationId, { status: 'done', promptTokens: 0, completionTokens: 0, totalTokens: 0 });
     const updated = getMessage(saved.id)!;
     return Response.json({ message: toMessageView(updated), cost: cost + writerCost, prompt });
