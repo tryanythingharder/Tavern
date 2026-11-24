@@ -3,6 +3,7 @@ import { fetchGenPrefs } from '@/lib/gen-prefs-client';
 import { joinList } from '@/lib/i18n/runtime';
 
 import { emitPoints } from '@/lib/points-bus';
+import { readSse } from '@/lib/sse-client';
 import { langLabel as langName } from '@/lib/translation';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
@@ -391,59 +392,41 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
         accepted = true;
         onAccepted?.();
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split('\n\n');
-          buffer = parts.pop() ?? '';
-          for (const part of parts) {
-            const line = part.trim();
-            if (!line.startsWith('data:')) continue;
-            let event: StreamEvent;
-            try {
-              event = JSON.parse(line.slice(5).trim()) as StreamEvent;
-            } catch {
-              continue;
-            }
-            if (event.type === 'reasoning' && event.text) {
-              thinking += event.text;
-              const live = thinking;
-              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, thought: { t: live, ms: 0 } } : item)));
-            } else if (event.type === 'delta' && event.text) {
-              text += event.text;
-              setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
-            } else if (event.type === 'done') {
-              completed = true;
-              if (typeof event.messageId === 'number') doneId = event.messageId;
-              // ST 自动继续：服务端判断回复还没到目标长度
-              if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
-              if (typeof event.cost === 'number' && typeof event.balance === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); }
-              setMessages((prev) =>
-                prev.map((item) =>
-                  item.id === targetId
-                    ? {
-                        ...item,
-                        id: event.messageId ?? item.id,
-                        content: event.content ?? text,
-                        thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
-                        candidateCount: event.candidateCount ?? item.candidateCount,
-                        selected: event.candidateIndex ?? item.selected,
-                        cut: event.cut === true,
-                      }
-                    : item,
-                ),
-              );
-            } else if (event.type === 'error') {
-              completed = true;
-              if (!text) streamErrorRef.current = true;
-              setError(event.message ?? '生成失败');
-            }
+        await readSse<StreamEvent>(response.body, (event) => {
+          if (event.type === 'reasoning' && event.text) {
+            thinking += event.text;
+            const live = thinking;
+            setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, thought: { t: live, ms: 0 } } : item)));
+          } else if (event.type === 'delta' && event.text) {
+            text += event.text;
+            setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
+          } else if (event.type === 'done') {
+            completed = true;
+            if (typeof event.messageId === 'number') doneId = event.messageId;
+            // ST 自动继续：服务端判断回复还没到目标长度
+            if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
+            if (typeof event.cost === 'number' && typeof event.balance === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); }
+            setMessages((prev) =>
+              prev.map((item) =>
+                item.id === targetId
+                  ? {
+                      ...item,
+                      id: event.messageId ?? item.id,
+                      content: event.content ?? text,
+                      thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
+                      candidateCount: event.candidateCount ?? item.candidateCount,
+                      selected: event.candidateIndex ?? item.selected,
+                      cut: event.cut === true,
+                    }
+                  : item,
+              ),
+            );
+          } else if (event.type === 'error') {
+            completed = true;
+            if (!text) streamErrorRef.current = true;
+            setError(event.message ?? '生成失败');
           }
-        }
+        });
         // 流断了却没收到结束事件（网络掉线 / 代理断开）：提示一下，已生成的部分下面会和服务端对齐
         if (!completed && !controller.signal.aborted) setError('连接中断了，已和服务器同步');
       } catch (caught) {
@@ -482,27 +465,15 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
         setDraft(hint);
         return;
       }
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
       let text = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith('data:')) continue;
-          try {
-            const event = JSON.parse(line.slice(5));
-            if (event.type === 'delta') { text += event.text; setDraft(text); }
-            else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); } }
-            else if (event.type === 'error') setError(event.message ?? '代写失败');
-          } catch { /* 忽略坏分片 */ }
-        }
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await readSse<any>(response.body, (event) => {
+        try {
+          if (event.type === 'delta') { text += event.text; setDraft(text); }
+          else if (event.type === 'done') { setDraft(event.text || text); if (typeof event.cost === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); } }
+          else if (event.type === 'error') setError(event.message ?? '代写失败');
+        } catch { /* 忽略坏分片 */ }
+      });
       inputRef.current?.focus();
     } catch {
       setError('代写失败，请稍后再试');
@@ -702,28 +673,15 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
       const data = (await response.json().catch(() => ({}))) as { message?: string };
       throw new Error(data.message || '生成失败');
     }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
     let text = '';
     let done: string | null = null;
-    for (;;) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      buffer += decoder.decode(chunk.value, { stream: true });
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() ?? '';
-      for (const part of parts) {
-        const line = part.split('\n').find((item) => item.startsWith('data: '));
-        if (!line) continue;
-        const event = JSON.parse(line.slice(6)) as { type: string; text?: string; message?: string; balance?: number; cost?: number; free?: number };
-        if (event.type === 'delta') text += event.text ?? '';
-        else if (event.type === 'done') {
-          done = event.text ?? text;
-          if (typeof event.balance === 'number') { setBilling({ cost: event.cost ?? 0, balance: event.balance, free: event.free }); emitPoints(event); }
-        } else if (event.type === 'error') throw new Error(event.message || '生成失败');
-      }
-    }
+    await readSse<{ type: string; text?: string; message?: string; balance?: number; cost?: number; free?: number }>(response.body, (event) => {
+      if (event.type === 'delta') text += event.text ?? '';
+      else if (event.type === 'done') {
+        done = event.text ?? text;
+        if (typeof event.balance === 'number') { setBilling({ cost: event.cost ?? 0, balance: event.balance, free: event.free }); emitPoints(event); }
+      } else if (event.type === 'error') throw new Error(event.message || '生成失败');
+    });
     return (done ?? text).trim();
   }, [chatId]);
 

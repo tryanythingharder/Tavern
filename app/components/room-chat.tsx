@@ -1,6 +1,7 @@
 'use client';
 import { fetchGenPrefs } from '@/lib/gen-prefs-client';
 import { emitPoints } from '@/lib/points-bus';
+import { readSse } from '@/lib/sse-client';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -253,64 +254,46 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
         throw new Error(detail?.message || `请求失败（${response.status}）`);
       }
       if (!response.body) throw new Error('没有收到响应');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith('data:')) continue;
-          let event: { type: string; text?: string; message?: string; messageId?: number; speakerId?: string; name?: string; content?: string; candidateIndex?: number; candidateCount?: number; reasoning?: ThoughtView | null; autoContinue?: boolean };
-          try {
-            event = JSON.parse(line.slice(5).trim());
-          } catch {
-            continue;
-          }
-          if (event.type === 'speaker') {
-            setTyping(event.name ?? null);
-            setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, speakerId: event.speakerId ?? item.speakerId } : item)));
-          } else if (event.type === 'reasoning' && event.text) {
-            thinking += event.text;
-            const live = thinking;
-            setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, thought: { t: live, ms: 0 } } : item)));
-          } else if (event.type === 'delta' && event.text) {
-            full += event.text;
-            const shown = base ? base + full : full;
-            setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, content: shown } : item)));
-          } else if (event.type === 'done') {
-            completed = true;
-            emitPoints(event as { balance?: unknown; cost?: unknown });
-            if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = event.messageId;
-            if (autoTranslateRef.current && typeof event.messageId === 'number' && !event.autoContinue) {
-              const doneId = event.messageId;
-              setTimeout(() => void translateRef.current(doneId, true), 600);
-            }
-            setMessages((prev) =>
-              prev.map((item) =>
-                item.id === streamKey
-                  ? {
-                      ...item,
-                      id: event.messageId ?? item.id,
-                      content: event.content ?? full,
-                      translation: null,
-                      thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
-                      speakerId: event.speakerId ?? item.speakerId,
-                      ...(event.candidateCount ? { candidateCount: event.candidateCount, selected: event.candidateIndex ?? event.candidateCount - 1 } : {}),
-                    }
-                  : item,
-              ),
-            );
-          } else if (event.type === 'error') {
-            completed = true;
-            setError(event.message ?? '生成失败');
-          }
+      await readSse<{ type: string; text?: string; message?: string; messageId?: number; speakerId?: string; name?: string; content?: string; candidateIndex?: number; candidateCount?: number; reasoning?: ThoughtView | null; autoContinue?: boolean }>(response.body, (event) => {
+        if (event.type === 'speaker') {
+        setTyping(event.name ?? null);
+        setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, speakerId: event.speakerId ?? item.speakerId } : item)));
+      } else if (event.type === 'reasoning' && event.text) {
+        thinking += event.text;
+        const live = thinking;
+        setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, thought: { t: live, ms: 0 } } : item)));
+      } else if (event.type === 'delta' && event.text) {
+        full += event.text;
+        const shown = base ? base + full : full;
+        setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, content: shown } : item)));
+      } else if (event.type === 'done') {
+        completed = true;
+        emitPoints(event as { balance?: unknown; cost?: unknown });
+        if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = event.messageId;
+        if (autoTranslateRef.current && typeof event.messageId === 'number' && !event.autoContinue) {
+          const doneId = event.messageId;
+          setTimeout(() => void translateRef.current(doneId, true), 600);
         }
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.id === streamKey
+              ? {
+                  ...item,
+                  id: event.messageId ?? item.id,
+                  content: event.content ?? full,
+                  translation: null,
+                  thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
+                  speakerId: event.speakerId ?? item.speakerId,
+                  ...(event.candidateCount ? { candidateCount: event.candidateCount, selected: event.candidateIndex ?? event.candidateCount - 1 } : {}),
+                }
+              : item,
+          ),
+        );
+      } else if (event.type === 'error') {
+        completed = true;
+        setError(event.message ?? '生成失败');
       }
+      });
       // 流断了却没收到结束事件（网络掉线 / 代理断开）：提示一下，已生成的部分下面会和服务端对齐
       if (!completed && !controller.signal.aborted) setError('连接中断了，已和服务器同步');
     } catch (caught) {
@@ -512,29 +495,16 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
         return;
       }
       setDraft('');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
       let text = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith('data:')) continue;
-          try {
-            const event = JSON.parse(line.slice(5).trim()) as { type: string; text?: string; message?: string };
-            if (event.type === 'delta' && event.text) { text += event.text; setDraft(text); }
-            else if (event.type === 'done') { setDraft(event.text ?? text); emitPoints(event as { balance?: unknown; cost?: unknown }); }
-            else if (event.type === 'error') setError(event.message ?? '代写失败');
-          } catch {
-            // 忽略坏行
-          }
+      await readSse<{ type: string; text?: string; message?: string }>(response.body, (event) => {
+        try {
+          if (event.type === 'delta' && event.text) { text += event.text; setDraft(text); }
+          else if (event.type === 'done') { setDraft(event.text ?? text); emitPoints(event as { balance?: unknown; cost?: unknown }); }
+          else if (event.type === 'error') setError(event.message ?? '代写失败');
+        } catch {
+          // 忽略坏行
         }
-      }
+      });
     } catch {
       setError('代写失败，请稍后再试');
     } finally {
