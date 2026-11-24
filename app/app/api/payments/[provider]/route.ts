@@ -1,6 +1,7 @@
 import { fail, json } from '@/lib/api';
 import { markOrderPaid, orderForWebhook, paymentCurrency } from '@/lib/billing';
 import { findProvider } from '@/lib/payments';
+import { logActivity, orderOwner } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,5 +23,6 @@ export async function POST(request: Request, context: { params: Promise<{ provid
   if (paymentCurrency().toUpperCase() !== result.currency.toUpperCase()) return fail('支付币种与订单不一致', 400);
 
   const paid = markOrderPaid(result.orderId, `${provider.id}:${result.reference}`);
+  if (paid.ok) logActivity({ actorId: orderOwner(result.orderId), actorRole: 'system', action: 'points.purchase', targetType: 'order', targetId: result.orderId, detail: { provider: provider.id, points: paid.points ?? 0 }, ip: '', userAgent: '' });
   return paid.ok ? json(paid) : fail(paid.message, 400);
 }

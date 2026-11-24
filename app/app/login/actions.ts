@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { confirmAge, createUser, endSession, findUserByEmail, isTwoFactorEnabled, startSession, verifyPassword } from '@/lib/auth';
+import { confirmAge, createUser, endSession, findUserByEmail, getCurrentUser, isTwoFactorEnabled, startSession, verifyPassword } from '@/lib/auth';
+import { last4, logActivity, logLoginFailed } from '@/lib/audit';
 import { createAuthToken } from '@/lib/auth-tokens';
 import { authLink, mailConfigured, sendMail } from '@/lib/mail';
 import { STARTING_POINTS, ensureStartingPoints } from '@/lib/points';
@@ -57,6 +58,8 @@ export async function register(formData: FormData) {
       throw error;
     }
   })();
+  logActivity({ actorId: user.id, action: 'auth.register', targetType: 'user', targetId: user.id, detail: { referral: Boolean(referral), invite: Boolean(invite && !referral) } });
+  if (invite) logActivity({ actorId: user.id, action: 'invite.use', targetType: referral ? 'referral' : 'invite', targetId: last4(invite) });
   confirmAge(user.id);
   setBirthDate(user.id, birthDate);
   // 广场默认过滤 18+（后台可改），想看的人在广场或「我的」里打开
@@ -93,20 +96,24 @@ export async function login(formData: FormData) {
   const accountLimit = rateLimit('login-account', [email], 10, 15 * 60 * 1000);
   if (!ipLimit.ok || !accountLimit.ok) {
     const wait = !ipLimit.ok ? ipLimit.retryAfter : !accountLimit.ok ? accountLimit.retryAfter : 60;
+    logLoginFailed(email, 'rate_limited');
     redirect('/login?mode=login&error=' + encodeURIComponent(`登录尝试太频繁，请 ${Math.ceil(wait / 60)} 分钟后再试`));
   }
   const user = findUserByEmail(email);
-  if (!user || !verifyPassword(password, user.password_hash)) redirect('/login?mode=login&error=' + encodeURIComponent('邮箱或密码不对'));
-  if (user.status === 'banned') redirect('/login?mode=login&error=' + encodeURIComponent('账号已被限制，请联系管理员'));
+  if (!user || !verifyPassword(password, user.password_hash)) { logLoginFailed(email, user ? 'bad_password' : 'no_account'); redirect('/login?mode=login&error=' + encodeURIComponent('邮箱或密码不对')); }
+  if (user.status === 'banned') { logLoginFailed(email, 'banned'); redirect('/login?mode=login&error=' + encodeURIComponent('账号已被限制，请联系管理员')); }
   if (isTwoFactorEnabled(user.id)) {
     const token = createAuthToken(user.id, '2fa', 5 * 60 * 1000);
     redirect('/login/2fa?token=' + encodeURIComponent(token));
   }
   await startSession(user.id);
+  logActivity({ actorId: user.id, action: 'auth.login', targetType: 'user', targetId: user.id, detail: { method: 'password' } });
   redirect('/');
 }
 
 export async function logout() {
+  const current = await getCurrentUser();
+  if (current) logActivity({ actorId: current.id, action: 'auth.logout', targetType: 'user', targetId: current.id });
   await endSession();
   redirect('/');
 }

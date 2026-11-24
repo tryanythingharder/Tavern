@@ -1,4 +1,5 @@
 import { fail, json, requireUser } from '@/lib/api';
+import { logActivity } from '@/lib/audit';
 import { currentSessionToken, getPasswordHash, revokeOtherSessions, updatePassword, verifyPassword } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   const stored = getPasswordHash(user.id);
   if (!stored || !verifyPassword(current, stored)) return fail('当前密码不对', 400);
   updatePassword(user.id, next);
+  logActivity({ actorId: user.id, action: 'auth.password_change', targetType: 'user', targetId: user.id });
   // 改密后让其他设备下线，当前设备保留
   revokeOtherSessions(user.id, await currentSessionToken());
   return json({ ok: true });

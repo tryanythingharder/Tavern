@@ -2,6 +2,7 @@ import { fail, json } from '@/lib/api';
 import { revokeAllSessions, updatePassword } from '@/lib/auth';
 import { consumeAuthToken } from '@/lib/auth-tokens';
 import { jsonOr413 } from '@/lib/body-limit';
+import { logActivity } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   const userId = consumeAuthToken(token, 'reset');
   if (!userId) return fail('链接无效或已过期，请重新申请', 400);
   updatePassword(userId, password);
+  logActivity({ actorId: userId, action: 'auth.password_reset', targetType: 'user', targetId: userId });
   // 重置后让所有旧会话失效
   revokeAllSessions(userId);
   return json({ ok: true });

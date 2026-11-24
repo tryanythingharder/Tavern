@@ -7,6 +7,7 @@ import { listOverrides } from '@/lib/cards';
 import { listNotifications } from '@/lib/notifications';
 import { listReportsByReporter } from '@/lib/moderation';
 import { listLedger } from '@/lib/points';
+import { logActivity } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,7 @@ export async function GET() {
     pointsLedger: listLedger(user.id, 500),
   };
 
+  logActivity({ actorId: user.id, action: 'data.export', targetType: 'user', targetId: user.id, detail: { chats: chats.length } });
   const filename = `tavern-${user.nickname || 'user'}-${new Date().toISOString().slice(0, 10)}.json`;
   return new Response(JSON.stringify(payload, null, 2), {
     headers: {

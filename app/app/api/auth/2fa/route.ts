@@ -4,6 +4,7 @@ import { consumeAuthToken, peekAuthToken } from '@/lib/auth-tokens';
 import db from '@/lib/db';
 import { ipFromRequest, rateLimit } from '@/lib/rate-limit';
 import { jsonOr413 } from '@/lib/body-limit';
+import { logActivity } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +25,9 @@ export async function POST(request: Request) {
   const row = db.prepare('SELECT status FROM users WHERE id = ?').get(userId) as { status: string } | undefined;
   if (!row || row.status === 'banned' || row.status === 'deleted') return fail('账号不可用', 403);
 
-  if (!verifyTwoFactor(userId, code)) return fail('验证码或恢复码不对', 400);
+  if (!verifyTwoFactor(userId, code)) { logActivity({ actorId: null, action: 'auth.login_failed', targetType: 'user', targetId: userId, detail: { reason: '2fa_code' } }); return fail('验证码或恢复码不对', 400); }
   consumeAuthToken(token, '2fa');
   await startSession(userId);
+  logActivity({ actorId: userId, action: 'auth.login', targetType: 'user', targetId: userId, detail: { method: '2fa' } });
   return json({ ok: true });
 }

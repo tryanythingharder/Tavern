@@ -1,4 +1,5 @@
 import { fail, json, requireUser } from '@/lib/api';
+import { logActivity } from '@/lib/audit';
 import { deleteAccountData, endSession, getPasswordHash, verifyPassword } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   const stored = getPasswordHash(user.id);
   if (!stored || !verifyPassword(password, stored)) return fail('密码不对', 400);
 
+  logActivity({ actorId: user.id, action: 'account.delete', targetType: 'user', targetId: user.id });
   deleteAccountData(user.id);
   await endSession();
   return json({ ok: true });

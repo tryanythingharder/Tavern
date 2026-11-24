@@ -2,6 +2,7 @@ import { flattenText, moderateText } from '@/lib/auto-moderation';
 import { fail, json, requireUser } from '@/lib/api';
 import { saveMedia } from '@/lib/storage';
 import { createCharacter, getCharacterView, setCharacterCover, updateCharacter } from '@/lib/characters';
+import { logActivity } from '@/lib/audit';
 import { parseStCharacterCard } from '@/lib/cards-import';
 import { parsePngCard } from '@/lib/png-card';
 import { extractExtras, extrasSummary, saveExtras } from '@/lib/card-extras';
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
     : createCharacter(user.id, user.nickname, card);
   if (!character) return fail(targetId ? '找不到要更新的角色，或你不是作者' : '角色卡缺少必要字段', 400);
   saveExtras(character.id, extras);
+  logActivity({ actorId: user.id, action: 'character.import', targetType: 'character', targetId: character.id, detail: { format: pngBuffer ? 'png' : 'json', update: Boolean(targetId), status: character.status } });
   let coverImage = character.coverImage;
   if (pngBuffer) {
     coverImage = saveMedia(pngBuffer, 'png', { ownerId: user.id, visibility: 'public' });
