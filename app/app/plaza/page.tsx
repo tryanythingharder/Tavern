@@ -11,7 +11,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 export const dynamic = 'force-dynamic';
 
-export default async function PlazaPage() {
+export default async function PlazaPage({ searchParams }: { searchParams: Promise<{ category?: string; tag?: string | string[] }> }) {
+  const params = await searchParams;
+  const initialTags = (Array.isArray(params.tag) ? params.tag : params.tag ? [params.tag] : []).map((tag) => tag.trim()).filter(Boolean).slice(0, 8);
   const user = await getCurrentUser();
   const access = await nsfwAccess(user?.id ?? null);
   // 不能看 18+ 时服务端就滤掉，不把成人向卡发到前端
@@ -20,7 +22,7 @@ export default async function PlazaPage() {
 
   return (
     <div className="p-inner">
-      <PlazaBrowser characters={characters} initialHideNsfw={!access.show} nsfwState={access.state} minAge={access.minAge} initialBlocked={blocked} />
+      <PlazaBrowser characters={characters} initialHideNsfw={!access.show} nsfwState={access.state} minAge={access.minAge} initialBlocked={blocked} initialCategory={params.category} initialTags={initialTags} />
     </div>
   );
 }

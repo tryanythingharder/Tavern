@@ -40,7 +40,8 @@ export default async function HomePage() {
       messageCount: chat.message_count,
     })),
     rooms: rooms.map((room) => ({ id: room.id, name: room.name, lastMessage: room.lastMessage })),
-    categories: [...CATEGORIES],
+    // 首页各主题的分类筛选只列有作品的大类（13 个全列会出现大量空分类）
+    categories: CATEGORIES.filter((category) => all.some((character) => character.category === category)),
   };
 
   if (theme === 'stage') return <StageHome data={data} />;

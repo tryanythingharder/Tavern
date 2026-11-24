@@ -1,7 +1,8 @@
 import { trMeta } from '@/lib/i18n/runtime';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { searchCharacterViews } from '@/lib/characters';
+import { listCharacterViews, searchCharacterViews } from '@/lib/characters';
+import { ALL, CATEGORIES, HOT_TAG_COUNT, hotTags, isCategory } from '@/lib/catalog';
 import { searchAuthors } from '@/lib/authors';
 import { getCurrentUser } from '@/lib/auth';
 import { getBlockedAuthors } from '@/lib/blocked';
@@ -13,7 +14,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 export const dynamic = 'force-dynamic';
 
-const CATEGORIES = ['全部', '奇幻', '现代', '悬疑', '治愈'];
 const SORTS: { value: 'relevance' | 'hot' | 'new'; label: string }[] = [
   { value: 'relevance', label: '相关' },
   { value: 'hot', label: '最热' },
@@ -27,21 +27,29 @@ function formatChats(value: number): string {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; category?: string; sort?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; category?: string; tag?: string | string[]; sort?: string; view?: string }>;
 }) {
   const params = await searchParams;
   const query = (params.q ?? '').trim();
   const type = params.type === 'character' || params.type === 'author' ? params.type : 'all';
-  const category = CATEGORIES.includes(params.category ?? '') ? (params.category as string) : '全部';
+  const category: string = isCategory(params.category) ? params.category : ALL;
+  const tags = [...new Set((Array.isArray(params.tag) ? params.tag : params.tag ? [params.tag] : []).map((tag) => tag.trim()).filter(Boolean))].slice(0, 8);
   const sort = SORTS.some((item) => item.value === params.sort) ? (params.sort as 'relevance' | 'hot' | 'new') : 'relevance';
   const view = params.view === 'list' ? 'list' : 'grid';
   const user = await getCurrentUser();
   const hide = !(await nsfwAccess(user?.id ?? null)).show;
   const blocked = await getBlockedAuthors();
 
-  const characters = query
-    ? searchCharacterViews(query, { hideNsfw: hide, category, sort }).filter((item) => !blocked.includes(item.author))
+  // 有关键词时在结果里筛；没有关键词但选了题材或标签时，直接按筛选条件浏览
+  const filtering = category !== ALL || tags.length > 0;
+  const active = Boolean(query) || filtering;
+  const characters = active
+    ? searchCharacterViews(query, { hideNsfw: hide, category, tags, sort }).filter((item) => !blocked.includes(item.author))
     : [];
+  // 热门标签：按当前题材统计全部公开角色的 tags，取前 N 个；已选的保留显示
+  const tagScope = listCharacterViews(category, { hideNsfw: hide }).filter((item) => !blocked.includes(item.author));
+  const topTags = hotTags(tagScope, HOT_TAG_COUNT).map((item) => item.tag);
+  const tagChips = [...tags.filter((tag) => !topTags.includes(tag)), ...topTags];
   const authorMatches = query ? searchAuthors(query, { hideNsfw: hide }).filter((item) => !blocked.includes(item.name)) : [];
   const authors = sort === 'hot'
     ? [...authorMatches].sort((a, b) => b.chats - a.chats)
@@ -54,12 +62,13 @@ export default async function SearchPage({
   const showCharacters = type !== 'author';
   const showAuthors = type !== 'character';
 
-  const href = (patch: Record<string, string>) => {
-    const next = { type, category, sort, view, ...patch };
+  const href = (patch: Partial<{ type: string; category: string; sort: string; view: string; tags: string[] }>) => {
+    const next = { type, category, sort, view, tags, ...patch };
     const search = new URLSearchParams();
     if (query) search.set('q', query);
     if (next.type !== 'all') search.set('type', next.type);
-    if (next.category !== '全部') search.set('category', next.category);
+    if (next.category !== ALL) search.set('category', next.category);
+    for (const tag of next.tags) search.append('tag', tag);
     if (next.sort !== 'relevance') search.set('sort', next.sort);
     if (next.view !== 'grid') search.set('view', next.view);
     const suffix = search.toString();
@@ -71,7 +80,7 @@ export default async function SearchPage({
       <header className="p-page-title">
         <div>
           <h1>搜索</h1>
-          <p>{query ? `“${query}” · 角色 ${characterCount} · 作者 ${authorCount}` : '搜索角色、作者或剧情关键词。'}</p>
+          <p>{query ? `“${query}” · 角色 ${characterCount} · 作者 ${authorCount}` : filtering ? `按筛选浏览 · 角色 ${characterCount}` : '搜索角色、作者或剧情关键词。'}</p>
         </div>
       </header>
 
@@ -83,7 +92,8 @@ export default async function SearchPage({
           </label>
           <button className="p-btn p-btn--primary" type="submit">搜索</button>
           {type !== 'all' && <input type="hidden" name="type" value={type} />}
-          {category !== '全部' && <input type="hidden" name="category" value={category} />}
+          {category !== ALL && <input type="hidden" name="category" value={category} />}
+          {tags.map((tag) => <input key={tag} type="hidden" name="tag" value={tag} />)}
           {sort !== 'relevance' && <input type="hidden" name="sort" value={sort} />}
           {view !== 'grid' && <input type="hidden" name="view" value={view} />}
         </form>
@@ -100,10 +110,24 @@ export default async function SearchPage({
           {type !== 'author' && (
             <div className="search-categories search-tool">
               <span className="search-tool-label">题材</span>
-              <div className="p-chips" aria-label="题材">
-                {CATEGORIES.map((item) => (
+              <div className="p-chips plaza-categories" aria-label="题材">
+                {[ALL, ...CATEGORIES].map((item) => (
                   <Link key={item} className="p-chip" aria-current={category === item ? 'page' : undefined} href={href({ category: item })}>{item}</Link>
                 ))}
+              </div>
+            </div>
+          )}
+          {type !== 'author' && tagChips.length > 0 && (
+            <div className="search-tags search-tool">
+              <span className="search-tool-label">标签</span>
+              <div className="p-chips plaza-tags" aria-label="热门标签">
+                {tagChips.map((tag) => {
+                  const on = tags.includes(tag);
+                  return (
+                    <Link key={tag} className="p-chip" aria-current={on ? 'page' : undefined} href={href({ tags: on ? tags.filter((item) => item !== tag) : [...tags, tag] })}>#{tag}</Link>
+                  );
+                })}
+                {tags.length > 0 && <Link className="p-text-btn" href={href({ tags: [] })}>清除标签</Link>}
               </div>
             </div>
           )}
@@ -127,7 +151,7 @@ export default async function SearchPage({
         </div>
       </div>
 
-      {!query && (
+      {!active && (
         <div className="p-empty">
           <div className="p-empty-title">从一个名字或一句设定开始</div>
           <p className="p-empty-text">搜角色名、作者名、题材或剧情关键词。比如「沈砚之」「民国」「慢热」。</p>
@@ -135,7 +159,7 @@ export default async function SearchPage({
         </div>
       )}
 
-      {query && total === 0 && (
+      {active && total === 0 && (
         <div className="p-empty">
           <div className="p-empty-title">没有匹配的角色或作者</div>
           <p className="p-empty-text">换个关键词，或去广场按题材浏览。</p>
@@ -143,7 +167,7 @@ export default async function SearchPage({
         </div>
       )}
 
-      {query && showCharacters && characterCount > 0 && (
+      {active && showCharacters && characterCount > 0 && (
         <section className="p-section">
           <div className="p-section-head">
             <h2>角色</h2>

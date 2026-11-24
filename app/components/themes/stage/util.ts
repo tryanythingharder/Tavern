@@ -2,10 +2,20 @@ import { currentLocale } from '@/lib/i18n/runtime';
 // 戏台主题的小工具：只做展示层的格式化，不查询数据。
 
 const CATEGORY_EN: Record<string, string> = {
-  悬疑: 'a slow-burn mystery',
+  恋爱: 'a love story',
   奇幻: 'a tale of wonder',
+  科幻: 'a voyage beyond tomorrow',
+  古风: 'a ballad of old China',
+  悬疑: 'a slow-burn mystery',
+  恐怖: 'a tale told in the dark',
+  校园: 'a campus story',
+  都市: 'a modern drama',
   现代: 'a modern drama',
   治愈: 'a gentle healing story',
+  冒险: 'an adventure',
+  历史: 'a story from another age',
+  游戏: 'a game to play',
+  助手: 'a helping hand',
 };
 
 export function categoryLine(category: string): string {
