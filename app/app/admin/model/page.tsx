@@ -10,6 +10,7 @@ import { pointsPerThousand } from '@/lib/points';
 import { AdminModel } from '@/components/admin-model';
 import { modelFallbacks } from '@/lib/model';
 import { listChannels } from '@/lib/channels';
+import { UnsavedGuard } from '@/components/admin-feedback';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,7 @@ export default async function AdminModelPage() {
             <Link className="p-btn p-btn--sm" href="/admin/channels">管理渠道</Link>
           </div>
         )}
+        <UnsavedGuard>
         <AdminModel initial={{
           baseUrl: getSetting('model.baseUrl', process.env.TAVERN_MODEL_BASE_URL ?? ''),
           name: getSetting('model.name', process.env.TAVERN_MODEL_NAME ?? ''),
@@ -58,6 +60,7 @@ export default async function AdminModelPage() {
           fallbackCount: fallbacks.length,
           fallbackRoutes: fallbacks,
         }} />
+        </UnsavedGuard>
 
         <section className="p-card p-card--pad" style={{ marginTop: 20 }}>
           <h2 className="p-form-section-title">其他网关</h2>

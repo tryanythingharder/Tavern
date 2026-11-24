@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { ADMIN_GUIDES } from '@/lib/admin-guides';
 import { navItem } from '@/lib/admin-nav';
+import { UnsavedGuard } from '@/components/admin-feedback';
 
 // 配置类子页的统一骨架：面包屑 + 标题 + 表单 + 右侧使用说明 + 同分类其它页
 export function AdminConfigPage({ href, guide, children }: { href: string; guide: string; children: ReactNode }) {
@@ -19,9 +20,11 @@ export function AdminConfigPage({ href, guide, children }: { href: string; guide
       </header>
       <div className="p-acontent">
         <div className="p-aconfig">
-          <div>
-            {children}
-          </div>
+          <UnsavedGuard>
+            <div>
+              {children}
+            </div>
+          </UnsavedGuard>
           {info && (
             <aside className="p-card p-card--pad p-aguide" aria-label="使用说明">
               <h2>使用说明</h2>
