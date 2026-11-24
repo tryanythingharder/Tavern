@@ -5,6 +5,7 @@ import { joinList } from '@/lib/i18n/runtime';
 import { emitPoints } from '@/lib/points-bus';
 import { MessageRow } from '@/components/chat-message-row';
 import { ChatComposer } from '@/components/chat-composer';
+import { ChatHeader } from '@/components/chat-header';
 import { useGenerationStream, type TranslatePrefs } from '@/components/use-generation-stream';
 import { readSse } from '@/lib/sse-client';
 import { useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
@@ -968,22 +969,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
     <>
       <div className="p-chat-scroll" ref={scrollRef}>
         <div className="p-chat-col">
-          {hasMore && (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
-              <button className="p-btn p-btn--sm" type="button" disabled={loadingOlder} onClick={() => void loadOlder()}>
-                {loadingOlder ? '加载中…' : '加载更早消息'}
-              </button>
-            </div>
-          )}
-          <section className={`p-rp-prologue${characterCover ? ' has-cover' : ''}`} style={{ ['--h' as string]: characterHue }}>
-            {characterCover && <img className="rd-prologue-bg" src={characterCover} alt="" aria-hidden="true" />}
-            <div className="rd-prologue-in">
-              <div className="p-eyebrow">STORY · {characterName}</div>
-              <h1>{title ?? '故事'}</h1>
-              <p>你以「{personaName ?? '你'}」的身份进入这段故事</p>
-              <small>开场</small>
-            </div>
-          </section>
+          <ChatHeader hasMore={hasMore} loadingOlder={loadingOlder} onLoadOlder={() => void loadOlder()} characterCover={characterCover} characterHue={characterHue} characterName={characterName} title={title} personaName={personaName} />
           {messages.map(cachedRow)}
           <div ref={bottomRef} style={{ scrollMarginBottom: 120 }} />
         </div>
