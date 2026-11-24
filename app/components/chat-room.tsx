@@ -5,6 +5,7 @@ import { joinList } from '@/lib/i18n/runtime';
 import { emitPoints } from '@/lib/points-bus';
 import { MessageRow } from '@/components/chat-message-row';
 import { ChatComposer } from '@/components/chat-composer';
+import { useGenerationStream, type TranslatePrefs } from '@/components/use-generation-stream';
 import { readSse } from '@/lib/sse-client';
 import { useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
@@ -71,21 +72,6 @@ type Props = {
   macros?: RegexMacros;
 };
 
-type StreamEvent = {
-  type: string;
-  text?: string;
-  free?: number;
-  message?: string;
-  messageId?: number | null;
-  content?: string;
-  candidateIndex?: number;
-  candidateCount?: number;
-  cost?: number;
-  balance?: number;
-  reasoning?: ThoughtView | null;
-  autoContinue?: boolean;
-  cut?: boolean;
-};
 
 
 
@@ -156,12 +142,8 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [preview, setPreview] = useState(false);
   useEffect(() => { try { setPreview(localStorage.getItem('tavern_compose_preview') === '1'); } catch {} }, []);
   const togglePreview = () => setPreview((on) => { try { localStorage.setItem('tavern_compose_preview', on ? '0' : '1'); } catch {} return !on; });
-  const [streaming, setStreaming] = useState(false);
-  const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const [error, setError] = useState('');
   const [failed, setFailed] = useState<{ type: 'send' } | { type: 'reply' } | { type: 'regen'; message: ChatMessageView } | null>(null);
-  // 本次流里收到了错误事件且没有产出（服务端已保存玩家消息）
-  const streamErrorRef = useRef(false);
   const [billing, setBilling] = useState<{ cost: number; balance: number; free?: number } | null>(null);
   const [editing, setEditing] = useState<EditingState>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
@@ -175,8 +157,6 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [imageBusy, setImageBusy] = useState(false);
   // 定妆照：这个角色以后生图都照它的长相画
   const [lookUrl, setLookUrl] = useState<string | null>(media?.lookUrl ?? null);
-  const abortRef = useRef<AbortController | null>(null);
-  const autoContinueRef = useRef<{ id: number; content: string } | null>(null);
   const thoughtsOpen = useThoughtsOpen();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -309,7 +289,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [translatingInput, setTranslatingInput] = useState(false);
   // 默认显示译文；点「原文」的消息记在这里
   const [flipped, setFlipped] = useState<Set<number | string>>(() => new Set());
-  const translatePrefsRef = useRef<{ target: string; auto: 'none' | 'responses' | 'inputs' | 'both'; modelLang: string }>({ target: 'zh-CN', auto: 'none', modelLang: 'en' });
+  const translatePrefsRef = useRef<TranslatePrefs>({ target: 'zh-CN', auto: 'none', modelLang: 'en' });
   useEffect(() => {
     void fetchGenPrefs().then((prefs) => {
       if (prefs?.translate) translatePrefsRef.current = prefs.translate;
@@ -337,90 +317,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const translateRef = useRef(translateMessage);
   translateRef.current = translateMessage;
 
-  const streamInto = useCallback(
-    async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void, prefix = ''): Promise<boolean> => {
-      const controller = new AbortController();
-      abortRef.current = controller;
-      setStreaming(true);
-      setStreamingId(targetId);
-      setError('');
-      let text = '';
-      let thinking = '';
-      let completed = false;
-      let accepted = false;
-      let doneId: number | null = null;
-      autoContinueRef.current = null;
-      streamErrorRef.current = false;
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload ?? {}),
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          const detail = (await response.json().catch(() => null)) as { message?: string } | null;
-          throw new Error(detail?.message || `请求失败（${response.status}）`);
-        }
-        if (!response.body) throw new Error('没有收到响应');
-        accepted = true;
-        onAccepted?.();
-
-        await readSse<StreamEvent>(response.body, (event) => {
-          if (event.type === 'reasoning' && event.text) {
-            thinking += event.text;
-            const live = thinking;
-            setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, thought: { t: live, ms: 0 } } : item)));
-          } else if (event.type === 'delta' && event.text) {
-            text += event.text;
-            setMessages((prev) => prev.map((item) => (item.id === targetId ? { ...item, content: prefix + text } : item)));
-          } else if (event.type === 'done') {
-            completed = true;
-            if (typeof event.messageId === 'number') doneId = event.messageId;
-            // ST 自动继续：服务端判断回复还没到目标长度
-            if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = { id: event.messageId, content: event.content ?? text };
-            if (typeof event.cost === 'number' && typeof event.balance === 'number') { setBilling({ cost: event.cost, balance: event.balance, free: event.free }); emitPoints(event); }
-            setMessages((prev) =>
-              prev.map((item) =>
-                item.id === targetId
-                  ? {
-                      ...item,
-                      id: event.messageId ?? item.id,
-                      content: event.content ?? text,
-                      thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
-                      candidateCount: event.candidateCount ?? item.candidateCount,
-                      selected: event.candidateIndex ?? item.selected,
-                      cut: event.cut === true,
-                    }
-                  : item,
-              ),
-            );
-          } else if (event.type === 'error') {
-            completed = true;
-            if (!text) streamErrorRef.current = true;
-            setError(event.message ?? '生成失败');
-          }
-        });
-        // 流断了却没收到结束事件（网络掉线 / 代理断开）：提示一下，已生成的部分下面会和服务端对齐
-        if (!completed && !controller.signal.aborted) setError('连接中断了，已和服务器同步');
-      } catch (caught) {
-        if ((caught as Error).name !== 'AbortError') setError((caught as Error).message);
-        // 中断时保留已生成的部分（服务端也会保存），下面统一和数据库对齐
-      } finally {
-        setStreaming(false);
-        setStreamingId(null);
-        abortRef.current = null;
-        // 中断后服务端还要几百毫秒落库，稍等一下再取
-        if (!completed) await sleep(400);
-        await resync();
-        // ST「自动翻译回复」：回复落库后翻成目标语言（失败不打断对话）
-        const auto = translatePrefsRef.current.auto;
-        if (completed && doneId !== null && !streamErrorRef.current && (auto === 'responses' || auto === 'both')) void translateRef.current(doneId, true);
-      }
-      return accepted;
-    },
-    [resync],
-  );
+  const { streaming, streamingId, abortRef, autoContinueRef, streamErrorRef, streamInto } = useGenerationStream({ setMessages, setError, setBilling, resync, translatePrefsRef, translateRef });
 
   // override：快捷动作（如「继续」）直接发送一段固定文本，不动用户正在写的草稿
   // ST 的「代写」：让 AI 以玩家身份写一句，流式写进输入框，玩家改完再发
