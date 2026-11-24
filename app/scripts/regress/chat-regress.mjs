@@ -268,6 +268,76 @@ await step('安全#4 生成中整个会话被删 → 报错且不扣点', async 
 await step('沙盒路由安全头', async () => { const r = await req('/sandbox/x', {}, false); const csp = r.headers.get('content-security-policy') || ''; assert(/connect-src 'none'/.test(csp), 'sandbox CSP 缺失 status ' + r.status); });
 await step('英文界面对话页渲染', async () => { const r = await req(`/chats/${chatId}?lang=en`); const t = await r.text(); assert(r.status === 200 && /lang="en/.test(t), `status ${r.status}`); await req('/?lang=zh'); });
 
+// ---------- 操作日志（activity_log / 后台审计页） ----------
+const WRONG_PW = 'Wr0ng-audit-pw-' + Date.now();
+async function loginForm(pw) {
+  const page = await req('/login?mode=login', {}, false);
+  const m = (await page.text()).match(/name="(\$ACTION_ID_[0-9a-f]+)"/); assert(m, '登录页没有 action');
+  const fd = new FormData(); fd.set(m[1], ''); fd.set('email', email); fd.set('password', pw); fd.set('agree', 'on');
+  const r = await req('/login?mode=login', { method: 'POST', body: fd, headers: { origin: BASE } });
+  return decodeURIComponent(r.headers.get('location') || r.headers.get('x-action-redirect') || String(r.status));
+}
+const auditQuery = async (qs) => { const r = await req('/api/admin/audit?' + qs); assert(r.ok, `audit ${r.status}`); return r.json(); };
+let auditUserId = null, auditCharId = null;
+await step('审计#1 普通用户访问审计接口 → 403，审计页 → 404', async () => {
+  const a = await req('/api/admin/audit'); const p = await req('/admin/audit'); const pt = await p.text();
+  assert(a.status === 403 || a.status === 404, `接口 ${a.status}`);
+  // 根布局有 loading 边界，后台页 notFound() 走流式：HTTP 200 + NEXT_HTTP_ERROR_FALLBACK;404，且不含任何日志内容
+  const pageDenied = p.status === 404 || (p.status === 200 && pt.includes('NEXT_HTTP_ERROR_FALLBACK;404'));
+  assert(pageDenied && !/用户操作|User actions|auth\.login/.test(pt), `页面 ${p.status}`);
+  const anon = await req('/api/admin/audit', {}, false); assert(anon.status === 401, `未登录 ${anon.status}`);
+  return `接口 ${a.status} / 页面 ${p.status === 200 ? '流式 404' : p.status} / 未登录 ${anon.status}`;
+});
+await step('审计#2 登录失败一次 + 登录成功一次（真实 server action）', async () => {
+  jar = {};
+  const bad = await loginForm(WRONG_PW); assert(/不对/.test(bad), '错误密码应提示不对：' + bad);
+  const ok = await loginForm('regress-pass-123'); assert(jar.tavern_session, '没登录上：' + ok);
+});
+await step('审计#3 发布角色', async () => {
+  const r = await req('/api/characters', { method: 'POST', json: { name: '审计回归角色', hook: '一个用来查审计日志的角色', greeting: '你好，我在审计日志里。', status: 'published' } });
+  const j = await r.json(); assert(r.status === 201, `status ${r.status} ${JSON.stringify(j).slice(0, 120)}`); auditCharId = j.character.id; return auditCharId;
+});
+await step('审计#4 提升为管理员后给自己赠点', async () => {
+  assert(APPDIR, '需要 APPDIR');
+  const db = new DatabaseSync(join(APPDIR, '.data/tavern.db'));
+  auditUserId = db.prepare('SELECT id FROM users WHERE email = ?').get(email).id;
+  db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(auditUserId); db.close();
+  const r = await req('/api/admin/grant', { method: 'POST', json: { userId: auditUserId, amount: 7, note: '审计回归赠点' } });
+  assert(r.ok, `grant ${r.status} ${await r.text()}`);
+});
+await step('审计#5 审计接口查得到：登录失败 / 登录成功 / 发布角色 / 管理员赠点', async () => {
+  const failed = await auditQuery(`user=${encodeURIComponent(email)}&action=auth.login_failed`);
+  const e = failed.entries[0]; assert(e && e.targetId === email && e.actorId === null, '登录失败：' + JSON.stringify(e));
+  assert(/bad_password/.test(e.detail), '登录失败原因：' + e.detail);
+  const login = await auditQuery(`user=${auditUserId}&action=auth.login`); assert(login.entries.some((x) => x.actorId === auditUserId), '登录成功没记');
+  const pub = await auditQuery(`user=${auditUserId}&action=character.publish`); assert(pub.entries.some((x) => x.targetId === auditCharId), '发布没记');
+  const grant = await auditQuery(`scope=admin&action=admin.points.grant&user=${auditUserId}`); const g = grant.entries.find((x) => x.targetId === String(auditUserId));
+  assert(g && g.actorRole === 'admin' && g.actionLabel === '赠点', '赠点没记：' + JSON.stringify(grant.entries[0]));
+  const userTab = await auditQuery('scope=user&action=admin.*'); assert(userTab.total === 0, '用户操作 tab 混进了管理员操作');
+  const groupAuth = await auditQuery(`user=${auditUserId}&action=auth.*`); assert(groupAuth.total >= 2, 'auth.* 分组 ' + groupAuth.total);
+  return `失败 ${failed.total} / 登录 ${login.total} / 发布 ${pub.total} / 赠点 ${grant.total}，ip=${e.ip || '空'}`;
+});
+await step('审计#6 审计页渲染（tab、筛选、中文动作名）', async () => {
+  const r = await req(`/admin/audit?lang=zh&user=${encodeURIComponent(email)}`); const t = await r.text();
+  assert(r.status === 200, `status ${r.status}`);
+  for (const w of ['用户操作', '管理员操作', '登录失败', '发布角色', '赠点', '导出 CSV']) assert(t.includes(w), '页面缺「' + w + '」');
+  const en = await req('/admin/audit?lang=en'); const et = await en.text(); assert(en.status === 200 && /User actions/.test(et) && /Admin actions/.test(et), '英文页缺 tab 译文'); await req('/?lang=zh');
+});
+await step('审计#7 导出 CSV，导出本身记一条 admin 日志', async () => {
+  const r = await req(`/api/admin/audit?format=csv&user=${auditUserId}`); const t = await r.text();
+  assert(r.ok && /text\/csv/.test(r.headers.get('content-type') || ''), `status ${r.status}`);
+  assert(t.includes('character.publish'), 'CSV 没有发布记录');
+  const ex = await auditQuery('scope=admin&action=admin.audit.export'); assert(ex.entries.some((x) => x.actorId === auditUserId), '导出没留痕');
+  return `${t.trim().split('\n').length - 1} 行`;
+});
+await step('审计#8 日志里不出现密码明文（成功/失败密码都查）', async () => {
+  const db = new DatabaseSync(join(APPDIR, '.data/tavern.db'), { readOnly: true });
+  const rows = db.prepare('SELECT * FROM activity_log').all(); db.close();
+  const dump = JSON.stringify(rows);
+  assert(!dump.includes('regress-pass-123') && !dump.includes(WRONG_PW), '日志里出现了密码');
+  return `${rows.length} 条日志`;
+});
+
 const pass = results.filter((r) => r.ok).length;
 console.log(`\n结果：${pass}/${results.length} 通过`);
 process.stdout.write(JSON.stringify(results) + '\n');
