@@ -7,6 +7,7 @@ import { ReportButton } from '@/components/report-button';
 import { TypingDots } from '@/components/rp-text';
 import { RichText } from '@/components/rich-text';
 import { UserAvatar } from '@/components/persona-switch';
+import { Ico, ICONS } from '@/components/msg-icons';
 import { langLabel as langName } from '@/lib/translation';
 import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
@@ -15,10 +16,6 @@ import type { ChatMessageView, ChatRoomMedia, RowActions, EditingState } from '@
 // 对话页的一楼消息（从 chat-room.tsx 拆出）。父组件按「会影响这一楼的值」缓存元素，没变就复用，
 // 所以这里不放 hook；事件处理一律通过 L 读最新的函数和状态。
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "play": "M8 5v14l11-7z", "star": "m12 4 2.5 5.2 5.5.7-4 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4-3.9 5.5-.7z", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "flag": "M5 21V4M5 4h11l-2 4 2 4H5", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "ghost": "M6 20V10a6 6 0 0 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5zM10 11h.01M14 11h.01", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "portrait": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20a8 8 0 0 1 16 0", "cut": "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.5 7.5 20 19M8.5 16.5 20 5"} as const;
-function Ico({ name }: { name: keyof typeof ICONS }) {
-  return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
-}
 
 // 消息时间：只在客户端格式化（服务器时区不同会导致 hydration 不一致）
 function MsgTime({ at }: { at?: number }) {

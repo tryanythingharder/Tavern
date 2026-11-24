@@ -13,7 +13,7 @@ import { useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasMvuCommands } from '@/lib/mvu-text';
 import { useRouter } from 'next/navigation';
-import { Modal } from '@/components/settings-ui';
+import { ImageGenModal, type ImageMode } from '@/components/image-gen-modal';
 import { usesDepth } from '@/components/rich-text';
 import { emitHelperEvent, type HelperActions } from '@/lib/helper-events';
 import type { RegexRule } from '@/lib/resources';
@@ -91,6 +91,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
 const NO_RULES: RegexRule[] = [];
 
+const CHAT_IMAGE_MODES = [
+  ['scene', '当前场景', '按最近几轮对话画出眼下的画面'],
+  ['last', '最后一条回复', '把角色刚说的那一幕画出来'],
+  ['character', '角色立绘', '按角色设定画一张人物像'],
+  ['custom', '自己描述', '完全按你写的内容画'],
+] as const;
+
 export function ChatRoom({ accountAvatar = null, chatId, characterName, initialMessages, initialHasMore = false, initialOffset = 0, quickReplies: qrInitial, media, title, personaName: initialPersonaName, persona: personaInit, characterCover = null, characterHue = 212, displayRules = NO_RULES, macros }: Props) {
   const router = useRouter();
   const [persona, setPersona] = useState<PersonaCurrent>(personaInit?.current ?? { id: null, name: initialPersonaName || '你', avatar: null });
@@ -154,7 +161,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const [openActions, setOpenActions] = useState<number | string | null>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
-  const [imageMode, setImageMode] = useState<'scene' | 'last' | 'character' | 'custom'>('scene');
+  const [imageMode, setImageMode] = useState<ImageMode>('scene');
   const [imageBusy, setImageBusy] = useState(false);
   // 定妆照：这个角色以后生图都照它的长相画
   const [lookUrl, setLookUrl] = useState<string | null>(media?.lookUrl ?? null);
@@ -1019,51 +1026,24 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
       />
 
       {imageOpen && (
-        <Modal
-          title="生成一张插图"
+        <ImageGenModal
+          modes={CHAT_IMAGE_MODES}
+          mode={imageMode}
+          setMode={setImageMode}
+          prompt={imagePrompt}
+          setPrompt={setImagePrompt}
+          busy={imageBusy}
+          cost={media?.imageCost ?? 0}
+          placeholders={{ custom: '例如：民国报馆的雨夜，暖黄台灯下两个人对坐，窗外雨幕', hint: '例如：水彩风、侧脸、雨夜' }}
+          tail="生成后作为一条消息插入对话。"
           onClose={() => setImageOpen(false)}
-          footer={
-            <>
-              <button className="btn btn--sm" type="button" onClick={() => setImageOpen(false)}>取消</button>
-              <button className="btn btn--sm btn--primary" type="button" disabled={imageBusy || (imageMode === 'custom' && !imagePrompt.trim())} onClick={() => void makeImage()}>
-                {imageBusy ? (imageMode === 'custom' ? '生成中…' : '构思画面并生成…') : '生成'}
-              </button>
-            </>
-          }
-        >
-          <div className="field">
-            <label>画什么</label>
-            <div className="p-img-modes" role="radiogroup" aria-label="画什么">
-              {([
-                ['scene', '当前场景', '按最近几轮对话画出眼下的画面'],
-                ['last', '最后一条回复', '把角色刚说的那一幕画出来'],
-                ['character', '角色立绘', '按角色设定画一张人物像'],
-                ['custom', '自己描述', '完全按你写的内容画'],
-              ] as const).map(([value, label, desc]) => (
-                <button key={value} type="button" role="radio" aria-checked={imageMode === value} className={`p-img-mode${imageMode === value ? ' is-on' : ''}`} disabled={imageBusy} onClick={() => setImageMode(value)}>
-                  <strong>{label}</strong><span>{desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="field">
-            <label>{imageMode === 'custom' ? '画面描述' : '补充要求（可不填）'}</label>
-            <textarea
-              className="textarea"
-              rows={imageMode === 'custom' ? 4 : 2}
-              value={imagePrompt}
-              maxLength={imageMode === 'custom' ? 900 : 200}
-              placeholder={imageMode === 'custom' ? '例如：民国报馆的雨夜，暖黄台灯下两个人对坐，窗外雨幕' : '例如：水彩风、侧脸、雨夜'}
-              onChange={(event) => setImagePrompt(event.target.value)}
-            />
-          </div>
-          {media?.reference && (
+          onSubmit={() => void makeImage()}
+          refNote={media?.reference && (
             <p className="small p-img-ref" style={{ margin: 0 }}>
               人物长相参考：{lookUrl ? '你设的定妆照' : media.characterHasImage ? '角色封面' : messages.some((item) => item.attachment?.kind === 'image' && item.attachment.mode === 'character') ? '本对话第一张角色立绘' : '暂无，建议先画一张「角色立绘」，之后的图都会照它画'}
             </p>
           )}
-          <p className="small" style={{ margin: 0 }}>{imageMode === 'custom' ? `会消耗 ${media?.imageCost ?? 0} 点` : `会先让对话模型按剧情写画面描述（按字数少量扣点），再消耗 ${media?.imageCost ?? 0} 点生图`}，生成后作为一条消息插入对话。</p>
-        </Modal>
+        />
       )}
     </>
   );

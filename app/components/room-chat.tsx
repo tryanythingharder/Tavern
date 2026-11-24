@@ -2,28 +2,22 @@
 import { fetchGenPrefs } from '@/lib/gen-prefs-client';
 import { emitPoints } from '@/lib/points-bus';
 import { readSse } from '@/lib/sse-client';
-import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
+import { useRoomStream } from '@/components/use-room-stream';
+import { useThoughtsOpen } from '@/components/thought-block';
+import { RoomMessageRow, type RoomEditing, type RoomMember, type RoomMedia, type RoomMessageView, type RoomRowActions } from '@/components/room-message-row';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { hasMvuCommands } from '@/lib/mvu-text';
-import { TypingDots } from '@/components/rp-text';
-import { RichText } from '@/components/rich-text';
 import type { RegexRule } from '@/lib/resources';
-import { ModelPicker } from '@/components/model-picker';
-import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
+import { RoomComposer } from '@/components/room-composer';
+import type { PersonaCurrent, PersonaOption } from '@/components/persona-switch';
 import { Select } from '@/components/ui-select';
 import { activeQrSets, planQuickReply, type QrAuto, type QrItem, type QrSet, type QrState } from '@/lib/quick-replies';
 import { useRouter } from 'next/navigation';
 import { showAlert } from '@/components/ui-dialog';
-import { langLabel } from '@/lib/translation';
-import { Modal } from '@/components/settings-ui';
+import { ImageGenModal, type ImageMode } from '@/components/image-gen-modal';
 
-// 快捷回复栏只在有快捷回复集时渲染，按需加载
-const QuickReplyBar = dynamic(() => import('@/components/quick-reply-bar').then((m) => m.QuickReplyBar));
-
-type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null; translation?: { lang: string; text: string; original: boolean } | null; attachment?: { kind: 'image'; url: string; prompt?: string; mode?: string; width?: number; height?: number } | null };
-type Member = { id: string; name: string; initial: string; hue: number; avatar?: string | null; muted?: boolean };
+type Member = RoomMember;
 
 type Props = {
   /** 账号头像：身份没设头像时，玩家消息用它（只影响显示） */
@@ -42,24 +36,17 @@ type Props = {
   memberRules?: Record<string, RegexRule[]>;
   quickReplies?: QrState;
   /** 群聊生图：开关、单价、人物参考开关、各成员的定妆照与有没有自带图 */
-  media?: { image: boolean; imageCost: number; reference: boolean; looks: Record<string, string | null>; hasImage: Record<string, boolean> };
+  media?: RoomMedia;
 };
 
-type ImageMode = 'scene' | 'last' | 'character' | 'custom';
+const ROOM_IMAGE_MODES = [
+  ['scene', '当前场景', '按最近几轮画出眼下的画面，最近出场的角色（最多 3 位）一起入画'],
+  ['last', '最后一条回复', '把刚发言的角色那一幕画出来'],
+  ['character', '角色立绘', '给选中的角色画一张人物像'],
+  ['custom', '自己描述', '完全按你写的内容画'],
+] as const;
 
-const ICONS = {"copy": "M9 9h10v10H9zM5 15V5h10", "check": "m5 12 5 5 9-10", "edit": "M4 20h4L19 9l-4-4L4 16zM13 7l4 4", "regen": "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5", "branch": "M6 4v10M6 14a4 4 0 0 0 4 4h4M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 8v2a4 4 0 0 1-4 4H6", "x": "M6 6l12 12M18 6 6 18", "prev": "m15 6-6 6 6 6", "next": "m9 6 6 6-6 6", "checkpoint": "M7 4h10v16l-5-3.5L7 20z", "translate": "M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5", "portrait": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20a8 8 0 0 1 16 0"} as const;
-function Ico({ name }: { name: keyof typeof ICONS }) {
-  return <svg className="p-icon rd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS[name]} /></svg>;
-}
 
-type GenMode = { kind: 'send'; text: string } | { kind: 'auto'; speakerId?: string } | { kind: 'regenerate' | 'continue'; messageId: number };
-
-const STRATEGY_HINT: Record<string, string> = {
-  natural: '自然：你叫到谁的名字，谁就先答；否则轮流。',
-  roundRobin: '轮流：发言次数最少的角色先答。',
-  manual: '手动：你自己选本轮由谁回应。',
-  pooled: '随机：每轮从成员里抽一个。',
-};
 
 const NO_RULES: RegexRule[] = [];
 const NO_MEMBER_RULES: Record<string, RegexRule[]> = {};
@@ -99,20 +86,15 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
   const qrRef = useRef(qr);
   qrRef.current = qr;
   const qrAutoRef = useRef<(kind: keyof QrAuto) => Promise<void>>(async () => {});
-  const [streaming, setStreaming] = useState(false);
-  const [typing, setTyping] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [speakerId, setSpeakerId] = useState(defaultSpeakerId && members.some((member) => member.id === defaultSpeakerId) ? defaultSpeakerId : members[0]?.id ?? '');
   const [openActions, setOpenActions] = useState<number | string | null>(null);
-  const [editing, setEditing] = useState<{ id: number; draft: string; thought?: string | null } | null>(null);
+  const [editing, setEditing] = useState<RoomEditing>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | string | null>(null);
   const [switching, setSwitching] = useState<number | null>(null);
   const [impersonating, setImpersonating] = useState(false);
-  const [streamingId, setStreamingId] = useState<number | string | null>(null);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const autoContinueRef = useRef<number | null>(null);
   const thoughtsOpen = useThoughtsOpen();
   // ---- 群聊生图（人物参考与单聊同一套，见 lib/image-ref.ts）----
   const [imageOpen, setImageOpen] = useState(false);
@@ -192,7 +174,6 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
     return rev;
   }, [messages]);
 
-  const memberOf = (id: string | null) => members.find((member) => member.id === id);
   const firstUserIndex = useMemo(() => {
     const index = messages.findIndex((message) => message.role === 'user');
     return index < 0 ? messages.length : index - 1;
@@ -210,140 +191,7 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
   }, [roomId]);
 
   // 生成一条回复：send 带玩家消息；auto 自动推进；regenerate 给最新角色消息加一个候选；continue 接着最新角色消息写
-  const streamReply = useCallback(async (mode: GenMode) => {
-    const stamp = Date.now();
-    const target = mode.kind === 'regenerate' || mode.kind === 'continue' ? mode.messageId : null;
-    const streamKey: number | string = target ?? `stream-${stamp}`;
-    let base = '';
-    if (mode.kind === 'send') {
-      setMessages((prev) => [...prev, { id: `local-${stamp}`, role: 'user', speakerId: null, content: mode.text, personaName: persona.name, personaAvatar: persona.avatar }]);
-    }
-    if (target === null) {
-      setMessages((prev) => [...prev, { id: streamKey, role: 'assistant', speakerId: null, content: '' }]);
-    } else {
-      setMessages((prev) => prev.map((item) => {
-        if (item.id !== target) return item;
-        base = mode.kind === 'continue' ? item.content : '';
-        return { ...item, content: base, ...(mode.kind === 'regenerate' ? { thought: null } : {}) };
-      }));
-    }
-    setStreamingId(streamKey);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    let full = '';
-    let thinking = '';
-    let completed = false;
-    autoContinueRef.current = null;
-    try {
-      const payload = mode.kind === 'send'
-        ? { text: mode.text, speakerId: strategy === 'manual' ? speakerId : undefined }
-        : mode.kind === 'auto'
-          ? mode.speakerId
-            ? { auto: true, speakerId: mode.speakerId, force: true }
-            : { auto: true, speakerId: strategy === 'manual' ? speakerId : undefined }
-          : { mode: mode.kind, messageId: mode.messageId };
-      const response = await fetch(`/api/rooms/${roomId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        const detail = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(detail?.message || `请求失败（${response.status}）`);
-      }
-      if (!response.body) throw new Error('没有收到响应');
-      await readSse<{ type: string; text?: string; message?: string; messageId?: number; speakerId?: string; name?: string; content?: string; candidateIndex?: number; candidateCount?: number; reasoning?: ThoughtView | null; autoContinue?: boolean }>(response.body, (event) => {
-        if (event.type === 'speaker') {
-        setTyping(event.name ?? null);
-        setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, speakerId: event.speakerId ?? item.speakerId } : item)));
-      } else if (event.type === 'reasoning' && event.text) {
-        thinking += event.text;
-        const live = thinking;
-        setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, thought: { t: live, ms: 0 } } : item)));
-      } else if (event.type === 'delta' && event.text) {
-        full += event.text;
-        const shown = base ? base + full : full;
-        setMessages((prev) => prev.map((item) => (item.id === streamKey ? { ...item, content: shown } : item)));
-      } else if (event.type === 'done') {
-        completed = true;
-        emitPoints(event as { balance?: unknown; cost?: unknown });
-        if (event.autoContinue && typeof event.messageId === 'number') autoContinueRef.current = event.messageId;
-        if (autoTranslateRef.current && typeof event.messageId === 'number' && !event.autoContinue) {
-          const doneId = event.messageId;
-          setTimeout(() => void translateRef.current(doneId, true), 600);
-        }
-        setMessages((prev) =>
-          prev.map((item) =>
-            item.id === streamKey
-              ? {
-                  ...item,
-                  id: event.messageId ?? item.id,
-                  content: event.content ?? full,
-                  translation: null,
-                  thought: 'reasoning' in event ? event.reasoning ?? null : item.thought,
-                  speakerId: event.speakerId ?? item.speakerId,
-                  ...(event.candidateCount ? { candidateCount: event.candidateCount, selected: event.candidateIndex ?? event.candidateCount - 1 } : {}),
-                }
-              : item,
-          ),
-        );
-      } else if (event.type === 'error') {
-        completed = true;
-        setError(event.message ?? '生成失败');
-      }
-      });
-      // 流断了却没收到结束事件（网络掉线 / 代理断开）：提示一下，已生成的部分下面会和服务端对齐
-      if (!completed && !controller.signal.aborted) setError('连接中断了，已和服务器同步');
-    } catch (caught) {
-      if ((caught as Error).name !== 'AbortError') setError((caught as Error).message);
-    } finally {
-      setTyping(null);
-      setStreamingId(null);
-      abortRef.current = null;
-      if (!completed) await new Promise((resolve) => setTimeout(resolve, 400));
-      await resync();
-    }
-    return completed;
-  }, [roomId, speakerId, strategy, resync]);
-
-  const run = useCallback(async (mode: GenMode) => {
-    if (streaming) return;
-    setError('');
-    setOpenActions(null);
-    setStreaming(true);
-    let ok = false;
-    try {
-      if (mode.kind !== 'send') await qrAutoRef.current('groupDraft');
-      ok = await streamReply(mode);
-      // ST 自动继续：回复不到目标长度就接着写，最多 5 次
-      for (let round = 0; ok && round < 5 && autoContinueRef.current !== null; round += 1) {
-        const id = autoContinueRef.current;
-        autoContinueRef.current = null;
-        ok = await streamReply({ kind: 'continue', messageId: id });
-      }
-      autoContinueRef.current = null;
-      // 自动推进：玩家发言后的首轮回应之后，再让最多两位成员接话
-      if (ok && autoMode && mode.kind === 'send') {
-        for (let index = 0; index < 2; index += 1) {
-          let next = await streamReply({ kind: 'auto' });
-          for (let round = 0; next && round < 5 && autoContinueRef.current !== null; round += 1) {
-            const id = autoContinueRef.current;
-            autoContinueRef.current = null;
-            next = await streamReply({ kind: 'continue', messageId: id });
-          }
-          autoContinueRef.current = null;
-          if (!next) break;
-        }
-      }
-    } finally {
-      setStreaming(false);
-      setTyping(null);
-    }
-    if (mode.kind === 'send') await qrAutoRef.current('user');
-    if (ok) await qrAutoRef.current('ai');
-  }, [streaming, streamReply, autoMode]);
+  const { streaming, typing, streamingId, abortRef, run } = useRoomStream({ roomId, strategy, speakerId, autoMode, persona, setMessages, setError, setOpenActions, resync, qrAutoRef, autoTranslateRef, translateRef });
 
   // 快捷回复：群聊里斜杠命令只支持 /trigger、/send、/setinput、/echo、/popup（其余在单聊里用）
   const runRef = useRef(run);
@@ -570,201 +418,11 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
     setImageOpen(true);
   }, []);
 
-  const renderRow = (message: (typeof messages)[number], index: number) => {
-            const member = memberOf(message.speakerId);
-        const isUser = message.role === 'user';
-        const isLast = index === messages.length - 1;
-        const numericId = typeof message.id === 'number' ? message.id : null;
-        const isStreamingThis = streamingId === message.id || (isLast && streaming && !isUser && streamingId === null);
-        const isEditing = editing !== null && editing.id === message.id;
-        const count = message.candidateCount ?? 1;
-        const selected = message.selected ?? 0;
-        const isImage = message.attachment?.kind === 'image';
-        const canSwipe = !isUser && !isImage && isLast && numericId !== null && !isStreamingThis && Boolean(message.content) && !isEditing;
-        // 开场白（玩家还没说过话之前的角色消息）：只在备选开场白之间切换，不生成新版（同单聊 / ST）
-        const isOpening = !isUser && index <= firstUserIndex;
-        const showTr = Boolean(message.translation) && !isStreamingThis && !flipped.has(message.id);
-        return (
-          <article
-            key={message.id}
-            id={`msg-${message.id}`}
-            className={`p-msg${isUser ? ' p-msg-user' : ''}${openActions === message.id ? ' is-tools-open' : ''}${isLast ? ' is-latest' : ''}${isStreamingThis ? ' is-streaming' : ''}`}
-            onTouchStart={canSwipe ? (event) => { const t = event.touches[0]; swipeStart.current = { x: t.clientX, y: t.clientY }; } : undefined}
-            onTouchEnd={canSwipe ? (event) => {
-              // 手机端左右滑动最新回复：右滑看上一版，左滑看下一版 / 生成新版（同单聊）
-              const start = swipeStart.current; swipeStart.current = null;
-              if (!start || streaming) return;
-              const t = event.changedTouches[0];
-              const dx = t.clientX - start.x; const dy = t.clientY - start.y;
-              if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
-              if (dx > 0 && selected > 0) void L.switchCandidate(message, selected - 1);
-              else if (dx < 0 && selected < count - 1) void L.switchCandidate(message, selected + 1);
-              else if (dx < 0 && !isOpening) void L.run({ kind: 'regenerate', messageId: numericId! });
-            } : undefined}
-          >
-            {isUser ? (
-              <UserAvatar name={message.personaName || userName} avatar={(message.personaName ? message.personaAvatar : persona.avatar) || accountAvatar} />
-            ) : (
-              <span className={`p-avatar${member?.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '32px', ['--h' as string]: member?.hue ?? 212 }}>
-                {member?.avatar ? <img src={member.avatar} alt="" loading="lazy" /> : member?.initial ?? '·'}
-              </span>
-            )}
-            <div>
-              <div className="p-msg-name">{isUser ? message.personaName || userName : member?.name ?? '角色'}</div>
-              {isEditing ? (
-                <div>
-                  {!isUser && editing.thought != null ? (
-                    <div className="p-thought-edit">
-                      <label className="p-small" htmlFor={`thought-${message.id}`}>思考内容</label>
-                      <textarea
-                        id={`thought-${message.id}`}
-                        className="p-textarea"
-                        value={editing.thought}
-                        rows={Math.min(10, Math.max(2, editing.thought.split('\n').length + 1))}
-                        placeholder="留空保存 = 删除思考内容"
-                        onChange={(event) => setEditing({ ...editing, thought: event.target.value })}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Escape') setEditing(null);
-                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void L.saveEdit(); }
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                  <textarea
-                    className="p-textarea"
-                    value={editing.draft}
-                    rows={Math.min(16, Math.max(3, editing.draft.split('\n').length + 1))}
-                    autoFocus
-                    onChange={(event) => setEditing({ ...editing, draft: event.target.value })}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape') setEditing(null);
-                      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                        event.preventDefault();
-                        void L.saveEdit();
-                      }
-                    }}
-                    aria-label="编辑消息"
-                  />
-                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                    <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={!editing.draft.trim()} onClick={() => void L.saveEdit()}>保存</button>
-                    <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing(null)}>取消</button>
-                    {!isUser && editing.thought == null ? (
-                      <button className="p-btn p-btn--sm p-btn--ghost" type="button" onClick={() => setEditing({ ...editing, thought: '' })}>加思考内容</button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                isImage && message.attachment ? (
-                  <figure className="p-msg-figure">
-                    <img
-                      className="p-msg-img"
-                      src={message.attachment.url}
-                      alt={message.attachment.prompt ?? '生成的图片'}
-                      width={message.attachment.width}
-                      height={message.attachment.height}
-                      loading="lazy"
-                      decoding="async"
-                      style={message.attachment.width && message.attachment.height ? { aspectRatio: `auto ${message.attachment.width} / ${message.attachment.height}` } : undefined}
-                    />
-                    {media?.reference && message.speakerId && looks[message.speakerId] === message.attachment.url && <span className="p-msg-look">定妆照</span>}
-                    {message.attachment.prompt && (
-                      <details className="p-msg-imgprompt">
-                        <summary>画面描述</summary>
-                        <p>{message.attachment.prompt}</p>
-                      </details>
-                    )}
-                  </figure>
-                ) : (
-                <>
-                  {!isUser && message.thought?.t ? <ThoughtBlock thought={message.thought} live={isStreamingThis && !message.content} defaultOpen={thoughtsOpen} onEdit={streaming || typeof message.id !== 'number' ? undefined : () => setEditing({ id: message.id as number, draft: message.content, thought: message.thought?.t ?? '' })} /> : null}
-                  <div className="p-msg-copy p-msg-text">
-                    {message.content
-                      ? <RichText text={showTr && message.translation ? message.translation.text : message.content} streaming={isStreamingThis} rules={rulesFor(message.speakerId)} macros={macrosFor(member?.name ?? '')} role={isUser ? 'user' : 'assistant'} depth={messages.length - 1 - index} variables={!isUser && numericId !== null && numericId > 0 ? { chatId: roomId, messageId: numericId, rev: mvuRev.get(numericId), room: true } : undefined} />
-                      : isStreamingThis ? <TypingDots label={`${member?.name ?? '角色'}正在构思`} /> : null}
-                  </div>
-                  {message.translation && numericId !== null && !isStreamingThis && (
-                    <div className="p-msg-tr" role="group" aria-label="翻译">
-                      <span className="p-msg-tr-tag">{showTr ? `译文 · ${langLabel(message.translation.lang)}` : '原文'}</span>
-                      <button type="button" onClick={() => setFlipped((prev) => { const next = new Set(prev); if (next.has(message.id)) next.delete(message.id); else next.add(message.id); return next; })}>{showTr ? '看原文' : '看译文'}</button>
-                      <button type="button" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}>{translating === numericId ? '翻译中…' : '重新翻译'}</button>
-                      <button type="button" onClick={() => void L.removeTranslation(numericId)}>移除</button>
-                    </div>
-                  )}
-                  {numericId !== null && translating === numericId && !message.translation && <div className="p-msg-tr"><span className="p-msg-tr-tag">翻译中…</span></div>}
-                  {message.checkpoint ? (
-                    <a className="p-msg-checkpoint" href={`/rooms/${message.checkpoint}`}>
-                      <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={ICONS.checkpoint} /></svg>
-                      <span>检查点</span>
-                    </a>
-                  ) : null}
-                </>
-                )
-              )}
-              {canSwipe && !(isOpening && count <= 1) && (
-                <div className="rp-swipe" role="group" aria-label="回复版本">
-                  <button type="button" aria-label="上一版回复" disabled={selected <= 0 || switching === numericId || streaming} onClick={() => void L.switchCandidate(message, selected - 1)}><Ico name="prev" /></button>
-                  <span className="rp-swipe-index" aria-live="polite">{selected + 1} / {count}</span>
-                  {selected < count - 1 ? (
-                    <button type="button" aria-label="下一版回复" disabled={switching === numericId || streaming} onClick={() => void L.switchCandidate(message, selected + 1)}><Ico name="next" /></button>
-                  ) : isOpening ? (
-                    <button type="button" aria-label="下一版回复" disabled><Ico name="next" /></button>
-                  ) : (
-                    <button type="button" className="rp-swipe-new" aria-label="生成新的一版" title="生成新的一版" disabled={streaming} onClick={() => void L.run({ kind: 'regenerate', messageId: numericId! })}><Ico name="next" /></button>
-                  )}
-                </div>
-              )}
-              {!isEditing && numericId !== null && !isStreamingThis && (
-                <button className="p-msg-more" type="button" aria-label="消息操作" aria-expanded={openActions === message.id} onClick={() => setOpenActions(openActions === message.id ? null : message.id)}>⋯</button>
-              )}
-              {!isEditing && numericId !== null && !isStreamingThis && (
-                <div className="p-msg-tools">
-                  {confirming === numericId ? (
-                    <>
-                      <button type="button" aria-label="确认删除" title="确认删除" onClick={() => void L.remove(numericId)}><Ico name="check" /></button>
-                      <button type="button" aria-label="取消删除" title="取消" onClick={() => setConfirming(null)}><Ico name="x" /></button>
-                    </>
-                  ) : (
-                    isImage ? (
-                    <>
-                      {media?.reference && message.speakerId && (
-                        <button type="button" data-act="look" aria-label={looks[message.speakerId] === message.attachment?.url ? '已是定妆照（点一下取消）' : '设为定妆照：以后生图照这张的长相画'} title={looks[message.speakerId] === message.attachment?.url ? '定妆照' : '设为定妆照'} aria-pressed={looks[message.speakerId] === message.attachment?.url} onClick={() => void L.toggleLook(message)}><Ico name="portrait" /></button>
-                      )}
-                      {media?.image && (
-                        <button type="button" data-act="regen" aria-label="按这段描述再画一张" title="再画一张" disabled={streaming || imageBusy} onClick={() => L.redraw(message)}><Ico name="regen" /></button>
-                      )}
-                      <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void L.branch(message)}><Ico name="branch" /></button>
-                      <button type="button" aria-label="删除消息" title="删除" disabled={streaming} onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
-                    </>
-                    ) : (
-                    <>
-                      <button type="button" aria-label="复制消息" title="复制消息" onClick={() => void L.copy(message)}>{copied === message.id ? <Ico name="check" /> : <Ico name="copy" />}</button>
-                      <button type="button" aria-label="编辑消息" title="编辑消息" disabled={streaming} onClick={() => setEditing({ id: numericId, draft: message.content, thought: !isUser && message.thought?.t ? message.thought.t : undefined })}><Ico name="edit" /></button>
-                      {!isUser && isLast && !isOpening && (
-                        <button type="button" data-act="regen" aria-label="重新生成" title="重新生成" disabled={streaming} onClick={() => void L.run({ kind: 'regenerate', messageId: numericId })}><Ico name="regen" /></button>
-                      )}
-                      {!message.translation && message.content && (
-                        <button type="button" data-act="translate" aria-label="翻译" title="翻译" disabled={translating === numericId} onClick={() => void L.translateMessage(numericId)}><Ico name="translate" /></button>
-                      )}
-                      <button type="button" data-act="branch" aria-label="从这里创建分支" title="分支" disabled={streaming} onClick={() => void L.branch(message)}><Ico name="branch" /></button>
-                      <button type="button" data-act="checkpoint" aria-label={message.checkpoint ? '打开检查点' : '在这里创建检查点'} title={message.checkpoint ? '打开检查点' : '检查点'} aria-pressed={Boolean(message.checkpoint)} disabled={streaming} onClick={() => void L.branch(message, true)}><Ico name="checkpoint" /></button>
-                      <button type="button" aria-label="删除消息" title="删除" disabled={streaming} onClick={() => setConfirming(numericId)}><Ico name="x" /></button>
-                    </>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          </article>
-        );
-  };
 
   // 长会话性能（同单聊）：每楼渲染结果按影响它的值缓存，流式时只重画正在写的那一楼；处理函数经 L 取最新的。
   const live = useRef<Record<string, unknown>>({});
   live.current = { switchCandidate, run, saveEdit, translateMessage, removeTranslation, remove, copy, branch, toggleLook, redraw };
-  const L = useMemo(() => new Proxy({}, { get: (_t, k: string) => live.current[k] }) as {
-    switchCandidate: typeof switchCandidate; run: typeof run; saveEdit: typeof saveEdit; translateMessage: typeof translateMessage;
-    removeTranslation: typeof removeTranslation; remove: typeof remove; copy: typeof copy; branch: typeof branch; toggleLook: typeof toggleLook; redraw: typeof redraw;
-  }, []);
+  const L = useMemo(() => new Proxy({}, { get: (_t, k: string) => live.current[k] }) as RoomRowActions, []);
   const rowCache = useRef(new Map<number | string, { deps: unknown[]; el: React.ReactElement }>());
   const rowEnv = [members, rulesFor, macrosFor, userName, persona.avatar, accountAvatar, thoughtsOpen, roomId, streaming, streamingId === null, looks, imageBusy, media];
   const rowEnvRef = useRef<unknown[]>(rowEnv);
@@ -780,7 +438,9 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
     ];
     const hit = rowCache.current.get(id);
     if (hit && hit.deps.every((v, k) => v === deps[k])) return hit.el;
-    const el = renderRow(message, index);
+    const el = (
+      <RoomMessageRow key={id} message={message} index={index} total={messages.length} firstUserIndex={firstUserIndex} members={members} editing={editing} setEditing={setEditing} streaming={streaming} streamingId={streamingId} flipped={flipped} setFlipped={setFlipped} openActions={openActions} setOpenActions={setOpenActions} swipeStart={swipeStart} L={L} userName={userName} personaAvatar={persona.avatar} accountAvatar={accountAvatar} thoughtsOpen={thoughtsOpen} rulesFor={rulesFor} macrosFor={macrosFor} roomId={roomId} mvuRev={mvuRev} translating={translating} media={media} looks={looks} imageBusy={imageBusy} switching={switching} confirming={confirming} setConfirming={setConfirming} copied={copied} />
+    );
     rowCache.current.set(id, { deps, el });
     return el;
   };
@@ -813,137 +473,64 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
         </div>
       </div>
 
-      <div className="p-chat-compose">
-        <div className="p-chat-col">
-          {error && <p role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>{error}</p>}
-          {qr.sets.length > 0 && <QuickReplyBar state={qr} scope={{ roomId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />}
-          <div className="p-rp-compose-context">
-            <span className="p-compose-persona">{STRATEGY_HINT[strategy] ?? ''}</span>
-            {typing && <span className="p-small">{typing} 正在输入…</span>}
-            <span className="room-talk" role="group" aria-label="让成员发言">
-              {members.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  className="room-talk-btn"
-                  data-muted={member.muted ? '' : undefined}
-                  title={`让${member.name}发言${member.muted ? '（已静音，仍可点名）' : ''}`}
-                  aria-label={`让${member.name}发言`}
-                  disabled={streaming || impersonating}
-                  onClick={() => forceTalk(member.id)}
-                >
-                  <span className={`p-avatar${member.avatar ? ' p-avatar--art' : ''}`} style={{ ['--size' as string]: '24px', ['--h' as string]: member.hue }}>{member.avatar ? <img src={member.avatar} alt="" loading="lazy" /> : member.initial}</span>
-                </button>
-              ))}
-            </span>
-            {strategy === 'manual' && (
-              <label className="p-small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                本轮由
-                <Select className="p-select" style={{ width: 'auto', padding: '4px 8px' }} value={speakerId} onChange={(event) => setSpeakerId(event.target.value)}>
-                  {members.filter((member) => !member.muted).map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
-                </Select>
-                回应
-              </label>
-            )}
-          </div>
-          <div className="p-chat-compose-row">
-            <textarea
-              className="p-chat-input"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  send();
-                }
-              }}
-              rows={1}
-              placeholder="说点什么，或者叫某个角色的名字…"
-              aria-label="消息"
-            />
-            {streaming ? (
-              <button className="p-chat-send" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成">■</button>
-            ) : (
-              <button className="p-chat-send" type="button" onClick={() => send()} disabled={!draft.trim() || impersonating} aria-label="发送">↑</button>
-            )}
-          </div>
-          <div className="p-compose-meta">
-            <span className="p-chat-acts">
-              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={continueLast} title="不写台词，让角色接着上一条往下写；最后一条是你的话时，让下一位角色接话">▸ 继续</button>
-              <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
-              {media?.image && (
-                <button className="p-chat-act p-chat-img" type="button" disabled={streaming || imageBusy} onClick={() => setImageOpen(true)} title="按当前剧情生成一张插图，作为消息插入群聊">{imageBusy ? '✦ 生图中…' : '✦ 生图'}</button>
-              )}
-              {personaInit && (
-                <PersonaSwitch
-                  endpoint={`/api/rooms/${roomId}/persona`}
-                  personas={personaInit.options}
-                  lockedId={personaLock}
-                  current={persona}
-                  scopeLabel="本群聊"
-                  onChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); }}
-                />
-              )}
-              <ModelPicker roomId={roomId} />
-            </span>
-            <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 群聊回复由模型生成</span>
-          </div>
-        </div>
-      </div>
+      <RoomComposer
+        roomId={roomId}
+        strategy={strategy}
+        members={members}
+        error={error}
+        qr={qr}
+        setQr={setQr}
+        runQuickReply={runQuickReply}
+        streaming={streaming}
+        typing={typing}
+        impersonating={impersonating}
+        forceTalk={forceTalk}
+        speakerId={speakerId}
+        setSpeakerId={setSpeakerId}
+        draft={draft}
+        setDraft={setDraft}
+        send={send}
+        onStop={() => abortRef.current?.abort()}
+        messageCount={messages.length}
+        continueLast={continueLast}
+        impersonate={impersonate}
+        media={media}
+        imageBusy={imageBusy}
+        setImageOpen={setImageOpen}
+        personaInit={personaInit}
+        personaLock={personaLock}
+        persona={persona}
+        onPersonaChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); }}
+      />
 
       {imageOpen && (
-        <Modal
-          title="生成一张插图"
+        <ImageGenModal
+          modes={ROOM_IMAGE_MODES}
+          mode={imageMode}
+          setMode={setImageMode}
+          prompt={imagePrompt}
+          setPrompt={setImagePrompt}
+          busy={imageBusy}
+          cost={media?.imageCost ?? 0}
+          placeholders={{ custom: '例如：雨夜的茶馆，三个人围着一盏油灯，窗外是长街', hint: '例如：水彩风、远景、雨夜' }}
+          tail="生成后作为一条消息插入群聊，不会发给模型。"
           onClose={() => setImageOpen(false)}
-          footer={
-            <>
-              <button className="btn btn--sm" type="button" onClick={() => setImageOpen(false)}>取消</button>
-              <button className="btn btn--sm btn--primary" type="button" disabled={imageBusy || (imageMode === 'custom' && !imagePrompt.trim())} onClick={() => void makeImage()}>
-                {imageBusy ? (imageMode === 'custom' ? '生成中…' : '构思画面并生成…') : '生成'}
-              </button>
-            </>
-          }
-        >
-          <div className="field">
-            <label>画什么</label>
-            <div className="p-img-modes" role="radiogroup" aria-label="画什么">
-              {([
-                ['scene', '当前场景', '按最近几轮画出眼下的画面，最近出场的角色（最多 3 位）一起入画'],
-                ['last', '最后一条回复', '把刚发言的角色那一幕画出来'],
-                ['character', '角色立绘', '给选中的角色画一张人物像'],
-                ['custom', '自己描述', '完全按你写的内容画'],
-              ] as const).map(([value, label, desc]) => (
-                <button key={value} type="button" role="radio" aria-checked={imageMode === value} className={`p-img-mode${imageMode === value ? ' is-on' : ''}`} disabled={imageBusy} onClick={() => setImageMode(value)}>
-                  <strong>{label}</strong><span>{desc}</span>
-                </button>
-              ))}
+          onSubmit={() => void makeImage()}
+          extra={
+            <div className="field">
+              <label htmlFor="room-img-char">{imageMode === 'scene' ? '主角' : '画谁'}</label>
+              <Select id="room-img-char" className="p-select" value={imageChar} disabled={imageBusy} onChange={(event) => setImageChar(event.target.value)}>
+                <option value="">{imageMode === 'scene' || imageMode === 'last' ? `自动（最近发言的${lastSpeakerId ? `：${members.find((member) => member.id === lastSpeakerId)?.name ?? ''}` : ''}）` : `自动（${members[0]?.name ?? ''}）`}</option>
+                {members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+              </Select>
             </div>
-          </div>
-          <div className="field">
-            <label htmlFor="room-img-char">{imageMode === 'scene' ? '主角' : '画谁'}</label>
-            <Select id="room-img-char" className="p-select" value={imageChar} disabled={imageBusy} onChange={(event) => setImageChar(event.target.value)}>
-              <option value="">{imageMode === 'scene' || imageMode === 'last' ? `自动（最近发言的${lastSpeakerId ? `：${members.find((member) => member.id === lastSpeakerId)?.name ?? ''}` : ''}）` : `自动（${members[0]?.name ?? ''}）`}</option>
-              {members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
-            </Select>
-          </div>
-          <div className="field">
-            <label>{imageMode === 'custom' ? '画面描述' : '补充要求（可不填）'}</label>
-            <textarea
-              className="textarea"
-              rows={imageMode === 'custom' ? 4 : 2}
-              value={imagePrompt}
-              maxLength={imageMode === 'custom' ? 900 : 200}
-              placeholder={imageMode === 'custom' ? '例如：雨夜的茶馆，三个人围着一盏油灯，窗外是长街' : '例如：水彩风、远景、雨夜'}
-              onChange={(event) => setImagePrompt(event.target.value)}
-            />
-          </div>
-          {media?.reference && imageFocus && (
+          }
+          refNote={media?.reference && imageFocus && (
             <p className="small p-img-ref" style={{ margin: 0 }}>
               {members.find((member) => member.id === imageFocus)?.name ?? '角色'}的长相参考：{looks[imageFocus] ? '你设的定妆照' : media.hasImage[imageFocus] ? '角色封面' : messages.some((item) => item.attachment?.kind === 'image' && item.attachment.mode === 'character' && item.speakerId === imageFocus) ? '本群聊第一张 TA 的立绘' : '暂无，建议先给 TA 画一张「角色立绘」，之后的图都会照它画'}
             </p>
           )}
-          <p className="small" style={{ margin: 0 }}>{imageMode === 'custom' ? `会消耗 ${media?.imageCost ?? 0} 点` : `会先让对话模型按剧情写画面描述（按字数少量扣点），再消耗 ${media?.imageCost ?? 0} 点生图`}，生成后作为一条消息插入群聊，不会发给模型。</p>
-        </Modal>
+        />
       )}
     </>
   );
