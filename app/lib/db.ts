@@ -511,6 +511,13 @@ ensureColumn('messages', 'translations', 'TEXT');
 ensureColumn('room_messages', 'translations', 'TEXT');
 ensureColumn('room_messages', 'reasoning', 'TEXT');
 
+// 补索引（旧库启动时自动建）：创作者统计按角色查会话、登录设备按用户查会话、后台「今日」按时间查生成记录，原来都是全表扫描
+db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_chats_character ON chats(character_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_generation_time ON generation_events(created_at);
+`);
+
 // 首次启动把种子角色写入数据库；之后以数据库为准。
 const seeded = db.prepare('SELECT COUNT(*) AS count FROM characters').get() as { count: number };
 if (!seeded.count) {
