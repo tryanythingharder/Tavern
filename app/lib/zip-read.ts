@@ -25,11 +25,28 @@ export function readZip(buf: Buffer, limits = { files: 300, bytes: 60 * 1024 * 1
     const name = buf.subarray(ptr + 46, ptr + 46 + nameLen).toString('utf8');
     ptr += 46 + nameLen + extraLen + commentLen;
     if (name.endsWith('/') || name.startsWith('__MACOSX') || (method !== 0 && method !== 8)) continue;
-    total += size;
-    if (total > limits.bytes) throw new Error('压缩包解开后太大');
+    // 中央目录里声明的 size 可以随便写，不能拿来计数：按实际解出的字节累计，解压时把输出上限卡在剩余额度
+    if (size > limits.bytes - total) throw new Error('压缩包解开后太大');
+    const remaining = limits.bytes - total;
     const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
     const raw = buf.subarray(start, start + compSize);
-    out.push({ name, data: method === 0 ? Buffer.from(raw) : inflateRawSync(raw) });
+    let data: Buffer;
+    if (method === 0) {
+      if (raw.length > remaining) throw new Error('压缩包解开后太大');
+      data = Buffer.from(raw);
+    } else {
+      try {
+        // maxOutputLength 必须 ≥1；超出时 zlib 抛 ERR_BUFFER_TOO_LARGE
+        data = inflateRawSync(raw, { maxOutputLength: Math.max(1, remaining) });
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code === 'ERR_BUFFER_TOO_LARGE' || /Cannot create a Buffer larger|buffer.*too large/i.test((error as Error).message)) throw new Error('压缩包解开后太大');
+        throw error;
+      }
+    }
+    total += data.length;
+    if (total > limits.bytes) throw new Error('压缩包解开后太大');
+    out.push({ name, data });
   }
   return out;
 }
