@@ -4,30 +4,22 @@ import { joinList } from '@/lib/i18n/runtime';
 
 import { emitPoints } from '@/lib/points-bus';
 import { MessageRow } from '@/components/chat-message-row';
+import { ChatComposer } from '@/components/chat-composer';
 import { readSse } from '@/lib/sse-client';
-import { langLabel as langName } from '@/lib/translation';
 import { useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { hasMvuCommands } from '@/lib/mvu-text';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/settings-ui';
-import { RpText } from '@/components/rp-text';
 import { usesDepth } from '@/components/rich-text';
 import { emitHelperEvent, type HelperActions } from '@/lib/helper-events';
 import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
-import { ModelPicker, NewbieTip } from '@/components/model-picker';
-import { PersonaSwitch, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
+import { type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 import { isSlash } from '@/lib/slash-detect';
 import { activeQrSets, findQuickReply, planQuickReply, type QrItem, type QrSet, type QrState, type QrAuto } from '@/lib/quick-replies';
 import { askChoice, askPrompt, showAlert } from '@/components/ui-dialog';
-
-// 首屏用不到的部分按需加载：卡内助手脚本运行器（只在有脚本时显示，纯客户端）、快捷回复栏（有快捷回复集才渲染）
-const HelperRunner = dynamic(() => import('@/components/helper-runner').then((m) => m.HelperRunner), { ssr: false });
-const QuickReplyBar = dynamic(() => import('@/components/quick-reply-bar').then((m) => m.QuickReplyBar));
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; mode?: string; width?: number; height?: number; createdAt: number };
 
@@ -107,14 +99,6 @@ export type RowActions = {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function friendlyError(message: string): string {
-  if (/Failed to fetch|NetworkError|Load failed/i.test(message)) return '网络连接失败，请检查网络后重试。';
-  if (/点数不足|402/.test(message)) return '点数不足，先签到领点或兑换/充值后再试。';
-  if (/429|频繁|限流/.test(message)) return '请求太频繁，稍等一会儿再试。';
-  if (/模型未配置/.test(message)) return '模型未配置，请联系管理员。';
-  return message;
-}
 
 // M1 对话：发送/重新生成走 SSE；编辑、删除、候选切换、分支走普通接口。
 // 每次生成结束都和数据库对齐一次（中断时也把已生成的部分取回来）。
@@ -1109,99 +1093,47 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
       </div>
 
 
-      <div className="p-chat-compose">
-        <div className="p-chat-col">
-          <button
-            type="button"
-            className={`rd-jump${awayFromBottom ? ' is-visible' : ''}`}
-            onClick={jumpToLatest}
-            aria-label={unseen ? `回到最新，${unseen} 条新消息` : '回到最新'}
-            tabIndex={awayFromBottom ? 0 : -1}
-          >
-            <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
-            <span>{unseen ? `${unseen} 条新消息` : '回到最新'}</span>
-          </button>
-          {notice && <div className="p-chat-notice" role="status">{notice}</div>}
-          {slashHelp && (
-            <div className="p-slash-help" role="dialog" aria-label="斜杠命令">
-              <div className="p-slash-help-head"><strong>斜杠命令</strong><span className="p-small">和 SillyTavern 写法一致，可以用 | 串联</span><button type="button" className="p-btn p-btn--sm" onClick={() => setSlashHelp(null)}>关闭</button></div>
-              <dl>{slashHelp.map((item) => <div key={item.cmd}><dt><code>{item.cmd}</code></dt><dd>{item.desc}</dd></div>)}</dl>
-            </div>
-          )}
-          {error && (
-            <div role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>
-              <div>{friendlyError(error)}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                {failed && (
-                  <button className="p-btn p-btn--sm" type="button" onClick={() => { const action = failed; setFailed(null); setError(''); if (action.type === 'send') void send(); else if (action.type === 'reply') void send(''); else void regenerate(action.message); }}>重试</button>
-                )}
-                {/点数不足|402/.test(error) && (
-                  <>
-                    <Link className="p-btn p-btn--sm p-btn--primary" href="/me/points">签到领点</Link>
-                    <Link className="p-btn p-btn--sm" href="/me/points">兑换码 / 充值</Link>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          {qr.sets.length > 0 && <QuickReplyBar state={qr} scope={{ chatId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />}
-          <HelperRunner chatId={chatId} names={{ char: characterName, user: personaName || macros?.user || '' }} actions={helperActions} />
-          <NewbieTip />
-          {preview && draft.trim() && !streaming && (
-            <div className="p-chat-preview" aria-live="polite">
-              <span className="p-chat-preview-k">预览</span>
-              <div className="p-msg-copy"><RpText text={draft} /></div>
-            </div>
-          )}
-          <div className="p-chat-compose-row">
-            <textarea
-              ref={inputRef}
-              className="p-chat-input"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  void send();
-                }
-              }}
-              rows={1}
-              placeholder="写下台词，或用 *行动描述* 推进故事…（/ 开头是命令，/help 查看）"
-              aria-label="消息"
-            />
-            {streaming ? (
-              <button className="p-chat-send is-stop" type="button" onClick={() => abortRef.current?.abort()} aria-label="停止生成"><span className="rd-stop" aria-hidden="true" /></button>
-            ) : (
-              <button className="p-chat-send" type="button" onClick={() => void send()} disabled={!draft.trim() && !messages.length} aria-label={draft.trim() ? '发送' : '让角色接着回复'} title={draft.trim() ? undefined : '空着发送：让角色接着回复'}>
-                <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
-              </button>
-            )}
-          </div>
-          <div className="p-chat-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
-            <span className="p-chat-acts">
-              <button className="p-chat-continue p-chat-act" type="button" disabled={streaming || impersonating || messages.length === 0} onClick={() => void continueLast()} title="不写台词，让角色接着上一条往下写">▸ 继续</button>
-              <button className="p-chat-act p-chat-imp" type="button" disabled={streaming || impersonating} onClick={() => void impersonate()} title="让 AI 以你的身份写一句（输入框里的字会当作方向提示），写完可以再改">{impersonating ? '代写中…' : '✎ 代写'}</button>
-              {translatingInput && <span className="p-chat-tr-busy" role="status">正在把输入翻译成{langName(translatePrefsRef.current.modelLang)}…</span>}
-              <button className="p-chat-act p-chat-pv" type="button" aria-pressed={preview} onClick={togglePreview} title="在输入框上方按 RP 排版预览：*动作*、「对白」、((场外))">{preview ? '◉' : '◎'} 预览</button>
-              {media?.image && (
-                <button className="p-chat-act p-chat-img" type="button" disabled={streaming || imageBusy} onClick={() => setImageOpen(true)} title="按当前剧情生成一张插图，作为消息插入对话">✦ 生图</button>
-              )}
-              {personaInit && (
-                <PersonaSwitch
-                  endpoint={`/api/chats/${chatId}/persona`}
-                  personas={personaInit.options}
-                  lockedId={personaLock}
-                  current={persona}
-                  onChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); router.refresh(); }}
-                />
-              )}
-              <ModelPicker chatId={chatId} />
-            </span>
-            <span className="p-small p-chat-hint">Enter 发送 · Shift + Enter 换行 · 回复由模型生成，可能出错</span>
-            {billing && <span className="p-small">本回合 -{billing.cost} 点{billing.free ? `（免费额度抵扣 ${billing.free}）` : ''} · 余额 {billing.balance}</span>}
-          </div>
-        </div>
-      </div>
+      <ChatComposer
+        chatId={chatId}
+        characterName={characterName}
+        personaName={personaName}
+        macros={macros}
+        media={media}
+        personaInit={personaInit}
+        persona={persona}
+        personaLock={personaLock}
+        onPersonaChange={(next) => { setPersonaLock(next.locked); setPersona(next.persona); router.refresh(); }}
+        notice={notice}
+        slashHelp={slashHelp}
+        setSlashHelp={setSlashHelp}
+        error={error}
+        failed={failed !== null}
+        onRetry={() => { const action = failed; if (!action) return; setFailed(null); setError(''); if (action.type === 'send') void send(); else if (action.type === 'reply') void send(''); else void regenerate(action.message); }}
+        qr={qr}
+        setQr={setQr}
+        streaming={streaming}
+        runQuickReply={runQuickReply}
+        helperActions={helperActions}
+        preview={preview}
+        togglePreview={togglePreview}
+        draft={draft}
+        setDraft={setDraft}
+        inputRef={inputRef}
+        send={send}
+        onStop={() => abortRef.current?.abort()}
+        messageCount={messages.length}
+        continueLast={continueLast}
+        impersonate={impersonate}
+        impersonating={impersonating}
+        translatingInput={translatingInput}
+        modelLang={translatePrefsRef.current.modelLang}
+        imageBusy={imageBusy}
+        setImageOpen={setImageOpen}
+        billing={billing}
+        awayFromBottom={awayFromBottom}
+        unseen={unseen}
+        jumpToLatest={jumpToLatest}
+      />
 
       {imageOpen && (
         <Modal
