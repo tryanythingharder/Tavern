@@ -199,3 +199,15 @@ export function reportsAgainstUser(userId: number, limit = 30): AdminReportRow[]
   `).all(userId, userId, userId, limit) as { id: number; reporter_id: number; nickname: string; target_type: string; target_id: string; reason: string; note: string; status: string; created_at: number; handled_at: number | null }[];
   return rows.map((row) => ({ id: row.id, reporterId: row.reporter_id, reporterName: row.nickname, targetType: row.target_type, targetId: row.target_id, reason: row.reason, note: row.note, status: row.status, createdAt: row.created_at, handledAt: row.handled_at }));
 }
+
+/** 用户详情：累计充值与订单数 */
+export function userOrderTotals(userId: number): { paidCents: number; paidCount: number; pendingCount: number; total: number } {
+  const row = db.prepare(`
+    SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN price_cents END), 0) AS paid_cents,
+           COUNT(CASE WHEN status = 'paid' THEN 1 END) AS paid_count,
+           COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending_count,
+           COUNT(*) AS total
+    FROM orders WHERE user_id = ?
+  `).get(userId) as { paid_cents: number; paid_count: number; pending_count: number; total: number };
+  return { paidCents: Number(row.paid_cents), paidCount: Number(row.paid_count), pendingCount: Number(row.pending_count), total: Number(row.total) };
+}

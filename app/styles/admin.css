@@ -776,3 +776,15 @@
 .a-kpi-link { display: block; color: inherit; text-decoration: none; transition: border-color .16s, transform .16s; }
 .a-kpi-link:hover { border-color: var(--text); }
 .a-kpi-link:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* ── 玩家详情聚合页 ── */
+.a-sectionnav { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; margin: 16px 0; padding: 8px 0; background: var(--bg, var(--g25)); scrollbar-width: none; }
+.a-sectionnav::-webkit-scrollbar { display: none; }
+.a-sectionnav a { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); font-size: 13px; text-decoration: none; }
+.a-sectionnav a:hover { border-color: var(--text); color: var(--text); }
+.a-sectionnav .a-count { padding: 0 6px; border-radius: 999px; background: var(--g25); color: var(--muted); font-size: 11px; font-weight: 600; }
+.a-anchor { scroll-margin-top: 64px; }
+.a-section { margin-top: 16px; }
+.a-plus { color: var(--ok, #2e7d43); font-weight: 600; }
+.a-minus { color: var(--text-2); }
+.a-sub { color: var(--muted); }
