@@ -3,6 +3,8 @@
 // 用法：BASE=http://127.0.0.1:3100 APPDIR=/path/to/app node chat-regress.mjs
 import { DatabaseSync } from 'node:sqlite';
 import { join } from 'node:path';
+import http from 'node:http';
+import { deflateRawSync } from 'node:zlib';
 const BASE = process.env.BASE || 'http://127.0.0.1:3100';
 const APPDIR = process.env.APPDIR;
 const CHAR = process.env.CHAR || 'lin-wanzhao';
@@ -161,6 +163,38 @@ await step('导出 txt / jsonl', async () => { const a = await req(`/api/chats/$
 await step('中途中断：保留已生成部分并落库', async () => { const before = (await messages()).length; await sse(`/api/chats/${chatId}/messages`, { text: 'SLOW 慢慢说' }, 1200); await sleep(2500); const ms = await messages(); const last = ms.at(-1); assert(ms.length === before + 2, `条数 ${before}→${ms.length}`); assert(last.role === 'assistant' && /片段\d/.test(last.content), '没保留部分：' + last.content.slice(0, 60)); return `保留 ${last.content.length} 字`; });
 await step('上游 500：报错且玩家消息保留', async () => { const s = await sse(`/api/chats/${chatId}/messages`, { text: 'FAIL500 请失败' }); const err = s.events.find((e) => e.type === 'error') || (s.status >= 400 ? { message: s.text } : null); assert(err, '没有 error 事件：' + JSON.stringify(s.events.slice(-2))); const ms = await messages(); assert(ms.some((m) => m.content.includes('FAIL500')), '玩家消息丢了'); });
 await step('改标题 / 删除分支会话', async () => { const p = await req(`/api/chats/${branchId}`, { method: 'PATCH', json: { title: '分支改名' } }); assert(p.ok, `patch ${p.status}`); const d = await req(`/api/chats/${branchId}`, { method: 'DELETE' }); assert(d.ok, `delete ${d.status}`); const g = await req(`/api/chats/${branchId}/messages`); assert(g.status === 404, `删后 ${g.status}`); });
+// 原始 HTTP 上传：declared 给定时发假的 Content-Length，否则分块传输；一直写到服务端回应或写满 maxBytes
+function rawUpload(path, { declared, maxBytes }) {
+  return new Promise((resolve) => {
+    const u = new URL(BASE + path);
+    const headers = { cookie: cookieHeader(), 'content-type': 'multipart/form-data; boundary=x' };
+    if (declared) headers['content-length'] = String(declared); else headers['transfer-encoding'] = 'chunked';
+    const t0 = Date.now(); let sent = 0; let done = false;
+    const rq = http.request({ host: u.hostname, port: u.port, path: u.pathname, method: 'POST', headers }, (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => { done = true; resolve({ status: res.status ?? res.statusCode, sent, ms: Date.now() - t0, body: b.slice(0, 80) }); rq.destroy(); }); });
+    rq.on('error', (e) => { if (!done) { done = true; resolve({ status: 'ERR ' + e.code, sent, ms: Date.now() - t0 }); } });
+    const chunk = Buffer.alloc(1024 * 1024);
+    (function pump() { while (!done && sent < maxBytes) { sent += chunk.length; if (!rq.write(chunk)) { rq.once('drain', pump); return; } } if (!done && !declared) rq.end(); })();
+    setTimeout(() => { if (!done) { done = true; rq.destroy(); resolve({ status: 'TIMEOUT', sent, ms: Date.now() - t0 }); } }, 20000);
+  });
+}
+await step('安全#2 zip 炸弹（声明大小造假）被拒', async () => {
+  const name = Buffer.from('a.png'); const comp = deflateRawSync(Buffer.alloc(100 * 1024 * 1024));
+  const lh = Buffer.alloc(30); lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(8, 8); lh.writeUInt32LE(comp.length, 18); lh.writeUInt32LE(1, 22); lh.writeUInt16LE(name.length, 26);
+  const cd = Buffer.alloc(46); cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(8, 10); cd.writeUInt32LE(comp.length, 20); cd.writeUInt32LE(1, 24); cd.writeUInt16LE(name.length, 28);
+  const e = Buffer.alloc(22); e.writeUInt32LE(0x06054b50, 0); e.writeUInt16LE(1, 8); e.writeUInt16LE(1, 10); e.writeUInt32LE(46 + name.length, 12); e.writeUInt32LE(30 + name.length + comp.length, 16);
+  const fd = new FormData(); fd.append('files', new Blob([Buffer.concat([lh, name, comp, cd, name, e])]), 'bomb.zip');
+  const r = await req('/api/backgrounds', { method: 'POST', body: fd }); const t = await r.text();
+  assert(r.status === 400 && t.includes('太大'), `status ${r.status} ${t.slice(0, 80)}`);
+  return `${comp.length} 字节压缩包 → ${r.status}`;
+});
+await step('安全#3 上传声明超限 Content-Length → 413（不读完请求体）', async () => {
+  const r = await rawUpload('/api/backgrounds', { declared: 200 * 1024 * 1024, maxBytes: 8 * 1024 * 1024 });
+  assert(r.status === 413, JSON.stringify(r)); return `已发 ${r.sent >> 20}MB 即 413，${r.ms}ms`;
+});
+await step('安全#3 分块上传超限 → 413', async () => {
+  const r = await rawUpload('/api/me/avatar', { maxBytes: 40 * 1024 * 1024 });
+  assert(r.status === 413, JSON.stringify(r)); return `${r.ms}ms`;
+});
 await step('沙盒路由安全头', async () => { const r = await req('/sandbox/x', {}, false); const csp = r.headers.get('content-security-policy') || ''; assert(/connect-src 'none'/.test(csp), 'sandbox CSP 缺失 status ' + r.status); });
 await step('英文界面对话页渲染', async () => { const r = await req(`/chats/${chatId}?lang=en`); const t = await r.text(); assert(r.status === 200 && /lang="en/.test(t), `status ${r.status}`); await req('/?lang=zh'); });
 

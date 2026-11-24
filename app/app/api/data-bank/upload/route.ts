@@ -2,17 +2,20 @@ import { fail, json, requireUser } from '@/lib/api';
 import { addDataBankFile } from '@/lib/data-bank';
 import { checkScope } from '@/lib/data-bank-scope';
 import { BINARY_DOC, extractDocText } from '@/lib/doc-extract';
+import { formOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const MAX_BYTES = 20 * 1024 * 1024;
+// 请求体上限 = 文件上限 + 1 MB 表单开销，在读入内存前检查
 
 // POST /api/data-bank/upload —— multipart：file + scope + scopeId；PDF / docx / epub / odt 转成文字存进资料库
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const form = await request.formData().catch(() => null);
+  const form = await formOr413(request, MAX_BYTES + 1024 * 1024);
+  if (form instanceof Response) return form;
   const file = form?.get('file');
   if (!form || !(file instanceof File)) return fail('没有文件', 400);
   if (!BINARY_DOC.test(file.name)) return fail('这里只接收 PDF、Word（.docx）、EPUB、ODT', 400);

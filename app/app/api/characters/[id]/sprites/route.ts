@@ -5,12 +5,15 @@ import { addSprite, countOwn, deleteSprites, listSprites, relabelSprite } from '
 import { saveMedia } from '@/lib/storage';
 import { readZip } from '@/lib/zip-read';
 import { imageExt } from '@/lib/image-ext';
+import { formOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 const MAX_OWN = 200;
 const MAX_FILE = 5 * 1024 * 1024;
+// 整个请求体上限（多张图或一个 ST 表情 zip），在读入内存前检查
+const MAX_BODY = 64 * 1024 * 1024;
 
 async function load(context: Params) {
   const user = await requireUser();
@@ -32,7 +35,8 @@ export async function GET(_request: Request, context: Params) {
 export async function POST(request: Request, context: Params) {
   const ctx = await load(context);
   if ('error' in ctx) return ctx.error;
-  const form = await request.formData().catch(() => null);
+  const form = await formOr413(request, MAX_BODY);
+  if (form instanceof Response) return form;
   if (!form) return fail('请上传文件');
   const forced = String(form.get('label') || '');
   const forcedLabel = (EXPRESSION_LABELS as readonly string[]).includes(forced) ? (forced as ExpressionLabel) : null;

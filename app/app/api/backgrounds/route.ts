@@ -3,9 +3,12 @@ import { MAX_BACKGROUNDS, addBackground, deleteBackground, globalBackground, lis
 import { imageExt } from '@/lib/image-ext';
 import { saveMedia } from '@/lib/storage';
 import { readZip } from '@/lib/zip-read';
+import { formOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 const MAX_FILE = 8 * 1024 * 1024;
+// 整个请求体上限（多张图或一个 zip），在读入内存前检查
+const MAX_BODY = 64 * 1024 * 1024;
 
 const state = (userId: number) => ({ backgrounds: listBackgrounds(userId), global: globalBackground(userId) });
 
@@ -20,7 +23,8 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const form = await request.formData().catch(() => null);
+  const form = await formOr413(request, MAX_BODY);
+  if (form instanceof Response) return form;
   if (!form) return fail('请上传图片');
   const items: { name: string; data: Buffer }[] = [];
   for (const file of form.getAll('files')) {

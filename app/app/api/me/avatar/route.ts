@@ -4,12 +4,14 @@ import { imageExt } from '@/lib/image-ext';
 import { rateLimit } from '@/lib/rate-limit';
 import { deleteMediaUrl, saveMedia } from '@/lib/storage';
 import { defaultAvatarUrl, findDefaultAvatar } from '@/lib/default-avatars';
+import { formOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
 // 浏览器端已裁剪压缩（头像 512²、背景 1500×600），这里只兜底校验
 const LIMIT = { avatar: 2 * 1024 * 1024, banner: 4 * 1024 * 1024 } as const;
 type Kind = keyof typeof LIMIT;
+// multipart 请求体上限 = 最大的图（背景图）+ 1 MB 表单开销，在读入内存前检查
 const kindOf = (value: unknown): Kind | null => (value === 'avatar' || value === 'banner' ? value : null);
 
 // GET /api/me/avatar —— 当前头像与背景
@@ -35,7 +37,8 @@ export async function POST(request: Request) {
     deleteMediaUrl(previous, user.id);
     return json(getProfileMedia(user.id));
   }
-  const form = await request.formData().catch(() => null);
+  const form = await formOr413(request, LIMIT.banner + 1024 * 1024);
+  if (form instanceof Response) return form;
   const kind = kindOf(form?.get('kind'));
   const file = form?.get('file');
   if (!kind || !file || typeof file === 'string') return fail('请选择图片');
