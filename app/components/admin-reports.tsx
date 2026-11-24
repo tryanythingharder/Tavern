@@ -9,7 +9,9 @@ import { toast } from '@/components/admin-feedback';
 
 type Report = {
   id: number;
+  reporterId?: number;
   reporterName: string;
+  status?: string;
   targetType: string;
   targetId: string;
   reason: string;
@@ -25,9 +27,10 @@ type Report = {
   };
 };
 
+const STATUS_TEXT: Record<string, [string, string]> = { open: ['待处理', 'p-pill--warn'], resolved: ['已处理', 'p-pill--ok'], dismissed: ['已驳回', 'p-pill--outline'] };
 const TARGET_LABEL: Record<string, string> = { character: '角色', message: '消息', user: '用户', comment: '评论', other: '其他' };
 
-export function AdminReports({ reports }: { reports: Report[] }) {
+export function AdminReports({ reports, filtered = false }: { reports: Report[]; filtered?: boolean }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -86,6 +89,7 @@ export function AdminReports({ reports }: { reports: Report[] }) {
                 <span className="p-pill p-pill--sm p-pill--outline" style={{ height: 18, padding: '0 7px', fontSize: 10, marginLeft: 6 }}>
                   {TARGET_LABEL[report.targetType] ?? report.targetType} #{report.targetId}
                 </span>
+                {report.status && report.status !== 'open' && <span className={`p-pill p-pill--sm ${STATUS_TEXT[report.status]?.[1] ?? 'p-pill--outline'}`} style={{ marginLeft: 6 }}>{STATUS_TEXT[report.status]?.[0] ?? report.status}</span>}
               </div>
               <div className="p-room-last" style={{ whiteSpace: 'normal' }}>
                 {report.note || '（没有补充说明）'}
@@ -99,9 +103,9 @@ export function AdminReports({ reports }: { reports: Report[] }) {
                   <div className="p-small" style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{report.target.detail}</div>
                 </details>
               )}
-              <div className="p-room-last">举报人：{report.reporterName} · <LocalTime value={report.createdAt} /></div>
+              <div className="p-room-last">举报人：{report.reporterId ? <Link href={`/admin/users/${report.reporterId}`}>{report.reporterName}</Link> : report.reporterName}{report.target.userId && <> · 被举报人：<Link href={`/admin/users/${report.target.userId}`}>{report.target.userName ?? `#${report.target.userId}`}</Link></>} · <LocalTime value={report.createdAt} /></div>
             </div>
-            <div className="p-library-actions">
+            {(!report.status || report.status === 'open') && <div className="p-library-actions">
               {report.target.link && <Link className="p-btn p-btn--sm" href={report.target.link}>查看内容</Link>}
               {report.target.characterId && (
                 <button className="p-btn p-btn--sm p-btn--danger" type="button" disabled={busyId === report.id} onClick={() => setConfirming({ report, action: 'archive' })}>下架角色</button>
@@ -111,10 +115,10 @@ export function AdminReports({ reports }: { reports: Report[] }) {
               )}
               <button className="p-btn p-btn--sm" type="button" disabled={busyId === report.id} onClick={() => void resolve(report.id, 'resolved')}>已处理</button>
               <button className="p-btn p-btn--sm" type="button" disabled={busyId === report.id} onClick={() => void resolve(report.id, 'dismissed')}>驳回</button>
-            </div>
+            </div>}
           </div>
         ))}
-        {!reports.length && <p className="small">没有待处理的举报。</p>}
+        {!reports.length && <p className="admin-empty">{filtered ? '没有符合条件的举报。' : '没有待处理的举报，队列已清空。'}</p>}
       </div>
       {confirming && (
         <Modal

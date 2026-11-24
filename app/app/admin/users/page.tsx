@@ -1,41 +1,40 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
-import { adminUserCount, adminUsers } from '@/lib/admin';
+import { USER_LIST, parseList, queryUsers, userStatusCounts, type SearchParams } from '@/lib/admin-query';
 import { AdminPanel } from '@/components/admin-panel';
+import { AdminListBar, AdminPager } from '@/components/admin-list';
+import { AdminHeader } from '@/components/admin-header';
 
 export const dynamic = 'force-dynamic';
 
-const PER_PAGE = 20;
-
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   if (!isAdmin(user)) notFound();
-  const { page } = await searchParams;
-  const current = Math.max(1, Number(page) || 1);
-  const total = adminUserCount();
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const users = adminUsers(PER_PAGE, (current - 1) * PER_PAGE);
+  const query = parseList(await searchParams, USER_LIST);
+  const result = queryUsers(query);
+  const counts = userStatusCounts();
+  const filtered = Boolean(query.q || query.f.status || query.f.role);
 
   return (
     <>
-      <header className="p-atoolbar">
-        <div>
-          <h1>玩家</h1>
-          <div className="p-atoolbar-sub">{total} 个账号 · 余额、封禁、赠点</div>
-        </div>
-      </header>
+      <AdminHeader href="/admin/users" sub={`${counts[''] ?? 0} 个账号 · 余额、封禁、赠点`} />
       <div className="p-acontent">
         <section className="p-card">
-          <AdminPanel users={users} />
-          <div className="p-table-foot">
-            <span className="p-foot-count">第 {current} / {pages} 页 · 共 {total} 个账号</span>
-            <div className="p-foot-right">
-              {current > 1 && <Link className="p-btn p-btn--sm" href={`/admin/users?page=${current - 1}`}>上一页</Link>}
-              {current < pages && <Link className="p-btn p-btn--sm" href={`/admin/users?page=${current + 1}`}>下一页</Link>}
-            </div>
-          </div>
+          <AdminListBar
+            placeholder="搜索昵称、邮箱或 #ID"
+            unit="个账号"
+            total={result.total}
+            tabs={{ key: 'status', label: '账号状态', options: [
+              { value: '', label: '全部', count: counts[''] ?? 0 },
+              { value: 'active', label: '正常', count: counts.active ?? 0 },
+              { value: 'banned', label: '已封禁', count: counts.banned ?? 0 },
+              { value: 'deleted', label: '已注销', count: counts.deleted ?? 0 },
+            ] }}
+            selects={[{ key: 'role', label: '按角色筛选', options: [{ value: '', label: '全部角色' }, { value: 'admin', label: '管理员' }, { value: 'user', label: '普通用户' }] }]}
+          />
+          <AdminPanel users={result.rows} sort={{ sort: query.sort, dir: query.dir }} filtered={filtered} />
+          <AdminPager page={result.page} pages={result.pages} total={result.total} per={result.per} unit="个账号" />
         </section>
       </div>
     </>

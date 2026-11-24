@@ -2,23 +2,24 @@
 
 import { LocalTime } from '@/components/local-time';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AdminEmpty, SortTh } from '@/components/admin-list';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { toast } from '@/components/admin-feedback';
 
 type CharacterRow = {
   id: string; name: string; author: string; category: string; status: string;
-  nsfw: boolean; createdAt: number | null; ownerName: string | null;
+  nsfw: boolean; createdAt: number | null; ownerName: string | null; ownerId?: number | null;
 };
 
 const STATUS_LABEL: Record<string, string> = { pending: '待审核', published: '已公开', archived: '已下架', draft: '草稿' };
 const STATUS_PILL: Record<string, string> = { pending: 'p-pill--warn', published: 'p-pill--ok', archived: 'p-pill--outline', draft: 'p-pill--outline' };
 
-export function AdminReview({ characters }: { characters: CharacterRow[] }) {
+export function AdminReview({ characters, sort, filtered }: { characters: CharacterRow[]; sort: { sort: string; dir: 'asc' | 'desc' }; filtered: boolean }) {
   const [rows, setRows] = useState(characters);
+  useEffect(() => setRows(characters), [characters]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [query, setQuery] = useState('');
   const [rejecting, setRejecting] = useState<CharacterRow | null>(null);
   const [reason, setReason] = useState('');
 
@@ -45,23 +46,15 @@ export function AdminReview({ characters }: { characters: CharacterRow[] }) {
     setError('');
   };
 
-  const q = query.trim().toLowerCase();
-  const visible = rows.filter((row) => (!q ? true : `${row.name} ${row.author} ${row.ownerName ?? ''}`.toLowerCase().includes(q)));
+  const visible = rows;
 
   return (
     <>
       <ErrorLine message={error} />
-      <div className="admin-toolbar">
-        <label className="p-search">
-          <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
-          <input className="p-input" type="search" value={query} placeholder="搜索角色或作者" aria-label="搜索作品" onChange={(event) => setQuery(event.target.value)} />
-        </label>
-        <span className="p-small" style={{ marginLeft: 'auto' }}>{visible.length} / {rows.length} 个作品</span>
-      </div>
       <div className="admin-table-wrap">
-        <table className="admin-table">
+        <table className="admin-table a-cards">
           <thead>
-            <tr><th>角色</th><th>作者</th><th>题材</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+            <tr><SortTh k="name" label="角色" first="asc" current={sort} /><th>作者</th><th>题材</th><th>状态</th><SortTh k="created" label="创建时间" current={sort} /><th><span className="sr-only">操作</span></th></tr>
           </thead>
           <tbody>
             {visible.map((row) => (
@@ -70,7 +63,7 @@ export function AdminReview({ characters }: { characters: CharacterRow[] }) {
                   <strong>{row.name}</strong>
                   {row.nsfw && <span className="p-pill p-pill--sm p-pill--outline" style={{ marginLeft: 6, height: 18, padding: '0 7px', fontSize: 10 }}>18+</span>}
                 </td>
-                <td data-label="作者">{row.ownerName ?? row.author}</td>
+                <td data-label="作者">{row.ownerId ? <Link href={`/admin/users/${row.ownerId}`}>{row.ownerName ?? row.author}</Link> : row.ownerName ?? row.author}</td>
                 <td data-label="题材">{row.category}</td>
                 <td data-label="状态"><span className={`p-pill p-pill--sm ${STATUS_PILL[row.status] ?? 'p-pill--outline'}`}>{STATUS_LABEL[row.status] ?? row.status}</span></td>
                 <td data-label="创建时间" className="small">{row.createdAt ? <LocalTime value={row.createdAt} style="date" /> : '—'}</td>
@@ -93,7 +86,7 @@ export function AdminReview({ characters }: { characters: CharacterRow[] }) {
                 </td>
               </tr>
             ))}
-            {!visible.length && <tr><td colSpan={6} className="admin-empty">还没有用户创作的角色。</td></tr>}
+            {!visible.length && <AdminEmpty colSpan={6} filtered={filtered}>这个状态下没有作品。</AdminEmpty>}
           </tbody>
         </table>
       </div>
