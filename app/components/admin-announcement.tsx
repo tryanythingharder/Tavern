@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { api } from '@/components/settings-ui';
+import { confirmAction, useNotice } from '@/components/admin-feedback';
 
 export function AdminAnnouncement({ initial }: { initial: string }) {
   const [text, setText] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [error, setError] = useState('');
 
   const save = async (value: string) => {
+    if (!value && !(await confirmAction({ title: '关闭公告？', message: '玩家端顶部的公告条会立即消失。', confirmLabel: '关闭公告', danger: true }))) return;
     setBusy(true);
     setError('');
-    setNotice('');
     try {
       const result = await api<{ text: string }>('/api/admin/announcement', { method: 'PATCH', body: JSON.stringify({ text: value }) });
       setText(result.text);
@@ -29,7 +30,6 @@ export function AdminAnnouncement({ initial }: { initial: string }) {
       <h2 className="p-form-section-title">玩家端公告</h2>
       <p className="p-small">显示在顶栏下方的社区提醒条。留空并保存即关闭。玩家可以单独关闭，关闭后本地记住。</p>
       {error && <p className="p-form-error" role="alert">{error}</p>}
-      {notice && <p className="p-hint" style={{ color: 'var(--ok, #2e7d43)' }}>{notice}</p>}
       <div className="p-field">
         <label className="p-label" htmlFor="announcement-text">公告内容</label>
         <textarea

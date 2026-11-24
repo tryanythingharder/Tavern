@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
+import { confirmAction, toast } from '@/components/admin-feedback';
 
 type AdminUser = {
   id: number; email: string; nickname: string; role: string; status: string;
@@ -22,13 +23,16 @@ export function AdminPanel({ users }: { users: AdminUser[] }) {
 
   const toggleBan = async (row: AdminUser) => {
     const next = row.status === 'banned' ? 'active' : 'banned';
+    if (next === 'banned' && !(await confirmAction({ title: '封禁账号？', message: `「${row.nickname}」将无法登录，所有登录设备立即下线。`, confirmLabel: '封禁', danger: true }))) return;
     setBusyId(row.id);
     setError('');
     try {
       await api(`/api/admin/users/${row.id}/status`, { method: 'POST', body: JSON.stringify({ status: next }) });
       setRows((prev) => prev.map((item) => (item.id === row.id ? { ...item, status: next } : item)));
+      toast.ok(next === 'banned' ? `已封禁「${row.nickname}」` : `已解封「${row.nickname}」`);
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setBusyId(null);
     }
@@ -40,6 +44,9 @@ export function AdminPanel({ users }: { users: AdminUser[] }) {
       setError('点数要填一个非零数字');
       return;
     }
+    const target = rows.find((row) => row.id === userId);
+    if (amount < 0 && !(await confirmAction({ title: '扣减点数？', message: `将从「${target?.nickname ?? userId}」的余额里扣掉 ${-amount} 点。`, confirmLabel: `扣减 ${-amount} 点`, danger: true }))) return;
+    if (amount >= 10000 && !(await confirmAction({ title: '大额赠点', message: `将给「${target?.nickname ?? userId}」赠送 ${amount.toLocaleString('zh-CN')} 点，确认金额无误？`, confirmLabel: '确认赠送' }))) return;
     setBusyId(userId);
     setError('');
     try {
@@ -50,8 +57,10 @@ export function AdminPanel({ users }: { users: AdminUser[] }) {
       setRows((prev) => prev.map((row) => (row.id === userId ? { ...row, balance } : row)));
       setAmounts((prev) => ({ ...prev, [userId]: '' }));
       setNotes((prev) => ({ ...prev, [userId]: '' }));
+      toast.ok(`${amount > 0 ? '已赠送' : '已扣减'} ${Math.abs(amount)} 点 · 余额 ${balance}`);
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setBusyId(null);
     }

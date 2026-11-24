@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { useNotice } from '@/components/admin-feedback';
 
 type ModelStatus = {
   baseUrl: string;
@@ -19,14 +20,13 @@ export function AdminModel({ initial }: { initial: ModelStatus }) {
   const [fallbacks, setFallbacks] = useState('');
   const [routes, setRoutes] = useState(initial.fallbackRoutes ?? []);
   const [busy, setBusy] = useState<'save' | 'test' | null>(null);
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [error, setError] = useState('');
   const [testText, setTestText] = useState('');
 
   const save = async () => {
     setBusy('save');
     setError('');
-    setNotice('');
     try {
       if (fallbacks.trim()) {
         let parsed: unknown;
@@ -56,7 +56,6 @@ export function AdminModel({ initial }: { initial: ModelStatus }) {
   const test = async () => {
     setBusy('test');
     setError('');
-    setNotice('');
     setTestText('');
     try {
       const result = await api<{ text: string }>('/api/admin/settings/test', { method: 'POST', body: JSON.stringify({ kind: 'model' }) });
@@ -73,7 +72,6 @@ export function AdminModel({ initial }: { initial: ModelStatus }) {
   return (
     <>
       <ErrorLine message={error} />
-      {notice && <p className="admin-toast" role="status">{notice}</p>}
       <section className="p-card p-card--pad">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>文本模型</h2>

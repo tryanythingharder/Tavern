@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { toast } from '@/components/admin-feedback';
 
 type Report = {
   id: number;
@@ -37,9 +38,11 @@ export function AdminReports({ reports }: { reports: Report[] }) {
     setError('');
     try {
       await api(`/api/admin/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({ action }) });
+      toast.ok(action === 'resolved' ? `举报 #${id} 已标记处理` : `举报 #${id} 已驳回`);
       router.refresh();
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setBusyId(null);
     }
@@ -61,9 +64,11 @@ export function AdminReports({ reports }: { reports: Report[] }) {
       }
       await api(`/api/admin/reports/${report.id}/resolve`, { method: 'POST', body: JSON.stringify({ action: 'resolved' }) });
       setConfirming(null);
+      toast.ok(action === 'archive' ? '已下架角色并结案' : '已封禁用户并结案');
       router.refresh();
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setBusyId(null);
     }

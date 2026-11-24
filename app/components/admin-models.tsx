@@ -3,6 +3,7 @@ import { joinList } from '@/lib/i18n/runtime';
 
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { useNotice } from '@/components/admin-feedback';
 import { Select } from '@/components/ui-select';
 
 type Meta = { name: string; summary: string; tags: string[]; context: string; featured: boolean; hidden: boolean; sort: number };
@@ -59,14 +60,13 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
   const [rows, setRows] = useState<Draft[]>(initial.models.map(toDraft));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
 
   const patch = (id: string, change: Partial<Draft>) => setRows((list) => list.map((row) => (row.id === id ? { ...row, ...change } : row)));
 
   const save = async () => {
     setBusy(true);
     setError('');
-    setNotice('');
     const bad = rows.find((row) => row.kind === 'chat' && draftRule(row) === 'bad');
     if (bad) {
       setBusy(false);
@@ -150,7 +150,6 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
         <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={busy} onClick={() => void save()}>{busy ? '保存中…' : '保存'}</button>
-        {notice && <span className="p-small" role="status">{notice}</span>}
       </div>
     </section>
   );

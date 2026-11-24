@@ -726,3 +726,20 @@
     .p-aguide { position: static; max-height: none; overflow: visible; }
 }
 @media (max-width: 960px) { .p-asibling-card { display: none; } }
+
+/* ── 统一反馈：toast（components/admin-feedback.tsx） ── */
+.a-toasts { position: fixed; right: 20px; bottom: 20px; z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
+.a-toast { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; max-width: min(420px, calc(100vw - 32px)); padding: 11px 12px 11px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--sh-md); color: var(--text); font-size: 13px; line-height: 1.5; pointer-events: auto; animation: a-toast-in .18s var(--ease, ease); }
+.a-toast-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.a-toast--ok .a-toast-dot { background: var(--ok, #2e7d43); }
+.a-toast--err { border-color: color-mix(in srgb, var(--danger, #c0392b) 45%, var(--border)); }
+.a-toast--err .a-toast-dot { background: var(--danger, #c0392b); }
+.a-toast-text { flex: 1; min-width: 0; }
+.a-toast-action { flex: 0 0 auto; height: 28px; padding: 0 12px; border: 1px solid var(--text); border-radius: 999px; background: var(--text); color: var(--surface); font: inherit; font-weight: 600; cursor: pointer; }
+.a-toast-close { flex: 0 0 auto; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; }
+.a-toast-close:hover { background: var(--g25); color: var(--text); }
+.a-toast-timer { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--text); transform-origin: left; animation: a-toast-timer linear forwards; }
+@keyframes a-toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes a-toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (max-width: 720px) { .a-toasts { left: 12px; right: 12px; bottom: 12px; align-items: stretch; } .a-toast { max-width: none; } }
+@media (prefers-reduced-motion: reduce) { .a-toast { animation: none; } }

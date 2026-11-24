@@ -4,6 +4,7 @@ import { LocalTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { toast } from '@/components/admin-feedback';
 
 type CharacterRow = {
   id: string; name: string; author: string; category: string; status: string;
@@ -29,8 +30,10 @@ export function AdminReview({ characters }: { characters: CharacterRow[] }) {
       setRows((prev) => prev.map((item) => (item.id === row.id ? { ...item, status } : item)));
       setRejecting(null);
       setReason('');
+      toast.ok(status === 'published' ? `「${row.name}」已公开` : `「${row.name}」已${row.status === 'pending' ? '驳回' : '下架'}，已通知作者`);
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setBusyId(null);
     }

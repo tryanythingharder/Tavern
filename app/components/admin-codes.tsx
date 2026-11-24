@@ -4,6 +4,7 @@ import { LocalTime } from '@/components/local-time';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { useNotice } from '@/components/admin-feedback';
 
 type Code = { id: number; code: string; amount: number; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number };
 
@@ -15,14 +16,13 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
   const [note, setNote] = useState('');
   const [created, setCreated] = useState<Code[]>([]);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
   const generate = async () => {
     setBusy(true);
     setError('');
-    setNotice('');
     try {
       const result = await api<{ codes: Code[] }>('/api/admin/codes', {
         method: 'POST',
@@ -65,7 +65,6 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
         <div className="p-card p-card--pad"><div className="p-kpi-label">本月生成</div><div className="p-kpi-value">{monthCodes}</div><div className="p-kpi-delta">最近 100 个</div></div>
         <div className="p-card p-card--pad"><div className="p-kpi-label">总数</div><div className="p-kpi-value">{codes.length}</div><div className="p-kpi-delta">最近 100 个</div></div>
       </div>
-      {notice && <p className="small" role="status" style={{ margin: '0 0 10px', color: 'var(--ok, #2e7d43)' }}>{notice}</p>}
       <section className="p-card p-card--pad">
         <h2 className="p-form-section-title">生成兑换码</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>

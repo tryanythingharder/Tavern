@@ -5,6 +5,7 @@ import { formatMoney } from '@/lib/money';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { confirmAction, toast } from '@/components/admin-feedback';
 
 type Order = {
   id: number; points: number; priceCents: number; status: string; createdAt: number; paidAt: number | null;
@@ -38,13 +39,17 @@ export function AdminBilling({ orders, currency = 'USD' }: { orders: Order[]; cu
   const [detail, setDetail] = useState<Order | null>(null);
 
   const pay = async (id: number) => {
+    const order = orders.find((item) => item.id === id);
+    if (!(await confirmAction({ title: `确认订单 #${id} 已到账？`, message: order ? `会给「${order.nickname}」加 ${order.points.toLocaleString('zh-CN')} 点（首充奖励、邀请返点也会同时发放），并通知玩家。` : '会给玩家加点并通知。', detail: '只在确认收到款后操作；到账后只能走退款撤回。', confirmLabel: '确认到账' }))) return;
     setPayingId(id);
     setError('');
     try {
       await api(`/api/admin/orders/${id}/pay`, { method: 'POST' });
+      toast.ok(`订单 #${id} 已确认到账`);
       router.refresh();
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setPayingId(null);
     }
@@ -55,10 +60,12 @@ export function AdminBilling({ orders, currency = 'USD' }: { orders: Order[]; cu
     setError('');
     try {
       await api(`/api/admin/orders/${id}/refund`, { method: 'POST' });
+      toast.ok(`订单 #${id} 已退款`);
       setConfirmId(null);
       router.refresh();
     } catch (caught) {
       setError((caught as Error).message);
+      toast.err((caught as Error).message);
     } finally {
       setPayingId(null);
     }

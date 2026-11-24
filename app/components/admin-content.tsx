@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { useNotice } from '@/components/admin-feedback';
 import { Select } from '@/components/ui-select';
 
 type Policy = { enabled: boolean; defaultHidden: boolean; blockedRegions: string[]; verifyRegions: string[]; minAge: number };
@@ -12,7 +13,7 @@ export function AdminContent() {
   const [status, setStatus] = useState<Status | null>(null);
   const [form, setForm] = useState<{ enabled: boolean; defaultHidden: boolean; blocked: string; verify: string; minAge: string } | null>(null);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [busy, setBusy] = useState(false);
 
   const apply = (data: Status) => {
@@ -34,7 +35,6 @@ export function AdminContent() {
     if (!form) return;
     setBusy(true);
     setError('');
-    setNotice('');
     try {
       apply(await api<Status>('/api/admin/nsfw', {
         method: 'PATCH',
@@ -55,7 +55,6 @@ export function AdminContent() {
   return (
     <div className="p-admin-content">
       <ErrorLine message={error} />
-      {notice && <p className="admin-toast" role="status">{notice}</p>}
       {form.enabled && status.payment.adultRestricted && (
         <div className="p-notice p-notice--warn">
           <div className="p-notice-main">
