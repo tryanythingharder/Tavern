@@ -28,6 +28,13 @@ export function middleware(request: NextRequest) {
     url.searchParams.forEach((v, k) => { if (k !== 'mode') to.searchParams.append(k, v); });
     return NextResponse.redirect(to, 307);
   }
+  // 后台页没登录直接 307 到登录页：根布局有 loading.tsx，页面里的 redirect() 会变成流式跳转（200 + meta refresh），
+  // 探针和不跑脚本的客户端看不到真正的跳转。只看会话 cookie 在不在，cookie 失效的仍由后台布局兜底跳转。
+  if ((url.pathname === '/admin' || url.pathname.startsWith('/admin/')) && !request.cookies.get('tavern_session')?.value) {
+    const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? url.host;
+    const proto = request.headers.get('x-forwarded-proto') ?? url.protocol.replace(':', '');
+    return NextResponse.redirect(new URL(`${proto}://${host}/login`), 307);
+  }
   const ref = request.nextUrl.searchParams.get('ref');
   const validRef = ref && /^R-[A-Z0-9]{6}$/i.test(ref) ? ref.toUpperCase() : null;
   const { lang, set } = pickLang(request);
