@@ -1,6 +1,7 @@
 import { activeProvider } from '@/lib/payments';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { AdminHeader } from '@/components/admin-header';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import { imageConfig, ttsConfig } from '@/lib/media';
 import { getSetting } from '@/lib/settings';
@@ -9,6 +10,7 @@ import { pointsPerThousand } from '@/lib/points';
 import { AdminModel } from '@/components/admin-model';
 import { modelFallbacks } from '@/lib/model';
 import { listChannels } from '@/lib/channels';
+import { UnsavedGuard } from '@/components/admin-feedback';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,13 +41,7 @@ export default async function AdminModelPage() {
 
   return (
     <>
-      <header className="p-atoolbar">
-        <div>
-          <h1>单线路配置</h1>
-          <div className="p-atoolbar-sub">没有渠道时使用的文本模型；生图、语音在「扩展能力」，支付在「计费与增长」</div>
-        </div>
-        <div className="p-atoolbar-actions"><Link className="p-btn p-btn--sm" href="/admin/settings/billing">点数计费</Link></div>
-      </header>
+      <AdminHeader href="/admin/model" sub={<>没有渠道时使用的文本模型；生图、语音在「扩展能力」，支付在「计费与增长」</>} actions={<><Link className="p-btn p-btn--sm" href="/admin/settings/billing">点数计费</Link></>} />
       <div className="p-acontent">
         {channels.length > 0 && (
           <div className="p-notice" style={{ marginBottom: 16 }}>
@@ -56,6 +52,7 @@ export default async function AdminModelPage() {
             <Link className="p-btn p-btn--sm" href="/admin/channels">管理渠道</Link>
           </div>
         )}
+        <UnsavedGuard>
         <AdminModel initial={{
           baseUrl: getSetting('model.baseUrl', process.env.TAVERN_MODEL_BASE_URL ?? ''),
           name: getSetting('model.name', process.env.TAVERN_MODEL_NAME ?? ''),
@@ -63,6 +60,7 @@ export default async function AdminModelPage() {
           fallbackCount: fallbacks.length,
           fallbackRoutes: fallbacks,
         }} />
+        </UnsavedGuard>
 
         <section className="p-card p-card--pad" style={{ marginTop: 20 }}>
           <h2 className="p-form-section-title">其他网关</h2>

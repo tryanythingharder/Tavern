@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { AdminHeader } from '@/components/admin-header';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import { listCodes } from '@/lib/billing';
 import { AdminCodes } from '@/components/admin-codes';
@@ -13,12 +14,7 @@ export default async function AdminCodesPage() {
 
   return (
     <>
-      <header className="p-atoolbar">
-        <div>
-          <h1>卡密</h1>
-          <div className="p-atoolbar-sub">批量生成兑换码 · 用户可在「我的 · 点数」兑换</div>
-        </div>
-      </header>
+      <AdminHeader href="/admin/codes" sub={<>批量生成兑换码 · 用户可在「我的 · 点数」兑换</>} />
       <div className="p-acontent">
         <AdminCodes initial={codes} />
       </div>

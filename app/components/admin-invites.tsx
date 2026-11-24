@@ -4,6 +4,7 @@ import { LocalTime } from '@/components/local-time';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { confirmAction, useNotice } from '@/components/admin-feedback';
 
 type Invite = { code: string; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number; usedAt: number | null };
 
@@ -14,7 +15,7 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
   const [note, setNote] = useState('');
   const [created, setCreated] = useState<Invite[]>([]);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [busy, setBusy] = useState(false);
   const [required, setRequired] = useState(initialRequired);
   const [copied, setCopied] = useState<string | null>(null);
@@ -22,7 +23,6 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
   const generate = async () => {
     setBusy(true);
     setError('');
-    setNotice('');
     try {
       const result = await api<{ invites: Invite[] }>('/api/admin/invites', {
         method: 'POST',
@@ -40,6 +40,7 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
   };
 
   const toggleRequired = async (value: boolean) => {
+    if (value && !(await confirmAction({ title: '开启邀请制？', message: '开启后，没有邀请码的人将无法注册。已注册用户不受影响。', confirmLabel: '开启邀请制' }))) return;
     setBusy(true);
     setError('');
     try {
@@ -75,7 +76,6 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
         <div className="p-card p-card--pad"><div className="p-kpi-label">注册策略</div><div className="p-kpi-value" style={{ fontSize: 20 }}>{required ? '必须邀请' : '选填'}</div><div className="p-kpi-delta">{required ? '新用户需邀请码' : '开放注册'}</div></div>
         <div className="p-card p-card--pad"><div className="p-kpi-label">总数</div><div className="p-kpi-value">{invites.length}</div><div className="p-kpi-delta">最近 100 个</div></div>
       </div>
-      {notice && <p className="small" role="status" style={{ margin: '0 0 10px', color: 'var(--ok, #2e7d43)' }}>{notice}</p>}
       <section className="p-card p-card--pad">
         <div className="p-block-head" style={{ padding: 0, marginBottom: 10 }}>
           <h2 className="p-form-section-title" style={{ margin: 0 }}>注册策略</h2>
@@ -113,12 +113,12 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
       <section className="p-card" style={{ marginTop: 20 }}>
         <div className="p-block-head"><h2>最近的邀请码</h2><span className="p-small">{invites.length} 个</span></div>
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table a-cards">
             <thead><tr><th>邀请码</th><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><th>生成时间</th></tr></thead>
             <tbody>
               {invites.map((invite) => (
                 <tr key={invite.code}>
-                  <td data-label="邀请码" style={{ fontFamily: 'ui-monospace, monospace' }}>{invite.code}</td>
+                  <td data-label="邀请码" className="a-primary" style={{ fontFamily: 'ui-monospace, monospace' }}>{invite.code}</td>
                   <td data-label="备注">{invite.note || '—'}</td>
                   <td data-label="创建人">{invite.createdByName ?? '—'}</td>
                   <td data-label="使用人">{invite.usedByName ?? '—'}</td>

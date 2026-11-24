@@ -1,5 +1,6 @@
 import { activeProvider } from '@/lib/payments';
 import { notFound, redirect } from 'next/navigation';
+import { AdminHeader } from '@/components/admin-header';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
 import { listChannels, publicChannel } from '@/lib/channels';
 import { imageConfig, ttsConfig } from '@/lib/media';
@@ -34,12 +35,7 @@ export default async function AdminChannelsPage() {
 
   return (
     <>
-      <header className="p-atoolbar">
-        <div>
-          <h1>渠道</h1>
-          <div className="p-atoolbar-sub">文本渠道支持多条、按优先级 failover；模型从上游拉取，不用手填</div>
-        </div>
-      </header>
+      <AdminHeader href="/admin/channels" sub={<>文本渠道支持多条、按优先级 failover；模型从上游拉取，不用手填</>} />
       <div className="p-acontent">
         <AdminChannels initial={initial} others={others} />
       </div>

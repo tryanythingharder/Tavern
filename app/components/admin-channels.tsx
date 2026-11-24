@@ -4,6 +4,7 @@ import { LocalTime, formatTime } from '@/components/local-time';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { useNotice } from '@/components/admin-feedback';
 import { Select } from '@/components/ui-select';
 import { INSTRUCT_PRESETS, parseInstructJson } from '@/lib/instruct';
 
@@ -244,7 +245,7 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
   const [deleting, setDeleting] = useState<ChannelView | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [results, setResults] = useState<Record<number, { ok: boolean; text: string; ms?: number }>>({});
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [error, setError] = useState('');
   const [otherTesting, setOtherTesting] = useState<string | null>(null);
   const [otherResults, setOtherResults] = useState<Record<string, { ok: boolean; text: string }>>({});
@@ -323,7 +324,6 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
   return (
     <>
       <ErrorLine message={error} />
-      {notice && <p className="admin-toast" role="status">{notice}</p>}
 
       <section className="p-card">
         <div className="p-block-head channel-section-head" style={{ padding: '16px 18px 12px' }}>

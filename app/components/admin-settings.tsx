@@ -3,6 +3,7 @@ import { joinList } from '@/lib/i18n/runtime';
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { useNotice } from '@/components/admin-feedback';
 import { Select } from '@/components/ui-select';
 import { AdminEmbedding } from '@/components/admin-embedding';
 
@@ -46,7 +47,7 @@ export function AdminSettings({ only }: { only?: SettingsSection } = {}) {
   const [status, setStatus] = useState<Status | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [busy, setBusy] = useState<string | null>(null);
   const [test, setTest] = useState<{ kind: string; url?: string; error?: string } | null>(null);
   const [models, setModels] = useState<{ image: string[]; tts: string[] }>({ image: [], tts: [] });
@@ -76,7 +77,6 @@ export function AdminSettings({ only }: { only?: SettingsSection } = {}) {
   const save = async (group: 'image' | 'tts' | 'payment' | 'mail' | 'billing', clear: string[] = []) => {
     setBusy(group);
     setError('');
-    setNotice('');
     try {
       const data = await api<Status>('/api/admin/settings', { method: 'PATCH', body: JSON.stringify({ [group]: { ...form[group], clear } }) });
       setStatus(data);
@@ -139,7 +139,6 @@ export function AdminSettings({ only }: { only?: SettingsSection } = {}) {
   return (
     <>
       <ErrorLine message={error} />
-      {notice && <p className="admin-toast" role="status">{notice}</p>}
 
       {show('image') && (
       <section className="p-card p-card--pad" style={{ marginBottom: 16 }}>

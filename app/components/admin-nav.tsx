@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ADMIN_GROUPS, activeGroup, isActiveHref } from '@/lib/admin-nav';
 
 const STORE = 'yehua-admin-nav-open';
@@ -68,8 +68,18 @@ export function AdminSideNav({ pathname }: { pathname: string }) {
 // 手机：上一行是分类，下一行是当前分类的子菜单
 export function AdminMobileNav({ pathname }: { pathname: string }) {
   const current = activeGroup(pathname);
+  const ref = useRef<HTMLDivElement | null>(null);
+  // 分类条横向滚动：把当前分类/子页滚到可见处（390 宽下后几类原本被截断）
+  useEffect(() => {
+    ref.current?.querySelectorAll<HTMLElement>('[aria-current="page"]').forEach((el) => {
+      const bar = el.parentElement;
+      if (bar && (el.offsetLeft < bar.scrollLeft || el.offsetLeft + el.offsetWidth > bar.scrollLeft + bar.clientWidth)) {
+        bar.scrollLeft = el.offsetLeft - (bar.clientWidth - el.offsetWidth) / 2;
+      }
+    });
+  }, [pathname]);
   return (
-    <div className="p-amobnav">
+    <div className="p-amobnav" ref={ref}>
       <nav className="p-atabs" aria-label="后台分类">
         {ADMIN_GROUPS.map((group) => (
           <Link key={group.id} href={group.items[0].href} aria-current={group.id === current.id ? 'page' : undefined}>

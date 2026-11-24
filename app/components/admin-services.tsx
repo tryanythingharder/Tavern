@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
+import { confirmAction as askConfirm, useNotice } from '@/components/admin-feedback';
 import { Select } from '@/components/ui-select';
-import { askConfirm } from '@/components/ui-dialog';
 
 type Field = {
   key: string; label: string; hint?: string; placeholder?: string; secret?: boolean;
@@ -56,7 +56,7 @@ export function AdminServices({ only }: { only?: string } = {}) {
   const [status, setStatus] = useState<Status | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const setNotice = useNotice();
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -73,7 +73,6 @@ export function AdminServices({ only }: { only?: string } = {}) {
   const save = async (group: Group, clear: string[] = []) => {
     setBusy(group.id);
     setError('');
-    setNotice('');
     try {
       const values: Record<string, string> = {};
       for (const field of group.fields) if (draft[field.key] !== undefined) values[field.key] = draft[field.key];
@@ -101,7 +100,6 @@ export function AdminServices({ only }: { only?: string } = {}) {
     }
     setBusy(name);
     setError('');
-    setNotice('');
     try {
       let data = await api<{ message: string; webp?: { converted: number; savedBytes: number; remaining: number } } & Partial<Status>>('/api/admin/services', { method: 'POST', body: JSON.stringify({ action: name }) });
       // 一次 100 张，有剩余就接着转，并累计结果
@@ -131,7 +129,6 @@ export function AdminServices({ only }: { only?: string } = {}) {
   return (
     <>
       <ErrorLine message={error} />
-      {notice && <p className="admin-toast" role="status">{notice}</p>}
 
       {status.groups.filter((group) => !only || group.id === only).map((group) => {
         const badge = groupBadge(group.id, s, status.groups);
