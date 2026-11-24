@@ -8,7 +8,8 @@ import { finishGeneration, getCharacterById, startGeneration } from '@/lib/db';
 import { roomLoreEntries, buildRoomPrompt, getRoom, listRoomMessages } from '@/lib/rooms';
 import { loadRoomConfig } from '@/lib/resources-db';
 import { roomVariables } from '@/lib/mvu-server';
-import { modelConfigured, modelName, streamChat } from '@/lib/model';
+import { modelConfigured, modelName } from '@/lib/model';
+import { runGeneration } from '@/lib/run-generation';
 import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 
@@ -70,40 +71,27 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const reservation = reservePoints(user.id, maxCost, `房间代写 · ${modelName(room.model)}`, `room:${room.id}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点）`, 402);
   const generationId = startGeneration(user.id, null, 'impersonate', modelName(room.model));
-  const encoder = new TextEncoder();
-  let billedModel = modelName(room.model);
-  // 一条线路都没接通（全部失败）就不扣点；接通后失败且没产出任何正文也不扣
-  let connected = false;
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (payload: unknown) => {
-        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)); } catch { /* 已断开 */ }
-      };
-      let full = '';
-      let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
-      try {
-        for await (const event of streamChat(prompt, { signal: request.signal, params: { ...config.preset.params, maxTokens }, model: room.model, ...streamExtras(genPrefs, [], { user: config.userName, char: speaker.name }) })) {
-          if (event.type === 'route') { connected = true; billedModel = event.model; }
-          else if (event.type === 'content') { full += event.text; send({ type: 'delta', text: event.text }); }
-          else if (event.type === 'usage') usage = event;
-        }
-        const used = usage?.promptTokens ?? promptTokens;
-        const completion = usage?.completionTokens ?? estimateTokens(full);
-        finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: used, completionTokens: completion, totalTokens: used + completion, estimated: !usage });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(used, completion, billedModel), `room:${room.id}`);
-        send({ type: 'done', text: (genPrefs.trimSentences ? trimToEndSentence(full) : full).trim(), cost: settlement.cost, balance: settlement.balance });
-      } catch (error) {
-        const aborted = request.signal.aborted;
-        finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });
-        settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(promptTokens, estimateTokens(full), billedModel) : 0), `room:${room.id}`);
-        if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '代写失败' });
-      } finally {
-        try { controller.close(); } catch { /* 已关闭 */ }
-      }
+  return runGeneration({
+    request,
+    kind: 'impersonate',
+    messages: prompt,
+    streamOptions: { params: { ...config.preset.params, maxTokens }, model: room.model, ...streamExtras(genPrefs, [], { user: config.userName, char: speaker.name }) },
+    generationId,
+    userId: user.id,
+    reserved: reservation.reserved,
+    ref: `room:${room.id}`,
+    model: modelName(room.model),
+    promptTokens,
+    errorMessage: '代写失败',
+    complete(run) {
+      const { full, usage } = run;
+      const used = usage?.promptTokens ?? promptTokens;
+      const completion = usage?.completionTokens ?? estimateTokens(full);
+      finishGeneration(generationId, { model: run.billedModel, status: 'done', promptTokens: used, completionTokens: completion, totalTokens: used + completion, estimated: !usage });
+      const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(used, completion, run.billedModel), `room:${room.id}`);
+      run.send({ type: 'done', text: (genPrefs.trimSentences ? trimToEndSentence(full) : full).trim(), cost: settlement.cost, balance: settlement.balance });
     },
   });
-  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform' } });
 }
 
 // 同一会话同时只跑一条生成；流期间发心跳防代理断连

@@ -8,7 +8,8 @@ import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getChat, getCharacterById, listMessages, startGeneration } from '@/lib/db';
 import { assemblePrompt } from '@/lib/prompt';
 import { chatVariables } from '@/lib/mvu-server';
-import { modelConfigured, modelName, streamChat } from '@/lib/model';
+import { modelConfigured, modelName } from '@/lib/model';
+import { runGeneration } from '@/lib/run-generation';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { memorySettings, promptMemory } from '@/lib/memory';
@@ -89,42 +90,27 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const reservation = reservePoints(user.id, Math.max(0, maxCost - dailyFreeRemaining(user.id)), `${mode === 'impersonate' ? '代写' : '斜杠生成'} · ${modelName(chat.model)}`, `chat:${chatId}`);
   if (!reservation.ok) return fail(`点数不足（本次最多需要 ${maxCost} 点）`, 402);
   const generationId = startGeneration(user.id, chatId, 'impersonate', modelName(chat.model));
-  const encoder = new TextEncoder();
-
-  // 按实际接通的模型计费（failover 到备用线路时价格以备用模型为准）
-  let billedModel = modelName(chat.model);
-  // 一条线路都没接通（全部失败）就不扣点；接通后失败且没产出任何正文也不扣
-  let connected = false;
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (payload: unknown) => {
-        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)); } catch { /* 已断开 */ }
-      };
-      let full = '';
-      let total = 0;
-      try {
-        for await (const event of streamChat(prompt.messages, { signal: request.signal, params: { ...prompt.params, maxTokens }, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) })) {
-          if (event.type === 'route') {
-            connected = true;
-            billedModel = event.model;
-          } else if (event.type === 'content') { full += event.text; send({ type: 'delta', text: event.text }); }
-          else if (event.type === 'usage') total = event.totalTokens;
-        }
-        const tokens = total || prompt.tokens + estimateTokens(full);
-        finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
-        const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens, total ? Math.max(0, total - prompt.tokens) : estimateTokens(full), billedModel), `chat:${chatId}`);
-        send({ type: 'done', text: (genPrefs.trimSentences ? trimToEndSentence(full) : full).trim(), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
-      } catch (error) {
-        const aborted = request.signal.aborted;
-        finishGeneration(generationId, { status: aborted ? 'aborted' : 'error', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), estimated: true, error: aborted ? null : String(error) });
-        settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(prompt.tokens, estimateTokens(full), billedModel) : 0), `chat:${chatId}`);
-        if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '代写失败' });
-      } finally {
-        try { controller.close(); } catch { /* 已关闭 */ }
-      }
+  return runGeneration({
+    request,
+    kind: 'impersonate',
+    messages: prompt.messages,
+    streamOptions: { params: { ...prompt.params, maxTokens }, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) },
+    generationId,
+    userId: user.id,
+    reserved: reservation.reserved,
+    ref: `chat:${chatId}`,
+    model: modelName(chat.model),
+    promptTokens: prompt.tokens,
+    errorMessage: '代写失败',
+    complete(run) {
+      const { full } = run;
+      const total = run.usage?.totalTokens ?? 0;
+      const tokens = total || prompt.tokens + estimateTokens(full);
+      finishGeneration(generationId, { model: run.billedModel, status: 'done', promptTokens: prompt.tokens, completionTokens: estimateTokens(full), totalTokens: tokens, estimated: !total });
+      const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(prompt.tokens, total ? Math.max(0, total - prompt.tokens) : estimateTokens(full), run.billedModel), `chat:${chatId}`);
+      run.send({ type: 'done', text: (genPrefs.trimSentences ? trimToEndSentence(full) : full).trim(), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
     },
   });
-  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform' } });
 }
 
 // 同一会话同时只跑一条生成；流期间发心跳防代理断连
