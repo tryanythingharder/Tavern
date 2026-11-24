@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { emitPoints } from '@/lib/points-bus';
 import { readSse } from '@/lib/sse-client';
@@ -36,6 +36,13 @@ export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, 
   // 乐观插入的玩家消息用当前身份（读 ref，切换身份后不必重建回调）
   const personaRef = useRef(persona);
   personaRef.current = persona;
+  // 页面内跳走（客户端路由）时组件卸载：中止正在跑的流（服务端照常保存已生成的部分），后面的自动继续 / 自动推进也不再发起。
+  // 不这样做的话，离开群聊后旧页面的流会跑完，自动推进还会再让最多两位成员接话（照样扣点）。
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => { aliveRef.current = false; abortRef.current?.abort(); };
+  }, []);
 
   const streamReply = useCallback(async (mode: GenMode) => {
     const stamp = Date.now();
@@ -130,7 +137,7 @@ export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, 
       setStreamingId(null);
       abortRef.current = null;
       if (!completed) await new Promise((resolve) => setTimeout(resolve, 400));
-      await resync();
+      if (aliveRef.current) await resync();
     }
     return completed;
   }, [roomId, speakerId, strategy, resync]);
@@ -145,29 +152,30 @@ export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, 
       if (mode.kind !== 'send') await qrAutoRef.current('groupDraft');
       ok = await streamReply(mode);
       // ST 自动继续：回复不到目标长度就接着写，最多 5 次
-      for (let round = 0; ok && round < 5 && autoContinueRef.current !== null; round += 1) {
+      for (let round = 0; ok && aliveRef.current && round < 5 && autoContinueRef.current !== null; round += 1) {
         const id = autoContinueRef.current;
         autoContinueRef.current = null;
         ok = await streamReply({ kind: 'continue', messageId: id });
       }
       autoContinueRef.current = null;
       // 自动推进：玩家发言后的首轮回应之后，再让最多两位成员接话
-      if (ok && autoMode && mode.kind === 'send') {
+      if (ok && aliveRef.current && autoMode && mode.kind === 'send') {
         for (let index = 0; index < 2; index += 1) {
           let next = await streamReply({ kind: 'auto' });
-          for (let round = 0; next && round < 5 && autoContinueRef.current !== null; round += 1) {
+          for (let round = 0; next && aliveRef.current && round < 5 && autoContinueRef.current !== null; round += 1) {
             const id = autoContinueRef.current;
             autoContinueRef.current = null;
             next = await streamReply({ kind: 'continue', messageId: id });
           }
           autoContinueRef.current = null;
-          if (!next) break;
+          if (!next || !aliveRef.current) break;
         }
       }
     } finally {
       setStreaming(false);
       setTyping(null);
     }
+    if (!aliveRef.current) return;
     if (mode.kind === 'send') await qrAutoRef.current('user');
     if (ok) await qrAutoRef.current('ai');
   }, [streaming, streamReply, autoMode]);

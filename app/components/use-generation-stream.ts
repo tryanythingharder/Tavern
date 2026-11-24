@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { emitPoints } from '@/lib/points-bus';
 import { readSse } from '@/lib/sse-client';
@@ -44,6 +44,8 @@ export function useGenerationStream({ setMessages, setError, setBilling, resync,
   const streamErrorRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const autoContinueRef = useRef<{ id: number; content: string } | null>(null);
+  // 页面内跳走（客户端路由）时组件卸载：中止正在跑的流，服务端照常保存已生成的部分（和整页离开一致）
+  useEffect(() => () => { autoContinueRef.current = null; abortRef.current?.abort(); }, []);
 
   const streamInto = useCallback(
     async (url: string, payload: unknown, targetId: number | string, onAccepted?: () => void, prefix = ''): Promise<boolean> => {
