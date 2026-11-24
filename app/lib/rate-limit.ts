@@ -10,9 +10,23 @@ function digest(parts: string[]): string {
   return createHash('sha256').update(parts.join('|')).digest('hex');
 }
 
+// 过期窗口清理：最多每 SWEEP_EVERY_MS 顺带清一次（不是每个请求都扫表），
+// 删掉窗口起点早于 RETAIN_MS 的行。RETAIN_MS 必须大于所有调用里最长的窗口（目前是 1 小时）。
+const SWEEP_EVERY_MS = 10 * 60 * 1000;
+const RETAIN_MS = 2 * 60 * 60 * 1000;
+let lastSweep = 0;
+
+export function sweepRateLimits(now = Date.now()): number {
+  lastSweep = now;
+  return Number(db.prepare('DELETE FROM rate_limits WHERE window_start < ?').run(now - RETAIN_MS).changes);
+}
+
 export function rateLimit(prefix: string, parts: string[], limit: number, windowMs: number): RateLimitResult {
   const key = `${prefix}:${digest(parts)}`;
   const now = Date.now();
+  if (now - lastSweep >= SWEEP_EVERY_MS) {
+    try { sweepRateLimits(now); } catch (error) { console.warn('[rate-limit] 清理过期窗口失败', error); }
+  }
   const row = db.prepare('SELECT window_start, count FROM rate_limits WHERE key = ?').get(key) as { window_start: number; count: number } | undefined;
   if (!row || now - row.window_start >= windowMs) {
     db.prepare(`
