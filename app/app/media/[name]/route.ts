@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { readMedia } from '@/lib/storage';
 import { mediaAlias } from '@/lib/media-webp';
+import { parseRange } from '@/lib/http-range';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ const TYPES: Record<string, string> = {
 
 type Params = { params: Promise<{ name: string }> };
 
-export async function GET(_request: Request, context: Params) {
+export async function GET(request: Request, context: Params) {
   const { name } = await context.params;
   const user = await getCurrentUser();
   const file = await readMedia(name, user?.id ?? null);
@@ -26,11 +27,24 @@ export async function GET(_request: Request, context: Params) {
     return new Response('Not found', { status: 404 });
   }
   const privateFile = file.visibility === 'private';
-  return new Response(new Uint8Array(file.buffer), {
-    headers: {
-      'Content-Type': TYPES[file.extension] ?? 'application/octet-stream',
-      'Cache-Control': privateFile ? 'private, max-age=31536000, immutable' : 'public, max-age=31536000, immutable',
-      'Cross-Origin-Resource-Policy': 'same-origin',
-    },
-  });
+  const size = file.buffer.length;
+  const headers: Record<string, string> = {
+    'Content-Type': TYPES[file.extension] ?? 'application/octet-stream',
+    'Cache-Control': privateFile ? 'private, max-age=31536000, immutable' : 'public, max-age=31536000, immutable',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'Accept-Ranges': 'bytes',
+  };
+  // 音频拖动 / 断点续传：单段 Range 回 206，取不到回 416，认不出来的按规范忽略回整份
+  const range = parseRange(request.headers.get('range'), size);
+  if (range === 'unsatisfiable') {
+    return new Response(null, { status: 416, headers: { ...headers, 'Content-Range': `bytes */${size}`, 'Content-Length': '0' } });
+  }
+  if (range) {
+    const chunk = file.buffer.subarray(range.start, range.end + 1);
+    return new Response(new Uint8Array(chunk), {
+      status: 206,
+      headers: { ...headers, 'Content-Range': `bytes ${range.start}-${range.end}/${size}`, 'Content-Length': String(chunk.length) },
+    });
+  }
+  return new Response(new Uint8Array(file.buffer), { headers: { ...headers, 'Content-Length': String(size) } });
 }
