@@ -22,10 +22,13 @@ export function balance(userId: number): number {
 }
 
 // 新账号送一笔初始点数（只在完全没有账本记录时发生）
+// 查和发放放在同一个 BEGIN IMMEDIATE 事务里：多进程共用一个库时不会各发一次
 export function ensureStartingPoints(userId: number): number {
-  const has = db.prepare('SELECT 1 AS ok FROM points_ledger WHERE user_id = ? LIMIT 1').get(userId);
-  if (has) return balance(userId);
-  return grantPoints(userId, STARTING_POINTS, '新账号赠送', 'grant');
+  return transaction(() => {
+    const has = db.prepare('SELECT 1 AS ok FROM points_ledger WHERE user_id = ? LIMIT 1').get(userId);
+    if (has) return balance(userId);
+    return grantPoints(userId, STARTING_POINTS, '新账号赠送', 'grant');
+  });
 }
 
 export function grantPoints(userId: number, amount: number, note: string, kind = 'grant'): number {
@@ -174,7 +177,17 @@ export function reservePoints(userId: number, amount: number, note: string, refI
 }
 
 // 结算预扣：多退少补。补扣失败时记录告警，至少不会把已产生的成本退回去。
+// 整段在一个事务里：「免费抵扣」那行要读当前余额再插入，事务外做的话多进程并发时会用旧余额覆盖别人的扣点
+// （audit-probe/r2-multiproc.mjs：2 进程各 3000 次，修前 790 处流水断链、丢 863 点）
 export function settleGeneration(userId: number, reserved: number, actual: number, refId: string): { cost: number; free: number; balance: number } {
+  const settled = transaction(() => settleLedger(userId, reserved, actual, refId));
+  if (settled.cost + settled.free > 0) {
+    try { rewardReferrerOnFirstUse(userId); } catch (error) { console.warn('[growth] 邀请奖励失败', error); }
+  }
+  return { ...settled, balance: balance(userId) };
+}
+
+function settleLedger(userId: number, reserved: number, actual: number, refId: string): { cost: number; free: number } {
   const total = Math.max(0, Math.round(actual));
   // 每日免费额度先抵扣（后台 growth.dailyFree，0 = 关闭）
   const free = consumeDailyFree(userId, total);
@@ -188,10 +201,7 @@ export function settleGeneration(userId: number, reserved: number, actual: numbe
     const extra = spendPoints(userId, cost - reserved, `补扣 · ${refId}`, refId);
     if (!extra.ok) console.warn('[points] 生成补扣失败', { userId, refId, extra: cost - reserved });
   }
-  if (total > 0) {
-    try { rewardReferrerOnFirstUse(userId); } catch (error) { console.warn('[growth] 邀请奖励失败', error); }
-  }
-  return { cost, free, balance: balance(userId) };
+  return { cost, free };
 }
 
 export function listLedger(userId: number, limit = 50): LedgerRow[] {

@@ -16,9 +16,10 @@ mkdirSync(dir, { recursive: true });
 const building = process.env.NEXT_PHASE === 'phase-production-build';
 const db = new DatabaseSync(building ? ':memory:' : join(dir, 'tavern.db'));
 
+// busy_timeout 必须先设：journal_mode 切换要拿锁，另一个进程（多实例 / 备份脚本）正在写时会直接报 database is locked
 db.exec(`
-    PRAGMA journal_mode = WAL;
     PRAGMA busy_timeout = 5000;
+    PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL,
