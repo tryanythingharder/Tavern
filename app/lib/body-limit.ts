@@ -43,3 +43,42 @@ export async function formOr413(request: Request, limit: number): Promise<FormDa
     throw error;
   }
 }
+
+// JSON 接口（各类导入）的请求体上限：同上，超限 413；解析失败返回 fallback（与原来 request.json().catch(() => fallback) 一致）
+export const IMPORT_JSON_LIMIT = 32 * 1024 * 1024;
+
+export async function readTextLimited(request: Request, limit: number): Promise<string> {
+  const declared = request.headers.get('content-length');
+  if (declared !== null && /^\d+$/.test(declared.trim()) && Number(declared) > limit) throw new BodyTooLarge(limit);
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel().catch(() => {});
+      throw new BodyTooLarge(limit);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+// 路由里一行用：const body = await jsonOr413(request, IMPORT_JSON_LIMIT, {}); if (body instanceof Response) return body;
+export async function jsonOr413<T>(request: Request, limit: number, fallback: T): Promise<unknown | T | Response> {
+  let text: string;
+  try {
+    text = await readTextLimited(request, limit);
+  } catch (error) {
+    if (error instanceof BodyTooLarge) return tooLarge(limit);
+    return fallback;
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return fallback;
+  }
+}

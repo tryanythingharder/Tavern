@@ -6,6 +6,7 @@ import { parseStCharacterCard } from '@/lib/cards-import';
 import { parsePngCard } from '@/lib/png-card';
 import { extractExtras, extrasSummary, saveExtras } from '@/lib/card-extras';
 import { cardCompat } from '@/lib/card-compat';
+import { IMPORT_JSON_LIMIT, jsonOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { json?: unknown; png?: unknown; characterId?: unknown };
+  const parsed = await jsonOr413(request, IMPORT_JSON_LIMIT, {});
+  if (parsed instanceof Response) return parsed;
+  const body = parsed as { json?: unknown; png?: unknown; characterId?: unknown };
   const targetId = typeof body.characterId === 'string' && body.characterId ? body.characterId : null;
 
   let raw: unknown = null;

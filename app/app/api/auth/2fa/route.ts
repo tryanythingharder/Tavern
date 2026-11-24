@@ -3,12 +3,16 @@ import { startSession, verifyTwoFactor } from '@/lib/auth';
 import { consumeAuthToken, peekAuthToken } from '@/lib/auth-tokens';
 import db from '@/lib/db';
 import { ipFromRequest, rateLimit } from '@/lib/rate-limit';
+import { jsonOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/auth/2fa —— { token, code } 登录第二步：TOTP 或恢复码
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { token?: string; code?: string };
+  // 未登录可调：请求体只会是几个短字段，先限 16KB 再读
+  const parsed = await jsonOr413(request, 16 * 1024, {});
+  if (parsed instanceof Response) return parsed;
+  const body = (parsed ?? {}) as { token?: string; code?: string };
   const token = String(body.token ?? '');
   const code = String(body.code ?? '').trim();
   const userId = peekAuthToken(token, '2fa');

@@ -4,6 +4,7 @@ import { addMessage, createChat, getCharacterById, setMessageReasoning, setMessa
 import { parseChatImport } from '@/lib/chat-import';
 import { writeHelperVars } from '@/lib/helper-vars';
 import { listLorebooks, setChatLorebook } from '@/lib/resources-db';
+import { IMPORT_JSON_LIMIT, jsonOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,9 @@ export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
 
-  const body = (await request.json().catch(() => ({}))) as { characterId?: unknown; title?: unknown; text?: unknown };
+  const rawBody = await jsonOr413(request, IMPORT_JSON_LIMIT, {});
+  if (rawBody instanceof Response) return rawBody;
+  const body = rawBody as { characterId?: unknown; title?: unknown; text?: unknown };
   const characterId = String(body.characterId ?? '');
   const character = characterId ? getCharacterById(characterId) : undefined;
   if (!character) return fail('先选择一个角色，再导入聊天记录', 400);

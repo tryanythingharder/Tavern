@@ -1,6 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { createRegexRule } from '@/lib/resources-db';
 import { parseStRegex } from '@/lib/resources';
+import { IMPORT_JSON_LIMIT, jsonOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { json?: unknown };
+  const parsed = await jsonOr413(request, IMPORT_JSON_LIMIT, {});
+  if (parsed instanceof Response) return parsed;
+  const body = parsed as { json?: unknown };
   let raw: unknown = body.json;
   if (typeof raw === 'string') {
     try {

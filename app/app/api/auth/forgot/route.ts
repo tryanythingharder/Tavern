@@ -3,6 +3,7 @@ import { findUserByEmail } from '@/lib/auth';
 import { createAuthToken, purgeAuthTokens } from '@/lib/auth-tokens';
 import { authLink, mailConfigured, sendMail } from '@/lib/mail';
 import { ipFromRequest, rateLimit } from '@/lib/rate-limit';
+import { jsonOr413 } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,10 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 // POST /api/auth/forgot —— { email }
 // 无论邮箱是否存在都返回成功，避免被用来枚举账号。
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { email?: unknown };
+  // 未登录可调：请求体只会是几个短字段，先限 16KB 再读
+  const parsed = await jsonOr413(request, 16 * 1024, {});
+  if (parsed instanceof Response) return parsed;
+  const body = (parsed ?? {}) as { email?: unknown };
   const email = String(body.email ?? '').trim().toLowerCase();
   if (!EMAIL_RE.test(email)) return fail('邮箱格式不对', 400);
 

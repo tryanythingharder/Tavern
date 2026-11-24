@@ -1,5 +1,8 @@
 import { crc32, inflateSync } from 'node:zlib';
 
+// 角色卡 JSON 解压后的上限（最大的整合包卡也在几 MB 量级）
+const MAX_CARD_TEXT = 32 * 1024 * 1024;
+
 // 读取 SillyTavern 角色卡 PNG：tEXt/iTXt 里关键字为 chara 或 ccv3 的 base64 JSON
 export function parsePngCard(buffer: Buffer): unknown | null {
   if (buffer.length < 16) return null;
@@ -38,9 +41,10 @@ export function parsePngCard(buffer: Buffer): unknown | null {
           let text = data.subarray(p);
           if (flag === 1) {
             try {
-              text = inflateSync(text);
+              // 解压输出封顶：20MB 的 PNG 里一段压缩 iTXt 能解出上 GB（audit-probe/r2-import.mjs：RSS 590→2214MB、500）
+              text = inflateSync(text, { maxOutputLength: MAX_CARD_TEXT });
             } catch {
-              // 压缩失败就按原文试一次
+              // 压缩失败（含超过上限）就按原文试一次，原文不是 base64 JSON 自然解析失败
             }
           }
           const json = decodeBase64Json(text.toString('utf8'));
