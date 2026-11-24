@@ -3,7 +3,9 @@ import { addMeta as _addMeta, withMeta as _withMeta, type GenMeta } from '@/lib/
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { characters } from '@/data/characters';
+import { characters, ORIGINAL_SEED_IDS, SEED_LEGACY_CATEGORY } from '@/data/characters';
+import { PLAZA_SEEDS } from '@/data/plaza-seeds';
+import { CATEGORIES, LEGACY_CATEGORY_MAP, classifyCategory } from '@/lib/catalog';
 import { localizeSeedName, localizeSeedRow } from './seed-i18n';
 
 // M1 用 Node 内置 SQLite（node:sqlite，零依赖）。换成 Postgres 时只替换这个文件的实现，
@@ -518,17 +520,48 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_generation_time ON generation_events(created_at);
 `);
 
-// 首次启动把种子角色写入数据库；之后以数据库为准。
-const seeded = db.prepare('SELECT COUNT(*) AS count FROM characters').get() as { count: number };
-if (!seeded.count) {
-  const insert = db.prepare(`INSERT INTO characters (id,name,author,initial,hue,category,tags,nsfw,chats,greeting,hook,description,pace) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+// 种子角色：按 id 幂等写入——已存在就跳过；seed_log 记下写过的 id，后台删掉的种子不会在重启后复活。
+// 老库（建表前已有角色）视为最初 6 张已经写过。之后一切以数据库为准。
+{
+  const hadCharacters = (db.prepare('SELECT COUNT(*) AS count FROM characters').get() as { count: number }).count > 0;
+  const hadLog = !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'seed_log'").get();
+  db.exec('CREATE TABLE IF NOT EXISTS seed_log (id TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)');
+  const logSeed = db.prepare('INSERT OR IGNORE INTO seed_log (id, applied_at) VALUES (?, ?)');
+  if (!hadLog && hadCharacters) for (const id of ORIGINAL_SEED_IDS) logSeed.run(id, Date.now());
+  const seen = db.prepare('SELECT 1 FROM seed_log WHERE id = ?');
+  const insert = db.prepare(`INSERT OR IGNORE INTO characters (id,name,author,initial,hue,category,tags,nsfw,chats,greeting,hook,description,pace,created_at,card_fields) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const original = new Set(ORIGINAL_SEED_IDS);
+  const notes = new Map(PLAZA_SEEDS.filter((seed) => seed.creatorNotes).map((seed) => [seed.id, seed.creatorNotes as string]));
+  const addedAt = new Date(2026, 10, 24).getTime();
   for (const character of characters) {
-    insert.run(character.id, character.name, character.author, character.initial, character.hue, character.category, JSON.stringify(character.tags), character.nsfw ? 1 : 0, character.chats, character.greeting, character.hook, character.description, character.pace);
+    if (seen.get(character.id)) continue;
+    const note = notes.get(character.id);
+    const cardFields = note ? JSON.stringify({ personality: '', scenario: '', mesExample: '', systemPrompt: '', postHistory: '', creatorNotes: note }) : null;
+    insert.run(character.id, character.name, character.author, character.initial, character.hue, character.category, JSON.stringify(character.tags), character.nsfw ? 1 : 0, character.chats, character.greeting, character.hook, character.description, character.pace, original.has(character.id) ? null : addedAt, cardFields);
+    logSeed.run(character.id, Date.now());
   }
 }
 
 // 种子角色没有创建时间：补一个固定日期，作者页的「加入于」才有内容
-db.prepare("UPDATE characters SET created_at = ? WHERE owner_id IS NULL").run(new Date(2025, 7, 1).getTime());
+db.prepare("UPDATE characters SET created_at = ? WHERE owner_id IS NULL AND created_at IS NULL").run(new Date(2025, 7, 1).getTime());
+
+// 分类迁移（旧四类 → 新大类，见 lib/catalog.ts）：幂等，只改不在新表里的值，重复执行不会再变。
+// 1) 没被后台改过的种子按新题材归位（必须先于第 2 步，否则「现代」已被改成「都市」）
+{
+  const recat = db.prepare('UPDATE characters SET category = ? WHERE id = ? AND owner_id IS NULL AND category = ?');
+  for (const character of characters) {
+    const legacy = SEED_LEGACY_CATEGORY[character.id];
+    if (legacy) recat.run(character.category, character.id, legacy);
+  }
+  // 2) 其余旧值按映射表转；映射表里没有、也不在新表里的，按关键词归类
+  const stale = db.prepare(`SELECT id, name, hook, description, tags, category FROM characters WHERE category NOT IN (${CATEGORIES.map(() => '?').join(',')})`).all(...CATEGORIES) as { id: string; name: string; hook: string; description: string; tags: string; category: string }[];
+  const set = db.prepare('UPDATE characters SET category = ? WHERE id = ?');
+  for (const row of stale) {
+    let tags: string[] = [];
+    try { tags = JSON.parse(row.tags) as string[]; } catch { /* 坏数据按空标签处理 */ }
+    set.run(LEGACY_CATEGORY_MAP[row.category] ?? classifyCategory({ tags, name: row.name, hook: row.hook, description: row.description }), row.id);
+  }
+}
 
 export type DbCharacter = {
   id: string; name: string; author: string; initial: string; hue: number; category: string;

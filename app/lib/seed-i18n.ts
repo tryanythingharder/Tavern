@@ -2,6 +2,7 @@
 // 只在数据库里的内容仍是种子原文时覆盖（后台改过的就以数据库为准）；作者名不改，作者页链接靠它。
 // 分类保持中文键（广场筛选用），界面上由词条翻译。
 import { characters as seeds } from '@/data/characters';
+import { PLAZA_SEEDS } from '@/data/plaza-seeds';
 import { currentLocale } from './i18n/runtime';
 
 type SeedEn = { name: string; initial: string; tags: string[]; greeting: string; hook: string; description: string; pace: string };
@@ -68,6 +69,9 @@ const EN: Record<string, SeedEn> = {
     pace: 'Wuxia mystery · Dangerous bond · High tension',
   },
 };
+
+// 广场补充卡的英文卡面和中文写在同一个文件里（data/plaza-seeds.ts）
+for (const seed of PLAZA_SEEDS) EN[seed.id] = seed.en;
 
 const SEED = new Map(seeds.map((seed) => [seed.id, seed]));
 

@@ -1,10 +1,13 @@
+import type { Category } from '@/lib/catalog';
+import { PLAZA_SEEDS } from './plaza-seeds';
+
 export type Character = {
   id: string;
   name: string;
   author: string;
   initial: string;
   hue: number;
-  category: '现代' | '奇幻' | '悬疑' | '治愈';
+  category: Category;
   tags: string[];
   nsfw: boolean;
   chats: string;
@@ -15,7 +18,7 @@ export type Character = {
 };
 
 // M0 用原型里的种子角色做只读浏览；M1 起改为服务端查询。
-export const characters: Character[] = [
+export const BASE_CHARACTERS: Character[] = [
   {
     id: 'shen-yanzhi',
     name: '沈砚之',
@@ -38,7 +41,7 @@ export const characters: Character[] = [
     author: '青梧',
     initial: '林',
     hue: 330,
-    category: '现代',
+    category: '恋爱',
     tags: ['现代', '久别重逢'],
     nsfw: false,
     chats: '1.8 万',
@@ -54,7 +57,7 @@ export const characters: Character[] = [
     author: '照野',
     initial: '白',
     hue: 150,
-    category: '奇幻',
+    category: '古风',
     tags: ['仙侠', '守护'],
     nsfw: false,
     chats: '9,412',
@@ -70,7 +73,7 @@ export const characters: Character[] = [
     author: '南枝',
     initial: '陆',
     hue: 200,
-    category: '现代',
+    category: '都市',
     tags: ['都市', '职场'],
     nsfw: false,
     chats: '2.4 万',
@@ -102,7 +105,7 @@ export const characters: Character[] = [
     author: '不系舟',
     initial: '谢',
     hue: 340,
-    category: '奇幻',
+    category: '古风',
     tags: ['武侠', '暗黑'],
     nsfw: true,
     chats: '1.1 万',
@@ -114,7 +117,22 @@ export const characters: Character[] = [
   },
 ];
 
-export const categories = ['全部', '奇幻', '现代', '悬疑', '治愈'] as const;
+/** 最早一批种子角色（首次启动时写入）；迁移时据此识别“没被后台改过”的种子 */
+export const ORIGINAL_SEED_IDS = BASE_CHARACTERS.map((character) => character.id);
+
+/** 种子在旧四分类下的题材：只有仍是这个值（没被后台改过）时，迁移才改成新题材 */
+export const SEED_LEGACY_CATEGORY: Record<string, string> = {
+  'lin-wanzhao': '现代',
+  'bai-lu': '奇幻',
+  'lu-shiyan': '现代',
+  'xie-wujiu': '奇幻',
+};
+
+/** 全部种子：最初 6 张 + 广场补充卡（data/plaza-seeds.ts） */
+export const characters: Character[] = [
+  ...BASE_CHARACTERS,
+  ...PLAZA_SEEDS.map(({ en: _en, creatorNotes: _notes, ...seed }) => seed),
+];
 
 export function getCharacter(id: string): Character | undefined {
   return characters.find((character) => character.id === id);
