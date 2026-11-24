@@ -4,7 +4,7 @@ import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSe
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { setRoomMessageReasoning } from '@/lib/rooms';
 import type { Reasoning } from '@/lib/reasoning';
-import { withGenerationLock } from '@/lib/gen-lock';
+import { withAuthorizedLock } from '@/lib/gen-lock';
 import { moderateText } from '@/lib/auto-moderation';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { getCharacterById, finishGeneration, startGeneration } from '@/lib/db';
@@ -246,7 +246,14 @@ async function handlePost(request: Request, context: Params) {
 
 // 同一会话同时只跑一条生成；流期间发心跳防代理断连
 export async function POST(request: Request, context: Params) {
-  return withGenerationLock(`room:${(await context.params).id}`, () => handlePost(request, context));
+  return withAuthorizedLock(async () => {
+    const user = await getCurrentUser();
+    if (!user) return fail('未登录', 401);
+    if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
+    const room = getRoom(Number((await context.params).id), user.id);
+    if (!room) return fail('房间不存在', 404);
+    return `room:${room.id}`;
+  }, () => handlePost(request, context));
 }
 
 // 续写的思考接在原来那段后面

@@ -52,6 +52,14 @@ export async function withGenerationLock(key: string, run: () => Promise<Respons
   return new Response(withHeartbeat(response.body, () => release(key)), { status: response.status, headers: response.headers });
 }
 
+// 先鉴权和归属检查（authorize 返回错误响应或锁键），通过后才获取锁：
+// 否则别人的会话 id 会因「忙→409 / 闲→404」暴露存在性和活动状态，不存在的消息也会共用同一把锁。
+export async function withAuthorizedLock(authorize: () => Promise<string | Response>, run: () => Promise<Response>): Promise<Response> {
+  const key = await authorize();
+  if (typeof key !== 'string') return key;
+  return withGenerationLock(key, run);
+}
+
 export function withHeartbeat(source: ReadableStream<Uint8Array>, onEnd?: () => void): ReadableStream<Uint8Array> {
   const reader = source.getReader();
   const ping = new TextEncoder().encode(': ping\n\n');

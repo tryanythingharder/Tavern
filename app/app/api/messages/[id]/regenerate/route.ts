@@ -2,8 +2,7 @@ import { dataBankText } from '@/lib/data-bank';
 import { recordMessageMeta, setMessageReasoning } from '@/lib/db';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
-import { withGenerationLock } from '@/lib/gen-lock';
-import { getMessage } from '@/lib/db';
+import { withAuthorizedLock } from '@/lib/gen-lock';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import {
@@ -213,5 +212,12 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 
 // 同一会话同时只跑一条生成；流期间发心跳防代理断连
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  return withGenerationLock(`chat:${getMessage(Number((await context.params).id))?.chat_id ?? 'none'}`, () => handlePost(request, context));
+  return withAuthorizedLock(async () => {
+    const user = await getCurrentUser();
+    if (!user) return fail('未登录', 401);
+    if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
+    const message = getOwnedMessage(Number((await context.params).id), user.id);
+    if (!message) return fail('消息不存在', 404);
+    return `chat:${message.chat_id}`;
+  }, () => handlePost(request, context));
 }

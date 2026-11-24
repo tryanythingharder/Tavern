@@ -231,6 +231,29 @@ await step('安全#4 生成中编辑/删除/分支/ops → 409，结束后候选
   const last = (await messages(lockChat)).at(-1); assert(last.id === lockMsg && /片段59/.test(last.content), '结果没落库');
   return `del/patch/branch/ops=${codes.join('/')}，书签 ${bm}，扣 ${done.cost}`;
 });
+// 第二个用户：直接往测试库插用户和会话（不走注册，免得占注册限流额度）；没有 APPDIR 时跳过
+function otherUserCookie() {
+  if (!APPDIR) return null;
+  const db = new DatabaseSync(join(APPDIR, '.data/tavern.db'));
+  const now = Date.now(); const em = `other${now}@test.local`;
+  const uid = db.prepare('INSERT INTO users (email, password_hash, nickname, created_at) VALUES (?,?,?,?)').run(em, 'x', '旁人', now).lastInsertRowid;
+  const token = 'regress' + now + Math.random().toString(36).slice(2);
+  db.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)').run(token, uid, now + 3600_000);
+  db.close(); return `tavern_session=${token}`;
+}
+await step('安全#5 别人的会话忙/闲都回 404，不先抢锁；不存在的消息直接 404', async () => {
+  const other = otherUserCookie(); if (!other) return '跳过（无 APPDIR）';
+  const as = (path, json) => fetch(BASE + path, { method: 'POST', headers: { cookie: other, 'content-type': 'application/json' }, body: JSON.stringify(json) }).then((r) => r.status);
+  const idle = [await as(`/api/chats/${lockChat}/messages`, { text: 'hi' }), await as(`/api/messages/${lockMsg}/regenerate`, {})];
+  const p = sse(`/api/messages/${lockMsg}/regenerate`, {});
+  await sleep(800);
+  const busy = [await as(`/api/chats/${lockChat}/messages`, { text: 'hi' }), await as(`/api/messages/${lockMsg}/regenerate`, {}), await as(`/api/messages/${lockMsg}/continue`, {}), await as(`/api/chats/${lockChat}/impersonate`, {})];
+  // 不存在的消息：两个用户同时请求也各自 404，不会互相 409
+  const none = await Promise.all([as('/api/messages/987654321/regenerate', {}), req('/api/messages/987654322/regenerate', { method: 'POST', json: {} }).then((r) => r.status)]);
+  await p;
+  assert([...idle, ...busy, ...none].every((c) => c === 404), `闲 ${idle} 忙 ${busy} 不存在 ${none}`);
+  return `闲 ${idle.join('/')}，忙 ${busy.join('/')}，不存在 ${none.join('/')}`;
+});
 await step('安全#4 生成中整个会话被删 → 报错且不扣点', async () => {
   const before = userBalance();
   const p = sse(`/api/messages/${lockMsg}/regenerate`, {});

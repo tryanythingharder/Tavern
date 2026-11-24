@@ -2,7 +2,7 @@ import { dataBankText } from '@/lib/data-bank';
 import { vectorLoreHits } from '@/lib/vectors';
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
 import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
-import { withGenerationLock } from '@/lib/gen-lock';
+import { withAuthorizedLock } from '@/lib/gen-lock';
 import { canGenerate, getCurrentUser } from '@/lib/auth';
 import { finishGeneration, getCharacterById, startGeneration } from '@/lib/db';
 import { roomLoreEntries, buildRoomPrompt, getRoom, listRoomMessages } from '@/lib/rooms';
@@ -108,5 +108,12 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 
 // 同一会话同时只跑一条生成；流期间发心跳防代理断连
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  return withGenerationLock(`room:${(await context.params).id}`, () => handlePost(request, context));
+  return withAuthorizedLock(async () => {
+    const user = await getCurrentUser();
+    if (!user) return fail('未登录', 401);
+    if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
+    const room = getRoom(Number((await context.params).id), user.id);
+    if (!room) return fail('房间不存在', 404);
+    return `room:${room.id}`;
+  }, () => handlePost(request, context));
 }
