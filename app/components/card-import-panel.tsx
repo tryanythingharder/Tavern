@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FileDrop } from '@/components/file-drop';
 import { api } from '@/components/settings-ui';
@@ -18,7 +17,6 @@ const TOOLS = [
 ];
 
 export function CardImportPanel() {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [text, setText] = useState('');

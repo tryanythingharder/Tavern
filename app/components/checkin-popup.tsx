@@ -9,7 +9,8 @@ type Status = { todayDone: boolean; streak: number; amount: number; day: string 
 // 每日签到弹窗：状态由服务端传入，首帧即可判断是否弹出；稍后当天不再弹
 export function CheckinPopup({ initial }: { initial: Status }) {
   const router = useRouter();
-  const [status, setStatus] = useState<Status>(initial);
+  // 签到结果显示在 done 里，status 只读首帧传入的值（原来的 setStatus 从没调用过）
+  const [status] = useState<Status>(initial);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ amount: number; streak: number } | null>(null);

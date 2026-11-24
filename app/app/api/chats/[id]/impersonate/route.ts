@@ -12,7 +12,7 @@ import { modelConfigured, modelName } from '@/lib/model';
 import { runGeneration } from '@/lib/run-generation';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
-import { memorySettings, promptMemory } from '@/lib/memory';
+import { promptMemory } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 import { dailyFreeRemaining } from '@/lib/growth';
@@ -50,7 +50,6 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 
   const config = loadGenerationConfig(user.id, chat);
   const genPrefs = getGenPrefs(user.id);
-  const memory = memorySettings(chat);
   const ejsHistory = listMessages(chatId);
   const vars = chatVariables(chat.id, chat.character_id);
   const ejsLore = await templateLore(config.loreEntries, { userId: user.id, chatId: chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: ejsHistory, model: modelName(chat.model), variables: vars });
