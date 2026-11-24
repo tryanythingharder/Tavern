@@ -1,6 +1,6 @@
 import { dataBankText } from '@/lib/data-bank';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { nsfwBlock } from '@/lib/age-gate';
 import { withAuthorizedLock } from '@/lib/gen-lock';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
 import { moderateText } from '@/lib/auto-moderation';

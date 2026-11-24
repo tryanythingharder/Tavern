@@ -98,14 +98,6 @@ export function listOrders(userId: number, limit = 20): Order[] {
   return rows.map(orderFromRow);
 }
 
-export function listPendingOrders(limit = 50): (Order & { userId: number; nickname: string; email: string })[] {
-  const rows = db.prepare(`
-        SELECT o.*, u.nickname, u.email FROM orders o JOIN users u ON u.id = o.user_id
-        WHERE o.status = 'pending' ORDER BY o.id DESC LIMIT ?
-    `).all(limit) as (OrderRow & { nickname: string; email: string; user_id: number })[];
-  return rows.map((row) => ({ ...orderFromRow(row), userId: row.user_id, nickname: row.nickname, email: row.email }));
-}
-
 // 后台概览：最近订单（含已支付）
 export function listRecentOrders(limit = 8): (Order & { userId: number; nickname: string; email: string })[] {
   const rows = db.prepare(`

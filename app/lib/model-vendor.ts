@@ -1,4 +1,3 @@
-import { kindCapabilities } from '@/lib/model-kind';
 // 按模型 id 猜厂商（模型广场的厂商筛选与图标用）。纯函数，前后端都能用。
 export type Vendor = { key: string; name: string; mark: string; color: string };
 
@@ -39,6 +38,3 @@ export function modelVendor(id: string): Vendor {
 }
 
 /** 从 id 猜对话模型的能力标签（思考、视觉、长上下文…）；类别相关的见 lib/model-kind.ts */
-export function modelTraits(id: string, contextTokens: number): string[] {
-  return kindCapabilities('chat', id, contextTokens);
-}

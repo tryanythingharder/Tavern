@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { PROMPT_BLOCKS, PROMPT_TRIGGERS, defaultPreset, promptKey, type Preset, type PresetParams, type PresetPrompt } from '@/lib/resources';
+import { PROMPT_BLOCKS, PROMPT_TRIGGERS, defaultPreset, promptKey, type Preset, type PresetPrompt } from '@/lib/resources';
 import { Select } from '@/components/ui-select';
 import { askConfirm } from '@/components/ui-dialog';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';

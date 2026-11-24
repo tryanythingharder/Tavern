@@ -17,5 +17,3 @@ export function parsePlayMode(value: string | undefined | null): PlayMode | null
   if (value === 'veteran') return 'full'; // 旧版「老玩家」cookie
   return null;
 }
-
-export const isVeteran = (mode: PlayMode) => mode !== 'newbie';

@@ -1,7 +1,7 @@
 import { dataBankText } from '@/lib/data-bank';
 import { vectorLoreHits } from '@/lib/vectors';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { roomNsfwBlock } from '@/lib/age-gate';
 import { setRoomMessageReasoning } from '@/lib/rooms';
 import type { Reasoning } from '@/lib/reasoning';
 import { withAuthorizedLock } from '@/lib/gen-lock';

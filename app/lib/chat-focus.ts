@@ -5,7 +5,6 @@ export const CHAT_STAGE_KEY = 'tavern:chat-stage';
 // 画面栏宽度（px），拖动右边缘调整
 export const CHAT_STAGE_W_KEY = 'tavern:chat-stage-w';
 export const STAGE_MIN_W = 240;
-export const STAGE_RAIL_W = 56;
 
 export function chatFocusBootScript(richCard: boolean, hasStage: boolean): string {
   const rich = richCard ? 'true' : 'false';

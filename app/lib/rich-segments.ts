@@ -97,7 +97,3 @@ export function splitRich(text: string): RichSegment[] {
   if (last < text.length) splitHtmlLines(text.slice(last), out);
   return out.length ? out : [{ kind: 'text', text: '' }];
 }
-
-export function hasRichHtml(text: string): boolean {
-  return splitRich(text).some((segment) => segment.kind === 'html');
-}

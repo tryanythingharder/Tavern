@@ -1,5 +1,5 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { roomNsfwBlock } from '@/lib/age-gate';
 import { deleteRoom, getRoom, updateRoom } from '@/lib/rooms';
 
 export const dynamic = 'force-dynamic';

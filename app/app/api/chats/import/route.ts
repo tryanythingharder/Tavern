@@ -1,5 +1,5 @@
 import { fail, requireUser } from '@/lib/api';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { nsfwBlock } from '@/lib/age-gate';
 import { addMessage, createChat, getCharacterById, setMessageReasoning, setMessagesHidden } from '@/lib/db';
 import { parseChatImport } from '@/lib/chat-import';
 import { writeHelperVars } from '@/lib/helper-vars';

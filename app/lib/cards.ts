@@ -44,12 +44,6 @@ export function getOverride(userId: number, characterId: string): CharacterOverr
   return depth ? { characterId, systemPrompt: '', postHistory: '', mesExample: '', depthPrompt: depth.prompt, depthDepth: depth.depth, depthRole: depth.role } : null;
 }
 
-// 仅玩家自己存的覆盖（编辑界面用，不带卡自带的默认值）
-export function getSavedOverride(userId: number, characterId: string): CharacterOverride | null {
-  const row = db.prepare('SELECT * FROM character_overrides WHERE user_id = ? AND character_id = ?').get(userId, characterId) as Row | undefined;
-  return row ? fromRow(row) : null;
-}
-
 export function listOverrides(userId: number): Record<string, CharacterOverride> {
   const rows = db.prepare('SELECT * FROM character_overrides WHERE user_id = ?').all(userId) as Row[];
   return Object.fromEntries(rows.map((row) => [row.character_id, fromRow(row)]));

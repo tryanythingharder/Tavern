@@ -7,7 +7,7 @@ import { assemblePrompt } from '@/lib/prompt';
 import { chatVariables } from '@/lib/mvu-server';
 import { loadGenerationConfig } from '@/lib/resources-db';
 import { getOverride } from '@/lib/cards';
-import { memorySettings, summaryState, promptMemory } from '@/lib/memory';
+import { memorySettings, promptMemory } from '@/lib/memory';
 import { retrieveMemories, vectorLoreHits } from '@/lib/vectors';
 
 export const dynamic = 'force-dynamic';

@@ -3,7 +3,6 @@ import { notify } from '@/lib/notifications';
 import { logAdmin } from '@/lib/audit';
 
 // M4 审核：举报入库 → 后台处理 → 通知举报人；封禁直接改 users.status，被禁账号的会话会失效。
-export const REPORT_REASONS = ['色情或暴力', '侵犯版权', '骚扰或仇恨', '欺诈或误导', '其他'] as const;
 export type ReportStatus = 'open' | 'resolved' | 'dismissed';
 
 export type Report = {
@@ -178,9 +177,4 @@ export function setUserStatus(userId: number, status: 'active' | 'banned'): bool
     notify(userId, { type: 'moderation', title: '账号已被限制', body: '如有疑问请联系管理员。', link: null });
   }
   return true;
-}
-
-export function userStatus(userId: number): string | null {
-  const row = db.prepare('SELECT status FROM users WHERE id = ?').get(userId) as { status: string } | undefined;
-  return row ? row.status : null;
 }

@@ -44,10 +44,6 @@ export function tr(text: string, vars?: Record<string, string | number>): string
   return out;
 }
 
-export function trNode(text: string): string {
-  return translate(text, currentDict());
-}
-
 export function activeDict(): Dict | null { return currentDict(); }
 
 /** 页面元数据（标题、描述）按当前语言翻译 */

@@ -12,8 +12,6 @@ export const DEFAULT_CONTEXT_TEMPLATE = [
   '【作者提示词】{{instructions}}',
 ].join('\n');
 
-export const CONTEXT_PLACEHOLDERS = ['char', 'hook', 'description', 'personality', 'scenario', 'legacy', 'instructions'] as const;
-
 export const PROMPT_BLOCKS = [
   ['system', '系统提示'],
   ['character', '角色设定'],
@@ -52,7 +50,6 @@ export type LoreLogic = (typeof LORE_LOGICS)[number][0];
 
 export type LoreRole = 'system' | 'user' | 'assistant';
 
-export const PROMPT_CHAR_BUDGET = 6000;
 export const LORE_SCAN_DEPTH = 12;
 export const LORE_BUDGET = 2000;
 

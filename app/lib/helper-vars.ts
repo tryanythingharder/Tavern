@@ -43,7 +43,3 @@ export function writeHelperVars(userId: number, scope: HelperScope, scopeId: str
   ).run(userId, scope, scopeId, text, Date.now());
   return true;
 }
-
-export function deleteChatHelperVars(userId: number, chatId: number): void {
-  db.prepare("DELETE FROM helper_vars WHERE user_id = ? AND scope = 'chat' AND scope_id = ?").run(userId, String(chatId));
-}

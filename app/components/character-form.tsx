@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORIES } from '@/lib/catalog';
 import type { CharacterView } from '@/lib/characters';
-import { ErrorLine, Modal, api } from '@/components/settings-ui';
+import { Modal, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
 
 export function CharacterForm({ initial }: { initial?: CharacterView }) {

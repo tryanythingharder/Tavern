@@ -89,9 +89,6 @@ export function promptLocale(): Locale {
 }
 
 /** 单段文字：英文界面换成英文脚手架，中文原样返回 */
-export function localizeScaffold(text: string, locale: Locale = promptLocale()): string {
-  return locale === 'en' && text ? toEnglish(text) : text;
-}
 
 /** 整组消息：只处理字符串内容（多模态数组里的文本块也处理） */
 export function localizeMessages<T extends Msg>(messages: T[], locale: Locale = promptLocale()): T[] {

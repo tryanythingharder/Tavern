@@ -1,5 +1,5 @@
 import { fail, json, requireUser } from '@/lib/api';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { roomNsfwBlock } from '@/lib/age-gate';
 import { createRoom, listRooms } from '@/lib/rooms';
 
 export const dynamic = 'force-dynamic';

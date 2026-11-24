@@ -172,11 +172,6 @@ export function updateChannel(id: number, input: ChannelInput): Channel | null {
   return getChannel(id);
 }
 
-export function setChannelEnabled(id: number, enabled: boolean): Channel | null {
-  db.prepare('UPDATE model_channels SET enabled=?, updated_at=? WHERE id=?').run(enabled ? 1 : 0, Date.now(), id);
-  return getChannel(id);
-}
-
 export function deleteChannel(id: number): boolean {
   const result = db.prepare('DELETE FROM model_channels WHERE id = ?').run(id);
   return result.changes > 0;

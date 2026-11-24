@@ -9,8 +9,6 @@ export async function getLocale(): Promise<Locale> {
   return store.get(LOCALE_COOKIE)?.value === 'en' ? 'en' : 'zh';
 }
 
-export function englishDict() { return en as Record<string, string>; }
-
 import { createHash } from 'node:crypto';
 let version: string | null = null;
 /** 词典版本号，用作脚本地址参数，内容变了缓存自动失效 */

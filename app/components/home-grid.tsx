@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { ProtoWorkCard, type WorkCharacter } from '@/components/proto-work-card';
 
 type Item = WorkCharacter;

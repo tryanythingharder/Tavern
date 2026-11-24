@@ -1,7 +1,7 @@
 import { dataBankText } from '@/lib/data-bank';
 import { vectorLoreHits } from '@/lib/vectors';
 import { getGenPrefs, streamExtras, trimToEndSentence } from '@/lib/gen-prefs';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { nsfwBlock } from '@/lib/age-gate';
 import { withAuthorizedLock } from '@/lib/gen-lock';
 import { templateLore, templatePrompt } from '@/lib/ejs-server';
 import { canGenerate, getCurrentUser } from '@/lib/auth';

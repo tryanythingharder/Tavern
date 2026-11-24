@@ -1,5 +1,4 @@
 import db, { transaction } from '@/lib/db';
-import { notify } from '@/lib/notifications';
 import { getSetting } from '@/lib/settings';
 import { consumeDailyFree, rewardReferrerOnFirstUse } from '@/lib/growth';
 
@@ -131,10 +130,6 @@ export function tierPrice(rule: PriceRule, promptTokens: number): number {
   return price;
 }
 
-export function modelPricePer1k(model?: string | null): number {
-  return priceRule(model).price;
-}
-
 // 一次生成扣多少点：按次 = 档位价；按量 = (输入+输出)×档位价/1000，不足 1 点按 1 点
 export function pointsCost(promptTokens: number, completionTokens: number, model?: string | null): number {
   const rule = priceRule(model);
@@ -199,16 +194,6 @@ export function settleGeneration(userId: number, reserved: number, actual: numbe
   return { cost, free, balance: balance(userId) };
 }
 
-// 生成结束后扣费；余额刚跌破阈值时发一条站内通知（只发一次）。
-export function chargeGeneration(userId: number, refId: string, totalTokens: number): number {
-  const cost = pointsCost(totalTokens, 0);
-  const result = spendPoints(userId, cost, `${totalTokens} tokens`, refId);
-  if (result.ok && result.previous >= LOW_BALANCE && result.balance < LOW_BALANCE) {
-    notify(userId, { type: 'points', title: '点数不多了', body: `剩余 ${result.balance} 点。可以在「我的 · 点数」查看明细。`, link: '/me/points' });
-  }
-  return cost;
-}
-
 export function listLedger(userId: number, limit = 50): LedgerRow[] {
   const rows = db.prepare('SELECT * FROM points_ledger WHERE user_id = ? ORDER BY id DESC LIMIT ?').all(userId, limit) as Row[];
   return rows.map((row) => ({ id: row.id, kind: row.kind, amount: row.amount, balanceAfter: row.balance_after, note: row.note, createdAt: row.created_at }));
@@ -219,8 +204,4 @@ export function pointsSummary(userId: number) {
   const spent = db.prepare("SELECT COALESCE(SUM(-amount), 0) AS total FROM points_ledger WHERE user_id = ? AND amount < 0").get(userId) as { total: number };
   const gained = db.prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM points_ledger WHERE user_id = ? AND amount > 0').get(userId) as { total: number };
   return { balance: current, spent: spent.total, gained: gained.total, low: current < LOW_BALANCE, perThousand: pointsPerThousand() };
-}
-
-export function isLowBalance(current: number): boolean {
-  return current < LOW_BALANCE;
 }

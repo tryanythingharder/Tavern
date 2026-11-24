@@ -120,10 +120,6 @@ function allModels(): ModelOption[] {
     .map((route, index) => ({ id: route.model, source: index === 0 ? '主线路' : '备用线路', isDefault: index === 0, ...pricing(route.model) }));
 }
 
-export function modelBaseUrl(): string {
-  return baseUrl();
-}
-
 // 后台「测试」：直接打指定渠道，不走 failover，避免测到别的线路上。
 export async function testModelRoute(route: ModelRoute): Promise<{ text: string; ms: number }> {
   const started = Date.now();

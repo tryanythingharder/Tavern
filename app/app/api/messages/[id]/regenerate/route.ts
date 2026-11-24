@@ -1,6 +1,6 @@
 import { dataBankText } from '@/lib/data-bank';
 import { recordMessageMeta, setMessageReasoning } from '@/lib/db';
-import { nsfwBlock, roomNsfwBlock } from '@/lib/age-gate';
+import { nsfwBlock } from '@/lib/age-gate';
 import { GenTrace, addReasoningToHistory, getGenPrefs, streamExtras, trimToEndSentence, wantsAutoContinue } from '@/lib/gen-prefs';
 import { withAuthorizedLock } from '@/lib/gen-lock';
 import { applyReplyTemplates, templateLore, templatePrompt } from '@/lib/ejs-server';
@@ -19,7 +19,7 @@ import { chatVariables } from '@/lib/mvu-server';
 import { modelConfigured, modelName, streamChat } from '@/lib/model';
 import { checkQuota, estimateTokens } from '@/lib/usage';
 import { loadGenerationConfig } from '@/lib/resources-db';
-import { memorySettings, snapshotChat, summaryState, promptMemory } from '@/lib/memory';
+import { memorySettings, snapshotChat, promptMemory } from '@/lib/memory';
 import { retrieveMemories, vectorLoreHits } from '@/lib/vectors';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';

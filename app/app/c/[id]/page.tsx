@@ -18,7 +18,6 @@ import { balance } from '@/lib/points';
 import { STATE_MESSAGE, nsfwAccess } from '@/lib/age-gate';
 import { AgeGateButton } from '@/components/age-gate-dialog';
 import { getViewMode } from '@/lib/view';
-import { startStory } from './actions';
 import { ReportButton } from '@/components/report-button';
 import { CharacterComments } from '@/components/character-comments';
 import { CharacterOwnerActions } from '@/components/character-owner-actions';

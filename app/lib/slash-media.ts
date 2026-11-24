@@ -5,8 +5,6 @@ import { EXPRESSION_LABELS, EXPRESSION_ZH, type ExpressionLabel } from '@/lib/ex
 type Bg = { id: number; name: string; src: string };
 type BgResult = { notice: string; pipe: string; changed: boolean };
 
-export const MEDIA_SLASH = new Set(['bg', 'lockbg', 'unlockbg', 'expression-set', 'expression-list']);
-
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) } });
   const data = (await response.json().catch(() => ({}))) as T & { message?: string };
