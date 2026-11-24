@@ -92,12 +92,12 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
       <section className="p-card" style={{ marginTop: 20 }}>
         <div className="p-block-head"><h2>最近的兑换码</h2><span className="p-small">{codes.length} 个</span></div>
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table a-cards">
             <thead><tr><th>兑换码</th><th>点数</th><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><th>生成时间</th></tr></thead>
             <tbody>
               {codes.map((code) => (
                 <tr key={code.id}>
-                  <td data-label="兑换码" style={{ fontFamily: 'ui-monospace, monospace' }}>{code.code}</td>
+                  <td data-label="兑换码" className="a-primary" style={{ fontFamily: 'ui-monospace, monospace' }}>{code.code}</td>
                   <td data-label="点数">{code.amount} 点</td>
                   <td data-label="备注">{code.note || '—'}</td>
                   <td data-label="创建人">{code.createdByName ?? '—'}</td>

@@ -113,12 +113,12 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
       <section className="p-card" style={{ marginTop: 20 }}>
         <div className="p-block-head"><h2>最近的邀请码</h2><span className="p-small">{invites.length} 个</span></div>
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table a-cards">
             <thead><tr><th>邀请码</th><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><th>生成时间</th></tr></thead>
             <tbody>
               {invites.map((invite) => (
                 <tr key={invite.code}>
-                  <td data-label="邀请码" style={{ fontFamily: 'ui-monospace, monospace' }}>{invite.code}</td>
+                  <td data-label="邀请码" className="a-primary" style={{ fontFamily: 'ui-monospace, monospace' }}>{invite.code}</td>
                   <td data-label="备注">{invite.note || '—'}</td>
                   <td data-label="创建人">{invite.createdByName ?? '—'}</td>
                   <td data-label="使用人">{invite.usedByName ?? '—'}</td>

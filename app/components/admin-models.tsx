@@ -115,34 +115,34 @@ export function AdminModels({ initial }: { initial: { basePrice: number; models:
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td className="am-id">{row.id}<div className="p-small">{row.source}{row.isDefault ? ' · 默认' : ''}</div></td>
+                <td className="am-id" data-label="模型">{row.id}<div className="p-small">{row.source}{row.isDefault ? ' · 默认' : ''}</div></td>
                 {row.kind !== 'chat' ? (
-                  <td colSpan={3} className="am-kind-note">
+                  <td colSpan={3} className="am-kind-note" data-label="计费">
                     <span className="p-small">{KIND_NOTE[row.kind] ?? '非对话模型'}</span>
                   </td>
                 ) : (
                   <>
-                <td>
+                <td data-label="计费">
                   <Select className="p-input am-mode" aria-label={`${row.id} 计费方式`} value={row.mode} onChange={(event) => patch(row.id, { mode: event.target.value as Mode, price: row.price || (event.target.value === 'inherit' ? '' : String(basePrice)) })}>
                     <option value="inherit">跟随全局</option>
                     <option value="token">按量</option>
                     <option value="call">按次</option>
                   </Select>
                 </td>
-                <td><input className="p-input am-num" inputMode="decimal" aria-label={`${row.id} 价格`} value={row.mode === 'inherit' ? '' : row.price} disabled={row.mode === 'inherit'} placeholder={String(basePrice)} onChange={(event) => patch(row.id, { price: event.target.value })} /></td>
-                <td className="am-tiers">
+                <td data-label="价格"><input className="p-input am-num" inputMode="decimal" aria-label={`${row.id} 价格`} value={row.mode === 'inherit' ? '' : row.price} disabled={row.mode === 'inherit'} placeholder={String(basePrice)} onChange={(event) => patch(row.id, { price: event.target.value })} /></td>
+                <td className="am-tiers" data-label="上下文分档">
                   <input className="p-input" aria-label={`${row.id} 上下文分档`} value={row.mode === 'inherit' ? '' : row.tiers} disabled={row.mode === 'inherit'} placeholder="272K=6" onChange={(event) => patch(row.id, { tiers: event.target.value })} />
                   <div className={`p-small${draftRule(row) === 'bad' ? ' am-bad' : ''}`}>{preview(row, basePrice)}</div>
                 </td>
                   </>
                 )}
-                <td><input className="p-input" aria-label={`${row.id} 展示名`} value={row.name} maxLength={40} placeholder={row.id} onChange={(event) => patch(row.id, { name: event.target.value })} /></td>
-                <td><input className="p-input" aria-label={`${row.id} 介绍`} value={row.summary} maxLength={160} placeholder="文笔细腻，适合长篇剧情" onChange={(event) => patch(row.id, { summary: event.target.value })} /></td>
-                <td><input className="p-input" aria-label={`${row.id} 标签`} value={row.tags} placeholder="文笔，长上下文" onChange={(event) => patch(row.id, { tags: event.target.value })} /></td>
-                <td><input className="p-input am-num" aria-label={`${row.id} 上下文`} disabled={row.kind !== 'chat'} value={row.kind !== 'chat' ? '' : row.context} maxLength={16} placeholder="200K" onChange={(event) => patch(row.id, { context: event.target.value })} /></td>
-                <td><input className="p-input am-num" inputMode="numeric" aria-label={`${row.id} 排序`} value={row.sort} placeholder="0" onChange={(event) => patch(row.id, { sort: event.target.value })} /></td>
-                <td><input type="checkbox" aria-label={`${row.id} 推荐`} checked={row.featured} onChange={(event) => patch(row.id, { featured: event.target.checked })} /></td>
-                <td><input type="checkbox" aria-label={`${row.id} 下架`} checked={row.hidden} onChange={(event) => patch(row.id, { hidden: event.target.checked })} /></td>
+                <td data-label="展示名"><input className="p-input" aria-label={`${row.id} 展示名`} value={row.name} maxLength={40} placeholder={row.id} onChange={(event) => patch(row.id, { name: event.target.value })} /></td>
+                <td data-label="一句话介绍"><input className="p-input" aria-label={`${row.id} 介绍`} value={row.summary} maxLength={160} placeholder="文笔细腻，适合长篇剧情" onChange={(event) => patch(row.id, { summary: event.target.value })} /></td>
+                <td data-label="标签"><input className="p-input" aria-label={`${row.id} 标签`} value={row.tags} placeholder="文笔，长上下文" onChange={(event) => patch(row.id, { tags: event.target.value })} /></td>
+                <td data-label="上下文"><input className="p-input am-num" aria-label={`${row.id} 上下文`} disabled={row.kind !== 'chat'} value={row.kind !== 'chat' ? '' : row.context} maxLength={16} placeholder="200K" onChange={(event) => patch(row.id, { context: event.target.value })} /></td>
+                <td data-label="排序"><input className="p-input am-num" inputMode="numeric" aria-label={`${row.id} 排序`} value={row.sort} placeholder="0" onChange={(event) => patch(row.id, { sort: event.target.value })} /></td>
+                <td data-label="推荐" className="am-check"><input type="checkbox" aria-label={`${row.id} 推荐`} checked={row.featured} onChange={(event) => patch(row.id, { featured: event.target.checked })} /></td>
+                <td data-label="下架" className="am-check"><input type="checkbox" aria-label={`${row.id} 下架`} checked={row.hidden} onChange={(event) => patch(row.id, { hidden: event.target.checked })} /></td>
               </tr>
             ))}
           </tbody>
