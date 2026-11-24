@@ -8,21 +8,21 @@ import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { ProtoWorkCard, type WorkCharacter } from '@/components/proto-work-card';
 import { AgeGateDialog, type NsfwStateName } from '@/components/age-gate-dialog';
 import { Select } from '@/components/ui-select';
+import { ALL, CATEGORIES, HOT_TAG_COUNT, hasAllTags, hotTags, isCategory } from '@/lib/catalog';
 
 type Item = WorkCharacter & { tags: string[]; nsfw: boolean; createdAt: number };
-
-const TAGS = ['全部', '奇幻', '现代', '悬疑', '治愈'];
 
 function heat(value: string): number {
   const number = Number(String(value).replace(/[^\d.]/g, '')) || 0;
   return String(value).includes('万') ? number * 10000 : number;
 }
 
-export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfwState = 'allowed', minAge = 18 }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[]; nsfwState?: NsfwStateName; minAge?: number }) {
+export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfwState = 'allowed', minAge = 18, initialCategory, initialTags = [] }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[]; nsfwState?: NsfwStateName; minAge?: number; initialCategory?: string; initialTags?: string[] }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'hot' | 'new'>('hot');
-  const [tag, setTag] = useState('全部');
+  const [category, setCategory] = useState<string>(isCategory(initialCategory) ? initialCategory : ALL);
+  const [tags, setTags] = useState<string[]>(initialTags);
   const [hideNsfw, setHideNsfw] = useState(initialHideNsfw);
   const [visible, setVisible] = useState(6);
   const [blocked, setBlocked] = useState<string[]>(initialBlocked);
@@ -32,17 +32,52 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
   const [importError, setImportError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // 当前可见（未被 18+ / 屏蔽作者过滤掉）的卡片：大类计数和热门标签都从这里统计
+  const pool = useMemo(
+    () => characters.filter((character) => !(hideNsfw && character.nsfw) && !blocked.includes(character.author)),
+    [characters, hideNsfw, blocked],
+  );
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const character of pool) counts.set(character.category, (counts.get(character.category) ?? 0) + 1);
+    return counts;
+  }, [pool]);
+  // 热门标签按当前大类统计，取前 N 个；已选的标签即使掉出前 N 也保留显示，方便取消
+  const tagChips = useMemo(() => {
+    const scope = category === ALL ? pool : pool.filter((character) => character.category === category);
+    const top = hotTags(scope, HOT_TAG_COUNT).map((item) => item.tag);
+    return [...tags.filter((item) => !top.includes(item)), ...top];
+  }, [pool, category, tags]);
+
+  const syncUrl = (nextCategory: string, nextTags: string[]) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete('category');
+    params.delete('tag');
+    if (nextCategory !== ALL) params.set('category', nextCategory);
+    for (const item of nextTags) params.append('tag', item);
+    const suffix = params.toString();
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${suffix ? `?${suffix}` : ''}`);
+  };
+  const pickCategory = (next: string) => { setCategory(next); setVisible(6); syncUrl(next, tags); };
+  const toggleTag = (item: string) => {
+    const next = tags.includes(item) ? tags.filter((value) => value !== item) : [...tags, item];
+    setTags(next);
+    setVisible(6);
+    syncUrl(category, next);
+  };
+  const clearFilters = () => { setQuery(''); setCategory(ALL); setTags([]); setVisible(6); syncUrl(ALL, []); };
+
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const matched = characters.filter((character) => {
-      if (hideNsfw && character.nsfw) return false;
-      if (blocked.includes(character.author)) return false;
-      if (tag !== '全部' && character.category !== tag) return false;
+    const matched = pool.filter((character) => {
+      if (category !== ALL && character.category !== category) return false;
+      if (!hasAllTags(character, tags)) return false;
       if (!q) return true;
       return `${character.name} ${character.author} ${character.hook} ${character.tags.join(' ')}`.toLowerCase().includes(q);
     });
     return matched.sort((a, b) => (sort === 'new' ? b.createdAt - a.createdAt : heat(b.chats) - heat(a.chats)));
-  }, [characters, query, tag, hideNsfw, blocked, sort]);
+  }, [pool, query, category, tags, sort]);
 
   const shown = list.slice(0, visible);
 
@@ -147,14 +182,29 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
           )}
           <span className="p-filterbar-count">{list.length} 个作品</span>
         </div>
-        <div className="p-chips" aria-label="角色题材">
-          {TAGS.map((item) => (
-            <button key={item} className="p-chip" type="button" aria-pressed={tag === item} onClick={() => { setTag(item); setVisible(6); }}>{item}</button>
-          ))}
+        <div className="p-chips plaza-categories" role="group" aria-label="角色题材">
+          {[ALL, ...CATEGORIES].map((item) => {
+            const count = item === ALL ? pool.length : categoryCounts.get(item) ?? 0;
+            return (
+              <button key={item} className="p-chip" type="button" aria-pressed={category === item} disabled={!count && category !== item} onClick={() => pickCategory(item)}>
+                {item}
+                <span className="plaza-chip-count">{count}</span>
+              </button>
+            );
+          })}
           {blocked.length > 0 && (
             <button className="p-chip" type="button" onClick={() => void unblockAll()}>已屏蔽 {blocked.length} 位作者 · 解除</button>
           )}
         </div>
+        {tagChips.length > 0 && (
+          <div className="p-chips plaza-tags" role="group" aria-label="热门标签">
+            <span className="plaza-tags-label">热门标签</span>
+            {tagChips.map((item) => (
+              <button key={item} className="p-chip p-chip--sm" type="button" aria-pressed={tags.includes(item)} onClick={() => toggleTag(item)}>#{item}</button>
+            ))}
+            {tags.length > 0 && <button className="p-text-btn" type="button" onClick={() => { setTags([]); setVisible(6); syncUrl(category, []); }}>清除标签</button>}
+          </div>
+        )}
         {query.trim() && (
           <p className="p-small" style={{ margin: '8px 0 0' }}>
             <Link className="p-text-btn" href={`/search?q=${encodeURIComponent(query.trim())}`}>在全部角色和作者中搜索「{query.trim()}」→</Link>
@@ -170,7 +220,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
           <div className="p-empty" style={{ gridColumn: '1/-1' }}>
             <div className="p-empty-title">没有找到匹配的角色</div>
             <p className="p-empty-text">试试角色名、作者或「雨夜」「慢热」等关键词。</p>
-            <button className="p-btn" type="button" onClick={() => { setQuery(''); setTag('全部'); void unblockAll(); setVisible(6); }}>清除筛选</button>
+            <button className="p-btn" type="button" onClick={() => { clearFilters(); void unblockAll(); }}>清除筛选</button>
           </div>
         )}
       </div>

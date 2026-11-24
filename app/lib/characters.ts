@@ -1,5 +1,5 @@
 import db, { type DbCharacter } from '@/lib/db';
-import { CATEGORIES } from '@/lib/catalog';
+import { DEFAULT_CATEGORY, hasAllTags, isCategory } from '@/lib/catalog';
 import { saveMedia } from '@/lib/storage';
 import { localizeSeedRow, seedIdsMatching } from './seed-i18n';
 
@@ -144,10 +144,17 @@ function heat(value: string): number {
 
 export function searchCharacterViews(
   query: string,
-  options: { hideNsfw?: boolean; category?: string; sort?: 'relevance' | 'hot' | 'new' } = {},
+  options: { hideNsfw?: boolean; category?: string; tags?: string[]; sort?: 'relevance' | 'hot' | 'new' } = {},
 ): CharacterView[] {
   const q = query.trim();
-  if (!q) return [];
+  // 没有关键词但选了题材或标签：按筛选条件浏览全部公开角色
+  if (!q) {
+    if ((!options.category || options.category === '全部') && !options.tags?.length) return [];
+    let list = listCharacterViews(options.category, { hideNsfw: options.hideNsfw });
+    if (options.tags?.length) list = list.filter((item) => hasAllTags(item, options.tags!));
+    if (options.sort === 'new') return [...list].sort((a, b) => b.createdAt - a.createdAt);
+    return [...list].sort((a, b) => heat(b.chats) - heat(a.chats));
+  }
   const like = `%${q.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
   const rows = db.prepare(`
         SELECT * FROM characters
@@ -160,6 +167,7 @@ export function searchCharacterViews(
   let list = rows.map(characterView);
   if (options.hideNsfw) list = list.filter((item) => !item.nsfw);
   if (options.category && options.category !== '全部') list = list.filter((item) => item.category === options.category);
+  if (options.tags?.length) list = list.filter((item) => hasAllTags(item, options.tags!));
   if (options.sort === 'hot') list = [...list].sort((a, b) => heat(b.chats) - heat(a.chats));
   else if (options.sort === 'new') list = [...list].sort((a, b) => b.createdAt - a.createdAt);
   return list;
@@ -193,7 +201,7 @@ function normalizeInput(input: CharacterInput, fallbackName = '新角色') {
     description: String(input.description ?? '').trim().slice(0, 60000),
     pace: String(input.pace ?? '').trim().slice(0, 120) || '慢热 · 细节叙事',
     tags,
-    category: (CATEGORIES as readonly string[]).includes(String(input.category)) ? String(input.category) : '现代',
+    category: isCategory(input.category) ? input.category : DEFAULT_CATEGORY,
     nsfw: input.nsfw === true,
     alternateGreetings: normalizeOpenings(input.alternateGreetings),
   };

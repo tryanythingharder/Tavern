@@ -1,3 +1,5 @@
+import { classifyCategory } from '@/lib/catalog';
+
 // 解析 SillyTavern 角色卡 V1/V2/V3 JSON（PNG 由 lib/png-card.ts 先取出 JSON）。
 // 平台表单字段在这里；世界书、正则、深度提示、原始数据见 lib/card-extras.ts。
 export type ImportedCard = {
@@ -44,7 +46,8 @@ export function parseStCharacterCard(input: unknown): ImportedCard | null {
     description: (description || personality || scenario).slice(0, 60000),
     pace: '慢热 · 细节叙事',
     tags,
-    category: '现代',
+    // 按卡上的标签、名字、简介和描述关键词归一个大类；没把握时用默认大类
+    category: classifyCategory({ tags, name, hook: `${hook} ${creatorNotes.slice(0, 400)}`, description: `${description}\n${personality}\n${scenario}` }),
     nsfw,
     alternateGreetings: alternates,
     card: { personality, scenario, mesExample: examples, systemPrompt, postHistory, creatorNotes },

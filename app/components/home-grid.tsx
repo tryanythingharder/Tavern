@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { ProtoWorkCard, type WorkCharacter } from '@/components/proto-work-card';
+import { ALL, CATEGORIES } from '@/lib/catalog';
 
 type Item = WorkCharacter;
-const TAGS = ['全部', '奇幻', '现代', '悬疑', '治愈'];
+const TAGS = [ALL, ...CATEGORIES];
 
 export function HomeGrid({ characters }: { characters: Item[] }) {
   const [filter, setFilter] = useState('全部');

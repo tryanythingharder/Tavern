@@ -4,7 +4,7 @@ import { joinList } from '@/lib/i18n/runtime';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { CATEGORIES } from '@/lib/catalog';
+import { CATEGORIES, DEFAULT_CATEGORY, LEGACY_CATEGORY_MAP, SUGGESTED_TAGS, isCategory } from '@/lib/catalog';
 import type { CharacterView } from '@/lib/characters';
 import { Modal, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
@@ -17,7 +17,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
   const [description, setDescription] = useState(initial?.description ?? '');
   const [pace, setPace] = useState(initial?.pace ?? '');
   const [tags, setTags] = useState(initial ? joinList(initial.tags, '，') : '');
-  const [category, setCategory] = useState(initial?.category ?? '现代');
+  const [category, setCategory] = useState<string>(isCategory(initial?.category) ? initial!.category : LEGACY_CATEGORY_MAP[initial?.category ?? ''] ?? DEFAULT_CATEGORY);
   const [nsfw, setNsfw] = useState(initial?.nsfw ?? false);
   const [coverData, setCoverData] = useState<string>(initial?.coverImage ?? '');
   const [avatarData, setAvatarData] = useState<string>(initial?.avatarImage ?? '');
@@ -43,7 +43,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
   const draftKey = `tavern-draft-${initial?.id ?? 'new'}`;
   const ready = useRef(false);
 
-  const tagList = tags.split(/[,，\s]+/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5);
+  const tagList = tags.split(/[,，\s]+/).map((tag) => tag.trim()).filter(Boolean).slice(0, 12);
 
   // 挂载时检查本地草稿：新建时提示恢复；编辑时只显示「有未提交的本地修改」
   useEffect(() => {
@@ -86,7 +86,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
     setDescription(String(data.description ?? ''));
     setPace(String(data.pace ?? ''));
     setTags(String(data.tags ?? ''));
-    setCategory(String(data.category ?? '现代'));
+    setCategory(isCategory(data.category) ? String(data.category) : LEGACY_CATEGORY_MAP[String(data.category ?? '')] ?? DEFAULT_CATEGORY);
     setNsfw(Boolean(data.nsfw));
     setAlternate(String(data.alternate ?? ''));
     if (data.card && typeof data.card === 'object') setCard((prev) => ({ ...prev, ...(data.card as Record<string, string>) }));
@@ -163,7 +163,7 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
       <p className="p-create-preview-hook">{hook || '公开简介会显示在这里。'}</p>
       <div className="creator-preview-tags">
         <span className="p-pill p-pill--sm p-pill--outline">{category}</span>
-        {tagList.filter((tag) => tag !== category).map((tag) => <span className="p-pill p-pill--sm p-pill--outline" key={tag}>{tag}</span>)}
+        {tagList.filter((tag) => tag !== category).slice(0, 5).map((tag) => <span className="p-pill p-pill--sm p-pill--outline" key={tag}>{tag}</span>)}
       </div>
       {nsfw && <p className="p-small">已标记为需主动确认的内容 · 不会公开到广场</p>}
       <h4>人物与关系</h4>
@@ -334,6 +334,22 @@ export function CharacterForm({ initial }: { initial?: CharacterView }) {
               <label className="p-label" htmlFor="create-tags">标签</label>
               <input id="create-tags" className="p-input" value={tags} placeholder="民国，悬疑，慢热" onChange={(event) => setTags(event.target.value)} />
               <span className="p-hint">用逗号分隔，最多 12 个。</span>
+              <div className="p-chips" aria-label="常用标签" style={{ marginTop: 8 }}>
+                {SUGGESTED_TAGS.map((item) => {
+                  const on = tagList.includes(item);
+                  return (
+                    <button
+                      key={item}
+                      className="p-chip"
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setTags(on ? tagList.filter((tag) => tag !== item).join('，') : [...tagList, item].join('，'))}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="p-field">

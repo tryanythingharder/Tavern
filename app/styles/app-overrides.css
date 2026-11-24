@@ -988,3 +988,25 @@ article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
   content-visibility: auto;
   contain-intrinsic-size: auto 180px;
 }
+
+/* 广场 / 搜索：两层筛选——上一行大类，下一行热门标签（各占一行，放不下时横向滚动） */
+.plaza-categories,
+.plaza-tags {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+}
+.plaza-categories::-webkit-scrollbar,
+.plaza-tags::-webkit-scrollbar { display: none; }
+.plaza-categories > .p-chip,
+.plaza-tags > .p-chip { flex: 0 0 auto; }
+.plaza-categories > .p-chip:disabled { opacity: .45; cursor: default; }
+.plaza-chip-count { font-size: 11px; opacity: .6; font-variant-numeric: tabular-nums; }
+.p-chip[aria-pressed="true"] .plaza-chip-count,
+.p-chip[aria-current="page"] .plaza-chip-count { opacity: .8; }
+.plaza-tags { margin-top: 8px; align-items: center; gap: 6px; }
+.plaza-tags-label { flex: 0 0 auto; color: var(--muted); font-size: 12px; margin-right: 2px; }
+.plaza-tags > .p-chip { height: 30px; min-height: 30px; padding: 0 10px; font-size: 13px; }
+.plaza-tags > .p-text-btn { flex: 0 0 auto; font-size: 12px; white-space: nowrap; }
