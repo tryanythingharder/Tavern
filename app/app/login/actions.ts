@@ -89,7 +89,8 @@ export async function login(formData: FormData) {
   if (formData.get('agree') !== 'on') redirect('/login?mode=login&error=' + encodeURIComponent('请先阅读并勾选同意用户协议和隐私政策'));
   const ip = await clientIp();
   const ipLimit = rateLimit('login-ip', [ip], 30, 15 * 60 * 1000);
-  const accountLimit = rateLimit('login-account', [email, ip], 10, 15 * 60 * 1000);
+  // 单账号限流只按邮箱计：键里带 IP 的话换个来源地址就能绕开
+  const accountLimit = rateLimit('login-account', [email], 10, 15 * 60 * 1000);
   if (!ipLimit.ok || !accountLimit.ok) {
     const wait = !ipLimit.ok ? ipLimit.retryAfter : !accountLimit.ok ? accountLimit.retryAfter : 60;
     redirect('/login?mode=login&error=' + encodeURIComponent(`登录尝试太频繁，请 ${Math.ceil(wait / 60)} 分钟后再试`));

@@ -181,6 +181,7 @@ TAVERN_COOKIE_SECURE=1              # HTTPS 站点必须
 TAVERN_REQUIRE_ADMIN_2FA=1          # 管理员未开启 TOTP 时后台不可用
 TAVERN_REQUIRE_EMAIL_VERIFY=1       # 未验证邮箱不能生成/发布/评论
 TAVERN_GLOBAL_DAILY_TOKEN_CAP=2000000 # 全站每日 token 止损（0=不限）
+TAVERN_TRUSTED_PROXY=1              # 仅在应用只经自己的反代访问时开启：限流取 X-Forwarded-For 最右一跳；默认关闭=只认 TCP 对端地址
 TAVERN_UPSTREAM_TIMEOUT_MS=120000   # 文本上游超时
 TAVERN_MEDIA_TIMEOUT_MS=180000      # 生图/TTS 上游超时
 TAVERN_SUPPORT_EMAIL=support@example.com # 帮助与申诉页展示的支持邮箱

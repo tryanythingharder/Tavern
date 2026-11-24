@@ -28,12 +28,44 @@ export function rateLimit(prefix: string, parts: string[], limit: number, window
   return { ok: true };
 }
 
-// 反代后优先取 X-Forwarded-For 的第一个地址；直连时用 X-Real-IP。
+// 客户端地址：
+// - 默认（TAVERN_TRUSTED_PROXY 未开启）完全不看 X-Forwarded-For / X-Real-IP，只用 TCP 对端地址。
+//   对端地址由 instrumentation.ts 在请求进入 Next 之前写进 PEER_HEADER（会先丢弃客户端自带的同名头）。
+// - 开启 TAVERN_TRUSTED_PROXY=1（应用只能经由自己的反代访问时）才读 X-Forwarded-For，并取最右一跳：
+//   反代（如 nginx 的 $proxy_add_x_forwarded_for）会把它看到的对端追加在最右，左边的部分客户端可以随便伪造。
+export const PEER_HEADER = 'x-tavern-peer';
+
+export function trustedProxy(): boolean {
+  return /^(1|true|yes|on)$/i.test(process.env.TAVERN_TRUSTED_PROXY ?? '');
+}
+
+type HeaderGetter = { get(name: string): string | null };
+
+function normalizeIp(ip: string): string {
+  const v = ip.trim();
+  return v.startsWith('::ffff:') && v.includes('.') ? v.slice(7) : v;
+}
+
+let warnedNoPeer = false;
+export function ipFromHeaders(list: HeaderGetter): string {
+  const peer = list.get(PEER_HEADER)?.trim() || '';
+  if (trustedProxy()) {
+    const hops = (list.get('x-forwarded-for') ?? '').split(',').map((h) => h.trim()).filter(Boolean);
+    const last = hops.at(-1);
+    if (last) return normalizeIp(last);
+  }
+  if (peer) return normalizeIp(peer);
+  if (!warnedNoPeer) {
+    warnedNoPeer = true;
+    console.warn('[rate-limit] 拿不到 TCP 对端地址（instrumentation 未生效？），客户端地址记为 unknown');
+  }
+  return 'unknown';
+}
+
 export async function clientIp(): Promise<string> {
-  const list = await headers();
-  return list.get('x-forwarded-for')?.split(',')[0]?.trim() || list.get('x-real-ip') || 'unknown';
+  return ipFromHeaders(await headers());
 }
 
 export function ipFromRequest(request: Request): string {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+  return ipFromHeaders(request.headers);
 }

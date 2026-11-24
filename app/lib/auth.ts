@@ -3,6 +3,7 @@ import { randomDefaultAvatarUrl } from '@/lib/default-avatars';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import db, { transaction } from '@/lib/db';
+import { ipFromHeaders } from '@/lib/rate-limit';
 import { deleteMediaByOwner } from '@/lib/storage';
 import { consumeRecoveryCode, generateRecoveryCodes, generateTotpSecret, hashRecoveryCode, otpauthUrl, parseRecoveryHashes, verifyTotp } from '@/lib/totp';
 
@@ -162,7 +163,8 @@ export async function startSession(userId: number) {
   const expires = now + SESSION_DAYS * 24 * 60 * 60 * 1000;
   const headerList = await headers();
   const userAgent = headerList.get('user-agent')?.slice(0, 240) ?? null;
-  const ip = headerList.get('x-forwarded-for')?.split(',')[0]?.trim() || headerList.get('x-real-ip') || null;
+  const ipRaw = ipFromHeaders(headerList);
+  const ip = ipRaw === 'unknown' ? null : ipRaw;
   db.prepare('INSERT INTO sessions (token, user_id, expires_at, created_at, user_agent, ip) VALUES (?,?,?,?,?,?)').run(token, userId, expires, now, userAgent, ip);
   const store = await cookies();
   // 本地 HTTP 开发不能带 Secure；生产只要站点地址是 https（或显式开启）就强制 Secure

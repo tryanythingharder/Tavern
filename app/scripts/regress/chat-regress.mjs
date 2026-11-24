@@ -65,6 +65,8 @@ const assert = (c, m) => { if (!c) throw new Error(m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const email = `regress${Date.now()}@test.local`;
+const SPOOF_IP = '203.0.113.77';
+const rndIp = () => `198.51.${Math.random() * 255 | 0}.${Math.random() * 255 | 0}`;
 let chatId, greetingId, userMsgId, botMsgId, branchId;
 const messages = async (id = chatId) => (await (await req(`/api/chats/${id}/messages?limit=100`)).json()).messages;
 
@@ -83,12 +85,28 @@ await step('注册（真实 server action 表单提交）', async () => {
   assert(m, '注册页没找到 server action 表单');
   const fd = new FormData();
   fd.set(m[1], ''); fd.set('email', email); fd.set('password', 'regress-pass-123'); fd.set('nickname', '回归测试'); fd.set('birth', '1995-05-05'); fd.set('age', 'on');
-  const r = await req('/register', { method: 'POST', body: fd, headers: { origin: BASE } });
+  // 带一个伪造的 X-Forwarded-For：默认（未开 TAVERN_TRUSTED_PROXY）服务端必须忽略它
+  const r = await req('/register', { method: 'POST', body: fd, headers: { origin: BASE, 'x-forwarded-for': SPOOF_IP } });
   assert(r.status === 303 || r.status === 200 || r.status === 307, `status ${r.status}`);
   assert(jar.tavern_session, '没拿到会话 cookie（loc=' + r.headers.get('location') + '）');
   return `→ ${r.headers.get('location') || r.status}`;
 });
 await step('登录态 /me 渲染', async () => { const r = await req('/me'); assert(r.status === 200, `status ${r.status}`); });
+await step('安全#1 伪造 X-Forwarded-For 不进登录记录', async () => { const j = await (await req('/api/me/sessions')).json(); const ips = (j.sessions || []).map((x) => x.ip); assert(ips.length, '没有会话'); assert(!ips.includes(SPOOF_IP), '记录了伪造的 XFF：' + ips.join(',')); return `ip=${ips.join(',')}`; });
+await step('安全#1 轮换 X-Forwarded-For 绕不开单账号登录限流', async () => {
+  // 注意：会占本机 11 次 login-ip 额度（30 次/15 分钟），同一实例 15 分钟内连跑 3 次会触发 IP 限流
+  const victim = `nobody${Date.now()}@test.local`; const seq = [];
+  for (let i = 0; i < 11; i++) {
+    const page = await req('/login?mode=login', { headers: { 'x-forwarded-for': rndIp() } }, false);
+    const m = (await page.text()).match(/name="(\$ACTION_ID_[0-9a-f]+)"/); assert(m, '登录页没有 action');
+    const fd = new FormData(); fd.set(m[1], ''); fd.set('email', victim); fd.set('password', 'wrong-' + i); fd.set('agree', 'on');
+    const r = await req('/login?mode=login', { method: 'POST', body: fd, headers: { origin: BASE, 'x-forwarded-for': rndIp() } }, false);
+    const loc = decodeURIComponent(r.headers.get('location') || r.headers.get('x-action-redirect') || '');
+    seq.push(/频繁/.test(loc) ? 'L' : /不对/.test(loc) ? 'w' : '?' + r.status);
+  }
+  assert(seq.slice(0, 10).every((x) => x === 'w') && seq[10] === 'L', '序列 ' + seq.join(','));
+  return seq.join('');
+});
 await step('开始新故事（server action startStory）', async () => {
   const page = await req(`/c/${CHAR}`);
   const html = await page.text();
