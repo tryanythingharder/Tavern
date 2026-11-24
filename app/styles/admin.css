@@ -869,3 +869,9 @@
   .a-bulkhint { width: 100%; margin-left: 0; }
   .p-card > .a-pad > .a-bulkbar { margin: -12px -12px 12px; }
 }
+/* 模型广场卡片化：覆盖 themes/shared.css 里给宽表格定的最小宽度 */
+@media (max-width: 720px) {
+  .p-acontent .am-table { min-width: 0; }
+  .p-acontent .am-table td, .p-acontent .am-table td.am-id, .p-acontent .am-table td.am-tiers { min-width: 0; max-width: none; padding: 0; border-bottom: 0; }
+  .p-acontent .am-table .am-num, .p-acontent .am-table td .am-mode { width: 100%; min-width: 0; }
+}
