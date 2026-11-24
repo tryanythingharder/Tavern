@@ -129,32 +129,79 @@ type LoreScanOptions = {
 
 const CJK = /[\u3400-\u9fff\u3000-\u303f\uff00-\uffef]/;
 
-function keyMatches(haystack: string, keyword: string, caseSensitive: boolean, wholeWords: boolean): boolean {
-  if (!keyword) return false;
-  // ST：/…/flags 写法的关键词按正则匹配
-  const regex = /^\/([\s\S]+)\/([gimsuy]*)$/.exec(keyword);
-  if (regex) {
-    try {
-      return new RegExp(regex[1], regex[2].replace('g', '')).test(haystack);
-    } catch {
-      return false;
+// 一轮扫描内的匹配缓存：同一段窗口只转一次小写，同一个关键词只编译一次正则。
+// 原来每个关键词都对整个窗口 toLowerCase 并 new RegExp，条目多、递归多时是同步阻塞的大头。
+type Haystack = { raw: string; lower: string | null };
+
+class LoreMatcher {
+  private hays = new Map<string, Haystack>();
+  private wordRegex = new Map<string, RegExp>();
+  private userRegex = new Map<string, RegExp | null>();
+
+  // key 唯一标识这段文本（窗口深度 + 递归文本长度等），避免对长字符串做 Map 查找时反复哈希
+  hay(key: string, build: () => string): Haystack {
+    let h = this.hays.get(key);
+    if (!h) {
+      h = { raw: build(), lower: null };
+      this.hays.set(key, h);
     }
+    return h;
   }
-  const hay = caseSensitive ? haystack : haystack.toLowerCase();
-  const key = caseSensitive ? keyword : keyword.toLowerCase();
-  if (!wholeWords || CJK.test(key)) return hay.includes(key);
-  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(^|[^\\p{L}\\p{N}_])${escaped}($|[^\\p{L}\\p{N}_])`, 'u').test(hay);
+
+  lower(h: Haystack): string {
+    if (h.lower === null) h.lower = h.raw.toLowerCase();
+    return h.lower;
+  }
+
+  // ST：/…/flags 写法的关键词按正则匹配；编译失败记为 null（= 不命中）
+  user(keyword: string, body: string, flags: string): RegExp | null {
+    if (this.userRegex.has(keyword)) return this.userRegex.get(keyword)!;
+    let re: RegExp | null;
+    try {
+      re = new RegExp(body, flags.replace('g', ''));
+    } catch {
+      re = null;
+    }
+    this.userRegex.set(keyword, re);
+    return re;
+  }
+
+  word(key: string): RegExp {
+    let re = this.wordRegex.get(key);
+    if (!re) {
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      re = new RegExp(`(^|[^\\p{L}\\p{N}_])${escaped}($|[^\\p{L}\\p{N}_])`, 'u');
+      this.wordRegex.set(key, re);
+    }
+    return re;
+  }
 }
 
-function keysPass(entry: LoreEntry, buffer: string, settings: LoreScanOptions): string | null {
+function keyMatches(matcher: LoreMatcher, h: Haystack, keyword: string, caseSensitive: boolean, wholeWords: boolean): boolean {
+  if (!keyword) return false;
+  const regex = /^\/([\s\S]+)\/([gimsuy]*)$/.exec(keyword);
+  if (regex) {
+    const re = matcher.user(keyword, regex[1], regex[2]);
+    if (!re) return false;
+    re.lastIndex = 0; // 复用的正则可能带 y 标志：每次都从头匹配，和新建时一致
+    return re.test(h.raw);
+  }
+  const hay = caseSensitive ? h.raw : matcher.lower(h);
+  const key = caseSensitive ? keyword : keyword.toLowerCase();
+  if (!wholeWords || CJK.test(key)) return hay.includes(key);
+  // 整词匹配的前提是包含这个子串：先用 includes 预筛，绝大多数不命中的关键词不用跑正则
+  if (!hay.includes(key)) return false;
+  return matcher.word(key).test(hay);
+}
+
+function keysPass(matcher: LoreMatcher, entry: LoreEntry, buffer: Haystack, settings: LoreScanOptions): string | null {
   if (!entry.keywords.length) return null;
   const caseSensitive = entry.caseSensitive ?? settings.caseSensitive;
   const wholeWords = entry.matchWholeWords ?? settings.matchWholeWords;
-  const primary = entry.keywords.find((keyword) => keyMatches(buffer, keyword, caseSensitive, wholeWords));
+  const primary = entry.keywords.find((keyword) => keyMatches(matcher, buffer, keyword, caseSensitive, wholeWords));
   if (!primary) return null;
   if (entry.selective && entry.secondaryKeywords.length) {
-    const results = entry.secondaryKeywords.map((keyword) => keyMatches(buffer, keyword, caseSensitive, wholeWords));
+    const results = entry.secondaryKeywords.map((keyword) => keyMatches(matcher, buffer, keyword, caseSensitive, wholeWords));
     const passed =
       entry.logic === 'andAny'
         ? results.some(Boolean)
@@ -172,7 +219,7 @@ type TimedState = 'free' | 'sticky' | 'cooldown' | 'delay';
 
 // ST 定时效果不落库，按聊天记录重放推出当前状态：
 // 在每个历史长度 k 上看这条是否被触发（常驻或关键词命中最近 scanDepth 条），触发后黏性保持 sticky 条，之后冷却 cooldown 条。
-function timedState(entry: LoreEntry, history: string[], depth: number, extras: string, settings: LoreScanOptions): TimedState {
+function timedState(matcher: LoreMatcher, entry: LoreEntry, history: string[], depth: number, extras: string, settings: LoreScanOptions): TimedState {
   const length = history.length;
   if (entry.delay && length < entry.delay) return 'delay';
   if (!entry.sticky && !entry.cooldown) return 'free';
@@ -180,8 +227,7 @@ function timedState(entry: LoreEntry, history: string[], depth: number, extras: 
   let cooldownUntil = -1;
   for (let k = Math.max(1, entry.delay ?? 0); k < length; k += 1) {
     if (k <= activeUntil || k <= cooldownUntil) continue;
-    const window = history.slice(Math.max(0, k - depth), k).join('\n') + (extras ? `\n${extras}` : '');
-    if (!entry.constant && !keysPass(entry, window, settings)) continue;
+    if (!entry.constant && !keysPass(matcher, entry, matcher.hay(`t:${depth}:${k}`, () => history.slice(Math.max(0, k - depth), k).join('\n') + (extras ? `\n${extras}` : '')), settings)) continue;
     activeUntil = entry.sticky ? k + entry.sticky : k;
     cooldownUntil = entry.cooldown ? activeUntil + entry.cooldown : -1;
   }
@@ -210,14 +256,14 @@ export function scanLore(
   const extras = scanTexts.slice(messageCount).join('\n');
   // 扫描深度从最新一条往回数（ST 同）；条目可以单独设深度
   const windowFor = (depth: number) => messages.slice(Math.max(0, messages.length - depth)).join('\n') + (extras ? `\n${extras}` : '');
-  const base = windowFor(settings.scanDepth);
+  const matcher = new LoreMatcher();
   const history = settings.history ?? messages;
 
   // ST getSortedEntries：先按来源档（聊天世界书 → 身份世界书 → 按插入策略排的角色/全局），同档按 order 从高到低
   const active = entries.filter((entry) => entry.enabled).sort((a, b) => (a.lane ?? 0) - (b.lane ?? 0) || b.priority - a.priority);
   const states = new Map<string, TimedState>();
   for (const entry of active) {
-    if (entry.sticky || entry.cooldown || entry.delay) states.set(entry.id, timedState(entry, history, entry.scanDepth ?? settings.scanDepth, extras, settings));
+    if (entry.sticky || entry.cooldown || entry.delay) states.set(entry.id, timedState(matcher, entry, history, entry.scanDepth ?? settings.scanDepth, extras, settings));
   }
   const activated: LoreEntry[] = [];
   const hitKeys = new Map<string, string[]>();
@@ -256,9 +302,13 @@ export function scanLore(
       if (activatedIds.has(entry.id) || blocked(entry)) continue;
       if (entry.excludeRecursion && pass > 0) continue;
       if (entry.delayUntilRecursion && pass === 0) continue;
-      const own = entry.scanDepth !== null && entry.scanDepth !== undefined && entry.scanDepth !== settings.scanDepth ? windowFor(entry.scanDepth) : base;
-      const buffer = pass > 0 && !entry.excludeRecursion ? own + recursionText : own;
-      const primary = keysPass(entry, buffer, settings);
+      const depth = entry.scanDepth !== null && entry.scanDepth !== undefined && entry.scanDepth !== settings.scanDepth ? entry.scanDepth : settings.scanDepth;
+      // recursionText 只增不减，用它的长度区分同一窗口不同时刻的递归缓冲
+      const withRecursion = pass > 0 && !entry.excludeRecursion;
+      const buffer = withRecursion
+        ? matcher.hay(`w:${depth}:r${recursionText.length}`, () => windowFor(depth) + recursionText)
+        : matcher.hay(`w:${depth}`, () => windowFor(depth));
+      const primary = keysPass(matcher, entry, buffer, settings);
       if (!primary) continue;
       if (entry.probability < 100 && Math.random() * 100 >= entry.probability) continue;
       if (activate(entry, [primary])) added = true;
