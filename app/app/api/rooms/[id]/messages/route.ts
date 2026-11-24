@@ -142,6 +142,10 @@ async function handlePost(request: Request, context: Params) {
       const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
+      // 结果已落库 / 生成记录已收尾 / done 已准备好：之后的步骤再抛错，catch 里不能再存一次部分结果、不能把 done 改成 error
+      let saved = false;
+      let finished = false;
+      let donePayload: Record<string, unknown> | null = null;
       // 先把本轮发言者告诉客户端，界面可以显示「谁正在输入」
       send({ type: 'speaker', speakerId: speaker.id, name: speaker.name });
       try {
@@ -166,6 +170,7 @@ async function handlePost(request: Request, context: Params) {
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? usedPromptTokens + completionTokens;
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens: usedPromptTokens, completionTokens, totalTokens, estimated: !usage });
+        finished = true;
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(usedPromptTokens, completionTokens, billedModel), `room:${room.id}`);
         settled = true;
 
@@ -178,17 +183,26 @@ async function handlePost(request: Request, context: Params) {
           if (mode === 'continue' && target) {
             const content = joinContinue(target.content, finalText);
             editRoomMessage(target.id, content);
+            saved = true;
             const merged = mergeThought(target.thought, thought);
+            donePayload = { type: 'done', messageId: target.id, speakerId: speaker.id, content, reasoning: merged, autoContinue: wantsAutoContinue(genPrefs, content, finalText, trace.finish), cost: settlement.cost, balance: settlement.balance };
             if (thought) setRoomMessageReasoning(target.id, target.selected, merged);
-            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content, reasoning: merged, autoContinue: wantsAutoContinue(genPrefs, content, finalText, trace.finish), cost: settlement.cost, balance: settlement.balance });
+            send(donePayload);
+            donePayload = null;
           } else if (mode === 'regenerate' && target) {
             const candidate = addRoomCandidate(target.id, finalText);
+            saved = true;
+            donePayload = { type: 'done', messageId: target.id, speakerId: speaker.id, content: finalText, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), candidateIndex: candidate.index, candidateCount: candidate.count, cost: settlement.cost, balance: settlement.balance };
             setRoomMessageReasoning(target.id, candidate.index, thought);
-            send({ type: 'done', messageId: target.id, speakerId: speaker.id, content: finalText, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), candidateIndex: candidate.index, candidateCount: candidate.count, cost: settlement.cost, balance: settlement.balance });
+            send(donePayload);
+            donePayload = null;
           } else {
-            const saved = addRoomMessage(room.id, 'assistant', speaker.id, finalText);
-            if (thought) setRoomMessageReasoning(saved.id, 0, thought);
-            send({ type: 'done', messageId: saved.id, speakerId: speaker.id, content: finalText, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, balance: settlement.balance });
+            const row = addRoomMessage(room.id, 'assistant', speaker.id, finalText);
+            saved = true;
+            donePayload = { type: 'done', messageId: row.id, speakerId: speaker.id, content: finalText, reasoning: thought, autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, balance: settlement.balance };
+            if (thought) setRoomMessageReasoning(row.id, 0, thought);
+            send(donePayload);
+            donePayload = null;
           }
         } else {
           send({ type: 'error', message: '模型没有返回内容，请重试' });
@@ -196,7 +210,7 @@ async function handlePost(request: Request, context: Params) {
       } catch (error) {
         const rawPartial = mode === 'continue' ? full : full.replace(namePrefix, '');
         const partial = genPrefs.trimSentences ? trimToEndSentence(rawPartial) : rawPartial;
-        if (partial.trim()) {
+        if (!saved && partial.trim()) {
           const thought = trace.result();
           if (mode === 'continue' && target) {
             editRoomMessage(target.id, joinContinue(target.content, partial));
@@ -210,7 +224,7 @@ async function handlePost(request: Request, context: Params) {
           }
         }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
-        finishGeneration(generationId, {
+        if (!finished) finishGeneration(generationId, {
           model: billedModel,
           status: aborted ? 'aborted' : 'error',
           promptTokens,
@@ -222,7 +236,11 @@ async function handlePost(request: Request, context: Params) {
           settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(promptTokens, estimateTokens(full), billedModel) : 0), `room:${room.id}`);
           settled = true;
         }
-        if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
+        if (donePayload) {
+          // 回复已经保存，只是保存之后的步骤出错：照常告诉前端完成，错误记日志
+          console.error('[generation] 回复已保存，后续步骤出错', error);
+          send(donePayload);
+        } else if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
       } finally {
         // 群聊记忆摘要：到了间隔才在后台跑一段（不挡回复）
         void autoRoomSummarize(room.id, user.id);

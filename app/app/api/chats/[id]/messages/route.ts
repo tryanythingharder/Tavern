@@ -154,6 +154,10 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       const trace = new GenTrace();
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
       let settled = false;
+      // 结果已落库 / 生成记录已收尾 / done 已准备好：之后的步骤再抛错，catch 里不能再存一次部分结果、不能把 done 改成 error
+      let saved = false;
+      let finished = false;
+      let donePayload: Record<string, unknown> | null = null;
       try {
         for await (const event of streamChat(prompt.messages, { signal: request.signal, params: prompt.params, model: chat.model, ...streamExtras(genPrefs, prompt.stop, { user: config.userName, char: character.name }) })) {
           if (event.type === 'route') {
@@ -176,21 +180,25 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
+        finished = true;
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chatId}`);
         settled = true;
         // 落库原文；「仅显示」正则在渲染时套用（和 ST 一样，状态栏 HTML 不会被当成历史喂回模型）
         const finalText = genPrefs.trimSentences ? trimToEndSentence(full) : full;
         const thought = trace.result();
         if (finalText.trim()) {
-          const saved = addMessage(chatId, 'assistant', finalText, [finalText]);
-          if (thought) setMessageReasoning(saved.id, 0, thought);
-          recordMessageMeta(saved.id, 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now(), cut: trace.finish === 'length' });
+          const row = addMessage(chatId, 'assistant', finalText, [finalText]);
+          saved = true;
+          donePayload = { type: 'done', messageId: row.id, content: finalText, candidateCount: 1, candidateIndex: 0, reasoning: thought, cut: trace.finish === 'length', autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, free: settlement.free, balance: settlement.balance };
+          if (thought) setMessageReasoning(row.id, 0, thought);
+          recordMessageMeta(row.id, 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now(), cut: trace.finish === 'length' });
           // 回复里的 EJS（如 setvar）在这一步才真正写变量
           await applyReplyTemplates(finalText, { userId: user.id, chatId, character, userName: config.userName, loreEntries: config.loreEntries, history: listMessages(chatId), model: billedModel, variables: chatVariables(chat.id, chat.character_id) }).catch(() => null);
           snapshotChat(chatId, user.id);
           // 到间隔了就在后台更新模型摘要（不挡这次回复）
           void autoSummarize(chatId, user.id);
-          send({ type: 'done', messageId: saved.id, content: finalText, candidateCount: 1, candidateIndex: 0, reasoning: thought, cut: trace.finish === 'length', autoContinue: wantsAutoContinue(genPrefs, finalText, finalText, trace.finish), cost: settlement.cost, free: settlement.free, balance: settlement.balance });
+          send(donePayload);
+          donePayload = null;
         } else {
           touchChat(chatId);
           send({ type: 'done', messageId: null, cost: settlement.cost, free: settlement.free, balance: settlement.balance });
@@ -198,14 +206,14 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       } catch (error) {
         // 中断或失败时，把已经生成的部分保存下来，并按实际 token 结算预扣
         const partial = genPrefs.trimSentences ? trimToEndSentence(full) : full;
-        if (partial.trim()) {
+        if (!saved && partial.trim()) {
           const savedPartial = addMessage(chatId, 'assistant', partial, [partial]);
           const thought = trace.result();
           if (thought) setMessageReasoning(savedPartial.id, 0, thought);
           recordMessageMeta(savedPartial.id, 0, { model: billedModel, tokens: estimateTokens(full), ms: Date.now() - startedAt, at: Date.now() });
         }
         const aborted = (error as Error)?.name === 'AbortError' || request.signal.aborted;
-        finishGeneration(generationId, {
+        if (!finished) finishGeneration(generationId, {
           model: billedModel,
           status: aborted ? 'aborted' : 'error',
           promptTokens: prompt.tokens,
@@ -217,7 +225,11 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
           settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(prompt.tokens, estimateTokens(full), billedModel) : 0), `chat:${chatId}`);
           settled = true;
         }
-        if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
+        if (donePayload) {
+          // 回复已经保存，只是保存之后的步骤出错：照常告诉前端完成，错误记日志
+          console.error('[generation] 回复已保存，后续步骤出错', error);
+          send(donePayload);
+        } else if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });
       } finally {
         try {
           controller.close();
