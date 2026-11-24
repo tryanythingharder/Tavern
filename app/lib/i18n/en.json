@@ -4487,5 +4487,8 @@
  "旧图都已是 webp": "All images are webp",
  "把旧图转成 webp？": "Convert old images to webp?",
  "开始转换": "Convert",
- "没有需要转换的旧图": "No old images to convert"
+ "没有需要转换的旧图": "No old images to convert",
+ "本轮由谁回应": "Who responds this turn",
+ "不是这个房间的成员": "Not a member of this room",
+ "已转 {0} 张，还剩 {1} 张…": "Converted {0}, {1} left…"
 }

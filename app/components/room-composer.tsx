@@ -76,7 +76,7 @@ export function RoomComposer({ roomId, strategy, members, error, qr, setQr, runQ
           {strategy === 'manual' && (
             <label className="p-small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               本轮由
-              <Select className="p-select" style={{ width: 'auto', padding: '4px 8px' }} value={speakerId} onChange={(event) => setSpeakerId(event.target.value)}>
+              <Select className="p-select" style={{ width: 'auto', padding: '4px 8px' }} aria-label="本轮由谁回应" value={speakerId} onChange={(event) => setSpeakerId(event.target.value)}>
                 {members.filter((member) => !member.muted).map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
               </Select>
               回应

@@ -346,8 +346,8 @@ export function SiteShell({
                   ))}
                   {!recents.length && <span className="p-side-recent" style={{ opacity: 0.6 }}><span>还没有故事</span></span>}
                 </nav>
-                <Link className="p-side-recent" href="/rooms">{icon('M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 20a6 6 0 0 1 12 0M15 20a6 6 0 0 1 6-6')}<span>多角色房间</span></Link>
-                <Link className="p-side-recent" href="/library">{icon('M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM9 8h6M9 12h6')}<span>我的角色库</span></Link>
+                <Link className="p-side-recent" href="/rooms" aria-label="多角色房间">{icon('M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 20a6 6 0 0 1 12 0M15 20a6 6 0 0 1 6-6')}<span>多角色房间</span></Link>
+                <Link className="p-side-recent" href="/library" aria-label="我的角色库">{icon('M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM9 8h6M9 12h6')}<span>我的角色库</span></Link>
                 {admin && <Link className="p-side-recent" href="/admin">{icon('M12 3 4 7v6c0 4 3.4 7.4 8 8 4.6-.6 8-4 8-8V7z')}<span>后台</span></Link>}
               </>
             )}
