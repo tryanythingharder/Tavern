@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
-import { branchChat, chatBranches } from '@/lib/db';
+import { branchChat, chatBranches, getChat } from '@/lib/db';
+import { busyGuard } from '@/lib/gen-lock';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const messageId = Number(body.messageId);
   if (!Number.isInteger(messageId)) return fail('缺少消息', 400);
 
+  // 先确认会话归属再看是否在生成，不给别人的会话 id 透露活动状态
+  if (!getChat(Number(id), user.id)) return fail('无法从这个位置分支', 400);
+  const busy = busyGuard(`chat:${Number(id)}`);
+  if (busy) return busy;
   const chat = branchChat(Number(id), user.id, messageId, { checkpoint: body.checkpoint === true, name: typeof body.name === 'string' ? body.name : undefined });
   if (!chat) return fail('无法从这个位置分支', 400);
 

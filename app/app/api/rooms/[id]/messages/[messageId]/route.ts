@@ -1,6 +1,7 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { moderateText } from '@/lib/auto-moderation';
 import { deleteRoomMessage, editRoomMessage, getRoom, getRoomMessage, selectRoomCandidate, setRoomMessageReasoning } from '@/lib/rooms';
+import { busyGuard } from '@/lib/gen-lock';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,8 @@ export async function PATCH(request: Request, context: Params) {
   const loaded = await load(context);
   if ('error' in loaded) return loaded.error;
   const body = (await request.json().catch(() => ({}))) as { content?: unknown; selected?: unknown; reasoning?: unknown };
+  const busy = busyGuard(`room:${loaded.room.id}`);
+  if (busy) return busy;
   if (typeof body.selected === 'number') {
     const updated = selectRoomCandidate(loaded.message.id, Math.floor(body.selected));
     return updated ? json({ message: updated }) : fail('没有这个版本', 400);
@@ -52,6 +55,8 @@ export async function PATCH(request: Request, context: Params) {
 export async function DELETE(_request: Request, context: Params) {
   const loaded = await load(context);
   if ('error' in loaded) return loaded.error;
+  const busy = busyGuard(`room:${loaded.room.id}`);
+  if (busy) return busy;
   deleteRoomMessage(loaded.message.id);
   return json({ ok: true });
 }

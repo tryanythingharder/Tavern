@@ -195,6 +195,53 @@ await step('安全#3 分块上传超限 → 413', async () => {
   const r = await rawUpload('/api/me/avatar', { maxBytes: 40 * 1024 * 1024 });
   assert(r.status === 413, JSON.stringify(r)); return `${r.ms}ms`;
 });
+async function startStory() {
+  const html = await (await req(`/c/${CHAR}`)).text();
+  for (const fd of actionForms(html)) {
+    fd.set('openingId', 'default');
+    const r = await req(`/c/${CHAR}`, { method: 'POST', body: fd, headers: { origin: BASE } });
+    const mm = (r.headers.get('location') || r.headers.get('x-action-redirect') || '').match(/\/chats\/(\d+)/);
+    if (mm) return Number(mm[1]);
+  }
+  throw new Error('开不了新故事');
+}
+function userBalance() {
+  if (!APPDIR) return null;
+  const db = new DatabaseSync(join(APPDIR, '.data/tavern.db'), { readOnly: true });
+  const row = db.prepare('SELECT l.balance_after AS b FROM points_ledger l JOIN users u ON u.id = l.user_id WHERE u.email = ? ORDER BY l.id DESC LIMIT 1').get(email);
+  db.close(); return row ? row.b : 0;
+}
+let lockChat, lockMsg;
+await step('安全#4 生成中编辑/删除/分支/ops → 409，结束后候选完整', async () => {
+  lockChat = await startStory();
+  const s0 = await sse(`/api/chats/${lockChat}/messages`, { text: 'SLOW 锁测试' }); lockMsg = s0.events.find((e) => e.type === 'done')?.messageId; assert(lockMsg, '首条 SLOW 没完成');
+  const p = sse(`/api/messages/${lockMsg}/regenerate`, {});
+  await sleep(800);
+  const codes = [
+    (await req(`/api/messages/${lockMsg}`, { method: 'DELETE' })).status,
+    (await req(`/api/messages/${lockMsg}`, { method: 'PATCH', json: { content: '生成中改' } })).status,
+    (await req(`/api/chats/${lockChat}/branch`, { method: 'POST', json: { messageId: lockMsg } })).status,
+    (await req(`/api/chats/${lockChat}/ops`, { method: 'POST', json: { op: 'narrate', text: '旁白' } })).status,
+  ];
+  const bm = (await req(`/api/messages/${lockMsg}`, { method: 'PATCH', json: { bookmark: true } })).status;
+  const s = await p; const done = s.events.find((e) => e.type === 'done');
+  assert(codes.every((c) => c === 409), '生成中操作状态 ' + codes.join(','));
+  assert(bm === 200, '书签应允许 ' + bm);
+  assert(done && done.candidateCount === 2, '重新生成结果不对：' + JSON.stringify(s.events.at(-1)).slice(0, 120));
+  const last = (await messages(lockChat)).at(-1); assert(last.id === lockMsg && /片段59/.test(last.content), '结果没落库');
+  return `del/patch/branch/ops=${codes.join('/')}，书签 ${bm}，扣 ${done.cost}`;
+});
+await step('安全#4 生成中整个会话被删 → 报错且不扣点', async () => {
+  const before = userBalance();
+  const p = sse(`/api/messages/${lockMsg}/regenerate`, {});
+  await sleep(800);
+  const d = await req(`/api/chats/${lockChat}`, { method: 'DELETE' }); assert(d.ok, `删会话 ${d.status}`);
+  const s = await p; const err = s.events.find((e) => e.type === 'error'); const done = s.events.find((e) => e.type === 'done');
+  assert(!done && err, '应报错：' + JSON.stringify(s.events.at(-1)).slice(0, 120));
+  const after = userBalance();
+  if (before !== null) assert(after === before, `余额 ${before}→${after}`);
+  return `余额 ${before}→${after}`;
+});
 await step('沙盒路由安全头', async () => { const r = await req('/sandbox/x', {}, false); const csp = r.headers.get('content-security-policy') || ''; assert(/connect-src 'none'/.test(csp), 'sandbox CSP 缺失 status ' + r.status); });
 await step('英文界面对话页渲染', async () => { const r = await req(`/chats/${chatId}?lang=en`); const t = await r.text(); assert(r.status === 200 && /lang="en/.test(t), `status ${r.status}`); await req('/?lang=zh'); });
 

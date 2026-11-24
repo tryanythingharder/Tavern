@@ -1,5 +1,7 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { restoreBackup } from '@/lib/memory';
+import { getChat } from '@/lib/db';
+import { busyGuard } from '@/lib/gen-lock';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,5 +15,8 @@ export async function POST(_request: Request, context: Params) {
   const id = idParam(params.id);
   const backupId = idParam(params.backupId);
   if (!id || !backupId) return fail('参数不对', 400);
+  if (!getChat(id, user.id)) return fail('快照不存在', 404);
+  const busy = busyGuard(`chat:${id}`);
+  if (busy) return busy;
   return restoreBackup(id, user.id, backupId) ? json({ ok: true }) : fail('快照不存在', 404);
 }

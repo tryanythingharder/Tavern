@@ -149,13 +149,21 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
         const promptTokens = usage?.promptTokens ?? prompt.tokens;
         const completionTokens = usage?.completionTokens ?? estimateTokens(full);
         const totalTokens = usage?.totalTokens ?? promptTokens + completionTokens;
+        const added = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        const finalText = joinContinue(base, added);
+        // 先写再结算：消息在生成期间没了（如整个会话被删）就写不进去，这次不扣费
+        const written = added.trim() ? updateMessageContent(message.id, finalText) : undefined;
+        if (added.trim() && !written) {
+          finishGeneration(generationId, { model: billedModel, status: 'error', promptTokens, completionTokens, totalTokens, estimated: !usage, error: 'message gone' });
+          settleGeneration(user.id, reservation.reserved, 0, `chat:${chat.id}`);
+          settled = true;
+          send({ type: 'error', message: '这条消息已经不在了，结果没有保存，本次不扣点' });
+          return;
+        }
         finishGeneration(generationId, { model: billedModel, status: 'done', promptTokens, completionTokens, totalTokens, estimated: !usage });
         const settlement = settleGeneration(user.id, reservation.reserved, pointsCost(promptTokens, completionTokens, billedModel), `chat:${chat.id}`);
         settled = true;
-        const added = genPrefs.trimSentences ? trimToEndSentence(full) : full;
         if (added.trim()) {
-          const finalText = joinContinue(base, added);
-          updateMessageContent(message.id, finalText);
           recordMessageMeta(message.id, message.selected ?? 0, { model: billedModel, tokens: completionTokens, ms: Date.now() - startedAt, at: Date.now(), cut: trace.finish === 'length' }, true);
           const thought = mergeThought(trace);
           if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
@@ -168,8 +176,9 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
       } catch (error) {
         // 中断时保留已生成的部分，作为候选存下来
         const partial = genPrefs.trimSentences ? trimToEndSentence(full) : full;
+        let lost = false;
         if (partial.trim()) {
-          updateMessageContent(message.id, joinContinue(base, partial));
+          lost = !updateMessageContent(message.id, joinContinue(base, partial));
           recordMessageMeta(message.id, message.selected ?? 0, { model: billedModel, tokens: estimateTokens(full), ms: Date.now() - startedAt, at: Date.now() }, true);
           const thought = mergeThought(trace);
           if (thought) setMessageReasoning(message.id, message.selected ?? 0, thought);
@@ -184,7 +193,8 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
           error: aborted ? null : error instanceof Error ? error.message : String(error),
         });
         if (!settled) {
-          settleGeneration(user.id, reservation.reserved, (connected && (full.trim() || aborted) ? pointsCost(prompt.tokens, estimateTokens(full), billedModel) : 0), `chat:${chat.id}`);
+          // 部分结果没能写进去（消息已不存在）同样不扣
+          settleGeneration(user.id, reservation.reserved, (!lost && connected && (full.trim() || aborted) ? pointsCost(prompt.tokens, estimateTokens(full), billedModel) : 0), `chat:${chat.id}`);
           settled = true;
         }
         if (!aborted) send({ type: 'error', message: error instanceof Error ? error.message : '生成失败' });

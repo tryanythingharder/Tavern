@@ -27,10 +27,17 @@ function release(key: string) {
 
 export const BUSY_MESSAGE = '上一条回复还在生成，请等它结束或先停止';
 
+export function busyResponse(): Response {
+  return new Response(JSON.stringify({ message: BUSY_MESSAGE, code: 'busy' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+}
+
+// 编辑 / 删除 / 分支 / 恢复快照等改动楼层的操作：这个会话或群聊正在生成时返回 409，避免和正在落库的回复互相覆盖
+export function busyGuard(key: string): Response | null {
+  return generationBusy(key) ? busyResponse() : null;
+}
+
 export async function withGenerationLock(key: string, run: () => Promise<Response>): Promise<Response> {
-  if (!acquire(key)) {
-    return new Response(JSON.stringify({ message: BUSY_MESSAGE, code: 'busy' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
-  }
+  if (!acquire(key)) return busyResponse();
   let response: Response;
   try {
     response = await run();

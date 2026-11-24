@@ -1,5 +1,6 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { branchRoom, getRoom, roomFamily } from '@/lib/rooms';
+import { busyGuard } from '@/lib/gen-lock';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,9 @@ export async function POST(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
+  if (!getRoom(id, user.id)) return fail('房间或消息不存在', 404);
+  const busy = busyGuard(`room:${id}`);
+  if (busy) return busy;
   const body = (await request.json().catch(() => ({}))) as { messageId?: unknown; checkpoint?: unknown };
   const room = branchRoom(user.id, id, Number(body.messageId), body.checkpoint === true);
   return room ? json({ room }) : fail('房间或消息不存在', 404);
