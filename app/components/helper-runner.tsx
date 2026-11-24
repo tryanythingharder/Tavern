@@ -13,17 +13,8 @@ type Script = { id: string; name: string; info: string; content: string; buttons
 type Snapshot = { vars: Record<string, unknown> & { script?: Record<string, unknown> }; floors: { message_id: number; id: number; role: string; message: string }[]; total: number };
 type Toast = { id: number; level: string; text: string };
 
-export type HelperActions = {
-  send: (text: string) => void;
-  setInput: (text: string) => void;
-  /** 对话页的斜杠命令执行器（lib/slash.ts）；有它就整条交给它，行为与玩家在输入框里打的一致 */
-  slash?: (text: string) => Promise<void>;
-  editMessage: (id: number, content: string) => Promise<void>;
-};
-
-export function emitHelperEvent(event: string, ...args: unknown[]) {
-  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('tavern:helper', { detail: { event, args } }));
-}
+import { emitHelperEvent, type HelperActions } from '@/lib/helper-events';
+export { emitHelperEvent, type HelperActions };
 
 const OFF_KEY = (chatId: number) => `tavern:helper-off:${chatId}`;
 

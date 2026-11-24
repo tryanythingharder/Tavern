@@ -7,23 +7,26 @@ import { langLabel as langName } from '@/lib/translation';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { hasMvuCommands } from '@/lib/mvu-text';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { runBgCommand, runExpressionCommand } from '@/lib/slash-media';
 import { Modal } from '@/components/settings-ui';
 import { ReportButton } from '@/components/report-button';
 import { RpText, TypingDots } from '@/components/rp-text';
 import { RichText, usesDepth } from '@/components/rich-text';
-import { HelperRunner, emitHelperEvent, type HelperActions } from '@/components/helper-runner';
+import { emitHelperEvent, type HelperActions } from '@/lib/helper-events';
 import type { RegexRule } from '@/lib/resources';
 import type { RegexMacros } from '@/lib/regex-apply';
 import { ModelPicker, NewbieTip } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
-import { SLASH_HELP, VAR_COMMANDS, isSlash, parseSlash } from '@/lib/slash';
-import { QuickReplyBar } from '@/components/quick-reply-bar';
+import { isSlash } from '@/lib/slash-detect';
 import { activeQrSets, findQuickReply, planQuickReply, type QrItem, type QrSet, type QrState, type QrAuto } from '@/lib/quick-replies';
 import { askChoice, askPrompt, showAlert } from '@/components/ui-dialog';
+
+// 首屏用不到的部分按需加载：卡内助手脚本运行器（只在有脚本时显示，纯客户端）、快捷回复栏（有快捷回复集才渲染）
+const HelperRunner = dynamic(() => import('@/components/helper-runner').then((m) => m.HelperRunner), { ssr: false });
+const QuickReplyBar = dynamic(() => import('@/components/quick-reply-bar').then((m) => m.QuickReplyBar));
 
 export type ChatAttachmentView = { kind: 'image' | 'audio'; url: string; prompt?: string; mode?: string; width?: number; height?: number; createdAt: number };
 
@@ -164,7 +167,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const offsetRef = useRef(initialOffset);
   offsetRef.current = offset;
   const [notice, setNotice] = useState('');
-  const [slashHelp, setSlashHelp] = useState(false);
+  const [slashHelp, setSlashHelp] = useState<{ cmd: string; desc: string }[] | null>(null);
   const [qr, setQr] = useState<QrState>(qrInitial ?? { sets: [], globalIds: [], scopeIds: [] });
   const qrRef = useRef(qr);
   qrRef.current = qr;
@@ -758,6 +761,8 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
   const runSlash = useCallback(async (text: string) => {
     setError('');
     try {
+      // 命令解析与媒体命令按需加载（首屏不带）
+      const [{ SLASH_HELP, VAR_COMMANDS, parseSlash }, { runBgCommand, runExpressionCommand }] = await Promise.all([import('@/lib/slash'), import('@/lib/slash-media')]);
       // ST 管道：上一条命令的结果是下一条的 {{pipe}}；参数为空时直接用它
       let pipe = '';
       for (const command of parseSlash(text)) {
@@ -790,7 +795,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
           continue;
         }
         pipe = '';
-        if (name === 'help') setSlashHelp(true);
+        if (name === 'help') setSlashHelp(SLASH_HELP);
         else if (name === 'sys' || name === 'send') {
           if (!arg) throw new Error(`/${name} 后面要写内容`);
           const data = await ops({ op: name === 'sys' ? 'narrate' : 'send', text: arg });
@@ -1411,8 +1416,8 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
           {notice && <div className="p-chat-notice" role="status">{notice}</div>}
           {slashHelp && (
             <div className="p-slash-help" role="dialog" aria-label="斜杠命令">
-              <div className="p-slash-help-head"><strong>斜杠命令</strong><span className="p-small">和 SillyTavern 写法一致，可以用 | 串联</span><button type="button" className="p-btn p-btn--sm" onClick={() => setSlashHelp(false)}>关闭</button></div>
-              <dl>{SLASH_HELP.map((item) => <div key={item.cmd}><dt><code>{item.cmd}</code></dt><dd>{item.desc}</dd></div>)}</dl>
+              <div className="p-slash-help-head"><strong>斜杠命令</strong><span className="p-small">和 SillyTavern 写法一致，可以用 | 串联</span><button type="button" className="p-btn p-btn--sm" onClick={() => setSlashHelp(null)}>关闭</button></div>
+              <dl>{slashHelp.map((item) => <div key={item.cmd}><dt><code>{item.cmd}</code></dt><dd>{item.desc}</dd></div>)}</dl>
             </div>
           )}
           {error && (
@@ -1431,7 +1436,7 @@ export function ChatRoom({ accountAvatar = null, chatId, characterName, initialM
               </div>
             </div>
           )}
-          <QuickReplyBar state={qr} scope={{ chatId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />
+          {qr.sets.length > 0 && <QuickReplyBar state={qr} scope={{ chatId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />}
           <HelperRunner chatId={chatId} names={{ char: characterName, user: personaName || macros?.user || '' }} actions={helperActions} />
           <NewbieTip />
           {preview && draft.trim() && !streaming && (

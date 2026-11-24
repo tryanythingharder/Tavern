@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { LiveCover } from '@/components/live-cover';
 import type { ChatChromeData } from '@/components/themes/chat-chrome';
 import { latinName, pad } from '@/components/themes/folio/lib';
-import { FolioBookmarks, FolioComposerTools, FolioFolio, FolioProgress, FolioToc } from '@/components/themes/folio/chat-live';
+import { LazyFolioBookmarks as FolioBookmarks, LazyFolioComposerTools as FolioComposerTools, LazyFolioFolio as FolioFolio, LazyFolioProgress as FolioProgress, LazyFolioToc as FolioToc } from '@/components/themes/lazy-chrome';
 
 // 书页 FOLIO 对话页装饰层：左侧「书版」（立绘、目录、题记），右侧「旁注」（记忆、书签、进度），
 // 以及中栏底部的书写工具条。消息流与输入框仍由 ChatRoom 渲染，用 CSS 排成手稿。

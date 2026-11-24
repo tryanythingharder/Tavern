@@ -4,6 +4,7 @@ import { emitPoints } from '@/lib/points-bus';
 import { ThoughtBlock, useThoughtsOpen, type ThoughtView } from '@/components/thought-block';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { hasMvuCommands } from '@/lib/mvu-text';
 import { TypingDots } from '@/components/rp-text';
 import { RichText } from '@/components/rich-text';
@@ -11,14 +12,14 @@ import type { RegexRule } from '@/lib/resources';
 import { ModelPicker } from '@/components/model-picker';
 import { PersonaSwitch, UserAvatar, type PersonaCurrent, type PersonaOption } from '@/components/persona-switch';
 import { Select } from '@/components/ui-select';
-import { QuickReplyBar } from '@/components/quick-reply-bar';
 import { activeQrSets, planQuickReply, type QrAuto, type QrItem, type QrSet, type QrState } from '@/lib/quick-replies';
-import { parseSlash } from '@/lib/slash';
-import { runBgCommand } from '@/lib/slash-media';
 import { useRouter } from 'next/navigation';
 import { showAlert } from '@/components/ui-dialog';
 import { langLabel } from '@/lib/translation';
 import { Modal } from '@/components/settings-ui';
+
+// 快捷回复栏只在有快捷回复集时渲染，按需加载
+const QuickReplyBar = dynamic(() => import('@/components/quick-reply-bar').then((m) => m.QuickReplyBar));
 
 type RoomMessageView = { id: number | string; role: 'user' | 'assistant'; speakerId: string | null; content: string; candidateCount?: number; selected?: number; checkpoint?: number | null; personaName?: string | null; personaAvatar?: string | null; thought?: ThoughtView | null; translation?: { lang: string; text: string; original: boolean } | null; attachment?: { kind: 'image'; url: string; prompt?: string; mode?: string; width?: number; height?: number } | null };
 type Member = { id: string; name: string; initial: string; hue: number; avatar?: string | null; muted?: boolean };
@@ -382,6 +383,8 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
         if (plan.text.trim()) await runRef.current({ kind: 'send', text: plan.text.trim() });
         return;
       }
+      // 斜杠命令解析与背景命令按需加载（首屏不带）
+      const [{ parseSlash }, { runBgCommand }] = await Promise.all([import('@/lib/slash'), import('@/lib/slash-media')]);
       for (const command of parseSlash(plan.text)) {
         if (command.name === 'trigger') await runRef.current({ kind: 'auto' });
         else if (command.name === 'send' && command.arg) await runRef.current({ kind: 'send', text: command.arg });
@@ -843,7 +846,7 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
       <div className="p-chat-compose">
         <div className="p-chat-col">
           {error && <p role="alert" className="p-form-error" style={{ margin: '0 0 8px' }}>{error}</p>}
-          <QuickReplyBar state={qr} scope={{ roomId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />
+          {qr.sets.length > 0 && <QuickReplyBar state={qr} scope={{ roomId }} onState={setQr} disabled={streaming} onRun={(set, item) => void runQuickReply(set, item)} />}
           <div className="p-rp-compose-context">
             <span className="p-compose-persona">{STRATEGY_HINT[strategy] ?? ''}</span>
             {typing && <span className="p-small">{typing} 正在输入…</span>}

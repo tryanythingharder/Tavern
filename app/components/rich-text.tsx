@@ -2,11 +2,14 @@
 
 import { memo, useEffect, useMemo, useState } from 'react';
 import { RpText } from '@/components/rp-text';
-import { HtmlFrame } from '@/components/html-frame';
+import dynamic from 'next/dynamic';
 import { applyRegex, type RegexMacros } from '@/lib/regex-apply';
 import { splitRich } from '@/lib/rich-segments';
 import { stripMvuBlocks } from '@/lib/mvu-text';
 import type { RegexRule } from '@/lib/resources';
+
+// 卡美化（HTML 沙盒 iframe）只在消息里真有 HTML 片段时才加载
+const HtmlFrame = dynamic(() => import('@/components/html-frame').then((m) => m.HtmlFrame));
 
 function hash(value: string): string {
   let h = 0;

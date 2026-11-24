@@ -1,7 +1,7 @@
 import type { Theme } from '@/lib/theme';
 import { FolioChatChrome } from '@/components/themes/folio/chat-chrome';
 import { NocturneChatChrome } from '@/components/themes/nocturne/chat-chrome';
-import { StageChatChrome } from '@/components/themes/stage/chat-chrome';
+import { LazyStageChatChrome as StageChatChrome } from '@/components/themes/lazy-chrome';
 
 // 对话页的主题装饰层：场景底板、章节导轨、角色卡等。
 // 消息流和输入框仍由 ChatRoom 渲染，主题用 CSS 重新排布它们。

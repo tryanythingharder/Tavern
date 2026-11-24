@@ -60,9 +60,7 @@ export const VAR_COMMANDS: Record<string, ['chat' | 'global', 'set' | 'get' | 'a
   decglobalvar: ['global', 'dec'], flushglobalvar: ['global', 'flush'],
 };
 
-export function isSlash(text: string): boolean {
-  return /^\/[\w?]/.test(text.trim());
-}
+export { isSlash } from '@/lib/slash-detect';
 
 // 管道 | 拆分（{{…}} 和 {: :} 里的 | 不拆）；命名参数 key=value 去掉
 export function parseSlash(text: string): SlashCommand[] {
