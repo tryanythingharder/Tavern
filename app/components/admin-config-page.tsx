@@ -12,7 +12,7 @@ export function AdminConfigPage({ href, guide, children }: { href: string; guide
     <>
       <header className="p-atoolbar">
         <div>
-          {found && <div className="p-acrumb"><span>{found.group.label}</span><span aria-hidden="true">›</span><span>{found.item.label}</span></div>}
+          {found && <nav className="p-acrumb" aria-label="面包屑"><Link href="/admin">后台</Link><span aria-hidden="true">›</span><span>{found.group.label}</span><span aria-hidden="true">›</span><span aria-current="page">{found.item.label}</span></nav>}
           <h1>{found?.item.label ?? ''}</h1>
           {found?.item.desc && <div className="p-atoolbar-sub">{found.item.desc}</div>}
         </div>

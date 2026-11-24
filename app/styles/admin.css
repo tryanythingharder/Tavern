@@ -788,3 +788,24 @@
 .a-plus { color: var(--ok, #2e7d43); font-weight: 600; }
 .a-minus { color: var(--text-2); }
 .a-sub { color: var(--muted); }
+
+/* ── 概览（app/admin/page.tsx） ── */
+.a-h2 { margin: 18px 0 10px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.a-h2:first-child { margin-top: 0; }
+.a-kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.a-kpi-todo { border-color: color-mix(in srgb, var(--warn, #b7791f) 55%, var(--border)); }
+.a-dash-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.a-dash-grid > .p-card { margin: 0; }
+.a-preview { list-style: none; margin: 0; padding: 0 20px 14px; }
+.a-preview li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.a-preview li:first-child { border-top: 0; }
+.a-preview li > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); text-decoration: none; }
+.a-preview li > a:hover strong { text-decoration: underline; }
+.a-preview li > span { flex: 0 0 auto; }
+.a-preview .admin-empty { display: block; padding: 24px 0; }
+@media (max-width: 960px) { .a-dash-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) { .a-kpis-3 { grid-template-columns: minmax(0, 1fr); } }
+/* 手机分类条：右侧渐隐提示还能横滑 */
+@media (max-width: 960px) {
+  .p-atabs, .p-asubtabs { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); scroll-behavior: smooth; }
+}
