@@ -850,3 +850,22 @@
   .am-table td.am-check { display: flex; align-items: center; gap: 8px; }
   .am-table td.am-check::before { margin: 0; }
 }
+
+/* ── 批量操作条（审核 / 举报） ── */
+.a-bulkbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 48px; padding: 8px 16px; border-bottom: 1px solid var(--border); }
+.a-bulkbar.is-on { position: sticky; top: 0; z-index: 6; background: var(--g25); }
+.a-checkall { display: inline-flex; align-items: center; gap: 8px; margin-right: 4px; font-size: 13px; }
+.a-bulkhint { margin-left: auto; }
+.a-colcheck { width: 40px; padding-right: 0 !important; }
+.admin-table tr.is-selected { background: var(--g25); }
+.a-report { position: relative; }
+.a-report-check { flex: 0 0 auto; margin: 3px 10px 0 0; }
+.a-report.is-selected { border-color: var(--text); }
+.p-card > .a-pad > .a-bulkbar { margin: -16px -16px 12px; }
+@media (max-width: 720px) {
+  .admin-table.a-cards td.a-colcheck { position: absolute; top: 12px; right: 14px; width: auto; padding: 0; }
+  .admin-table.a-cards td.a-colcheck::before { display: none; }
+  .admin-table.a-cards tbody tr { position: relative; }
+  .a-bulkhint { width: 100%; margin-left: 0; }
+  .p-card > .a-pad > .a-bulkbar { margin: -12px -12px 12px; }
+}
