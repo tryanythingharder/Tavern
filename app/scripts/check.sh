@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 本地/CI 检查：生产构建 → 起模拟上游 + 独立数据目录的 next start → 只读生产探针 + 对话回归（不耗真实 token）
+# 本地/CI 检查：单元测试（node:test，不需要服务）→ 生产构建 → 起模拟上游 + 独立数据目录的 next start → 只读生产探针 + 对话回归（不耗真实 token）
 #
 # 环境变量：
 #   CHECK_PORT=3101        检查用的端口
@@ -15,6 +15,9 @@ cd "$ROOT"
 
 PORT="${CHECK_PORT:-3101}"
 MOCK_PORT="${MOCK_PORT:-4010}"
+
+# 单元测试：纯函数（世界书匹配、限流取 IP、zip 上限、SSE 解析、计费、Range），几秒跑完，先跑省得白等构建
+npm test
 
 if [ "${CHECK_SKIP_BUILD:-0}" != "1" ]; then
   npm run build
