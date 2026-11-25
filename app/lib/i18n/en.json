@@ -4567,5 +4567,17 @@
  "两步验证码错误": "Wrong 2FA code",
  "按 token 计的不足 1 点按 1 点算；长上下文可能另有价格。在对话里点模型名就能换，详情见": "Token-billed models round up to 1 pt; long contexts may cost more. Tap the model name in a chat to switch. Details in ",
  "各模型价格（": "Model prices (",
- " 个）": ")"
+ " 个）": ")",
+ "兑换码列表": "Redeem codes",
+ "邀请码列表": "Invite codes",
+ "全部兑换码": "All redeem codes",
+ "全部邀请码": "All invite codes",
+ "本月 1 日起": "Since the 1st",
+ "共 {0} 点待兑换": "{0} points unredeemed",
+ "兑换码、备注或玩家昵称": "Code, note or player nickname",
+ "邀请码、备注或玩家昵称": "Code, note or player nickname",
+ "个兑换码": "codes",
+ "个邀请码": "invite codes",
+ "兑换码状态": "Code status",
+ "邀请码状态": "Invite status"
 }

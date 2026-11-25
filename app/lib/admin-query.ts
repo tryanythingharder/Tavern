@@ -187,6 +187,78 @@ export function reportStatusCounts(): Record<string, number> {
   return out;
 }
 
+// ── 兑换码 ──
+export type AdminCodeRow = { id: number; code: string; amount: number; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number; usedAt: number | null };
+export const CODE_LIST = { sorts: ['id', 'amount', 'used'], sort: 'id', dir: 'desc' as const, filters: { status: ['', 'unused', 'used'] } };
+
+export function queryCodes(query: ListQuery): ListResult<AdminCodeRow> {
+  const where: string[] = [];
+  const args: (string | number)[] = [];
+  if (query.q) {
+    // 兑换码统一大写存储；昵称 / 备注按原样模糊匹配
+    where.push("(c.code LIKE ? ESCAPE '\\' OR c.note LIKE ? ESCAPE '\\' OR u.nickname LIKE ? ESCAPE '\\' OR cr.nickname LIKE ? ESCAPE '\\')");
+    args.push(like(query.q.toUpperCase()), like(query.q), like(query.q), like(query.q));
+  }
+  if (query.f.status === 'unused') where.push('c.used_by IS NULL');
+  if (query.f.status === 'used') where.push('c.used_by IS NOT NULL');
+  const sql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const from = 'FROM redeem_codes c LEFT JOIN users u ON u.id = c.used_by LEFT JOIN users cr ON cr.id = c.created_by';
+  const total = (db.prepare(`SELECT COUNT(*) AS n ${from} ${sql}`).get(...args) as { n: number }).n;
+  const order = { id: 'c.id', amount: 'c.amount', used: 'COALESCE(c.used_at, 0)' }[query.sort] ?? 'c.id';
+  return paged(total, query, (limit, offset) => {
+    const rows = db.prepare(`
+      SELECT c.id, c.code, c.amount, c.note, c.used_by, c.used_at, c.created_at, u.nickname AS used_name, cr.nickname AS creator_name
+      ${from} ${sql} ORDER BY ${order} ${query.dir.toUpperCase()}, c.id DESC LIMIT ? OFFSET ?
+    `).all(...args, limit, offset) as { id: number; code: string; amount: number; note: string; used_by: number | null; used_at: number | null; created_at: number; used_name: string | null; creator_name: string | null }[];
+    return rows.map((row) => ({ id: row.id, code: row.code, amount: row.amount, note: row.note, usedBy: row.used_by, usedByName: row.used_name ?? null, createdByName: row.creator_name ?? null, createdAt: row.created_at, usedAt: row.used_at }));
+  });
+}
+
+/** 兑换码 KPI：全表口径（原来是「最近 100 个」的统计） */
+export function codeStats(): { total: number; unused: number; used: number; month: number; unusedPoints: number } {
+  const row = db.prepare(`
+    SELECT COUNT(*) AS total,
+           COUNT(CASE WHEN used_by IS NULL THEN 1 END) AS unused,
+           COUNT(CASE WHEN created_at >= ? THEN 1 END) AS month,
+           COALESCE(SUM(CASE WHEN used_by IS NULL THEN amount END), 0) AS unused_points
+    FROM redeem_codes
+  `).get(monthStart()) as { total: number; unused: number; month: number; unused_points: number };
+  const total = Number(row.total);
+  const unused = Number(row.unused);
+  return { total, unused, used: total - unused, month: Number(row.month), unusedPoints: Number(row.unused_points) };
+}
+
+// ── 邀请码 ──
+export type AdminInviteRow = { code: string; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number; usedAt: number | null };
+export const INVITE_LIST = { sorts: ['created', 'used'], sort: 'created', dir: 'desc' as const, filters: { status: ['', 'unused', 'used'] } };
+
+export function queryInvites(query: ListQuery): ListResult<AdminInviteRow> {
+  const where: string[] = [];
+  const args: (string | number)[] = [];
+  if (query.q) {
+    where.push("(i.code LIKE ? ESCAPE '\\' OR i.note LIKE ? ESCAPE '\\' OR u.nickname LIKE ? ESCAPE '\\' OR cr.nickname LIKE ? ESCAPE '\\')");
+    args.push(like(query.q.toUpperCase()), like(query.q), like(query.q), like(query.q));
+  }
+  if (query.f.status === 'unused') where.push('i.used_by IS NULL');
+  if (query.f.status === 'used') where.push('i.used_by IS NOT NULL');
+  const sql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const from = 'FROM invite_codes i LEFT JOIN users u ON u.id = i.used_by LEFT JOIN users cr ON cr.id = i.created_by';
+  const total = (db.prepare(`SELECT COUNT(*) AS n ${from} ${sql}`).get(...args) as { n: number }).n;
+  const order = query.sort === 'used' ? 'COALESCE(i.used_at, 0)' : 'i.created_at';
+  return paged(total, query, (limit, offset) => {
+    const rows = db.prepare(`
+      SELECT i.code, i.note, i.used_by, i.used_at, i.created_at, u.nickname AS used_name, cr.nickname AS creator_name
+      ${from} ${sql} ORDER BY ${order} ${query.dir.toUpperCase()}, i.rowid DESC LIMIT ? OFFSET ?
+    `).all(...args, limit, offset) as { code: string; note: string; used_by: number | null; used_at: number | null; created_at: number; used_name: string | null; creator_name: string | null }[];
+    return rows.map((row) => ({ code: row.code, note: row.note, usedBy: row.used_by, usedByName: row.used_name ?? null, createdByName: row.creator_name ?? null, createdAt: row.created_at, usedAt: row.used_at }));
+  });
+}
+
+export function inviteStats(): { total: number; unused: number; used: number } {
+  const row = db.prepare('SELECT COUNT(*) AS total, COUNT(CASE WHEN used_by IS NULL THEN 1 END) AS unused FROM invite_codes').get() as { total: number; unused: number };
+  return { total: Number(row.total), unused: Number(row.unused), used: Number(row.total) - Number(row.unused) };
+}
+
 // ── 用户详情聚合用：针对某个用户的举报（被举报的是他本人 / 他的作品 / 他的消息与评论） ──
 export function reportsAgainstUser(userId: number, limit = 30): AdminReportRow[] {
   const rows = db.prepare(`

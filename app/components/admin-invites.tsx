@@ -2,15 +2,19 @@
 
 import { LocalTime } from '@/components/local-time';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { confirmAction, useNotice } from '@/components/admin-feedback';
+import { AdminEmpty, SortTh } from '@/components/admin-list';
 
 type Invite = { code: string; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number; usedAt: number | null };
+export type InviteStats = { total: number; unused: number; used: number };
 
-export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; initialRequired: boolean }) {
+// 邀请码：注册策略 + 生成区 + 统一列表（服务端查询见 lib/admin-query.ts queryInvites；工具栏与分页由页面传入）
+export function AdminInvites({ rows, stats, sort, filtered, toolbar, pager, initialRequired }: {
+  rows: Invite[]; stats: InviteStats; sort: { sort: string; dir: 'asc' | 'desc' }; filtered: boolean; toolbar: ReactNode; pager: ReactNode; initialRequired: boolean;
+}) {
   const router = useRouter();
-  const [invites, setInvites] = useState(initial);
   const [count, setCount] = useState('5');
   const [note, setNote] = useState('');
   const [created, setCreated] = useState<Invite[]>([]);
@@ -29,7 +33,6 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
         body: JSON.stringify({ count: Number(count), note }),
       });
       setCreated(result.invites);
-      setInvites((prev) => [...result.invites, ...prev]);
       setNotice(`已生成 ${result.invites.length} 个邀请码`);
       router.refresh();
     } catch (caught) {
@@ -64,17 +67,15 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
     }
   };
 
-  const unused = invites.filter((invite) => !invite.usedBy).length;
-  const used = invites.length - unused;
 
   return (
     <>
       <ErrorLine message={error} />
       <div className="p-kpis" style={{ marginBottom: 20 }}>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">未使用</div><div className="p-kpi-value">{unused}</div><div className="p-kpi-delta">可发放</div></div>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">已使用</div><div className="p-kpi-value">{used}</div><div className="p-kpi-delta">已注册</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">未使用</div><div className="p-kpi-value">{stats.unused}</div><div className="p-kpi-delta">可发放</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">已使用</div><div className="p-kpi-value">{stats.used}</div><div className="p-kpi-delta">已注册</div></div>
         <div className="p-card p-card--pad"><div className="p-kpi-label">注册策略</div><div className="p-kpi-value" style={{ fontSize: 20 }}>{required ? '必须邀请' : '选填'}</div><div className="p-kpi-delta">{required ? '新用户需邀请码' : '开放注册'}</div></div>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">总数</div><div className="p-kpi-value">{invites.length}</div><div className="p-kpi-delta">最近 100 个</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">总数</div><div className="p-kpi-value">{stats.total}</div><div className="p-kpi-delta">全部邀请码</div></div>
       </div>
       <section className="p-card p-card--pad">
         <div className="p-block-head" style={{ padding: 0, marginBottom: 10 }}>
@@ -111,12 +112,13 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
       </section>
 
       <section className="p-card" style={{ marginTop: 20 }}>
-        <div className="p-block-head"><h2>最近的邀请码</h2><span className="p-small">{invites.length} 个</span></div>
+        <div className="p-block-head"><h2>邀请码列表</h2></div>
+        {toolbar}
         <div className="admin-table-wrap">
           <table className="admin-table a-cards">
-            <thead><tr><th>邀请码</th><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><th>生成时间</th></tr></thead>
+            <thead><tr><th>邀请码</th><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><SortTh k="created" label="生成时间" current={sort} /></tr></thead>
             <tbody>
-              {invites.map((invite) => (
+              {rows.map((invite) => (
                 <tr key={invite.code}>
                   <td data-label="邀请码" className="a-primary" style={{ fontFamily: 'ui-monospace, monospace' }}>{invite.code}</td>
                   <td data-label="备注">{invite.note || '—'}</td>
@@ -126,10 +128,11 @@ export function AdminInvites({ initial, initialRequired }: { initial: Invite[]; 
                   <td data-label="生成时间" className="small"><LocalTime value={invite.createdAt} /></td>
                 </tr>
               ))}
-              {!invites.length && <tr><td colSpan={6} className="admin-empty">还没有邀请码。</td></tr>}
+              {!rows.length && <AdminEmpty colSpan={6} filtered={filtered}>还没有邀请码。</AdminEmpty>}
             </tbody>
           </table>
         </div>
+        {pager}
       </section>
     </>
   );
