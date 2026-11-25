@@ -4564,5 +4564,8 @@
  "账号不存在": "No such account",
  "账号已封禁": "Account banned",
  "尝试过于频繁": "Too many attempts",
- "两步验证码错误": "Wrong 2FA code"
+ "两步验证码错误": "Wrong 2FA code",
+ "按 token 计的不足 1 点按 1 点算；长上下文可能另有价格。在对话里点模型名就能换，详情见": "Token-billed models round up to 1 pt; long contexts may cost more. Tap the model name in a chat to switch. Details in ",
+ "各模型价格（": "Model prices (",
+ " 个）": ")"
 }

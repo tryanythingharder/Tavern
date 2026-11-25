@@ -73,13 +73,6 @@ export default async function PointsPage() {
   return (
     <section className="p-section" id="points">
       <h2>点数与充值</h2>
-      <p>不同模型计费不同：有的按 token 计（不足 1 点按 1 点算），有的每次固定扣点，长上下文可能另有价格，在对话里点模型名就能换。</p>
-      <ul className="pt-prices" aria-label="各模型价格">
-        {availableModels().map((item) => (
-          <li key={item.id}><span>{item.id}</span><b>{item.priceLabel}</b></li>
-        ))}
-        {!availableModels().length && <li><span>默认模型</span><b>{summary.perThousand} 点 / 千 tokens</b></li>}
-      </ul>
       <div className="p-card p-card--pad">
         <div className="p-detail-stats">
           <div className="p-stat"><div className="p-stat-n">{summary.balance.toLocaleString('zh-CN')}</div><div className="p-stat-l">当前余额</div></div>
@@ -110,6 +103,16 @@ export default async function PointsPage() {
         </Link>
       )}
       <div style={{ marginTop: 16 }}><PointsActions orders={listOrders(user.id)} pricePerPointCents={pricePerPointCents()} currency={__cur()} manual={activeProvider().id === 'manual'} /></div>
+      <details className="p-card p-card--pad pt-prices-card" style={{ marginTop: 16 }}>
+        <summary className="p-form-section-title">各模型价格（{availableModels().length || 1} 个）</summary>
+        <p className="p-small">按 token 计的不足 1 点按 1 点算；长上下文可能另有价格。在对话里点模型名就能换，详情见<Link href="/models">模型广场</Link>。</p>
+        <ul className="pt-prices" aria-label="各模型价格">
+          {availableModels().map((item) => (
+            <li key={item.id}><span>{item.id}</span><b>{item.priceLabel}</b></li>
+          ))}
+          {!availableModels().length && <li><span>默认模型</span><b>{summary.perThousand} 点 / 千 tokens</b></li>}
+        </ul>
+      </details>
       <section id="ledger" className="p-card p-card--pad" style={{ marginTop: 16 }}>
         <h2 className="p-form-section-title">点数记录</h2>
         <p className="p-small">每次生成结束后按网关返回的 usage 扣费，账本逐笔可对。</p>

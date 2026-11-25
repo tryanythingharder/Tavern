@@ -146,14 +146,17 @@ const kTokens = (n: number) => (n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : n
 const unit = (rule: PriceRule) => (rule.mode === 'call' ? '点/次' : '点/千 tokens');
 
 // 展示用：「3 点/次 · 上下文超 272K 6 点」
+// 按次计费实际扣 Math.ceil(价)（见 pointsCost），展示也按实扣，避免写 4.5 点/次 实扣 5 点
+const shown = (rule: PriceRule, price: number) => (rule.mode === 'call' ? Math.max(0, Math.ceil(price)) : price);
+
 export function priceLabel(rule: PriceRule): string {
-  const base = `${rule.price} ${unit(rule)}`;
+  const base = `${shown(rule, rule.price)} ${unit(rule)}`;
   if (!rule.tiers.length) return base;
-  return `${base} · ${rule.tiers.map((tier) => `超 ${kTokens(tier.above)} ${tier.price} 点`).join(' · ')}`;
+  return `${base} · ${rule.tiers.map((tier) => `超 ${kTokens(tier.above)} ${shown(rule, tier.price)} 点`).join(' · ')}`;
 }
 
 export function priceShort(rule: PriceRule): string {
-  return `${rule.price} ${rule.mode === 'call' ? '点/次' : '点/千'}${rule.tiers.length ? '起' : ''}`;
+  return `${shown(rule, rule.price)} ${rule.mode === 'call' ? '点/次' : '点/千'}${rule.tiers.length ? '起' : ''}`;
 }
 
 export function spendPoints(userId: number, amount: number, note: string, refId?: string): { ok: boolean; balance: number; previous: number } {

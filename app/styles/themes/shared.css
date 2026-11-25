@@ -823,3 +823,6 @@ html body .p-chat-tr-busy { font-size: 12px; color: var(--muted, #8a7f78); align
 body[data-page="create"] .ci-wrap .p-card--pad { padding: 20px 22px; }
 body[data-page="create"] .ci-wrap .ci-tool { padding: 16px 18px; align-content: start; }
 @media (max-width: 600px) { body[data-page="create"] .ci-wrap .p-card--pad { padding: 16px; } }
+.pt-prices-card > summary { cursor: pointer; list-style: revert; }
+.pt-prices-card .pt-prices { max-width: none; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.pt-prices-card .pt-prices li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
