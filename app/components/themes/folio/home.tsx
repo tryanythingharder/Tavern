@@ -128,11 +128,14 @@ export function FolioHome({ data }: { data: HomeData }) {
           </div>
 
           <figure className="fo-cv-photo">
-            <Link className="fo-frame" href={`/c/${cover.id}`} aria-label={`翻开 ${cover.name}`}>
-              {coverSrc ? <img src={coverSrc} alt={`${cover.name}的立绘`} /> : <span className="fo-frame-initial" aria-hidden="true">{cover.initial}</span>}
+            {/* 页码、对话数两个角标放在链接外面（叠在图上），链接的可见文字只剩立绘，和 aria-label 不冲突（AUDIT-2 E3） */}
+            <div className="fo-frame-wrap">
+              <Link className="fo-frame" href={`/c/${cover.id}`} aria-label={`翻开 ${cover.name}`}>
+                {coverSrc ? <img src={coverSrc} alt={`${cover.name}的立绘`} /> : <span className="fo-frame-initial" aria-hidden="true">{cover.initial}</span>}
+              </Link>
               <span className="fo-folio">p. {pad(Math.max(coverIndex, 0) + 1)}</span>
               <span className="fo-stamp">{cover.chats} 次对话</span>
-            </Link>
+            </div>
             <figcaption className="fo-rv" style={{ ['--d' as string]: 1100 }}>
               <span><span className="fo-it">Plate {roman(1, true)}.</span>　{cover.name}，{plain(cover.hook).slice(0, 18)}{plain(cover.hook).length > 18 ? '…' : ''}</span>
               <span>角色卡 · {cover.author}</span>

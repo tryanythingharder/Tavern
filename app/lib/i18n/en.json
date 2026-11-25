@@ -4592,5 +4592,8 @@
  "已赠送 {0} 点给「{1}」· 余额 {2}": "Granted {0} points to \"{1}\" · balance {2}",
  "已扣减「{0}」{1} 点 · 余额 {2}": "Deducted {1} points from \"{0}\" · balance {2}",
  "{0} 件没处理成功（#{1}），可能已被其他管理员处理": "{0} not processed (#{1}); another admin may have handled them",
- "{0} 个失败：{1}": "{0} failed: {1}"
+ "{0} 个失败：{1}": "{0} failed: {1}",
+ "⌘K 打开快速跳转（Ctrl/⌘ + K）": "⌘K Open quick jump (Ctrl/⌘ + K)",
+ "点 {0} · 点数余额{1}": "pts {0} · Points balance{1}",
+ "点 {0} · 剩余点数，点开查看明细": "pts {0} · points left, click for details"
 }

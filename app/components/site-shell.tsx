@@ -183,7 +183,7 @@ export function SiteShell({
   const replies = costs.text > 0 ? Math.floor(points / (costs.text * 2)) : 0;
   const pointsMenu = userName ? (
     <div className="p-points" ref={pointsRef}>
-      <button ref={pointsTriggerRef} className={`p-points-trigger p-wallet-trigger${wallet?.low ? ' is-low' : ''}`} type="button" aria-expanded={pointsOpen} aria-haspopup="dialog" aria-controls="points-panel" aria-label={`点数余额 ${points}${wallet?.low ? '，余额不足' : ''}`} onClick={() => setPointsOpen((value) => !value)}>
+      <button ref={pointsTriggerRef} className={`p-points-trigger p-wallet-trigger${wallet?.low ? ' is-low' : ''}`} type="button" aria-expanded={pointsOpen} aria-haspopup="dialog" aria-controls="points-panel" aria-label={`点 ${fmt(points)} · 点数余额${wallet?.low ? '，余额不足' : ''}`} onClick={() => setPointsOpen((value) => !value)}>
         <span className="p-wallet-coin" aria-hidden="true">点</span>
         <span className="p-wallet-num">{fmt(points)}</span>
         {checkin && !checkin.todayDone && <span className="p-wallet-dot" aria-hidden="true" />}
@@ -372,7 +372,7 @@ export function SiteShell({
             {icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35')}
             <input className="p-input" type="search" name="q" placeholder="搜索角色、作者或剧情" aria-label="搜索角色、作者或剧情" />
             {userName && (
-              <button className="rd-kbd-hint" type="button" aria-label="打开快速跳转（Ctrl/⌘ + K）" onClick={() => window.dispatchEvent(new Event('tavern:palette'))}>
+              <button className="rd-kbd-hint" type="button" aria-label="⌘K 打开快速跳转（Ctrl/⌘ + K）" onClick={() => window.dispatchEvent(new Event('tavern:palette'))}>
                 <kbd>⌘</kbd><kbd>K</kbd>
               </button>
             )}
