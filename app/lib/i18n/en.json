@@ -4580,5 +4580,7 @@
  "个邀请码": "invite codes",
  "兑换码状态": "Code status",
  "邀请码状态": "Invite status",
- "房间里的角色都被静音了，消息没有发出：先在房间设置里取消静音，或点输入框上方的成员头像点名让 TA 发言": "Every character in this room is muted, so your message wasn't sent. Unmute someone in room settings, or tap a member avatar above the input to have them speak."
+ "房间里的角色都被静音了，消息没有发出：先在房间设置里取消静音，或点输入框上方的成员头像点名让 TA 发言": "Every character in this room is muted, so your message wasn't sent. Unmute someone in room settings, or tap a member avatar above the input to have them speak.",
+ "「{0}」太长：{1} 字，上限 {2} 字": "\"{0}\" is too long: {1} characters (limit {2})",
+ "角色名太长：{0} 字，请控制在 {1} 字以内": "Character name is too long: {0} characters. Keep it within {1}."
 }

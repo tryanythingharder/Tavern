@@ -29,7 +29,7 @@ export function parseStCharacterCard(input: unknown): ImportedCard | null {
   const scenario = text(data.scenario ?? raw.scenario);
   const firstMes = text(data.first_mes ?? data.firstMessage ?? raw.first_mes ?? raw.greeting);
   const examples = text(data.mes_example ?? raw.mes_example);
-  const tags = Array.isArray(data.tags) ? data.tags.map(String).map((tag) => tag.trim()).filter(Boolean).slice(0, 12) : [];
+  const tags = Array.isArray(data.tags) ? data.tags.map(String).map((tag) => tag.trim().slice(0, 40)).filter(Boolean).slice(0, 12) : [];
   const nsfw = tags.some((tag) => /nsfw|r18|r-18|18\+|成人/i.test(tag));
   const creatorNotes = text(data.creator_notes ?? raw.creator_notes);
   const hook = text(data.creatorcomment ?? raw.creatorcomment) || description.split('\n').map((line) => line.trim()).find(Boolean)?.slice(0, 60) || `${name} 的故事`;
@@ -37,7 +37,7 @@ export function parseStCharacterCard(input: unknown): ImportedCard | null {
   const systemPrompt = text(data.system_prompt ?? raw.system_prompt);
   const postHistory = text(data.post_history_instructions ?? raw.post_history_instructions);
   const alternates = Array.isArray(data.alternate_greetings)
-    ? data.alternate_greetings.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 40).map((text, index) => ({ title: `备用开场 ${index + 1}`, text }))
+    ? data.alternate_greetings.map(String).map((item) => item.trim().slice(0, 30000)).filter(Boolean).slice(0, 40).map((text, index) => ({ title: `备用开场 ${index + 1}`, text }))
     : [];
   return {
     name: name.slice(0, 32),

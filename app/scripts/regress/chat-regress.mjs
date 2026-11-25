@@ -314,6 +314,22 @@ await step('导入#C5 粘贴带 BOM 的角色卡 / 世界书 JSON 能导入', as
   assert(bad.status === 400, `坏 JSON 仍应 400，实际 ${bad.status}`);
 });
 
+// ---------- 角色卡字段上限（polish C6） ----------
+await step('导入#C6 20 万字角色名 → 400 指明字段；40 字名照常导入（截到 32）；超长备用开场 → 400；建卡接口同样检查', async () => {
+  const huge = await req('/api/characters/import', { method: 'POST', json: { json: JSON.stringify({ name: '名'.repeat(200000), description: 'd', first_mes: 'f' }) } });
+  const hj = await huge.json().catch(() => ({}));
+  assert(huge.status === 400 && /角色名太长/.test(hj.message || ''), `超长名 ${huge.status} ${JSON.stringify(hj).slice(0, 100)}`);
+  const longish = await req('/api/characters/import', { method: 'POST', json: { json: JSON.stringify({ name: '长'.repeat(40), description: 'd', first_mes: 'f' }) } });
+  const lj = await longish.json().catch(() => ({}));
+  assert(longish.status === 201 && lj.character?.name?.length === 32, `40 字名 ${longish.status} len=${lj.character?.name?.length}`);
+  const alt = await req('/api/characters/import', { method: 'POST', json: { json: JSON.stringify({ spec: 'chara_card_v2', data: { name: '备用开场超长', first_mes: 'f', alternate_greetings: ['x'.repeat(30001)] } }) } });
+  const aj = await alt.json().catch(() => ({}));
+  assert(alt.status === 400 && /备用开场 1/.test(aj.message || ''), `超长备用开场 ${alt.status} ${aj.message}`);
+  const form = await req('/api/characters', { method: 'POST', json: { name: '表单卡', hook: '钩子', greeting: 'g'.repeat(30001), status: 'draft' } });
+  const fj = await form.json().catch(() => ({}));
+  assert(form.status === 400 && /开场白/.test(fj.message || ''), `建卡接口 ${form.status} ${fj.message}`);
+});
+
 // ---------- 操作日志（activity_log / 后台审计页） ----------
 const WRONG_PW = 'Wr0ng-audit-pw-' + Date.now();
 async function loginForm(pw) {
