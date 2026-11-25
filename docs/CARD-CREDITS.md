@@ -130,3 +130,46 @@
 - AI 生成的立绘：提示词全部为本站根据卡面设定自写，未使用、未参考原卡的任何配图：角色一律为成年人；**非真人、不仿照任何真人或名人、不使用任何现有 IP 角色**；无裸露、无性暗示、无血腥；画面不含文字、水印、logo。AI 生成的立绘不属于上述 CC BY / CC BY-SA / CC0 改编内容的一部分。
 - **立绘取自原卡**的 11 张：10 张 Foreverse 卡用各卡目录下的 `cover.png`（`LICENSE-CONTENT` 写明封面同为 CC BY 4.0）；`nora-ferraz` 用原卡 `card.png`（仓库 README 写明 “Cards, images and sheets: CC BY 4.0”）。只等比缩小、居中，不足 933×1400 的部分用同一张图模糊压暗后补边，画面本身未改，署名与许可同上表。复用前逐张确认：图不露骨、角色看起来是成年人。`huo-yushen`、`shen-yan-collector`、`nai-fuer`、`xuan-jing`、`song-zhixia`、`wangu-night-market` 的原图带原卡的书法题名。Foreverse 的 `su-nianzhi`（画面像高中生）未复用，仍为 AI 生成。
 - RisuRealm 卡的页面许可标注为 “Prompt Licensed with …”，只覆盖提示词、不覆盖封面图，故一律不复用原图；Garret E. Williams 的三个模板没有配图。
+
+## 第三批：18+ 成人向授权卡（11 张，2026-11）
+
+数据在 `app/data/plaza-seeds-r18.ts`（文件末尾合并进 `PLAZA_SEEDS`），每张 `nsfw: true`，只对通过平台分级（`lib/age-gate.ts`：全站开关、地区、登录、出生日期、年龄线、强验证地区）的用户出现；新账号默认隐藏 18+。
+立绘不放 `public/`，在 `app/private/characters/{id}.jpg`，由 `app/characters/[file]/route.ts` 按 `nsfwBlock` 判定后提供（地址仍是 `/characters/{id}.jpg`）。
+
+全部来自 RisuRealm，许可取自每张卡页面数据中的 `license` 字段（爬取 2026-11-25；许可说明页 https://realm.risuai.net/help/license ）。每张卡都已**翻译改编**：译为中文并压缩改写简介、开场白和设定，删去原卡状态栏、图片标签、脚本与世界书；卡面不写露骨描写，统一加了「成年、自愿、说停就停」的边界说明；改动由本站负责，不代表原作者，改编不代表原作者认可。卡内 `creatorNotes` 与结构化 `source` 字段写明了作者、原卡地址、许可与链接。
+
+| id | 中文名 | 原名 | 作者 | 来源 | 许可 | 本站额外改动 |
+|---|---|---|---|---|---|---|
+| `jago-malhotra` | 贾戈·马尔霍特拉 | Jago "Redline" Malhotra | ieungieung | https://realm.risuai.net/character/09e6b8c4-8b31-4b13-a788-77c96ea56716 | CC BY-SA 4.0 | 略去露骨性偏好清单 |
+| `mihkel-rebane` | 米赫克尔·雷巴内 | Mihkel | ieungieung | https://realm.risuai.net/character/8f8d108e-5efa-4978-8b4f-ee0f968a3042 | CC BY-SA 4.0 | 略去露骨亲密细节 |
+| `yuna-lee` | 李侑娜 | Yuna | kogg333 | https://realm.risuai.net/character/75e9b1baf315b3b13cbf1f3de28cad2b2f4c366a967097afe44ba9312e9ae04c | CC BY 4.0 | 略去露骨身体与性经验描写 |
+| `hayeon` | 夏妍 | Hayeon (@heyhayeon) | maczxc | https://realm.risuai.net/character/5765254c-b7fe-45f2-a71d-75dcc9888679 | CC BY 4.0 | — |
+| `kol-zennor` | 科尔·岑诺 | Kol Zennor | dudosha | https://realm.risuai.net/character/7c6ae291-daae-4766-b584-8a7835316d73 | CC BY 4.0 | 删去原性偏好清单中涉及侵犯的条目，关系改为双方自愿；补写开场白后半段 |
+| `park-nieun` | 朴尼恩 | Nieun | kyw7777 | https://realm.risuai.net/character/d7141514-bce1-45cc-a52e-e225826da2a8 | CC BY 4.0 | 世界书中的其他角色（含原世界观里 17 岁的少年版角色）一律未收 |
+| `cigenia` | 奇格尼娅 | Cigenia | kyw7777 | https://realm.risuai.net/character/1851fb88-2c8a-4203-93c7-f3cf77011238 | CC BY 4.0 | 妹妹遇害经过只保留概述 |
+| `tinyaan` | 缇娅安 | Tinyaan | kyw7777 | https://realm.risuai.net/character/9c653d11-b89e-496f-8d04-f95964428db8 | CC BY 4.0 | — |
+| `maryhub` | 玛丽哈布 | Maryhub | kyw73061 | https://realm.risuai.net/character/b7fb932a-4253-4e00-9390-1a4c806850d5 | CC BY 4.0 | 补写开场白结尾 |
+| `lee-dohyun` | 李道贤 | 이도현 | hcse88 | https://realm.risuai.net/character/b87a9024-afa6-4ee2-af7a-efce337b01a0 | CC BY 4.0 | 只保留主角，其他同学与家人设定略去 |
+| `jacob-gyllenwald` | 雅各布·吉伦瓦尔德爵士 | Sir Gyllenhaal | tisayai | https://realm.risuai.net/character/28fae487-682f-4680-9d50-69144ba1c385 | CC BY 4.0 | 原角色名与一位真人演员同名：角色与家族改名为「吉伦瓦尔德」，父母名等配角信息略去（第二批曾因同名排除，本批改名后收录） |
+
+许可原文：CC BY 4.0 https://creativecommons.org/licenses/by/4.0/ ；CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ 。
+**CC BY-SA 4.0 卡（2 张，作者 ieungieung）**：贾戈·马尔霍特拉、米赫克尔·雷巴内——本站改编版本同样以 CC BY-SA 4.0 发布。其余 9 张为 CC BY 4.0。
+
+### 第三批立绘（11 张）
+
+- **复用原卡自带图（6 张）**：`jago-malhotra`、`mihkel-rebane`、`kol-zennor`、`park-nieun`、`tinyaan`、`maryhub`。图片为原卡（charx / PNG 卡）内置的角色图，随卡以上表许可发布；本站只做了裁切缩放（933×1400 JPEG，≤250 KB），逐张目检：人物明显成年、无裸露、无性行为。复用的图同样适用原卡许可与署名。
+- **AI 生成（5 张）**：`hayeon`、`jacob-gyllenwald`、`cigenia`、`lee-dohyun`、`yuna-lee`。原卡图不适合（多视图设定稿、带原名与作者水印文字、构图过于暴露或外观偏幼）时，通过 RelayCat 接口调用 `gpt-image-2` 生成（2026-11-25，1024×1536），再裁切为 933×1400 JPEG（≤250 KB）。提示词按每张卡的外貌、设定、时代自写：人物一律明显成年、衣着完整，可以性感但无裸露、无性行为；非真人、不仿照任何真人或现有 IP；无文字水印。生成图不属于上述 CC 改编内容的一部分。
+- 卡内结构化 `source` 的 `portrait: 'original'` 标出上面 6 张复用原卡图的卡；详情页「来源与许可」据此显示「立绘取自原卡」或「立绘由本站 AI 生成」。
+
+### 第三批未收录（候选审读后排除）
+
+候选池：RisuRealm 全站按下载量翻完（约 7,800 张）后，许可为 CC0 / CC BY / CC BY-SA 的只有 106 张，再加上前两批审读时因露骨被排除的卡。逐张读了设定、开场白与世界书后排除：
+
+- **以非自愿、强制或胁迫为核心**：Evelina Nightshade（系统指令要求写非自愿场景，催眠凝视）、Kidel Esteban（以「把对方变成性奴」为目标，另原卡无许可）、Sefi（被迫卖淫、「习惯被使用」）、Xi / Penelope（「圣绳」持有者说什么就做什么，角色不理解同意）、Erin Ellis（勒索支配、「逐步堕落」为剧情弧）、Rizu（声明接受强奸扮演、乱伦扮演等一切要求）、Ashebelle（跟踪监视、因对方另娶而亲手杀死对方来重置循环，属美化虐待）、규하율（以偷装监听手表跟踪为卖点）。
+- **未成年或外观 / 设定偏未成年**：유키（外观 9 岁）、Temerosa√2（主要角色含 17 岁）、CLEA-01（「4 岁」机器人、150 cm）、Pennie（「娃娃脸」+ 露骨）、Caleb（高中生）、Yeonseo（高中生）、Tasha（18 岁高中生）、Hikori、AD-001fmd、Iris and the Time-Manipulators（大量少年少女角色）、네토리야 고등학교、프로위스 아카데미、하츠보시 학원、어린이、Caris（以儿童为对象的掠食者）。
+- **乱伦**：The Vance Estate（家族乱伦后宫）。
+- **同人 / 现有 IP**：Imoen（博德之门）、메로엣타（宝可梦）、마녀의 여행、거미입니다만、Valkyrie Sisters（Fate）、Lara（冒险岛）、전생왕녀、Debi & Marlene、타치바나 스이세이、배트 레이디（蝙蝠侠）、Hogwarts: EXTRA、Spongebob、Combaticon（变形金刚）、카사네 테토、Himekawa Chizuru（卡内另写 CC BY-NC-SA，许可矛盾）。
+- **低质或物化**：텐가 / 미아 / 시노아（「飞机杯」设定）、에나（「性奴」）、테레사（「名义上的奴隶」女仆）、Carla（「活体臀部」）、자지 숭배 세계、Cecilia Bugobugo（「堕落」哥布林）。
+- **非成人向或年龄不明**：Sahti（全年龄内容、年龄未写）、Rukia（全年龄陪伴型机器人）。
+- **重复版本**：Nieun 的韩文旧版（11542c6f）。
+- **许可不合格**：hornysilicon/silly-cards（无许可文件）、chub 系列（无许可，不收）、其余检索到的成人卡仓库多为 NC / ND 或无许可。

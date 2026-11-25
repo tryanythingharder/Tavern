@@ -40,7 +40,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const hidden = character.status !== 'published' || character.nsfw;
   const cover = hidden ? null : coverSrc(character);
   const title = tr('{0} · 夜话').replace('{0}', character.name);
-  const description = (character.hook || character.description || '').slice(0, 160);
+  // 18+ 卡的简介可能露骨，元数据对所有人只给通用说明（分享卡片、搜索引擎都看不到正文）
+  const description = character.nsfw ? tr('成人向角色') : (character.hook || character.description || '').slice(0, 160);
   return {
     title: character.name,
     description,

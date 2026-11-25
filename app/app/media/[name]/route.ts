@@ -2,6 +2,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { readMedia } from '@/lib/storage';
 import { mediaAlias } from '@/lib/media-webp';
 import { parseRange } from '@/lib/http-range';
+import { nsfwBlock } from '@/lib/age-gate';
+import { nsfwOwnersOfMedia } from '@/lib/nsfw-art';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +28,17 @@ export async function GET(request: Request, context: Params) {
     if (alias) return new Response(null, { status: 301, headers: { Location: `/media/${alias}`, 'Cache-Control': 'public, max-age=31536000' } });
     return new Response('Not found', { status: 404 });
   }
-  const privateFile = file.visibility === 'private';
+  // 18+ 卡的封面/头像/表情立绘：上传时是 public，但不能靠直链绕过分级
+  const nsfwOwners = nsfwOwnersOfMedia(name);
+  for (const owner of nsfwOwners) {
+    if (await nsfwBlock(user?.id ?? null, owner)) return new Response('Forbidden', { status: 403, headers: { 'Cache-Control': 'private, no-store' } });
+  }
+  const privateFile = file.visibility === 'private' || nsfwOwners.length > 0;
   const size = file.buffer.length;
   const headers: Record<string, string> = {
     'Content-Type': TYPES[file.extension] ?? 'application/octet-stream',
-    'Cache-Control': privateFile ? 'private, max-age=31536000, immutable' : 'public, max-age=31536000, immutable',
+    // 18+ 图按人判定，浏览器也要每次回来问（年龄状态、全站开关会变）
+    'Cache-Control': nsfwOwners.length ? 'private, no-cache' : privateFile ? 'private, max-age=31536000, immutable' : 'public, max-age=31536000, immutable',
     'Cross-Origin-Resource-Policy': 'same-origin',
     'Accept-Ranges': 'bytes',
   };

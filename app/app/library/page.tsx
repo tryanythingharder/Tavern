@@ -4,15 +4,19 @@ import db, { listChats } from '@/lib/db';
 import { listAddedCharacters, listFavoriteCharacters, listOwnedCharacters } from '@/lib/characters';
 import { listTags, tagMap } from '@/lib/char-tags';
 import { LibraryBrowser, type ChatStat } from '@/components/library-browser';
+import { nsfwAccess } from '@/lib/age-gate';
 
 export const dynamic = 'force-dynamic';
 
 export default async function LibraryPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  const added = listAddedCharacters(user.id);
+  // 之前加过的 18+ 卡：现在不能看（全站关了、换了地区…）就不在角色库里露出；自己的作品不受影响
+  const canSee18 = (await nsfwAccess(user.id)).allowed;
+  const visible = <T extends { nsfw: boolean; ownerId: number | null }>(item: T) => canSee18 || !item.nsfw || item.ownerId === user.id;
+  const added = listAddedCharacters(user.id).filter(visible);
   const works = listOwnedCharacters(user.id);
-  const favorites = listFavoriteCharacters(user.id);
+  const favorites = listFavoriteCharacters(user.id).filter(visible);
   const favoriteIds = (db.prepare('SELECT character_id FROM character_favorites WHERE user_id = ?').all(user.id) as { character_id: string }[]).map((row) => row.character_id);
   const addedAt: Record<string, number> = {};
   for (const row of db.prepare('SELECT character_id, created_at FROM character_added WHERE user_id = ?').all(user.id) as { character_id: string; created_at: number }[]) {

@@ -6,6 +6,7 @@ import { saveMedia } from '@/lib/storage';
 import { readZip } from '@/lib/zip-read';
 import { imageExt } from '@/lib/image-ext';
 import { formOr413, readJson } from '@/lib/body-limit';
+import { nsfwBlock } from '@/lib/age-gate';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,8 @@ async function load(context: Params) {
   const { id } = await context.params;
   const character = getCharacterView(id);
   if (!character) return { error: fail('角色不存在', 404) } as const;
+  const blocked18 = await nsfwBlock(user.id, character);
+  if (blocked18) return { error: fail(blocked18, 403) } as const;
   return { user, character } as const;
 }
 
