@@ -131,7 +131,7 @@ export const SEED_LEGACY_CATEGORY: Record<string, string> = {
 /** 全部种子：最初 6 张 + 广场补充卡（data/plaza-seeds.ts） */
 export const characters: Character[] = [
   ...BASE_CHARACTERS,
-  ...PLAZA_SEEDS.map(({ en: _en, creatorNotes: _notes, ...seed }) => seed),
+  ...PLAZA_SEEDS.map(({ en: _en, creatorNotes: _notes, source: _source, ...seed }) => seed),
 ];
 
 export function getCharacter(id: string): Character | undefined {

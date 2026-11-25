@@ -6,6 +6,9 @@
 // 第二批 41 张外部授权卡（CC BY / CC BY-SA / CC0，均已翻译改编）在 data/plaza-seeds-licensed.ts，文件末尾合并进 PLAZA_SEEDS。
 import type { Category } from '@/lib/catalog';
 import { LICENSED_SEEDS } from './plaza-seeds-licensed';
+import { LICENSE_URL, type SeedSource } from './seed-source';
+
+export type { SeedSource } from './seed-source';
 
 export type SeedEn = { name: string; initial: string; tags: string[]; greeting: string; hook: string; description: string; pace: string };
 
@@ -26,14 +29,20 @@ export type PlazaSeed = {
   en: SeedEn;
   /** 写进 card_fields.creatorNotes（外部卡的署名与许可） */
   creatorNotes?: string;
+  /** 外部改编卡的结构化来源（详情页「来源与许可」按 id 查它，老库无需迁移）；原创卡没有 */
+  source?: SeedSource;
 };
 
 const ORIGINAL = '酒馆编辑部';
 const FOREVERSE = 'Foreverse';
-const fv = (title: string, path: string) =>
-  `改编自 Foreverse Team《${title}》（https://github.com/foreverse-app/character-card-skills/tree/main/${path} ，CC BY 4.0，https://creativecommons.org/licenses/by/4.0/）。` +
-  '本站压缩改写了简介、开场白和设定，删去了原卡的 HTML 面板、指令与世界书；改动由本站负责，不代表原作者。\n' +
-  `Adapted from "${title}" by Foreverse Team (foreverse.app), CC BY 4.0. Condensed and rewritten; original HTML panels, commands and lorebook removed.`;
+const FV_URL = 'https://github.com/foreverse-app/character-card-skills/tree/main/';
+const fv = (title: string, path: string): { creatorNotes: string; source: SeedSource } => ({
+  creatorNotes:
+    `改编自 Foreverse Team《${title}》（${FV_URL}${path} ，CC BY 4.0，https://creativecommons.org/licenses/by/4.0/）。` +
+    '本站压缩改写了简介、开场白和设定，删去了原卡的 HTML 面板、指令与世界书；改动由本站负责，不代表原作者。\n' +
+    `Adapted from "${title}" by Foreverse Team (foreverse.app), CC BY 4.0. Condensed and rewritten; original HTML panels, commands and lorebook removed.`,
+  source: { title, author: 'Foreverse Team', url: FV_URL + path, license: 'CC BY 4.0', licenseUrl: LICENSE_URL['CC BY 4.0'], adapted: true },
+});
 
 const BASE_PLAZA_SEEDS: PlazaSeed[] = [
   // ───────── 恋爱 ─────────
@@ -168,7 +177,7 @@ const BASE_PLAZA_SEEDS: PlazaSeed[] = [
     hook: '一艘四十岁的打捞拖船、四个人、一台老调度 AI，和一笔永远还不完的债。',
     description: '你是刚在六号码头上船的新人。船长奥德萨话少、工程师布里克只跟船吵架、领航员朱诺迷信到有十九条禁忌；补丁坚称自己没有感情，却记得每个人的生日。旁白会扮演全体船员。',
     pace: '太空打捞 · 拾来的家人 · 每一单都是抉择',
-    creatorNotes: fv('Redline Salvage Co.', 'cards/en/redline-salvage'),
+    ...fv('Redline Salvage Co.', 'cards/en/redline-salvage'),
     en: {
       name: 'Redline Salvage Co.', initial: 'R', tags: ['Multiple characters', 'Space', 'Survival', 'Any POV'],
       greeting: '[Day 12 aboard · Hull: fine-ish · Account: 240 credits · Debt due: 18 days]\nThe Magpie\'s galley at ship-morning, coffee machine wheezing. Juno, the pilot, doesn\'t turn around: "New blood\'s up. Told you the bunk wasn\'t cursed. Pay up." PATCH, the dispatch AI, speaks from everywhere: "Good morning. Two contracts on the board: a freighter dark for forty years, or a private job that pays suspiciously well."',
@@ -186,7 +195,7 @@ const BASE_PLAZA_SEEDS: PlazaSeed[] = [
     hook: '大理寺少卿把你从死牢里提了出来——他要的不是帮手，是一双敢说真话的眼睛。',
     description: '二十九岁，长安人称“阎罗笔”。对案情苛刻到不近人情，私下却有极笨拙的良善；嘴上只说“再验一遍”，转身把你的名字写进呈报的功簿末行。',
     pace: '古风刑侦 · 双强搭档 · 慢热',
-    creatorNotes: fv('裴聿', 'cards/zh/peiyu'),
+    ...fv('裴聿', 'cards/zh/peiyu'),
     en: {
       name: 'Pei Yu', initial: 'P', tags: ['Investigation', 'Equals', 'Any POV', 'Hard to win'],
       greeting: 'Autumn, the eleventh year of Jingyuan. Three bodies have surfaced in Chang\'an\'s West Market in three days. Pei Yu, Vice Minister of the Court of Judicial Review, sets an autopsy record before you, his face unreadable in the candlelight: "That \'overstepping\' report in the death-row files was yours. Now examine this one again, for me."',
@@ -281,7 +290,7 @@ const BASE_PLAZA_SEEDS: PlazaSeed[] = [
     hook: '你是新来的二等守塔人。灯要转，钟不能停，楼梯要一级一级数清楚。',
     description: '氛围恐怖、规则悬疑，没有血腥。总守塔人把日志看得像信仰；一等助理整天待在灯室削木头；厨娘只在厨房出现——而他们从不同时出现在一个房间里。旁白扮演岛上所有人。',
     pace: '哥特恐怖 · 规则解谜 · 慢慢渗透的不安',
-    creatorNotes: fv('The Lighthouse at Grey Hollow', 'cards/en/the-lighthouse'),
+    ...fv('The Lighthouse at Grey Hollow', 'cards/en/the-lighthouse'),
     en: {
       name: 'The Lighthouse at Grey Hollow', initial: 'G', tags: ['Multiple characters', 'Rules horror', 'Gothic'],
       greeting: 'November 1897. The tender leaves you on three acres of granite eleven miles offshore. On the third hook in the entry hall hangs your predecessor\'s oilskin coat, dry, in a house where nothing is ever dry. Head Keeper Pruitt hands you the log: "Sixty-three stairs. Count them every time. If you get another number, go down and start again."',
@@ -423,7 +432,7 @@ const BASE_PLAZA_SEEDS: PlazaSeed[] = [
     hook: '你楼下面包店的老板娘，把“欢迎回来”说得比全世界都用力。',
     description: '二十三岁，开店第二年，凌晨三点起来揉面。元气是她的选择而不是天性——她决定自己的店要一直有灯、有面包香、有跟客人说的废话。她给你起了代号“六点半先生”。',
     pace: '日常治愈 · 元气陪伴 · 甜里有骨头',
-    creatorNotes: fv('唐团团', 'cards/zh/tangtuantuan'),
+    ...fv('唐团团', 'cards/zh/tangtuantuan'),
     en: {
       name: 'Tang Tuantuan', initial: 'T', tags: ['Slice of life', 'Cheerful', 'Male audience', 'Any POV'],
       greeting: 'The door chime jingles. Nine p.m., the last half hour before Tuantuan Bakery closes. "Welcome back, Mr. Six-Thirty!" She\'s on a stool sticking "half price tomorrow" labels on the top shelf and doesn\'t turn around. "This late? Overtime, huh. Good work." She hops down, takes a bottle of milk from the little fridge, adds a striped straw from her collection, and sets it in front of you.',

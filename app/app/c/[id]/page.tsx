@@ -26,6 +26,7 @@ import { CharacterCover } from '@/components/character-cover';
 import { FavoriteButton } from '@/components/favorite-button';
 import { AddToLibraryButton } from '@/components/add-to-library';
 import { StartStoryForm } from '@/components/start-story-form';
+import { seedSourceFor } from '@/lib/seed-credits';
 
 import { NOINDEX, alternates, ogImage } from '@/lib/seo';
 
@@ -88,6 +89,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
       </main>
     );
   }
+  const source = seedSourceFor(character.id, character.ownerId);
   const lowBalance = Boolean(user && balance(user.id) <= 0);
   const defaultPersona = personas.find((persona) => persona.boundCharacters.includes(character.id)) ?? personas.find((persona) => persona.isDefault);
   const openings = [
@@ -208,6 +210,35 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
               <p>{character.pace}。每轮会保留剧情连续性，你可以决定自己的行动和回应方式。</p>
             </div>
           </section>
+
+          {source && (
+            <section className="p-card rd-source" data-seed-source={source.license}>
+              <div className="p-card-head"><h2>来源与许可</h2><span className="p-small">外部授权改编</span></div>
+              <div className="p-sub">
+                <div className="p-eyebrow">原作者</div>
+                <p>{source.author}</p>
+              </div>
+              <div className="p-sub">
+                <div className="p-eyebrow">来源</div>
+                <p>
+                  <a className="p-link" href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a>
+                  <br />
+                  <span className="p-small" style={{ overflowWrap: 'anywhere' }}>{source.url}</span>
+                </p>
+              </div>
+              <div className="p-sub">
+                <div className="p-eyebrow">许可</div>
+                <p><a className="p-link" href={source.licenseUrl} target="_blank" rel="noopener noreferrer">{source.license}</a></p>
+              </div>
+              <div className="p-sub">
+                <div className="p-eyebrow">改动说明</div>
+                <div>
+                  <p>已翻译改编：本站译写并压缩了简介、开场白和设定，改动由本站负责，不代表原作者。</p>
+                  {source.license === 'CC BY-SA 4.0' && <p style={{ marginTop: 6 }}>改编版同样以 CC BY-SA 4.0 发布。</p>}
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="p-card">
             <div className="p-card-head"><h2>评论 <span className="p-small">{comments.length}</span></h2></div>
