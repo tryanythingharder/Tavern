@@ -268,6 +268,41 @@ await step('安全#4 生成中整个会话被删 → 报错且不扣点', async 
 await step('沙盒路由安全头', async () => { const r = await req('/sandbox/x', {}, false); const csp = r.headers.get('content-security-policy') || ''; assert(/connect-src 'none'/.test(csp), 'sandbox CSP 缺失 status ' + r.status); });
 await step('英文界面对话页渲染', async () => { const r = await req(`/chats/${chatId}?lang=en`); const t = await r.text(); assert(r.status === 200 && /lang="en/.test(t), `status ${r.status}`); await req('/?lang=zh'); });
 
+// ---------- 群聊：生图走生成锁、全静音不落玩家消息（polish B3/B4） ----------
+let roomId;
+const roomMessages = async () => (await (await req(`/api/rooms/${roomId}/messages`)).json()).messages;
+await step('群聊#B4 成员全静音：400 明确提示，玩家消息不入库', async () => {
+  const c = await req('/api/rooms', { method: 'POST', json: { name: '回归群聊', characterIds: [CHAR, 'bai-lu'], strategy: 'roundRobin' } });
+  const cj = await c.json(); assert(c.status === 201, `建房 ${c.status} ${JSON.stringify(cj)}`); roomId = cj.room.id;
+  const before = (await roomMessages()).length;
+  const m = await req(`/api/rooms/${roomId}`, { method: 'PATCH', json: { muted: [CHAR, 'bai-lu'] } }); assert(m.ok, `静音 ${m.status}`);
+  const r = await req(`/api/rooms/${roomId}/messages`, { method: 'POST', json: { text: '全静音时说话 MUTED_PROBE' } });
+  const j = await r.json().catch(() => ({}));
+  assert(r.status === 400 && /静音/.test(j.message || ''), `status ${r.status} ${JSON.stringify(j)}`);
+  const after = await roomMessages();
+  assert(after.length === before && !after.some((x) => (x.content || '').includes('MUTED_PROBE')), `消息数 ${before}→${after.length}`);
+  const u = await req(`/api/rooms/${roomId}`, { method: 'PATCH', json: { muted: [] } }); assert(u.ok, `取消静音 ${u.status}`);
+  const ok = await sse(`/api/rooms/${roomId}/messages`, { text: '取消静音后 UNMUTED_PROBE' });
+  assert(ok.events.some((e) => e.type === 'done'), '取消静音后没有回复');
+  const fin = await roomMessages();
+  assert(fin.filter((x) => (x.content || '').includes('UNMUTED_PROBE') && x.role === 'user').length === 1, '玩家消息应正好 1 条');
+  return `消息 ${before}→${after.length}→${fin.length}`;
+});
+await step('群聊#B3 文字生成中生图 → 409（同一把房间锁），结束后不再 409', async () => {
+  const slow = sse(`/api/rooms/${roomId}/messages`, { text: 'SLOW 群聊慢慢说' });
+  await sleep(800);
+  const busy = await req(`/api/rooms/${roomId}/image`, { method: 'POST', json: { mode: 'custom', prompt: '一张图' } });
+  const bj = await busy.json().catch(() => ({}));
+  const done = await slow;
+  assert(busy.status === 409 && bj.code === 'busy', `生成中生图 status ${busy.status} ${JSON.stringify(bj)}`);
+  assert(done.events.some((e) => e.type === 'done'), '慢速生成没有正常结束');
+  const idle = await req(`/api/rooms/${roomId}/image`, { method: 'POST', json: { mode: 'custom', prompt: '一张图' } });
+  assert(idle.status !== 409, `空闲时仍 409`);
+  const other = await req(`/api/rooms/999999/image`, { method: 'POST', json: { mode: 'custom', prompt: 'x' } });
+  assert(other.status === 404, `不存在的房间 ${other.status}`);
+  return `空闲时 ${idle.status}`;
+});
+
 // ---------- 操作日志（activity_log / 后台审计页） ----------
 const WRONG_PW = 'Wr0ng-audit-pw-' + Date.now();
 async function loginForm(pw) {

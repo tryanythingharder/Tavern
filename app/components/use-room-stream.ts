@@ -14,7 +14,7 @@ import type { RoomGenMode as GenMode, RoomMessageView } from '@/components/room-
 // 和单聊的 useGenerationStream 共用 readSse；没直接复用那个 hook，因为群聊多一个 speaker 事件、
 // streaming 要跨多次请求（一轮里可能连着 3 位成员 + 自动继续）、done 时总是 emitPoints 并延迟 600ms 自动翻译。
 
-export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, setMessages, setError, setOpenActions, resync, qrAutoRef, autoTranslateRef, translateRef }: {
+export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, setMessages, setError, setOpenActions, resync, qrAutoRef, autoTranslateRef, translateRef, restoreDraft }: {
   roomId: number;
   strategy: string;
   speakerId: string;
@@ -27,6 +27,8 @@ export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, 
   qrAutoRef: React.MutableRefObject<(kind: keyof QrAuto) => Promise<void>>;
   autoTranslateRef: React.MutableRefObject<boolean>;
   translateRef: React.MutableRefObject<(id: number, quiet?: boolean) => Promise<void>>;
+  /** 发送被服务端直接拒绝（非 2xx，玩家消息没有入库）时把原文还给输入框 */
+  restoreDraft?: (text: string) => void;
 }) {
   const [streaming, setStreaming] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
@@ -85,6 +87,8 @@ export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, 
       });
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as { message?: string } | null;
+        // 非 2xx 时服务端没有保存这条玩家消息（全静音 400、点数不足 402、忙 409、限流 429…），下面 resync 会去掉乐观插入的气泡，原文放回输入框
+        if (mode.kind === 'send') restoreDraft?.(mode.text);
         throw new Error(detail?.message || `请求失败（${response.status}）`);
       }
       if (!response.body) throw new Error('没有收到响应');
@@ -140,7 +144,7 @@ export function useRoomStream({ roomId, strategy, speakerId, autoMode, persona, 
       if (aliveRef.current) await resync();
     }
     return completed;
-  }, [roomId, speakerId, strategy, resync]);
+  }, [roomId, speakerId, strategy, resync, restoreDraft]);
 
   const run = useCallback(async (mode: GenMode) => {
     if (streaming) return;
