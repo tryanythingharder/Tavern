@@ -801,6 +801,7 @@
  "站点推荐的模型，线路不通时自动换": "Site-recommended model; reroutes automatically if a line is down",
  "推荐": "Recommended",
  "没有匹配的模型": "No matching models",
+ "选择模型，当前：{0}": "Choose model, current: {0}",
  "§{0} 直接写台词就行；{1} 用星号包住；{2} 用双括号。不知道接什么？点「▸ 继续」让角色接着演，或「✎ 代写」让 AI 帮你写一句。": "{0} just type your lines; {1} wrap in asterisks; {2} in double parentheses. Stuck? Tap ▸ Continue to let the character carry on, or ✎ Impersonate to have the AI write a line for you.",
  "小提示": "Tip",
  "直接写台词就行；": "just type your lines;",
