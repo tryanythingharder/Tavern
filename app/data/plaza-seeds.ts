@@ -662,4 +662,14 @@ const BASE_PLAZA_SEEDS: PlazaSeed[] = [
 ];
 
 /** 广场全部种子：第一批 39 张 + 外部授权卡第二批（data/plaza-seeds-licensed.ts，署名见 docs/CARD-CREDITS.md） */
-export const PLAZA_SEEDS: PlazaSeed[] = [...BASE_PLAZA_SEEDS, ...LICENSED_SEEDS];
+// 立绘直接取自原卡的外部卡：原卡许可明确覆盖配图（Foreverse 的 LICENSE-CONTENT 写明 cards/ 下的封面同为 CC BY 4.0；
+// inhabitants/character-kits 写明 images 同为 CC BY 4.0），且图不露骨、角色不像未成年。逐张说明见 docs/CARD-CREDITS.md。
+const ORIGINAL_PORTRAIT = new Set([
+  'redline-salvage', 'pei-yu', 'grey-hollow-light',
+  'huo-yushen', 'shen-yan-collector', 'caleb-moore', 'rosalind-vane', 'nai-fuer', 'xuan-jing', 'song-zhixia',
+  'frankie-doyle', 'edmund-harrower', 'wangu-night-market', 'nora-ferraz',
+]);
+
+export const PLAZA_SEEDS: PlazaSeed[] = [...BASE_PLAZA_SEEDS, ...LICENSED_SEEDS].map((seed) =>
+  seed.source && ORIGINAL_PORTRAIT.has(seed.id) ? { ...seed, source: { ...seed.source, portrait: 'original' as const } } : seed,
+);

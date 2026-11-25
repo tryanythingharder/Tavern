@@ -235,6 +235,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                 <div>
                   <p>已翻译改编：本站译写并压缩了简介、开场白和设定，改动由本站负责，不代表原作者。</p>
                   {source.license === 'CC BY-SA 4.0' && <p style={{ marginTop: 6 }}>改编版同样以 CC BY-SA 4.0 发布。</p>}
+                  <p style={{ marginTop: 6 }}>{source.portrait === 'original' ? '立绘取自原卡，同样按上述许可使用。' : '立绘由本站 AI 生成，不属于原卡内容。'}</p>
                 </div>
               </div>
             </section>

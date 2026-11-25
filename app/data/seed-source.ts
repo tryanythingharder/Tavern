@@ -15,4 +15,6 @@ export type SeedSource = {
   license: License;
   licenseUrl: string;
   adapted: true;
+  /** 立绘取自原卡（许可覆盖原卡配图）；没有这一项的立绘为本站 AI 生成 */
+  portrait?: 'original';
 };

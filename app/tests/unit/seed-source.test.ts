@@ -32,3 +32,16 @@ test('seedSourceFor 只认种子卡（owner_id 为空）', () => {
   assert.equal(seedSourceFor('pei-yu', 7), null);
   assert.equal(seedSourceFor('wen-zhiyu', null), null);
 });
+
+test('立绘取自原卡的 14 张：都是许可覆盖原图的外部卡', () => {
+  const original = PLAZA_SEEDS.filter((seed) => seed.source?.portrait === 'original').map((seed) => seed.id).sort();
+  assert.deepEqual(original, [
+    'caleb-moore', 'edmund-harrower', 'frankie-doyle', 'grey-hollow-light', 'huo-yushen', 'nai-fuer', 'nora-ferraz',
+    'pei-yu', 'redline-salvage', 'rosalind-vane', 'shen-yan-collector', 'song-zhixia', 'wangu-night-market', 'xuan-jing',
+  ]);
+  for (const id of original) {
+    const src = seedSourceFor(id, null)!;
+    assert.equal(src.license, 'CC BY 4.0', id);
+    assert.ok(/foreverse-app|inhabitants\/character-kits/.test(src.url), id);
+  }
+});

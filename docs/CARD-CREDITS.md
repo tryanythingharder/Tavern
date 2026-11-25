@@ -17,9 +17,9 @@
 | 本站 id | 本站名称 | 原卡 | 原路径 | 大类 |
 |---|---|---|---|---|
 | `tang-tuantuan` | 唐团团 | 唐团团 | cards/zh/tangtuantuan | 治愈 |
-| `pei-yu` | 裴聿 | 裴聿 | cards/zh/peiyu | 古风 |
-| `redline-salvage` | 红线打捞社 | Redline Salvage Co. | cards/en/redline-salvage | 科幻 |
-| `grey-hollow-light` | 灰谷灯塔 | The Lighthouse at Grey Hollow | cards/en/the-lighthouse | 恐怖 |
+| `pei-yu` | 裴聿 | 裴聿 | cards/zh/peiyu（立绘取自原卡） | 古风 |
+| `redline-salvage` | 红线打捞社 | Redline Salvage Co. | cards/en/redline-salvage（立绘取自原卡） | 科幻 |
+| `grey-hollow-light` | 灰谷灯塔 | The Lighthouse at Grey Hollow | cards/en/the-lighthouse（立绘取自原卡） | 恐怖 |
 
 **改动说明**（CC BY 要求注明）：按本站种子卡格式压缩改写了一句话简介、开场白、角色描述和节奏；两张英文卡另写了中文版；删去了原卡的 HTML 状态面板、`$` 指令、世界书、示例对话和隐藏线。署名与许可链接同时写进了每张卡的「创作者备注」（`card_fields.creatorNotes`）。改编不代表原作者认可。
 
@@ -27,11 +27,11 @@
 
 ## 立绘（39 张广场补充卡，AI 生成）
 
-`app/public/characters/{id}.jpg` 中上述 39 张卡（35 张原创 + 4 张 Foreverse 改编）的立绘均为 **AI 生成**：通过 RelayCat 图像接口（OpenAI 兼容）调用模型 `gpt-image-2` 生成（2026-11-24），再缩放裁切为 933×1400 JPEG。
+`app/public/characters/{id}.jpg` 中上述 39 张卡（35 张原创 + 4 张 Foreverse 改编）的立绘，除上表标注「立绘取自原卡」的 3 张外均为 **AI 生成**：通过 RelayCat 图像接口（OpenAI 兼容）调用模型 `gpt-image-2` 生成（2026-11-24），再缩放裁切为 933×1400 JPEG。2026-11-25 按卡面逐张复核提示词与成图，`unit-07`（零柒）因成图看不出是维修机体而重新生成。
 
 - 画风按每张卡自身的题材决定（如古风用工笔/水墨、赛博朋克用霓虹数字绘画、校园用日系插画、都市用写实摄影感、奇幻用奇幻插画等），不追求与最早 6 张立绘统一。
 - 提示词全部为本站根据卡面设定自写：角色一律为成年人；**非真人、不仿照任何真人或名人、不使用任何现有 IP 角色**；无裸露、无性暗示、无血腥；画面不含文字、水印、logo。
-- 4 张 Foreverse 改编卡的立绘不来自原卡，原卡如有配图均未使用；立绘不属于 CC BY 改编内容的一部分。
+- 4 张 Foreverse 改编卡中，`pei-yu`、`redline-salvage`、`grey-hollow-light` 的**立绘取自原卡**（各卡目录下的 `cover.png`；仓库 `LICENSE-CONTENT` 写明 `cards/` 下的封面为 Foreverse 团队 AI 生成、同样以 CC BY 4.0 授权）：只等比缩小、居中，不足 933×1400 的部分用同一张图模糊压暗后补边，画面本身未改；`pei-yu` 原图带原卡的书法题名。`tang-tuantuan` 的原卡封面画风低龄、角色看起来不像成年人，未使用，仍为本站 AI 生成。AI 生成的立绘不属于 CC BY 改编内容的一部分。
 - 最早 6 张种子卡的立绘不在本节范围内。
 
 ---
@@ -52,11 +52,11 @@
 
 | 本站 id | 本站名称 | 原卡 | 原作者 | 来源 | 许可 | 大类 |
 |---|---|---|---|---|---|---|
-| `huo-yushen` | 霍聿深 | 霍聿深 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/huoyushen | CC BY 4.0 | 恋爱 |
-| `shen-yan-collector` | 沈砚 | 沈砚 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/shenyan | CC BY 4.0 | 恋爱 |
-| `caleb-moore` | 凯勒·摩尔 | Caleb Moore | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/caleb | CC BY 4.0 | 恋爱 |
-| `rosalind-vane` | 罗莎琳德·维恩 | Rosalind Vane | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/rosalind | CC BY 4.0 | 恋爱 |
-| `nai-fuer` | 奈芙尔 | 奈芙尔 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/naifuer | CC BY 4.0 | 奇幻 |
+| `huo-yushen` | 霍聿深 | 霍聿深 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/huoyushen | CC BY 4.0（立绘取自原卡） | 恋爱 |
+| `shen-yan-collector` | 沈砚 | 沈砚 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/shenyan | CC BY 4.0（立绘取自原卡） | 恋爱 |
+| `caleb-moore` | 凯勒·摩尔 | Caleb Moore | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/caleb | CC BY 4.0（立绘取自原卡） | 恋爱 |
+| `rosalind-vane` | 罗莎琳德·维恩 | Rosalind Vane | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/rosalind | CC BY 4.0（立绘取自原卡） | 恋爱 |
+| `nai-fuer` | 奈芙尔 | 奈芙尔 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/naifuer | CC BY 4.0（立绘取自原卡） | 奇幻 |
 | `vaelin-ardent` | 维林·阿登特 | Vaelin | ieungieung | https://realm.risuai.net/character/139cc6c0-13b0-4ede-b42b-eaa22bca11c4 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 奇幻 |
 | `sinmarked` | 罪印者 | Sinmarked | ieungieung | https://realm.risuai.net/character/387a703e-8122-4d7a-8e34-069ebb26d0bc | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 奇幻 |
 | `silvestra` | 希尔维斯特拉 | Silvestra | ieungieung | https://realm.risuai.net/character/9bd1732f-8bf5-40e0-ae8c-3fa106f9e6bb | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 奇幻 |
@@ -66,29 +66,29 @@
 | `static-crew` | 静电（STATIC） | STATIC | ieungieung | https://realm.risuai.net/character/011e749a-8662-4068-8c2b-b1565d8b2b2c | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 科幻 |
 | `shannon-mechanism` | 香农机制 | Shannon Mechanism | sjs1830 | https://realm.risuai.net/character/db8e3f10-adac-4f49-9a12-f2fd632631ed | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 科幻 |
 | `answering-machine` | 自动应答机、作家、神 | 자동응답기, 작가, 신. | sjs1830 | https://realm.risuai.net/character/8e50a4fe-0ff6-48ee-a7bd-09de3fbe455e | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 科幻 |
-| `xuan-jing` | 玄净 | 玄净 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/xuanjing | CC BY 4.0 | 古风 |
+| `xuan-jing` | 玄净 | 玄净 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/xuanjing | CC BY 4.0（立绘取自原卡） | 古风 |
 | `dead-spring-island` | 买死春 | 매사춘 (買死春) | sjs1830 | https://realm.risuai.net/character/f54093d7-dc80-4b9d-b62c-db4bd5f0e2d0 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 悬疑 |
 | `mirror-of-obsession` | 执妄之镜 | 망집의 거울 | sjs1830 | https://realm.risuai.net/character/cd7ba75f-a6cc-4dea-85ff-f3247d0248fb | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 悬疑 |
 | `great-rainfall` | 大豪雨 | 대호우 | sjs1830 | https://realm.risuai.net/character/a30a5a46-cbde-4fdd-9f7a-94de936996b3 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 悬疑 |
 | `amber-castle` | 琥珀城的女主人 | Anastasia Gerda (아나스타시아 게르다) | sjs1830 | https://realm.risuai.net/character/f3aa9f91-f65d-4179-9e45-33a7bd81a763 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 恐怖 |
 | `jangsan-beom` | 长山虎 | 장산범 | sjs1830 | https://realm.risuai.net/character/1d096ed2-e38e-4b34-8b99-aaac50346075 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 恐怖 |
 | `kabeko` | 卡贝子 | Kabeko | yaethi | https://realm.risuai.net/character/dbb936c0-f38e-4199-9d37-f479171d6908 | CC0 1.0 | 恐怖 |
-| `song-zhixia` | 宋知夏 | 宋知夏 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/songzhixia | CC BY 4.0 | 校园 |
+| `song-zhixia` | 宋知夏 | 宋知夏 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/songzhixia | CC BY 4.0（立绘取自原卡） | 校园 |
 | `su-nianzhi` | 苏念栀 | 苏念栀 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/sunianzhi | CC BY 4.0 | 校园 |
-| `nora-ferraz` | 诺拉·费拉斯 | Nora Ferraz | Aria Maiven（inhabitants / Sapiens Sintéticos） | https://github.com/inhabitants/character-kits/tree/main/characters/nora-ferraz | CC BY 4.0 | 都市 |
+| `nora-ferraz` | 诺拉·费拉斯 | Nora Ferraz | Aria Maiven（inhabitants / Sapiens Sintéticos） | https://github.com/inhabitants/character-kits/tree/main/characters/nora-ferraz | CC BY 4.0（立绘取自原卡） | 都市 |
 | `paradise-lost-kiss` | 失乐园之吻 | 失樂園의 키—스 | sjs1830 | https://realm.risuai.net/character/6c6caf21-9b0e-4fa2-a5c0-71c5c72c1695 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 都市 |
 | `iris-london` | 艾瑞斯 | Iris (아이리스) | sjs1830 | https://realm.risuai.net/character/9c1c7620-0063-44c1-9354-3b6b55307df8 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 都市 |
-| `frankie-doyle` | 弗兰琪·多伊尔 | Frankie Doyle | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/frankie-doyle | CC BY 4.0 | 治愈 |
+| `frankie-doyle` | 弗兰琪·多伊尔 | Frankie Doyle | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/frankie-doyle | CC BY 4.0（立绘取自原卡） | 治愈 |
 | `darkroom-of-experience` | 经验冲印店 | 경험 현상소 | sjs1830 | https://realm.risuai.net/character/32ed0569-8e4d-4f69-a045-dea835a19408 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 治愈 |
 | `serpent-library` | 蛇之图书馆 | 뱀의 도서관, 도서관의 뱀 | sjs1830 | https://realm.risuai.net/character/9a412d26-6a2e-4495-8c2c-cb4cd3ca33d1 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 治愈 |
 | `mother-christmas` | 圣诞妈妈 | Mother Christmas | flomealexander | https://realm.risuai.net/character/db88d5b0-1bef-44be-81ee-3f166a012b83 | CC BY 4.0 | 治愈 |
-| `edmund-harrower` | 埃德蒙·哈罗尔 | Edmund Harrower | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/edmund-harrower | CC BY 4.0 | 冒险 |
+| `edmund-harrower` | 埃德蒙·哈罗尔 | Edmund Harrower | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/en/edmund-harrower | CC BY 4.0（立绘取自原卡） | 冒险 |
 | `tower-in-the-rain` | 雨中之塔 | The Tower in the Rain (빗속의 탑) | sjs1830 | https://realm.risuai.net/character/e25e360d-3f0e-4bf5-95fe-c5b9b1c91e4f | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 冒险 |
 | `court-of-opus` | 奥普斯宫廷的异乡人 | Stranger, In the Court of Opus | sjs1830 | https://realm.risuai.net/character/021ccc94-705d-4acb-927f-b1425073b88d | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 冒险 |
 | `helka` | 赫尔卡 | Helka | yaethi | https://realm.risuai.net/character/9058ffb9-d2af-4705-9cd6-8082c6439176 | CC BY 4.0 | 冒险 |
 | `vyx` | 维克丝 | Vyx | yaethi | https://realm.risuai.net/character/416f516c-8407-4638-815e-62cb2a1d05c6 | CC0 1.0 | 冒险 |
 | `masquerade-of-cain` | 该隐假面舞会 | Masquerade of Cain - V3.7 | sjs1830 | https://realm.risuai.net/character/5ab26b7a-e9ec-41e2-b2a1-630bf9a1f699 | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 历史 |
-| `wangu-night-market` | 晚孤市 | 晚孤市 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/wangushi | CC BY 4.0 | 游戏 |
+| `wangu-night-market` | 晚孤市 | 晚孤市 | Foreverse Team | https://github.com/foreverse-app/character-card-skills/tree/main/cards/zh/wangushi | CC BY 4.0（立绘取自原卡） | 游戏 |
 | `digital-drama` | 华丽壮观数码大剧 | The Magnificent and Spectacular Digital Drama | ieungieung | https://realm.risuai.net/character/2a77389e-b7f1-4fb4-9b67-6dcd294516ee | CC BY-SA 4.0（改编版同样以 CC BY-SA 4.0 发布） | 游戏 |
 | `madame-ossory` | 奥索里夫人 | Madame Ossory (tarot-classic) | Garret E. Williams | https://github.com/garretewilliams/utility-persona-templates/blob/main/templates/character-card-v2/tarot-classic.v2.json | CC BY 4.0 | 助手 |
 | `chef-scorch` | 焦火主厨 | Chef Scorch (roast-playful) | Garret E. Williams | https://github.com/garretewilliams/utility-persona-templates/blob/main/templates/character-card-v2/roast-playful.v2.json | CC BY 4.0 | 助手 |
@@ -124,8 +124,9 @@
 
 ### 第二批立绘（41 张，AI 生成）
 
-`app/public/characters/{id}.jpg` 中上表 41 张卡的立绘均为 **AI 生成**：通过 RelayCat 图像接口（OpenAI 兼容）调用模型 `gpt-image-2` 生成（2026-11-25，1024×1536），再缩放裁切为 933×1400 JPEG（单张 ≤ 250 KB）。
+`app/public/characters/{id}.jpg` 中上表 41 张卡的立绘，除标注「立绘取自原卡」的 11 张外均为 **AI 生成**：通过 RelayCat 图像接口（OpenAI 兼容）调用模型 `gpt-image-2` 生成（2026-11-25，1024×1536），再缩放裁切为 933×1400 JPEG（单张 ≤ 250 KB）。同日按卡面逐张复核，`vaelin-ardent`（眼睛应为深红、身上不带银器）与 `mother-christmas`（应为四十五岁）两张重新生成。
 
 - 画风按每张卡的设定决定（日系插画、写实油画感、暗黑奇幻、场景插画、童话绘本等）。
-- 提示词全部为本站根据卡面设定自写，未使用、未参考原卡的任何配图：角色一律为成年人；**非真人、不仿照任何真人或名人、不使用任何现有 IP 角色**；无裸露、无性暗示、无血腥；画面不含文字、水印、logo。
-- 立绘不属于上述 CC BY / CC BY-SA / CC0 改编内容的一部分。
+- AI 生成的立绘：提示词全部为本站根据卡面设定自写，未使用、未参考原卡的任何配图：角色一律为成年人；**非真人、不仿照任何真人或名人、不使用任何现有 IP 角色**；无裸露、无性暗示、无血腥；画面不含文字、水印、logo。AI 生成的立绘不属于上述 CC BY / CC BY-SA / CC0 改编内容的一部分。
+- **立绘取自原卡**的 11 张：10 张 Foreverse 卡用各卡目录下的 `cover.png`（`LICENSE-CONTENT` 写明封面同为 CC BY 4.0）；`nora-ferraz` 用原卡 `card.png`（仓库 README 写明 “Cards, images and sheets: CC BY 4.0”）。只等比缩小、居中，不足 933×1400 的部分用同一张图模糊压暗后补边，画面本身未改，署名与许可同上表。复用前逐张确认：图不露骨、角色看起来是成年人。`huo-yushen`、`shen-yan-collector`、`nai-fuer`、`xuan-jing`、`song-zhixia`、`wangu-night-market` 的原图带原卡的书法题名。Foreverse 的 `su-nianzhi`（画面像高中生）未复用，仍为 AI 生成。
+- RisuRealm 卡的页面许可标注为 “Prompt Licensed with …”，只覆盖提示词、不覆盖封面图，故一律不复用原图；Garret E. Williams 的三个模板没有配图。
