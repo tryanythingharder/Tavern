@@ -63,7 +63,7 @@ export function AdminPanel({ users, sort, filtered }: { users: AdminUser[]; sort
       const { balance } = await api<{ balance: number }>('/api/admin/grant', { method: 'POST', body: JSON.stringify({ userId: target.id, amount: value, note }) });
       setRows((prev) => prev.map((row) => (row.id === target.id ? { ...row, balance } : row)));
       setGranting(null);
-      toast.ok(`${value > 0 ? '已赠送' : '已扣减'} ${Math.abs(value)} 点给「${target.nickname}」· 余额 ${balance.toLocaleString('zh-CN')}`);
+      toast.ok(value > 0 ? `已赠送 ${value} 点给「${target.nickname}」· 余额 ${balance.toLocaleString('zh-CN')}` : `已扣减「${target.nickname}」${-value} 点 · 余额 ${balance.toLocaleString('zh-CN')}`);
     } catch (caught) {
       setError((caught as Error).message);
     } finally {

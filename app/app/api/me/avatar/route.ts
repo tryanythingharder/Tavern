@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const data = Buffer.from(await file.arrayBuffer());
   const ext = imageExt(data);
   if (!ext) return fail('只支持 PNG、JPG、WebP 或 GIF 图片');
-  if (data.length > LIMIT[kind]) return fail(`图片太大了，${kind === 'avatar' ? '头像' : '背景图'}最多 ${LIMIT[kind] / 1024 / 1024} MB`);
+  if (data.length > LIMIT[kind]) return fail(kind === 'avatar' ? `头像图片太大了，最多 ${LIMIT[kind] / 1024 / 1024} MB` : `背景图太大了，最多 ${LIMIT[kind] / 1024 / 1024} MB`);
   const previous = getProfileMedia(user.id)[kind];
   const url = saveMedia(data, ext, { ownerId: user.id, visibility: 'public' });
   setProfileMedia(user.id, kind, url);

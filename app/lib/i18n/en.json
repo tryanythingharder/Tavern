@@ -3039,7 +3039,7 @@
  "文件超过 20 MB": "File is over 20 MB",
  "操作太频繁，稍后再试": "Too many requests, try again shortly",
  "站点还没有接入年龄验证服务，请联系管理员": "Age verification isn't set up on this site yet. Please contact the admin.",
- "停止词要写成 JSON 数组，例如 [\"\\n{{user}}:\"]": "Stop strings must be a JSON array, e.g. [\"\n{{user}}:\"]",
+ "停止词要写成 JSON 数组，例如 [\"\\n{{user}}:\"]": "Stop strings must be a JSON array, e.g. [\"\\n{{user}}:\"]",
  "只能继续角色消息": "Only character messages can be continued",
  "只能继续最新一条消息": "Only the latest message can be continued",
  "请先验证邮箱后再使用": "Please verify your email first",
@@ -4583,5 +4583,14 @@
  "房间里的角色都被静音了，消息没有发出：先在房间设置里取消静音，或点输入框上方的成员头像点名让 TA 发言": "Every character in this room is muted, so your message wasn't sent. Unmute someone in room settings, or tap a member avatar above the input to have them speak.",
  "「{0}」太长：{1} 字，上限 {2} 字": "\"{0}\" is too long: {1} characters (limit {2})",
  "角色名太长：{0} 字，请控制在 {1} 字以内": "Character name is too long: {0} characters. Keep it within {1}.",
- "上传内容太大，单次最多 {0}": "Request too large: max {0} per request"
+ "上传内容太大，单次最多 {0}": "Request too large: max {0} per request",
+ "头像图片太大了，最多 {0} MB": "Avatar image is too large (max {0} MB)",
+ "背景图太大了，最多 {0} MB": "Background image is too large (max {0} MB)",
+ "订单 #{0} 已确认到账": "Order #{0} marked as paid",
+ "已撤销": "Undone",
+ "点数要填一个非零整数": "Points must be a non-zero whole number",
+ "已赠送 {0} 点给「{1}」· 余额 {2}": "Granted {0} points to \"{1}\" · balance {2}",
+ "已扣减「{0}」{1} 点 · 余额 {2}": "Deducted {1} points from \"{0}\" · balance {2}",
+ "{0} 件没处理成功（#{1}），可能已被其他管理员处理": "{0} not processed (#{1}); another admin may have handled them",
+ "{0} 个失败：{1}": "{0} failed: {1}"
 }
