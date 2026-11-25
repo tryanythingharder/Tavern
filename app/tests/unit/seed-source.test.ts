@@ -47,7 +47,7 @@ test('立绘取自原卡的 14 张：都是许可覆盖原图的外部卡', () =
   }
 });
 
-test('18+ 授权卡 11 张：都有署名，立绘 6 张取自原卡、5 张 AI 生成', () => {
+test('18+ 授权卡 11 张：都有署名，立绘 0 张取自原卡、11 张 AI 生成（RisuRealm 许可只覆盖提示词）', () => {
   const r18 = PLAZA_SEEDS.filter((seed) => seed.nsfw);
   assert.equal(r18.length, 11);
   for (const seed of r18) {
@@ -56,7 +56,7 @@ test('18+ 授权卡 11 张：都有署名，立绘 6 张取自原卡、5 张 AI 
     assert.ok(/^https:\/\/realm\.risuai\.net\/character\//.test(src.url), seed.id);
   }
   const original = r18.filter((seed) => seed.source?.portrait === 'original').map((seed) => seed.id).sort();
-  assert.deepEqual(original, ['jago-malhotra', 'kol-zennor', 'maryhub', 'mihkel-rebane', 'park-nieun', 'tinyaan']);
+  assert.deepEqual(original, []);
   const ai = r18.filter((seed) => !seed.source?.portrait).map((seed) => seed.id).sort();
-  assert.deepEqual(ai, ['cigenia', 'hayeon', 'jacob-gyllenwald', 'lee-dohyun', 'yuna-lee']);
+  assert.deepEqual(ai, ['cigenia', 'hayeon', 'jacob-gyllenwald', 'jago-malhotra', 'kol-zennor', 'lee-dohyun', 'maryhub', 'mihkel-rebane', 'park-nieun', 'tinyaan', 'yuna-lee']);
 });
