@@ -39,7 +39,7 @@ test('社区常见的长卡（描述 2 万、示例 1.5 万、10 个 3000 字备
   assert.equal(card.tags[1].length, CARD_LIMITS.tag); // 超长标签截到 40 字
 });
 
-test('所有种子卡（内置 + 广场 39 张）都在上限内', () => {
+test('所有种子卡（内置 + 广场 80 张）都在上限内', () => {
   for (const seed of [...BASE_CHARACTERS, ...PLAZA_SEEDS]) {
     const error = characterInputLimitError({ ...seed, card: { creatorNotes: (seed as { creatorNotes?: string }).creatorNotes ?? '' } });
     assert.equal(error, null, `${seed.id}: ${error}`);
