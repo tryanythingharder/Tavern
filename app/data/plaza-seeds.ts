@@ -3,7 +3,9 @@
 // 来源与改动说明见仓库 docs/CARD-CREDITS.md，卡内「创作者备注」里也写了署名。
 // 约束：不用现有 IP、不写真人、所有角色均为成年人、不含露骨内容（nsfw 一律 false）。
 // 写入方式见 lib/db.ts：按 id 幂等插入，已存在就跳过。
+// 第二批 41 张外部授权卡（CC BY / CC BY-SA / CC0，均已翻译改编）在 data/plaza-seeds-licensed.ts，文件末尾合并进 PLAZA_SEEDS。
 import type { Category } from '@/lib/catalog';
+import { LICENSED_SEEDS } from './plaza-seeds-licensed';
 
 export type SeedEn = { name: string; initial: string; tags: string[]; greeting: string; hook: string; description: string; pace: string };
 
@@ -33,7 +35,7 @@ const fv = (title: string, path: string) =>
   '本站压缩改写了简介、开场白和设定，删去了原卡的 HTML 面板、指令与世界书；改动由本站负责，不代表原作者。\n' +
   `Adapted from "${title}" by Foreverse Team (foreverse.app), CC BY 4.0. Condensed and rewritten; original HTML panels, commands and lorebook removed.`;
 
-export const PLAZA_SEEDS: PlazaSeed[] = [
+const BASE_PLAZA_SEEDS: PlazaSeed[] = [
   // ───────── 恋爱 ─────────
   {
     id: 'wen-zhiyu', name: '温知予', author: ORIGINAL, initial: '温', hue: 18, category: '恋爱',
@@ -649,3 +651,6 @@ export const PLAZA_SEEDS: PlazaSeed[] = [
     },
   },
 ];
+
+/** 广场全部种子：第一批 39 张 + 外部授权卡第二批（data/plaza-seeds-licensed.ts，署名见 docs/CARD-CREDITS.md） */
+export const PLAZA_SEEDS: PlazaSeed[] = [...BASE_PLAZA_SEEDS, ...LICENSED_SEEDS];
