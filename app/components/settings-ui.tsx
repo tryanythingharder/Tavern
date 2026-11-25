@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lockPageScroll } from '@/lib/scroll-lock';
 import { createPortal } from 'react-dom';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -11,8 +12,7 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
   useEffect(() => setHost(document.body), []);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockPageScroll();
     const panel = panelRef.current;
     const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
     first?.focus();
@@ -38,7 +38,7 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
 
     document.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       document.removeEventListener('keydown', onKey);
     };
   }, [onClose, host]);

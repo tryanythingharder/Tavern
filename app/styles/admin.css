@@ -875,3 +875,17 @@
   .p-acontent .am-table td, .p-acontent .am-table td.am-id, .p-acontent .am-table td.am-tiers { min-width: 0; max-width: none; padding: 0; border-bottom: 0; }
   .p-acontent .am-table .am-num, .p-acontent .am-table td .am-mode { width: 100%; min-width: 0; }
 }
+
+/* ── 桌面端应用骨架：侧栏固定整屏高，只有右侧主区滚动；内容随屏幕宽度铺开 ── */
+.p-acontent { max-width: none; }
+@media (min-width: 961px) {
+    .p-admin { height: 100dvh; min-height: 0; overflow: hidden; }
+    .p-aside { position: relative; height: 100dvh; overscroll-behavior: contain; }
+    .p-anav { overscroll-behavior: contain; }
+    .p-amain { height: 100dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+}
+@media (min-width: 1800px) {
+    .p-acontent { padding-inline: var(--s10, 40px); }
+}
+/* 弹窗内部滚到头时不把滚动传给背后页面 */
+.modal-backdrop, .modal { overscroll-behavior: contain; }
