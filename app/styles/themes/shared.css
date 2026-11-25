@@ -826,3 +826,39 @@ body[data-page="create"] .ci-wrap .ci-tool { padding: 16px 18px; align-content: 
 .pt-prices-card > summary { cursor: pointer; list-style: revert; }
 .pt-prices-card .pt-prices { max-width: none; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .pt-prices-card .pt-prices li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 模型选择（对话 / 群聊输入区）：弹层挂在 body 上，位置由组件按可用空间算好写在 style 里 */
+.mp-list > .mp-opt { flex-shrink: 0; }
+.mp-pop.mp-pop--model { position: fixed; top: auto; bottom: auto; left: auto; z-index: 1100; width: min(380px, calc(100vw - 16px)); max-height: min(460px, calc(100vh - 16px)); overflow: hidden; overscroll-behavior: contain; }
+.mp-pop--model .mp-head { position: relative; flex: none; }
+.mp-pop--model .mp-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-pop--model .mp-search { flex: none; -webkit-appearance: none; appearance: none; }
+.mp-pop--model .mp-list { display: block; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; outline: none; scroll-padding-block: 28px 4px; }
+.mp-pop--model .mp-more { flex: none; }
+.mp-pop--model .mp-opt { width: 100%; min-width: 0; box-sizing: border-box; margin: 0 0 2px; user-select: none; }
+.mp-pop--model .mp-opt[aria-disabled="true"] { opacity: .6; cursor: progress; }
+.mp-pop--model .mp-opt.is-active { background: var(--ca-sunken, var(--surface-2, #f7f7f8)); box-shadow: inset 0 0 0 1px var(--ca-line-strong, var(--border, #d5d5d9)); }
+.mp-pop--model .mp-opt.is-on.is-active { background: var(--ca-accent-soft, #f9e8e4); box-shadow: inset 0 0 0 1px var(--ca-accent, #c9401f); }
+.mp-opt-row { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+.mp-pop--model .mp-opt-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: normal; }
+.mp-pop--model :is(.mp-tag, .mp-price) { flex: none; margin-left: 0; }
+.mp-check { flex: none; margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ca-accent, #c9401f); }
+.mp-pop--model .mp-opt-note { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; width: 100%; line-height: 1.45; }
+.mp-group-label { position: sticky; top: 0; z-index: 1; margin: 2px 0; padding: 6px 10px 4px; font-size: 11px; font-weight: 700; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ca-muted, var(--muted, #77777e)); background: var(--ca-card, var(--surface, #fff)); }
+.mp-group + .mp-group .mp-group-label { border-top: 1px solid var(--ca-line, var(--border, #e6e6e8)); }
+.mp-x { position: absolute; top: 2px; right: 2px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: inherit; font: inherit; font-size: 15px; cursor: pointer; }
+.mp-scrim { position: fixed; inset: 0; z-index: 1099; background: rgba(15, 15, 18, .42); touch-action: none; }
+.mp-grip { flex: none; width: 36px; height: 4px; margin: 2px auto 6px; border-radius: 2px; background: var(--ca-line-strong, #d5d5d9); }
+/* 窄屏：底部弹层，全宽 */
+.mp-pop.mp-pop--model.is-sheet { left: 0; right: 0; width: auto; border-radius: 16px 16px 0 0; border-bottom: 0; padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -18px 40px -18px rgba(0, 0, 0, .45); }
+.mp-pop--model.is-sheet .mp-head { padding-right: 44px; }
+.mp-pop--model.is-sheet .mp-head span { white-space: normal; }
+.mp-pop--model.is-sheet .mp-opt { padding-block: 11px !important; }
+.mp-pop--model.is-sheet .mp-search { height: 40px; font-size: 16px; }
+html body[data-theme="folio"] .mp-pop--model.is-sheet { border-radius: 0; }
+html body[data-theme="nocturne"] .mp-group-label { background: #17171c; color: #b4b4bc; }
+html body[data-theme="nocturne"] .mp-pop--model .mp-opt.is-active { background: rgba(255, 255, 255, .06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); }
+html body[data-theme="nocturne"] .mp-pop--model .mp-opt.is-on.is-active { background: #2c1b16; box-shadow: inset 0 0 0 1px #d9502c; }
+@media (prefers-reduced-motion: no-preference) { .mp-pop--model.is-sheet { animation: mp-sheet-in .18s ease-out; } }
+@keyframes mp-sheet-in { from { transform: translateY(16px); opacity: .6; } to { transform: none; opacity: 1; } }
