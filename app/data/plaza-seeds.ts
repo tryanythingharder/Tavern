@@ -3,9 +3,14 @@
 // 来源与改动说明见仓库 docs/CARD-CREDITS.md，卡内「创作者备注」里也写了署名。
 // 约束：不用现有 IP、不写真人、所有角色均为成年人、不含露骨内容（nsfw 一律 false）。
 // 写入方式见 lib/db.ts：按 id 幂等插入，已存在就跳过。
+// 第三批 11 张 18+ 成人向授权卡（nsfw:true，走平台分级）在 data/plaza-seeds-r18.ts，同样在文件末尾合并。
 // 第二批 41 张外部授权卡（CC BY / CC BY-SA / CC0，均已翻译改编）在 data/plaza-seeds-licensed.ts，文件末尾合并进 PLAZA_SEEDS。
 import type { Category } from '@/lib/catalog';
 import { LICENSED_SEEDS } from './plaza-seeds-licensed';
+import { R18_SEEDS } from './plaza-seeds-r18';
+import type { SeedSource } from './seed-source';
+
+export type { SeedSource } from './seed-source';
 
 export type SeedEn = { name: string; initial: string; tags: string[]; greeting: string; hook: string; description: string; pace: string };
 
@@ -17,7 +22,8 @@ export type PlazaSeed = {
   hue: number;
   category: Category;
   tags: string[];
-  nsfw: false;
+  /** 第一、二批全年龄卡为 false；第三批 18+ 卡（data/plaza-seeds-r18.ts）为 true，只对通过分级的用户出现 */
+  nsfw: boolean;
   chats: string;
   greeting: string;
   hook: string;
@@ -26,6 +32,8 @@ export type PlazaSeed = {
   en: SeedEn;
   /** 写进 card_fields.creatorNotes（外部卡的署名与许可） */
   creatorNotes?: string;
+  /** 外部改编卡的结构化来源（作者、原卡地址、许可）；原创卡不带 */
+  source?: SeedSource;
 };
 
 const ORIGINAL = '酒馆编辑部';
@@ -653,4 +661,4 @@ const BASE_PLAZA_SEEDS: PlazaSeed[] = [
 ];
 
 /** 广场全部种子：第一批 39 张 + 外部授权卡第二批（data/plaza-seeds-licensed.ts，署名见 docs/CARD-CREDITS.md） */
-export const PLAZA_SEEDS: PlazaSeed[] = [...BASE_PLAZA_SEEDS, ...LICENSED_SEEDS];
+export const PLAZA_SEEDS: PlazaSeed[] = [...BASE_PLAZA_SEEDS, ...LICENSED_SEEDS, ...R18_SEEDS];
