@@ -32,6 +32,7 @@ html[data-scheme="dark"] body[data-theme="stage"]:not(.p-cinema) {
   --stg-bg: var(--dk-bg); --stg-rail: var(--dk-rail); --stg-card: var(--dk-card); --stg-sunken: var(--dk-sunken); --stg-hover: var(--dk-hover);
   --stg-ink: var(--dk-ink); --stg-copy: var(--dk-copy); --stg-muted: var(--dk-muted); --stg-line: var(--dk-line); --stg-line-strong: var(--dk-line-strong);
   --stg-accent: var(--dk-accent); --stg-accent-soft: var(--dk-accent-soft); --stg-player: var(--dk-player);
+  --stg-accent-ink: var(--stg-accent); /* 深色下强调色本来就提亮，浅底上的强调字照旧用强调色 */
   --stg-sheen: linear-gradient(135deg, #24221f 0%, #1c1a19 38%, #24221f 52%, #191817 100%);
 }
 
@@ -87,8 +88,8 @@ body[data-theme="folio"] .sc-switch, body[data-theme="folio"] .sc-switch button 
 html[data-scheme="dark"] body[data-theme="stage"] :is(.stg-script, .stg-deck) {
   color-scheme: light;
   --stg-bg: #f7f7f8; --stg-card: #ffffff; --stg-sunken: #ebebec; --stg-hover: #f0f0f1;
-  --stg-ink: #1b1b1d; --stg-copy: #4a4a50; --stg-muted: #77777e; --stg-line: #e6e6e8; --stg-line-strong: #d5d5d9;
-  --stg-accent: #c9401f; --stg-accent-soft: #f9e8e4;
+  --stg-ink: #1b1b1d; --stg-copy: #4a4a50; --stg-muted: #6e6e75; --stg-line: #e6e6e8; --stg-line-strong: #d5d5d9;
+  --stg-accent: #c9401f; --stg-accent-soft: #f9e8e4; --stg-accent-ink: color-mix(in oklab, var(--stg-accent) 95%, #000);
   --ca-ink: #1b1b1d; --ca-card: #ffffff; --ca-line: #e6e6e8; --ca-muted: #6b6b73;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .06);
 }
