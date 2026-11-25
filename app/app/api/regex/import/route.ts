@@ -1,7 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { createRegexRule } from '@/lib/resources-db';
 import { parseStRegex } from '@/lib/resources';
-import { IMPORT_JSON_LIMIT, jsonOr413 } from '@/lib/body-limit';
+import { IMPORT_JSON_LIMIT, jsonOr413, parseJsonText } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   let raw: unknown = body.json;
   if (typeof raw === 'string') {
     try {
-      raw = JSON.parse(raw);
+      raw = parseJsonText(raw);
     } catch {
       return fail('JSON 解析失败，请检查粘贴内容', 400);
     }

@@ -67,6 +67,12 @@ export async function readTextLimited(request: Request, limit: number): Promise<
   return Buffer.concat(chunks).toString('utf8');
 }
 
+// 解析 JSON 文本前去掉开头的 BOM（\uFEFF）：从记事本 / 部分编辑器复制、或带 BOM 存的文件里粘贴的 JSON 开头会带它，
+// JSON.parse 会直接报错。只去开头那一个，字符串值里的 \uFEFF 原样保留。
+export function parseJsonText(text: string): unknown {
+  return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+}
+
 // 路由里一行用：const body = await jsonOr413(request, IMPORT_JSON_LIMIT, {}); if (body instanceof Response) return body;
 export async function jsonOr413<T>(request: Request, limit: number, fallback: T): Promise<unknown | T | Response> {
   let text: string;
@@ -77,7 +83,7 @@ export async function jsonOr413<T>(request: Request, limit: number, fallback: T)
     return fallback;
   }
   try {
-    return JSON.parse(text) as unknown;
+    return parseJsonText(text);
   } catch {
     return fallback;
   }

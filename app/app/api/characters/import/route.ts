@@ -7,7 +7,7 @@ import { parseStCharacterCard } from '@/lib/cards-import';
 import { parsePngCard } from '@/lib/png-card';
 import { extractExtras, extrasSummary, saveExtras } from '@/lib/card-extras';
 import { cardCompat } from '@/lib/card-compat';
-import { IMPORT_JSON_LIMIT, jsonOr413 } from '@/lib/body-limit';
+import { IMPORT_JSON_LIMIT, jsonOr413, parseJsonText } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     raw = body.json;
     if (typeof raw === 'string') {
       try {
-        raw = JSON.parse(raw);
+        raw = parseJsonText(raw);
       } catch {
         return fail('JSON 解析失败，请检查粘贴内容', 400);
       }

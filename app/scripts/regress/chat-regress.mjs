@@ -303,6 +303,17 @@ await step('群聊#B3 文字生成中生图 → 409（同一把房间锁），�
   return `空闲时 ${idle.status}`;
 });
 
+// ---------- 导入：带 BOM 的粘贴 JSON（polish C5） ----------
+await step('导入#C5 粘贴带 BOM 的角色卡 / 世界书 JSON 能导入', async () => {
+  const card = await req('/api/characters/import', { method: 'POST', json: { json: '\uFEFF' + JSON.stringify({ name: 'BOM卡', description: '带 BOM 的卡', first_mes: '你好' }) } });
+  const cj = await card.json().catch(() => ({}));
+  assert(card.status === 201 && cj.character?.name === 'BOM卡', `角色卡 ${card.status} ${JSON.stringify(cj).slice(0, 120)}`);
+  const book = await req('/api/lorebooks/import', { method: 'POST', json: { json: '\uFEFF' + JSON.stringify({ name: 'BOM世界书', entries: { 0: { key: ['钥匙'], content: '内容' } } }) } });
+  assert(book.ok, `世界书 ${book.status} ${(await book.text()).slice(0, 120)}`);
+  const bad = await req('/api/characters/import', { method: 'POST', json: { json: '\uFEFF{坏的' } });
+  assert(bad.status === 400, `坏 JSON 仍应 400，实际 ${bad.status}`);
+});
+
 // ---------- 操作日志（activity_log / 后台审计页） ----------
 const WRONG_PW = 'Wr0ng-audit-pw-' + Date.now();
 async function loginForm(pw) {
