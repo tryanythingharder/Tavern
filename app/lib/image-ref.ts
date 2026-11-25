@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import db, { getCharacterLook, listMessages, type DbCharacter } from '@/lib/db';
 import { readMedia } from '@/lib/storage';
+import { readPrivateArt } from '@/lib/nsfw-art';
 
 // 生图的人物一致性：找一张「这个角色长什么样」的图，作为参考图传给生图模型。
 // 顺序：玩家设的定妆照 → 角色封面 → 角色头像 → 内置角色自带的立绘 → 这段对话里第一张「角色立绘」插图。
@@ -16,7 +17,11 @@ async function loadUrl(url: string | null | undefined, requesterId: number): Pro
   if (media) return (await readMedia(media[1], requesterId).catch(() => null))?.buffer ?? null;
   // 站内静态图（/characters/x.jpg 之类）；外链不去抓，免得被拿来做 SSRF
   if (/^\/[a-zA-Z0-9/_.-]+\.(png|jpe?g|webp)$/i.test(value) && !value.includes('..')) {
-    return fs.readFile(path.join(process.cwd(), 'public', value)).catch(() => null);
+    const fromPublic = await fs.readFile(path.join(process.cwd(), 'public', value)).catch(() => null);
+    if (fromPublic) return fromPublic;
+    // 18+ 内置卡的立绘在 private/characters/（调用方生图前已做过 nsfwBlock）
+    const art = value.match(/^\/characters\/([a-z0-9-]+\.jpg)$/);
+    return art ? readPrivateArt(art[1]) : null;
   }
   return null;
 }
