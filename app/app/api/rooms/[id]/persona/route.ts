@@ -1,6 +1,7 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { getRoom } from '@/lib/rooms';
 import { personaSender, resolvePersona, setRoomPersona } from '@/lib/resources-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,9 @@ export async function PUT(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const roomId = idParam((await context.params).id);
   if (!roomId) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as { personaId?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { personaId?: unknown };
   const personaId = body.personaId === null ? null : Number(body.personaId) || null;
   if (!setRoomPersona(user.id, roomId, personaId)) return fail('房间不存在', 404);
   const room = getRoom(roomId, user.id)!;

@@ -1,6 +1,7 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { deleteDataBankFile, getDataBankFile, updateDataBankFile } from '@/lib/data-bank';
 import { checkScope } from '@/lib/data-bank-scope';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,9 @@ export async function PATCH(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as { name?: unknown; enabled?: unknown; content?: unknown; scope?: unknown; scopeId?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { name?: unknown; enabled?: unknown; content?: unknown; scope?: unknown; scopeId?: unknown };
   let scope: ReturnType<typeof checkScope> | undefined;
   if (body.scope !== undefined) {
     scope = checkScope(user.id, body.scope, body.scopeId);

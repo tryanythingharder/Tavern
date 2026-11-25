@@ -2,15 +2,20 @@
 
 import { LocalTime } from '@/components/local-time';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ErrorLine, api } from '@/components/settings-ui';
 import { useNotice } from '@/components/admin-feedback';
+import { AdminEmpty, SortTh } from '@/components/admin-list';
 
-type Code = { id: number; code: string; amount: number; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number };
+type Code = { id: number; code: string; amount: number; note: string; usedBy: number | null; usedByName: string | null; createdByName: string | null; createdAt: number; usedAt?: number | null };
+export type CodeStats = { total: number; unused: number; used: number; month: number; unusedPoints: number };
 
-export function AdminCodes({ initial }: { initial: Code[] }) {
+// 兑换码：生成区 + 统一列表（搜索 / 状态 / 排序 / 分页都由服务端按 URL 参数查询，见 lib/admin-query.ts queryCodes）。
+// KPI 是全表口径；列表工具栏与分页在页面里（app/admin/codes/page.tsx）。
+export function AdminCodes({ rows, stats, sort, filtered, toolbar, pager }: {
+  rows: Code[]; stats: CodeStats; sort: { sort: string; dir: 'asc' | 'desc' }; filtered: boolean; toolbar: ReactNode; pager: ReactNode;
+}) {
   const router = useRouter();
-  const [codes, setCodes] = useState(initial);
   const [amount, setAmount] = useState('500');
   const [count, setCount] = useState('5');
   const [note, setNote] = useState('');
@@ -29,7 +34,6 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
         body: JSON.stringify({ amount: Number(amount), count: Number(count), note }),
       });
       setCreated(result.codes);
-      setCodes((prev) => [...result.codes, ...prev]);
       setNotice(`已生成 ${result.codes.length} 个兑换码`);
       router.refresh();
     } catch (caught) {
@@ -49,21 +53,15 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
     }
   };
 
-  const unused = codes.filter((code) => !code.usedBy).length;
-  const used = codes.length - unused;
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-  const monthCodes = codes.filter((code) => code.createdAt >= monthStart.getTime()).length;
 
   return (
     <>
       <ErrorLine message={error} />
       <div className="p-kpis" style={{ marginBottom: 20 }}>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">未使用</div><div className="p-kpi-value">{unused}</div><div className="p-kpi-delta">可发放</div></div>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">已使用</div><div className="p-kpi-value">{used}</div><div className="p-kpi-delta">已兑换</div></div>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">本月生成</div><div className="p-kpi-value">{monthCodes}</div><div className="p-kpi-delta">最近 100 个</div></div>
-        <div className="p-card p-card--pad"><div className="p-kpi-label">总数</div><div className="p-kpi-value">{codes.length}</div><div className="p-kpi-delta">最近 100 个</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">未使用</div><div className="p-kpi-value">{stats.unused}</div><div className="p-kpi-delta">{`共 ${stats.unusedPoints.toLocaleString('zh-CN')} 点待兑换`}</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">已使用</div><div className="p-kpi-value">{stats.used}</div><div className="p-kpi-delta">已兑换</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">本月生成</div><div className="p-kpi-value">{stats.month}</div><div className="p-kpi-delta">本月 1 日起</div></div>
+        <div className="p-card p-card--pad"><div className="p-kpi-label">总数</div><div className="p-kpi-value">{stats.total}</div><div className="p-kpi-delta">全部兑换码</div></div>
       </div>
       <section className="p-card p-card--pad">
         <h2 className="p-form-section-title">生成兑换码</h2>
@@ -90,12 +88,13 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
       </section>
 
       <section className="p-card" style={{ marginTop: 20 }}>
-        <div className="p-block-head"><h2>最近的兑换码</h2><span className="p-small">{codes.length} 个</span></div>
+        <div className="p-block-head"><h2>兑换码列表</h2></div>
+        {toolbar}
         <div className="admin-table-wrap">
           <table className="admin-table a-cards">
-            <thead><tr><th>兑换码</th><th>点数</th><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><th>生成时间</th></tr></thead>
+            <thead><tr><th>兑换码</th><SortTh k="amount" label="点数" current={sort} /><th>备注</th><th>创建人</th><th>使用人</th><th>状态</th><SortTh k="id" label="生成时间" current={sort} /></tr></thead>
             <tbody>
-              {codes.map((code) => (
+              {rows.map((code) => (
                 <tr key={code.id}>
                   <td data-label="兑换码" className="a-primary" style={{ fontFamily: 'ui-monospace, monospace' }}>{code.code}</td>
                   <td data-label="点数">{code.amount} 点</td>
@@ -106,10 +105,11 @@ export function AdminCodes({ initial }: { initial: Code[] }) {
                   <td data-label="生成时间" className="small"><LocalTime value={code.createdAt} /></td>
                 </tr>
               ))}
-              {!codes.length && <tr><td colSpan={7} className="admin-empty">还没有兑换码。</td></tr>}
+              {!rows.length && <AdminEmpty colSpan={7} filtered={filtered}>还没有兑换码。</AdminEmpty>}
             </tbody>
           </table>
         </div>
+        {pager}
       </section>
     </>
   );

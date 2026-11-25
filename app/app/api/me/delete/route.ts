@@ -1,6 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { logActivity } from '@/lib/audit';
 import { deleteAccountData, endSession, getPasswordHash, verifyPassword } from '@/lib/auth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { password?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { password?: unknown };
   const password = String(body.password ?? '');
   const stored = getPasswordHash(user.id);
   if (!stored || !verifyPassword(password, stored)) return fail('密码不对', 400);

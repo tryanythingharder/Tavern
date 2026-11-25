@@ -191,7 +191,8 @@ export function RoomChat({ accountAvatar = null, roomId, strategy, members, init
   }, [roomId]);
 
   // 生成一条回复：send 带玩家消息；auto 自动推进；regenerate 给最新角色消息加一个候选；continue 接着最新角色消息写
-  const { streaming, typing, streamingId, abortRef, run } = useRoomStream({ roomId, strategy, speakerId, autoMode, persona, setMessages, setError, setOpenActions, resync, qrAutoRef, autoTranslateRef, translateRef });
+  const restoreDraft = useCallback((text: string) => setDraft((current) => (current.trim() ? current : text)), []);
+  const { streaming, typing, streamingId, abortRef, run } = useRoomStream({ roomId, strategy, speakerId, autoMode, persona, setMessages, setError, setOpenActions, resync, qrAutoRef, autoTranslateRef, translateRef, restoreDraft });
 
   // 快捷回复：群聊里斜杠命令只支持 /trigger、/send、/setinput、/echo、/popup（其余在单聊里用）
   const runRef = useRef(run);

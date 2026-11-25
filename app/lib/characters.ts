@@ -192,8 +192,8 @@ export type CharacterInput = {
 function normalizeInput(input: CharacterInput, fallbackName = '新角色') {
   const name = String(input.name ?? '').trim().slice(0, 32) || fallbackName;
   const tags = Array.isArray(input.tags)
-    ? input.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 12)
-    : String(input.tags ?? '').split(/[,，\s]+/).map((tag) => tag.trim()).filter(Boolean).slice(0, 12);
+    ? input.tags.map((tag) => String(tag).trim().slice(0, 40)).filter(Boolean).slice(0, 12)
+    : String(input.tags ?? '').split(/[,，\s]+/).map((tag) => tag.trim().slice(0, 40)).filter(Boolean).slice(0, 12);
   return {
     name,
     hook: String(input.hook ?? '').trim().slice(0, 90),
@@ -212,9 +212,9 @@ function normalizeOpenings(value: unknown): { title: string; text: string }[] {
   if (Array.isArray(value)) {
     return value
       .map((item, index) => {
-        if (typeof item === 'string') return { title: `备用开场 ${index + 1}`, text: item.trim() };
+        if (typeof item === 'string') return { title: `备用开场 ${index + 1}`, text: item.trim().slice(0, 30000) };
         const record = item as { title?: unknown; text?: unknown };
-        return { title: String(record?.title ?? `备用开场 ${index + 1}`).slice(0, 40), text: String(record?.text ?? '').trim() };
+        return { title: String(record?.title ?? `备用开场 ${index + 1}`).slice(0, 40), text: String(record?.text ?? '').trim().slice(0, 30000) };
       })
       .filter((item) => item.text)
       .slice(0, 40);
@@ -226,7 +226,7 @@ function normalizeOpenings(value: unknown): { title: string; text: string }[] {
         const lines = block.trim().split('\n');
         const first = lines[0]?.trim() ?? '';
         const hasTitle = lines.length > 1 && first.length <= 20 && !/[。！？.!?]/.test(first);
-        return hasTitle ? { title: first, text: lines.slice(1).join('\n').trim() } : { title: `备用开场 ${index + 1}`, text: block.trim() };
+        return hasTitle ? { title: first, text: lines.slice(1).join('\n').trim().slice(0, 30000) } : { title: `备用开场 ${index + 1}`, text: block.trim().slice(0, 30000) };
       })
       .filter((item) => item.text)
       .slice(0, 40);

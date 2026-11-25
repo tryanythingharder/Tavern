@@ -2,6 +2,7 @@ import { fail, json, requireUser } from '@/lib/api';
 import { addComment, listComments } from '@/lib/characters';
 import { getCharacterView } from '@/lib/characters';
 import { canGenerate } from '@/lib/auth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,9 @@ export async function POST(request: Request, context: Params) {
   if (!canGenerate(user)) return fail('请先验证邮箱后再评论', 403);
   const { id } = await context.params;
   if (!getCharacterView(id)) return fail('角色不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as { content?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { content?: string };
   const comment = addComment(id, user.id, String(body.content ?? ''));
   if (!comment) return fail('评论不能为空', 400);
   return json({ comment }, 201);

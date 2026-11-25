@@ -5,6 +5,7 @@ import { getRoom, getRoomMessage, saveRoomTranslation } from '@/lib/rooms';
 import { translateText } from '@/lib/translate';
 import { checkQuota } from '@/lib/usage';
 import { ensureStartingPoints } from '@/lib/points';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,9 @@ export async function POST(request: Request, context: Params) {
   if ('error' in loaded) return loaded.error;
   const { user, room, message } = loaded;
   if (!canGenerate(user)) return fail('请先验证邮箱后再使用', 403);
-  const body = (await request.json().catch(() => ({}))) as { lang?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { lang?: unknown };
   const lang = typeof body.lang === 'string' && body.lang ? body.lang : getGenPrefs(user.id).translate.target;
   const quota = checkQuota(user.id);
   if (!quota.ok) return fail(quota.message, 429);

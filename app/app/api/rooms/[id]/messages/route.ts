@@ -19,10 +19,13 @@ import { ensureStartingPoints, pointsCost, reservePoints } from '@/lib/points';
 import { CONTINUE_NUDGE, joinContinue } from '@/lib/continue';
 import { autoRoomSummarize, roomPromptMemory } from '@/lib/room-memory';
 import { characterNote, combinedNoteText } from '@/lib/memory';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
+
+const ALL_MUTED = '房间里的角色都被静音了，消息没有发出：先在房间设置里取消静音，或点输入框上方的成员头像点名让 TA 发言';
 
 function fail(message: string, status: number, retryAfterSeconds?: number) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -53,7 +56,9 @@ async function handlePost(request: Request, context: Params) {
   const blocked18 = await roomNsfwBlock(user.id, room.characterIds);
   if (blocked18) return fail(blocked18, 403);
 
-  const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean; force?: boolean; mode?: string; messageId?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { text?: string; speakerId?: string; auto?: boolean; force?: boolean; mode?: string; messageId?: number };
   const mode = body.mode === 'regenerate' || body.mode === 'continue' ? body.mode : null;
   const auto = body.auto === true || mode !== null;
   const text = mode ? '' : String(body.text ?? '').trim();
@@ -77,18 +82,21 @@ async function handlePost(request: Request, context: Params) {
 
   const config = loadRoomConfig(user.id, room);
   const genPrefs = getGenPrefs(user.id);
-  const userRoomMessage = !auto ? addRoomMessage(room.id, 'user', null, text, personaSender(user.id, config.persona)) : null;
-  const allMessages = listRoomMessages(room.id);
+  const existing = listRoomMessages(room.id);
   // 重新生成：上下文到目标之前为止；继续：包含目标本身
-  const messages = mode === 'regenerate' && target ? allMessages.filter((message) => message.id < target.id) : allMessages;
+  const before = mode === 'regenerate' && target ? existing.filter((message) => message.id < target.id) : existing;
   // 自动推进时没有新的玩家输入：自然模式沿用最后一条玩家消息找名字
-  const lastUserText = auto ? [...messages].reverse().find((message) => message.role === 'user')?.content ?? '' : text;
+  const lastUserText = auto ? [...before].reverse().find((message) => message.role === 'user')?.content ?? '' : text;
+  // 先选发言者、后落玩家消息：成员全被静音时直接 400，玩家消息不入库（前端会把输入还给输入框）。
+  // 选人只看角色发言的次数和上一位发言者，玩家消息在不在列表里结果都一样。
   // 换版/继续：发言者保持原来那位（ST swipe 不换角色）
   // ST「让 TA 发言」：指定成员，无视调度与静音
   const forced = body.force === true && typeof body.speakerId === 'string' && room.characterIds.includes(body.speakerId) ? body.speakerId : null;
-  const speakerId = target?.speakerId ?? forced ?? pickSpeaker(room, messages, lastUserText, body.speakerId || room.speakerId);
+  const speakerId = target?.speakerId ?? forced ?? pickSpeaker(room, before, lastUserText, body.speakerId || room.speakerId);
   const speaker = speakerId ? getCharacterById(speakerId) : undefined;
-  if (!speaker) return fail('房间里没有可发言的角色（可能都被静音了）', 400);
+  if (!speaker) return fail(ALL_MUTED, 400);
+  const userRoomMessage = !auto ? addRoomMessage(room.id, 'user', null, text, personaSender(user.id, config.persona)) : null;
+  const messages = userRoomMessage ? listRoomMessages(room.id) : before;
 
   const escapeRe = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const names = room.characterIds

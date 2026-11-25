@@ -16,6 +16,7 @@ import { promptMemory } from '@/lib/memory';
 import { getOverride } from '@/lib/cards';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
 import { dailyFreeRemaining } from '@/lib/growth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,9 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const chatId = Number((await context.params).id);
   const chat = getChat(chatId, user.id);
   if (!chat) return fail('会话不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as { hint?: string; mode?: string; prompt?: string; length?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { hint?: string; mode?: string; prompt?: string; length?: number };
   const hint = String(body.hint ?? '').trim().slice(0, 300);
   // 斜杠命令 /gen（带聊天上下文，按提示生成）、/genraw（只发提示本身）：同样只回文字、不落库，结果交给下一条命令（{{pipe}}）
   const mode = body.mode === 'gen' || body.mode === 'genraw' ? body.mode : 'impersonate';

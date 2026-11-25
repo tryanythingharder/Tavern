@@ -1,6 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { createReport } from '@/lib/moderation';
 import { logActivity } from '@/lib/audit';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { targetType?: string; targetId?: string; reason?: string; note?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { targetType?: string; targetId?: string; reason?: string; note?: string };
   const targetId = String(body.targetId ?? '').trim();
   if (!targetId) return fail('缺少举报对象', 400);
   const id = createReport(user.id, String(body.targetType ?? 'other'), targetId, String(body.reason ?? '其他'), String(body.note ?? ''));

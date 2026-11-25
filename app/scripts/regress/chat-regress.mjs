@@ -268,6 +268,86 @@ await step('安全#4 生成中整个会话被删 → 报错且不扣点', async 
 await step('沙盒路由安全头', async () => { const r = await req('/sandbox/x', {}, false); const csp = r.headers.get('content-security-policy') || ''; assert(/connect-src 'none'/.test(csp), 'sandbox CSP 缺失 status ' + r.status); });
 await step('英文界面对话页渲染', async () => { const r = await req(`/chats/${chatId}?lang=en`); const t = await r.text(); assert(r.status === 200 && /lang="en/.test(t), `status ${r.status}`); await req('/?lang=zh'); });
 
+// ---------- 群聊：生图走生成锁、全静音不落玩家消息（polish B3/B4） ----------
+let roomId;
+const roomMessages = async () => (await (await req(`/api/rooms/${roomId}/messages`)).json()).messages;
+await step('群聊#B4 成员全静音：400 明确提示，玩家消息不入库', async () => {
+  const c = await req('/api/rooms', { method: 'POST', json: { name: '回归群聊', characterIds: [CHAR, 'bai-lu'], strategy: 'roundRobin' } });
+  const cj = await c.json(); assert(c.status === 201, `建房 ${c.status} ${JSON.stringify(cj)}`); roomId = cj.room.id;
+  const before = (await roomMessages()).length;
+  const m = await req(`/api/rooms/${roomId}`, { method: 'PATCH', json: { muted: [CHAR, 'bai-lu'] } }); assert(m.ok, `静音 ${m.status}`);
+  const r = await req(`/api/rooms/${roomId}/messages`, { method: 'POST', json: { text: '全静音时说话 MUTED_PROBE' } });
+  const j = await r.json().catch(() => ({}));
+  assert(r.status === 400 && /静音/.test(j.message || ''), `status ${r.status} ${JSON.stringify(j)}`);
+  const after = await roomMessages();
+  assert(after.length === before && !after.some((x) => (x.content || '').includes('MUTED_PROBE')), `消息数 ${before}→${after.length}`);
+  const u = await req(`/api/rooms/${roomId}`, { method: 'PATCH', json: { muted: [] } }); assert(u.ok, `取消静音 ${u.status}`);
+  const ok = await sse(`/api/rooms/${roomId}/messages`, { text: '取消静音后 UNMUTED_PROBE' });
+  assert(ok.events.some((e) => e.type === 'done'), '取消静音后没有回复');
+  const fin = await roomMessages();
+  assert(fin.filter((x) => (x.content || '').includes('UNMUTED_PROBE') && x.role === 'user').length === 1, '玩家消息应正好 1 条');
+  return `消息 ${before}→${after.length}→${fin.length}`;
+});
+await step('群聊#B3 文字生成中生图 → 409（同一把房间锁），结束后不再 409', async () => {
+  const slow = sse(`/api/rooms/${roomId}/messages`, { text: 'SLOW 群聊慢慢说' });
+  await sleep(800);
+  const busy = await req(`/api/rooms/${roomId}/image`, { method: 'POST', json: { mode: 'custom', prompt: '一张图' } });
+  const bj = await busy.json().catch(() => ({}));
+  const done = await slow;
+  assert(busy.status === 409 && bj.code === 'busy', `生成中生图 status ${busy.status} ${JSON.stringify(bj)}`);
+  assert(done.events.some((e) => e.type === 'done'), '慢速生成没有正常结束');
+  const idle = await req(`/api/rooms/${roomId}/image`, { method: 'POST', json: { mode: 'custom', prompt: '一张图' } });
+  assert(idle.status !== 409, `空闲时仍 409`);
+  const other = await req(`/api/rooms/999999/image`, { method: 'POST', json: { mode: 'custom', prompt: 'x' } });
+  assert(other.status === 404, `不存在的房间 ${other.status}`);
+  return `空闲时 ${idle.status}`;
+});
+
+// ---------- 导入：带 BOM 的粘贴 JSON（polish C5） ----------
+await step('导入#C5 粘贴带 BOM 的角色卡 / 世界书 JSON 能导入', async () => {
+  const card = await req('/api/characters/import', { method: 'POST', json: { json: '\uFEFF' + JSON.stringify({ name: 'BOM卡', description: '带 BOM 的卡', first_mes: '你好' }) } });
+  const cj = await card.json().catch(() => ({}));
+  assert(card.status === 201 && cj.character?.name === 'BOM卡', `角色卡 ${card.status} ${JSON.stringify(cj).slice(0, 120)}`);
+  const book = await req('/api/lorebooks/import', { method: 'POST', json: { json: '\uFEFF' + JSON.stringify({ name: 'BOM世界书', entries: { 0: { key: ['钥匙'], content: '内容' } } }) } });
+  assert(book.ok, `世界书 ${book.status} ${(await book.text()).slice(0, 120)}`);
+  const bad = await req('/api/characters/import', { method: 'POST', json: { json: '\uFEFF{坏的' } });
+  assert(bad.status === 400, `坏 JSON 仍应 400，实际 ${bad.status}`);
+});
+
+// ---------- 角色卡字段上限（polish C6） ----------
+await step('导入#C6 20 万字角色名 → 400 指明字段；40 字名照常导入（截到 32）；超长备用开场 → 400；建卡接口同样检查', async () => {
+  const huge = await req('/api/characters/import', { method: 'POST', json: { json: JSON.stringify({ name: '名'.repeat(200000), description: 'd', first_mes: 'f' }) } });
+  const hj = await huge.json().catch(() => ({}));
+  assert(huge.status === 400 && /角色名太长/.test(hj.message || ''), `超长名 ${huge.status} ${JSON.stringify(hj).slice(0, 100)}`);
+  const longish = await req('/api/characters/import', { method: 'POST', json: { json: JSON.stringify({ name: '长'.repeat(40), description: 'd', first_mes: 'f' }) } });
+  const lj = await longish.json().catch(() => ({}));
+  assert(longish.status === 201 && lj.character?.name?.length === 32, `40 字名 ${longish.status} len=${lj.character?.name?.length}`);
+  const alt = await req('/api/characters/import', { method: 'POST', json: { json: JSON.stringify({ spec: 'chara_card_v2', data: { name: '备用开场超长', first_mes: 'f', alternate_greetings: ['x'.repeat(30001)] } }) } });
+  const aj = await alt.json().catch(() => ({}));
+  assert(alt.status === 400 && /备用开场 1/.test(aj.message || ''), `超长备用开场 ${alt.status} ${aj.message}`);
+  const form = await req('/api/characters', { method: 'POST', json: { name: '表单卡', hook: '钩子', greeting: 'g'.repeat(30001), status: 'draft' } });
+  const fj = await form.json().catch(() => ({}));
+  assert(form.status === 400 && /开场白/.test(fj.message || ''), `建卡接口 ${form.status} ${fj.message}`);
+});
+
+// ---------- 需登录 JSON 接口的统一请求体上限（polish C8） ----------
+await step('边界#C8 普通 JSON 接口：声明 200MB → 413（不读请求体）；分块 3MB → 413（默认 1MB）', async () => {
+  const a = await rawUpload(`/api/chats/${chatId}/messages`, { declared: 200 * 1024 * 1024, maxBytes: 4 * 1024 * 1024 });
+  assert(a.status === 413, `声明超限 ${JSON.stringify(a)}`);
+  const b = await rawUpload('/api/me/prefs', { maxBytes: 3 * 1024 * 1024 });
+  assert(b.status === 413 && /1 MB/.test(b.body || ''), `分块超限 ${JSON.stringify(b)}`);
+  const ok = await req('/api/me/prefs', { method: 'PATCH', json: { theme: 'dark' } });
+  assert(ok.ok, `正常请求 ${ok.status}`);
+  return `声明 ${a.ms}ms、分块 ${b.ms}ms`;
+});
+await step('边界#C8 整份文档类放宽：5MB 世界书保存照常成功', async () => {
+  const entries = Array.from({ length: 50 }, (_, i) => ({ keys: [`钥匙${i}`], content: '文'.repeat(35000) }));
+  const r = await req('/api/lorebooks', { method: 'POST', json: { name: '大世界书', entries } });
+  const t = await r.text();
+  assert(r.ok, `status ${r.status} ${t.slice(0, 100)}`);
+  return `${(JSON.stringify({ entries }).length / 1048576).toFixed(1)}MB（按字符计）`;
+});
+
 // ---------- 操作日志（activity_log / 后台审计页） ----------
 const WRONG_PW = 'Wr0ng-audit-pw-' + Date.now();
 async function loginForm(pw) {

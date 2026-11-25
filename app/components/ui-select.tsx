@@ -101,6 +101,9 @@ export function Select({ value, defaultValue, onChange, children, id, name, clas
     if (option.value !== current) {
       const target = { value: option.value, name: name ?? '', id: id ?? '' } as unknown as HTMLSelectElement;
       onChange?.({ target, currentTarget: target, preventDefault() {}, stopPropagation() {} } as unknown as ChangeEvent<HTMLSelectElement>);
+      // 再从触发器冒泡一个原生 change：外层靠原生事件感知改动的容器（如后台配置页的未保存提醒 UnsavedGuard）才能知道值变了。
+      // React 不会把 div 上的原生 change 合成为 onChange，所以不会重复触发上面的回调。
+      triggerRef.current?.dispatchEvent(new Event('change', { bubbles: true }));
     }
     close();
   };

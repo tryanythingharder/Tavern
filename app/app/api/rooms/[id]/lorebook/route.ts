@@ -1,6 +1,7 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { getRoom } from '@/lib/rooms';
 import { activeLorebooks, createLorebook, listLorebooks, resolvePersona, setChatLorebook } from '@/lib/resources-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,9 @@ export async function PUT(request: Request, context: Params) {
   const id = idParam((await context.params).id);
   const room = id ? getRoom(id, user.id) : undefined;
   if (!id || !room) return fail('群聊不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as { chatLorebookId?: unknown; create?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { chatLorebookId?: unknown; create?: unknown };
   if (body.create) {
     const book = createLorebook(user.id, `群聊 · ${room.name.slice(0, 30)} #${room.id}`, []);
     setChatLorebook(user.id, 'room', id, book.id);

@@ -16,6 +16,7 @@ import {
 } from '@/lib/memory';
 import { summarizeNow, summarizing } from '@/lib/memory-llm';
 import { chatVectorCount, embedConfig, purgeChatVectors } from '@/lib/vectors';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +61,9 @@ export async function PATCH(request: Request, context: Params) {
   const chat = getChat(id, user.id);
   if (!chat) return fail('会话不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as MemoryPatch & { refresh?: boolean; purgeVectors?: boolean; characterNote?: { text?: unknown; mode?: unknown } };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as MemoryPatch & { refresh?: boolean; purgeVectors?: boolean; characterNote?: { text?: unknown; mode?: unknown } };
   if (!updateMemorySettings(chat.id, user.id, body)) return fail('保存失败', 400);
   if (body.characterNote && typeof body.characterNote.text === 'string') {
     const mode: CharacterNoteMode = body.characterNote.mode === 'before' || body.characterNote.mode === 'after' ? body.characterNote.mode : 'replace';

@@ -3,6 +3,7 @@ import { isAdmin } from '@/lib/auth';
 import { announcementSetting } from '@/lib/announcement';
 import { setSetting } from '@/lib/settings';
 import { logAdmin } from '@/lib/audit';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,9 @@ export async function PATCH(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
   if (!isAdmin(user)) return fail('没有权限', 403);
-  const body = (await request.json().catch(() => ({}))) as { text?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { text?: unknown };
   const text = String(body.text ?? '').trim().slice(0, 200);
   if (text) setSetting('site.announcement', text);
   else setSetting('site.announcement', 'off');

@@ -3,6 +3,7 @@ import { addDataBankFile, listDataBank, type DataBankScope } from '@/lib/data-ba
 import { checkScope, fileText } from '@/lib/data-bank-scope';
 import { getChat } from '@/lib/db';
 import { getRoom } from '@/lib/rooms';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { scope?: unknown; scopeId?: unknown; name?: unknown; content?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { scope?: unknown; scopeId?: unknown; name?: unknown; content?: unknown };
   const scope = checkScope(user.id, body.scope ?? 'global', body.scopeId);
   if (!scope) return fail('作用范围不对', 400);
   if (typeof body.content !== 'string') return fail('没有内容', 400);

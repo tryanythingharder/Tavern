@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { branchChat, chatBranches, getChat } from '@/lib/db';
 import { busyGuard } from '@/lib/gen-lock';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!user) return fail('未登录', 401);
 
   const { id } = await context.params;
-  const body = (await request.json().catch(() => ({}))) as { messageId?: number; checkpoint?: boolean; name?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { messageId?: number; checkpoint?: boolean; name?: string };
   const messageId = Number(body.messageId);
   if (!Number.isInteger(messageId)) return fail('缺少消息', 400);
 

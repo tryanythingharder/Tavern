@@ -1,5 +1,6 @@
 import { fail, idParam, requireUser } from '@/lib/api';
 import { deleteChat, renameChat } from '@/lib/db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,9 @@ export async function PATCH(request: Request, context: Params) {
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
 
-  const body = (await request.json().catch(() => ({}))) as { title?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { title?: unknown };
   const title = String(body.title ?? '').trim().slice(0, 60);
   if (!title) return fail('故事名称不能为空', 400);
   if (!renameChat(id, user.id, title)) return fail('会话不存在', 404);

@@ -5,6 +5,7 @@ import { adminModelsPayload } from '@/lib/admin-models';
 import { saveModelCatalogMeta } from '@/lib/model-catalog';
 import { modelPrices, normalizeRule, priceRules, type PriceRule } from '@/lib/points';
 import { setSetting } from '@/lib/settings';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   const user = await requireUser();
   if (!user || !isAdmin(user)) return fail('没有权限', 403);
-  const body = (await request.json().catch(() => ({}))) as { models?: { id?: unknown; rule?: unknown; meta?: unknown }[] };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { models?: { id?: unknown; rule?: unknown; meta?: unknown }[] };
   if (!Array.isArray(body.models)) return fail('参数不对', 400);
   const rules: Record<string, PriceRule> = priceRules();
   const legacy = modelPrices();

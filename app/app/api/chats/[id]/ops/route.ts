@@ -9,6 +9,7 @@ import { applyStVarMacros, makeVarStore, varOp, type VarOp } from '@/lib/st-vars
 import { persistVarStore } from '@/lib/st-vars-server';
 import { expandStMacros } from '@/lib/st-macros';
 import { busyGuard } from '@/lib/gen-lock';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +46,9 @@ export async function POST(request: Request, context: Params) {
   if (!chat) return fail('会话不存在', 404);
   const busy = busyGuard(`chat:${chat.id}`);
   if (busy) return busy;
-  const body = (await request.json().catch(() => ({}))) as { op?: string; ids?: unknown; range?: unknown; messageId?: unknown; text?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { op?: string; ids?: unknown; range?: unknown; messageId?: unknown; text?: unknown };
 
   if (body.op === 'hide' || body.op === 'unhide') {
     const list = allMessages(chat.id);

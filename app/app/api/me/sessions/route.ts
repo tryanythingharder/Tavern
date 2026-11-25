@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { currentSessionToken, listSessions, revokeOtherSessions, revokeSession } from '@/lib/auth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { token?: unknown; others?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { token?: unknown; others?: unknown };
 
   if (body.others === true) {
     const removed = revokeOtherSessions(user.id, await currentSessionToken());

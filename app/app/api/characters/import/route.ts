@@ -7,7 +7,8 @@ import { parseStCharacterCard } from '@/lib/cards-import';
 import { parsePngCard } from '@/lib/png-card';
 import { extractExtras, extrasSummary, saveExtras } from '@/lib/card-extras';
 import { cardCompat } from '@/lib/card-compat';
-import { IMPORT_JSON_LIMIT, jsonOr413 } from '@/lib/body-limit';
+import { stCardLimitError } from '@/lib/card-limits';
+import { IMPORT_JSON_LIMIT, jsonOr413, parseJsonText } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,13 +36,16 @@ export async function POST(request: Request) {
     raw = body.json;
     if (typeof raw === 'string') {
       try {
-        raw = JSON.parse(raw);
+        raw = parseJsonText(raw);
       } catch {
         return fail('JSON 解析失败，请检查粘贴内容', 400);
       }
     }
   }
 
+  // 字段超长直接拒绝并说明是哪个字段（原来是悄悄截断，备用开场 / 标签甚至没有上限）
+  const limitError = stCardLimitError(raw);
+  if (limitError) return fail(limitError, 400);
   const card = parseStCharacterCard(raw);
   if (!card) return fail('这不是可识别的角色卡（缺少名称）', 400);
   const extras = extractExtras(raw);

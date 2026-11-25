@@ -3,6 +3,7 @@ import { isAdmin } from '@/lib/auth';
 import { grantPoints } from '@/lib/points';
 import { notify } from '@/lib/notifications';
 import { logAdmin } from '@/lib/audit';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,9 @@ export async function POST(request: Request) {
   if (!user) return fail('未登录', 401);
   if (!isAdmin(user)) return fail('没有权限', 403);
 
-  const body = (await request.json().catch(() => ({}))) as { userId?: number; amount?: number; note?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { userId?: number; amount?: number; note?: string };
   const userId = Number(body.userId);
   const amount = Number(body.amount);
   if (!Number.isInteger(userId) || userId <= 0) return fail('用户不对', 400);

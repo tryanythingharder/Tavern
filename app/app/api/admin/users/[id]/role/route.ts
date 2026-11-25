@@ -2,6 +2,7 @@ import { fail, idParam, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import db from '@/lib/db';
 import { logAdmin } from '@/lib/audit';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function POST(request: Request, context: Params) {
   if (!isAdmin(admin)) return fail('没有权限', 403);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as { role?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { role?: string };
   const role = body.role === 'admin' ? 'admin' : body.role === 'user' ? 'user' : null;
   if (!role) return fail('角色不对', 400);
   if (id === admin.id && role !== 'admin') return fail('不能取消自己的管理员权限', 400);

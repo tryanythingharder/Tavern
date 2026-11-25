@@ -3,6 +3,7 @@ import { getChat } from '@/lib/db';
 import db from '@/lib/db';
 import { fromStSet } from '@/lib/quick-replies';
 import { createQrSet, listQrSets, qrState, setGlobalQrSets, setScopeQrSets, updateQrSet } from '@/lib/quick-replies-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { action?: string; name?: string; data?: unknown; label?: string; content?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { action?: string; name?: string; data?: unknown; label?: string; content?: string };
   if (body.action === 'import') {
     const list = Array.isArray(body.data) ? body.data : [body.data];
     const existing = listQrSets(user.id);
@@ -61,7 +64,9 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { globalIds?: unknown; scopeIds?: unknown; chatId?: unknown; roomId?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { globalIds?: unknown; scopeIds?: unknown; chatId?: unknown; roomId?: unknown };
   const scope = scopeOf(user.id, body.chatId, body.roomId);
   if (scope === null) return fail('会话不存在', 404);
   if ('globalIds' in body) setGlobalQrSets(user.id, body.globalIds === null ? null : Array.isArray(body.globalIds) ? body.globalIds.map(Number) : []);

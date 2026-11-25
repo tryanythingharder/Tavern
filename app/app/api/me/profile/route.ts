@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { updateAuthorBio, updateNickname } from '@/lib/auth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,9 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { nickname?: unknown; bio?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { nickname?: unknown; bio?: unknown };
 
   let touched = false;
   if (body.nickname !== undefined) {

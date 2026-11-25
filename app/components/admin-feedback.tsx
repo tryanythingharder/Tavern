@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Modal } from '@/components/settings-ui';
 
@@ -196,6 +196,15 @@ export function useNotice() {
 
 /** 挂在配置页外层：监听输入标脏；离开页面（刷新/关闭/点站内链接）时提醒 */
 export function UnsavedGuard({ children }: { children: ReactElement | ReactElement[] }) {
+  const scopeRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    // 自定义控件（components/ui-select.tsx 的下拉、由它组成的日期选择）不是原生表单元素，React 的 onChange 收不到，
+    // 它们改值时会冒泡一个原生 change 事件，这里用原生监听接住
+    const scope = scopeRef.current;
+    const onNative = (event: Event) => { if (!(event.target as HTMLElement | null)?.closest?.('[data-no-dirty]')) markDirty(); };
+    scope?.addEventListener('change', onNative);
+    return () => scope?.removeEventListener('change', onNative);
+  }, []);
   useEffect(() => {
     markSaved();
     const onBefore = (event: BeforeUnloadEvent) => {
@@ -227,6 +236,7 @@ export function UnsavedGuard({ children }: { children: ReactElement | ReactEleme
   }, []);
   return (
     <div
+      ref={scopeRef}
       data-unsaved-scope=""
       onInput={(event) => { if (!(event.target as HTMLElement).closest('[data-no-dirty]')) markDirty(); }}
       onChange={(event) => { if (!(event.target as HTMLElement).closest('[data-no-dirty]')) markDirty(); }}
