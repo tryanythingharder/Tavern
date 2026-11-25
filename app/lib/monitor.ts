@@ -1,8 +1,9 @@
-import { appendFileSync, mkdirSync } from 'fs';
+import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { serviceValue } from '@/lib/service-config';
+import { appendRotating, errorLogRotation } from '@/lib/log-rotate';
 
-// 轻量监控：错误写 .data/logs/errors.log（JSON Lines），可选推送到告警 webhook
+// 轻量监控：错误写 .data/logs/errors.log（JSON Lines，按大小轮转：默认单文件 10MB、保留 errors.log.1–.5，见 lib/log-rotate.ts），可选推送到告警 webhook
 // （TAVERN_ALERT_WEBHOOK，飞书/钉钉/Slack/Discord 的「接收 JSON」机器人都行）。
 // 同类错误 5 分钟内只推一次，避免刷屏。
 const logDir = join(process.cwd(), '.data', 'logs');
@@ -32,7 +33,7 @@ export function reportError(report: ErrorReport): void {
   const entry = { at: new Date().toISOString(), ...report, message: String(report.message).slice(0, 2000), stack: report.stack?.slice(0, 6000) };
   try {
     mkdirSync(logDir, { recursive: true });
-    appendFileSync(join(logDir, 'errors.log'), JSON.stringify(entry) + '\n');
+    appendRotating(join(logDir, 'errors.log'), JSON.stringify(entry) + '\n', errorLogRotation());
   } catch {
     // 只读文件系统时退回到 stderr
   }
