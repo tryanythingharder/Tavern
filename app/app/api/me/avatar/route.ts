@@ -4,7 +4,7 @@ import { imageExt } from '@/lib/image-ext';
 import { rateLimit } from '@/lib/rate-limit';
 import { deleteMediaUrl, saveMedia } from '@/lib/storage';
 import { defaultAvatarUrl, findDefaultAvatar } from '@/lib/default-avatars';
-import { formOr413 } from '@/lib/body-limit';
+import { formOr413, readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,9 @@ export async function POST(request: Request) {
   const limited = rateLimit('profile-media', [String(user.id)], 20, 60 * 60 * 1000);
   if (!limited.ok) return fail('换得太频繁了，过一会儿再试', 429);
   if ((request.headers.get('content-type') || '').includes('application/json')) {
-    const body = (await request.json().catch(() => ({}))) as { preset?: unknown };
+    const parsedBody = await readJson(request, {});
+    if (parsedBody instanceof Response) return parsedBody;
+    const body = parsedBody as { preset?: unknown };
     const preset = findDefaultAvatar(body.preset);
     if (!preset) return fail('没有这个默认头像');
     const previous = getProfileMedia(user.id).avatar;

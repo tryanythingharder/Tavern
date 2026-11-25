@@ -5,6 +5,7 @@ import { getGenPrefs } from '@/lib/gen-prefs';
 import { translateText } from '@/lib/translate';
 import { checkQuota } from '@/lib/usage';
 import { ensureStartingPoints } from '@/lib/points';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return fail('未登录', 401);
   if (!canGenerate(user)) return fail('请先验证邮箱后再使用', 403);
-  const body = (await request.json().catch(() => ({}))) as { text?: unknown; lang?: unknown; chatId?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { text?: unknown; lang?: unknown; chatId?: unknown };
   if (typeof body.text !== 'string' || !body.text.trim()) return fail('没有可翻译的内容', 400);
   const lang = typeof body.lang === 'string' && body.lang ? body.lang : getGenPrefs(user.id).translate.modelLang;
   const chat = typeof body.chatId === 'number' ? getChat(body.chatId, user.id) : undefined;

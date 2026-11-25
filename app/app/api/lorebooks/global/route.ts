@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { globalLorebookIds, setGlobalLorebookIds } from '@/lib/resources-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { ids?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { ids?: unknown };
   const ids = body.ids === null ? null : Array.isArray(body.ids) ? body.ids.map(Number).filter((value) => Number.isInteger(value)) : undefined;
   if (ids === undefined) return fail('参数不对', 400);
   setGlobalLorebookIds(user.id, ids);

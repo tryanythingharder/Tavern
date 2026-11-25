@@ -1,5 +1,6 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { roomMemorySettings, roomSummarizeNow, updateRoomMemory, type RoomMemoryPatch } from '@/lib/room-memory';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,9 @@ export async function PATCH(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as RoomMemoryPatch;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as RoomMemoryPatch;
   const patch: RoomMemoryPatch = {};
   if (body.note && typeof body.note === 'object') patch.note = body.note;
   if (body.prefs && typeof body.prefs === 'object') patch.prefs = body.prefs;

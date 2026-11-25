@@ -2,6 +2,7 @@ import { fail, idParam, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import { logAdmin } from '@/lib/audit';
 import { deleteChannel, getChannel, publicChannel, updateChannel } from '@/lib/channels';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function PATCH(request: Request, context: Params) {
   if (!isAdmin(user)) return fail('没有权限', 403);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
   try {
     const channel = updateChannel(id, {
       name: typeof body.name === 'string' ? body.name : undefined,

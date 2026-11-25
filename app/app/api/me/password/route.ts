@@ -1,6 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { logActivity } from '@/lib/audit';
 import { currentSessionToken, getPasswordHash, revokeOtherSessions, updatePassword, verifyPassword } from '@/lib/auth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { current?: unknown; next?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { current?: unknown; next?: unknown };
   const current = String(body.current ?? '');
   const next = String(body.next ?? '');
   if (next.length < 8) return fail('新密码至少 8 位', 400);

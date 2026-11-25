@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { deleteTag, updateTag } from '@/lib/char-tags';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,9 @@ export async function PATCH(request: Request, context: Params) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
   const { id } = await context.params;
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
   const tag = updateTag(user.id, Number(id), body);
   if (!tag) return fail('标签不存在', 404);
   if ('error' in tag) return fail(tag.error, 400);

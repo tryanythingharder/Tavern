@@ -4,6 +4,7 @@ import { logAdmin } from '@/lib/audit';
 import { adminSetAge, getAgeRecord, getPolicy, requestRegion, setPolicy } from '@/lib/age-gate';
 import { providerSummary as verifyProviders } from '@/lib/age-verify';
 import { activeProvider as activePayment } from '@/lib/payments';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,9 @@ export async function PATCH(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
   if (!isAdmin(user)) return fail('没有权限', 403);
-  const body = (await request.json().catch(() => ({}))) as { policy?: Record<string, unknown>; userId?: unknown; birthDate?: unknown; verified?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { policy?: Record<string, unknown>; userId?: unknown; birthDate?: unknown; verified?: unknown };
   if (body.policy && typeof body.policy === 'object') {
     const next = setPolicy(body.policy);
     logAdmin(user.id, '修改内容分级', `18+${next.enabled ? '开' : '关'} 屏蔽${next.blockedRegions.length} 验证${next.verifyRegions.length}`);

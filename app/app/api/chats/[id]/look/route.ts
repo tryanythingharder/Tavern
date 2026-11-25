@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
 import { getChat, getMessage, setCharacterLook } from '@/lib/db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,9 @@ export async function PUT(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const chat = getChat(Number((await context.params).id), user.id);
   if (!chat) return fail('会话不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as { messageId?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { messageId?: number };
   const message = getMessage(Number(body.messageId));
   if (!message || message.chat_id !== chat.id) return fail('消息不存在', 404);
   let url = '';

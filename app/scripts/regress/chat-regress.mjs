@@ -330,6 +330,24 @@ await step('导入#C6 20 万字角色名 → 400 指明字段；40 字名照常�
   assert(form.status === 400 && /开场白/.test(fj.message || ''), `建卡接口 ${form.status} ${fj.message}`);
 });
 
+// ---------- 需登录 JSON 接口的统一请求体上限（polish C8） ----------
+await step('边界#C8 普通 JSON 接口：声明 200MB → 413（不读请求体）；分块 3MB → 413（默认 1MB）', async () => {
+  const a = await rawUpload(`/api/chats/${chatId}/messages`, { declared: 200 * 1024 * 1024, maxBytes: 4 * 1024 * 1024 });
+  assert(a.status === 413, `声明超限 ${JSON.stringify(a)}`);
+  const b = await rawUpload('/api/me/prefs', { maxBytes: 3 * 1024 * 1024 });
+  assert(b.status === 413 && /1 MB/.test(b.body || ''), `分块超限 ${JSON.stringify(b)}`);
+  const ok = await req('/api/me/prefs', { method: 'PATCH', json: { theme: 'dark' } });
+  assert(ok.ok, `正常请求 ${ok.status}`);
+  return `声明 ${a.ms}ms、分块 ${b.ms}ms`;
+});
+await step('边界#C8 整份文档类放宽：5MB 世界书保存照常成功', async () => {
+  const entries = Array.from({ length: 50 }, (_, i) => ({ keys: [`钥匙${i}`], content: '文'.repeat(35000) }));
+  const r = await req('/api/lorebooks', { method: 'POST', json: { name: '大世界书', entries } });
+  const t = await r.text();
+  assert(r.ok, `status ${r.status} ${t.slice(0, 100)}`);
+  return `${(JSON.stringify({ entries }).length / 1048576).toFixed(1)}MB（按字符计）`;
+});
+
 // ---------- 操作日志（activity_log / 后台审计页） ----------
 const WRONG_PW = 'Wr0ng-audit-pw-' + Date.now();
 async function loginForm(pw) {

@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { setCharacterLook } from '@/lib/db';
 import { getRoom, getRoomMessage } from '@/lib/rooms';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,9 @@ export async function PUT(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const room = getRoom(Number((await context.params).id), user.id);
   if (!room) return fail('房间不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as { messageId?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { messageId?: number };
   const message = getRoomMessage(room.id, Number(body.messageId));
   if (!message) return fail('消息不存在', 404);
   const url = message.attachment?.kind === 'image' && /^\/media\/[a-zA-Z0-9-]+\.[a-z0-9]+$/.test(message.attachment.url) ? message.attachment.url : '';

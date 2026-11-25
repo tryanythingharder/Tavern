@@ -5,7 +5,7 @@ import { addSprite, countOwn, deleteSprites, listSprites, relabelSprite } from '
 import { saveMedia } from '@/lib/storage';
 import { readZip } from '@/lib/zip-read';
 import { imageExt } from '@/lib/image-ext';
-import { formOr413 } from '@/lib/body-limit';
+import { formOr413, readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +67,9 @@ export async function POST(request: Request, context: Params) {
 export async function PATCH(request: Request, context: Params) {
   const ctx = await load(context);
   if ('error' in ctx) return ctx.error;
-  const body = (await request.json().catch(() => ({}))) as { id?: number; label?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { id?: number; label?: string };
   if (!body.id || !(EXPRESSION_LABELS as readonly string[]).includes(body.label ?? '')) return fail('参数不对');
   if (!relabelSprite(ctx.character.id, ctx.user.id, body.id, body.label as ExpressionLabel)) return fail('只能改自己上传的', 403);
   return json({ sprites: listSprites(ctx.character.id, ctx.user.id, ctx.character.ownerId) });
@@ -77,7 +79,9 @@ export async function PATCH(request: Request, context: Params) {
 export async function DELETE(request: Request, context: Params) {
   const ctx = await load(context);
   if ('error' in ctx) return ctx.error;
-  const body = (await request.json().catch(() => ({}))) as { ids?: number[]; all?: boolean };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { ids?: number[]; all?: boolean };
   const removed = deleteSprites(ctx.character.id, ctx.user.id, body.all ? 'all' : (body.ids ?? []).filter(Number.isInteger));
   return json({ removed, sprites: listSprites(ctx.character.id, ctx.user.id, ctx.character.ownerId) });
 }

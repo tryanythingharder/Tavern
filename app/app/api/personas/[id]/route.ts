@@ -1,5 +1,6 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { deletePersona, updatePersona } from '@/lib/resources-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,9 @@ export async function PATCH(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
   const persona = updatePersona(user.id, id, body);
   return persona ? json({ persona }) : fail('身份不存在', 404);
 }

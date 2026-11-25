@@ -11,6 +11,7 @@ import { s3Config, s3Delete, s3Put } from '@/lib/storage-drivers/s3';
 import { moderationEnabled } from '@/lib/auto-moderation';
 import { providerSummary as paymentProviders } from '@/lib/payments';
 import { providerSummary as ageProviders } from '@/lib/age-verify';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,9 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const g = await guard();
   if (g.error) return g.error;
-  const body = (await request.json().catch(() => ({}))) as { values?: Record<string, unknown>; clear?: unknown[] };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { values?: Record<string, unknown>; clear?: unknown[] };
   const changed: string[] = [];
   for (const [key, raw] of Object.entries(body.values ?? {})) {
     const field = serviceField(key);
@@ -83,7 +86,9 @@ export async function PATCH(request: Request) {
 export async function POST(request: Request) {
   const g = await guard();
   if (g.error) return g.error;
-  const { action } = (await request.json().catch(() => ({}))) as { action?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const { action } = parsedBody as { action?: string };
   if (action === 'testAlert') {
     const ok = await sendAlert('【夜话】这是一条测试告警，收到说明配置正确。');
     return ok ? json({ ok: true, message: '已发送，去群里看看有没有收到' }) : fail('发送失败：没有填地址，或对方没有返回成功', 400);

@@ -9,6 +9,7 @@ import { addRoomMessage, getRoom, getRoomMessage, listRoomMessages, setRoomMessa
 import { balance, grantPoints, reservePoints } from '@/lib/points';
 import { checkQuota } from '@/lib/usage';
 import { withAuthorizedLock } from '@/lib/gen-lock';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,9 @@ async function handleImage(request: Request, context: Params) {
   const room = getRoom(Number((await context.params).id), user.id);
   if (!room) return fail('房间不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { prompt?: string; mode?: string; hint?: string; characterId?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { prompt?: string; mode?: string; hint?: string; characterId?: string };
   const mode = imageModeOf(body.mode ?? 'scene');
   let prompt = String(body.prompt ?? '').trim().slice(0, 900);
   if (mode === 'custom' && !prompt) return fail('请写一句画面描述', 400);

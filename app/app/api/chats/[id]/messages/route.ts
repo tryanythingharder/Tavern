@@ -32,6 +32,7 @@ import { autoSummarize } from '@/lib/memory-llm';
 import { ensureStartingPoints, pointsCost, reservePoints } from '@/lib/points';
 import { dailyFreeRemaining } from '@/lib/growth';
 import { toMessageView } from '@/lib/chat-view';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,9 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   const chat = getChat(chatId, user.id);
   if (!chat) return fail('会话不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { text?: string; original?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { text?: string; original?: string };
   const text = String(body.text ?? '').trim();
   // ST「翻译输入」：text 是发给模型的译文，original 是玩家原本写的话（界面默认显示原话）
   const original = typeof body.original === 'string' ? body.original.trim().slice(0, 20_000) : '';

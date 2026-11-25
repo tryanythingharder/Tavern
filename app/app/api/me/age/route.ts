@@ -3,6 +3,7 @@ import { STATE_MESSAGE, getAgeRecord, nsfwAccess, setBirthDate } from '@/lib/age
 import { setHideNsfw } from '@/lib/prefs';
 import { activeProvider } from '@/lib/age-verify';
 import { rateLimit } from '@/lib/rate-limit';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
   if (!rateLimit('age-dob', [String(user.id)], 10, 60 * 60 * 1000).ok) return fail('操作太频繁，稍后再试', 429);
-  const body = (await request.json().catch(() => ({}))) as { birthDate?: unknown; show?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { birthDate?: unknown; show?: unknown };
   if (typeof body.birthDate === 'string' && body.birthDate) {
     const result = setBirthDate(user.id, body.birthDate.trim());
     if (!result.ok) return fail(result.error, 400);

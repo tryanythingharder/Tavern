@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getMessage, getOwnedMessage, selectCandidate } from '@/lib/db';
 import { reasoningAt } from '@/lib/reasoning';
 import { metaAt } from '@/lib/msg-meta';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const message = getOwnedMessage(Number(id), user.id);
   if (!message) return fail('消息不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { index?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { index?: number };
   const selected = selectCandidate(message.id, Number(body.index));
   if (!selected) return fail('候选不存在', 400);
 

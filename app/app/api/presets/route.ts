@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { createPreset, ensureDefaultPreset, listPresets } from '@/lib/resources-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
   const preset = createPreset(user.id, body);
   return json({ preset }, 201);
 }

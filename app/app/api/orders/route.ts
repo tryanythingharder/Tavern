@@ -2,6 +2,7 @@ import { fail, json, requireUser } from '@/lib/api';
 import { createOrder, listOrders, paymentCurrency, pricePerPointCents } from '@/lib/billing';
 import { siteUrl } from '@/lib/mail';
 import { activeProvider } from '@/lib/payments';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { points?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { points?: number };
   const points = Number(body.points);
   if (!Number.isFinite(points) || points < 10 || points > 100000) return fail('充值点数要在 10 到 100000 之间', 400);
   const unit = pricePerPointCents();

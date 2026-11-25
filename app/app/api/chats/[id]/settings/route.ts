@@ -5,6 +5,7 @@ import { contextWindow } from '@/lib/prompt';
 import { cardLoreList, normalizeCardLore, parseCardLore } from '@/lib/card-extras';
 import { activeLorebooks, characterLoreLinks, chatSettings, createLorebook, ensureDefaultPreset, globalLorebookIds, listLorebooks, listPersonas, listPresets, resolvePersona, setCharacterLoreLinks, setChatLorebook, updateChatSettings } from '@/lib/resources-db';
 import { getCharacterById } from '@/lib/db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,9 @@ export async function PATCH(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as {
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as {
     presetId?: number | null;
     personaId?: number | null;
     lorebookIds?: number[] | null;

@@ -7,8 +7,10 @@ export class BodyTooLarge extends Error {
   }
 }
 
+const sizeText = (bytes: number) => (bytes >= 1024 * 1024 ? `${Math.round(bytes / 1024 / 1024)} MB` : `${Math.round(bytes / 1024)} KB`);
+
 export function tooLarge(limit: number): Response {
-  return Response.json({ message: `上传内容太大，单次最多 ${Math.round(limit / 1024 / 1024)} MB` }, { status: 413 });
+  return Response.json({ message: `上传内容太大，单次最多 ${sizeText(limit)}`, code: 'too_large' }, { status: 413 });
 }
 
 // 返回 null 表示请求体不是合法的 multipart/form-data（与原来 formData().catch(() => null) 的语义一致）
@@ -87,4 +89,42 @@ export async function jsonOr413<T>(request: Request, limit: number, fallback: T)
   } catch {
     return fallback;
   }
+}
+
+// ── 普通 JSON 接口的统一请求体上限（第二轮审计 C8） ──
+// 原来约 90 个需登录的路由直接 request.json()：请求体多大都整份读进内存再解析。
+// 现在统一走 readJson：按路由类型取上限（Content-Length 先拦，分块传输边读边数），超限 413。
+// 默认 1MB：聊天消息、设置、后台配置等普通请求远小于它；
+// 放宽到 32MB 的只有「整份文档」类：导入、建卡/改卡（封面和形象以 dataURL 内嵌，各最多 8MB）、
+// 世界书 / 预设 / 资料库（单文件 200 万字）/ 正则 / 快捷回复的整份保存——和导入同一上限，导入进来的东西改完还能存回去。
+// 认证类（auth/*，16KB）与 /api/client-error（64KB）仍在各自路由里用 jsonOr413 单独给更紧的上限。
+export const BODY_LIMITS = {
+  auth: 16 * 1024,
+  clientError: 64 * 1024,
+  json: 1024 * 1024,
+  large: IMPORT_JSON_LIMIT,
+} as const;
+
+const LARGE_JSON_ROUTES = [
+  /\/import$/,
+  /^\/api\/characters(?:\/[^/]+)?$/,
+  /^\/api\/(?:lorebooks|presets|data-bank|regex|quick-replies)(?:\/.*)?$/,
+];
+
+/** 按路径给出 JSON 请求体上限（字节） */
+export function jsonLimitFor(pathname: string): number {
+  if (pathname.startsWith('/api/auth/')) return BODY_LIMITS.auth;
+  if (pathname === '/api/client-error') return BODY_LIMITS.clientError;
+  return LARGE_JSON_ROUTES.some((re) => re.test(pathname)) ? BODY_LIMITS.large : BODY_LIMITS.json;
+}
+
+function pathOf(request: Request): string {
+  try { return new URL(request.url).pathname; } catch { return ''; }
+}
+
+// 替代 `request.json().catch(() => fallback)`：
+//   const parsed = await readJson(request, {}); if (parsed instanceof Response) return parsed;
+// 解析失败（含空请求体）返回 fallback，语义与原写法一致；超限返回 413 响应。limit 不传时按路径取默认。
+export async function readJson<T>(request: Request, fallback: T, limit = jsonLimitFor(pathOf(request))): Promise<unknown | T | Response> {
+  return jsonOr413(request, limit, fallback);
 }

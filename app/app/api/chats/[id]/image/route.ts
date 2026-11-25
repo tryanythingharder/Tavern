@@ -8,6 +8,7 @@ import { generateImage, imageConfig, imageConfigured, imageCost } from '@/lib/me
 import { characterReference, chatImages, referenceLead } from '@/lib/image-ref';
 import { grantPoints, reservePoints } from '@/lib/points';
 import { checkQuota } from '@/lib/usage';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,9 @@ export async function POST(request: Request, context: Params) {
   const chat = getChat(Number((await context.params).id), user.id);
   if (!chat) return fail('会话不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { prompt?: string; mode?: string; hint?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { prompt?: string; mode?: string; hint?: string };
   // 老客户端只传 prompt：当作自己写
   const mode = body.mode ? imageModeOf(body.mode) : body.prompt ? 'custom' : 'scene';
   let prompt = String(body.prompt ?? '').trim().slice(0, 900);

@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { beginTwoFactorSetup, disableTwoFactor, enableTwoFactor, getPasswordHash, isTwoFactorEnabled, twoFactorStatus, verifyPassword, verifyTwoFactor } from '@/lib/auth';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { action?: string; code?: string; password?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { action?: string; code?: string; password?: string };
 
   if (body.action === 'setup') {
     if (isTwoFactorEnabled(user.id)) return fail('两步验证已经开启', 400);

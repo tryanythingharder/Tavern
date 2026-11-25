@@ -1,6 +1,7 @@
 import db from '@/lib/db';
 import { fail, json, requireUser } from '@/lib/api';
 import { availableModels } from '@/lib/model';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function PUT(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { model?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { model?: unknown };
   const wanted = String(body.model ?? '').trim();
   if (wanted && !availableModels().some((item) => item.id === wanted)) return fail('这个模型目前不可用', 400);
   db.prepare('UPDATE users SET default_model = ? WHERE id = ?').run(wanted || null, user.id);

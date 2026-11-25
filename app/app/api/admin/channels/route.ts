@@ -2,6 +2,7 @@ import { fail, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import { logAdmin } from '@/lib/audit';
 import { createChannel, listChannels, publicChannel } from '@/lib/channels';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,9 @@ export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
   if (!isAdmin(user)) return fail('没有权限', 403);
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
   try {
     const channel = createChannel({
       name: typeof body.name === 'string' ? body.name : undefined,

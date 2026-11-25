@@ -1,6 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { STATE_MESSAGE, nsfwAccess } from '@/lib/age-gate';
 import { getAppearance, setAppearance, setHideNsfw, type ChatBackground } from '@/lib/prefs';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { hideNsfw?: unknown; fontScale?: unknown; background?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { hideNsfw?: unknown; fontScale?: unknown; background?: unknown };
 
   let touched = false;
   if (typeof body.hideNsfw === 'boolean') {

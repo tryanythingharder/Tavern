@@ -12,6 +12,7 @@ import { modelConfigured, modelName } from '@/lib/model';
 import { runGeneration } from '@/lib/run-generation';
 import { checkQuota, estimatePromptTokens, estimateTokens } from '@/lib/usage';
 import { ensureStartingPoints, pointsCost, reservePoints, settleGeneration } from '@/lib/points';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,9 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (!room) return fail('房间不存在', 404);
   const blocked18 = await roomNsfwBlock(user.id, room.characterIds);
   if (blocked18) return fail(blocked18, 403);
-  const body = (await request.json().catch(() => ({}))) as { hint?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { hint?: string };
   const hint = String(body.hint ?? '').trim().slice(0, 300);
 
   const quota = checkQuota(user.id);

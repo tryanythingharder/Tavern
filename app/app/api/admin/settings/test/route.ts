@@ -2,6 +2,7 @@ import { fail, json, requireUser } from '@/lib/api';
 import { isAdmin } from '@/lib/auth';
 import { generateImage, generateSpeech, imageConfigured, ttsConfigured } from '@/lib/media';
 import { modelConfigured, streamChat } from '@/lib/model';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,9 @@ export async function POST(request: Request) {
   if (!user) return fail('未登录', 401);
   if (!isAdmin(user)) return fail('没有权限', 403);
 
-  const body = (await request.json().catch(() => ({}))) as { kind?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { kind?: string };
   if (body.kind === 'image') {
     if (!imageConfigured()) return fail('生图还没配置完整（base URL / key / 模型）', 400);
     try {

@@ -1,5 +1,6 @@
 import { fail, idParam, json, requireUser } from '@/lib/api';
 import { deleteLorebook, getLorebook, updateLorebook } from '@/lib/resources-db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,9 @@ export async function PATCH(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const id = idParam((await context.params).id);
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as { name?: string; entries?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { name?: string; entries?: unknown };
   const lorebook = updateLorebook(user.id, id, body);
   return lorebook ? json({ lorebook }) : fail('世界书不存在', 404);
 }

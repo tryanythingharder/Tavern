@@ -4,6 +4,7 @@ import db from '@/lib/db';
 import { logAdmin } from '@/lib/audit';
 import { notify } from '@/lib/notifications';
 import { notifyFollowers } from '@/lib/follows';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,9 @@ export async function POST(request: Request, context: Params) {
   if (!isAdmin(user)) return fail('没有权限', 403);
   const { id } = await context.params;
   if (!id) return fail('参数不对', 400);
-  const body = (await request.json().catch(() => ({}))) as { status?: string; reason?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { status?: string; reason?: string };
   const status = body.status === 'archived' ? 'archived' : 'published';
   const reason = status === 'archived' ? String(body.reason ?? '').trim().slice(0, 200) : '';
   const row = db.prepare('SELECT name, owner_id, author, hook, status FROM characters WHERE id = ? AND owner_id IS NOT NULL').get(id) as { name: string; owner_id: number; author: string; hook: string; status: string } | undefined;

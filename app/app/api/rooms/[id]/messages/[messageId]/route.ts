@@ -2,6 +2,7 @@ import { fail, idParam, json, requireUser } from '@/lib/api';
 import { moderateText } from '@/lib/auto-moderation';
 import { deleteRoomMessage, editRoomMessage, getRoom, getRoomMessage, selectRoomCandidate, setRoomMessageReasoning } from '@/lib/rooms';
 import { busyGuard } from '@/lib/gen-lock';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,9 @@ async function load(context: Params) {
 export async function PATCH(request: Request, context: Params) {
   const loaded = await load(context);
   if ('error' in loaded) return loaded.error;
-  const body = (await request.json().catch(() => ({}))) as { content?: unknown; selected?: unknown; reasoning?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { content?: unknown; selected?: unknown; reasoning?: unknown };
   const busy = busyGuard(`room:${loaded.room.id}`);
   if (busy) return busy;
   if (typeof body.selected === 'number') {

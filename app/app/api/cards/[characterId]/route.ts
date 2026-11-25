@@ -1,6 +1,7 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { deleteOverride, saveOverride } from '@/lib/cards';
 import { getCharacterById } from '@/lib/db';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,9 @@ export async function PUT(request: Request, context: Params) {
   if (!user) return fail('未登录', 401);
   const { characterId } = await context.params;
   if (!getCharacterById(characterId)) return fail('角色不存在', 404);
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as Record<string, unknown>;
   const override = saveOverride(user.id, characterId, body);
   return json({ override });
 }

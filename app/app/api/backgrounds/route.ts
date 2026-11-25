@@ -3,7 +3,7 @@ import { MAX_BACKGROUNDS, addBackground, deleteBackground, globalBackground, lis
 import { imageExt } from '@/lib/image-ext';
 import { saveMedia } from '@/lib/storage';
 import { readZip } from '@/lib/zip-read';
-import { formOr413 } from '@/lib/body-limit';
+import { formOr413, readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 const MAX_FILE = 8 * 1024 * 1024;
@@ -51,7 +51,9 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { global?: string | null; id?: number; name?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { global?: string | null; id?: number; name?: string };
   if (body.id && typeof body.name === 'string') {
     if (!body.name.trim() || !renameBackground(user.id, body.id, body.name.trim())) return fail('改名失败');
   } else if ('global' in body) {
@@ -66,7 +68,9 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { id?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { id?: number };
   if (!body.id || !deleteBackground(user.id, body.id)) return fail('背景不存在', 404);
   return json(state(user.id));
 }

@@ -11,6 +11,7 @@ import { paymentCurrency, pricePerPointCents, upstreamCostPer1kCents } from '@/l
 import { modelFallbacks } from '@/lib/model';
 import { modelPrices, parseModelPrices, pointsPerThousand } from '@/lib/points';
 import { availableModels } from '@/lib/model';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,7 +85,9 @@ export async function PATCH(request: Request) {
   if (!user) return fail('未登录', 401);
   if (!isAdmin(user)) return fail('没有权限', 403);
 
-  const body = (await request.json().catch(() => ({}))) as { image?: Group; tts?: Group; payment?: Group; mail?: Group; billing?: Group; model?: Group };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { image?: Group; tts?: Group; payment?: Group; mail?: Group; billing?: Group; model?: Group };
 
   const write = (group: Group | undefined, map: Record<string, string>) => {
     if (!group) return;

@@ -3,6 +3,7 @@ import { findUserByEmail, getPasswordHash, verifyPassword } from '@/lib/auth';
 import { createAuthToken } from '@/lib/auth-tokens';
 import { authLink, mailConfigured, sendMail } from '@/lib/mail';
 import { rateLimit } from '@/lib/rate-limit';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,9 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { email?: unknown; password?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { email?: unknown; password?: unknown };
   const email = String(body.email ?? '').trim().toLowerCase();
   const password = String(body.password ?? '');
   if (!EMAIL_RE.test(email)) return fail('邮箱格式不对', 400);

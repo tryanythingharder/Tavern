@@ -3,6 +3,7 @@ import { isAdmin } from '@/lib/auth';
 import { deleteSetting, setSetting } from '@/lib/settings';
 import { logAdmin } from '@/lib/audit';
 import { embedConfig, embedStatus, embedTexts } from '@/lib/vectors';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,9 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const auth = await admin();
   if (auth.error) return auth.error;
-  const body = (await request.json().catch(() => ({}))) as { baseUrl?: unknown; apiKey?: unknown; model?: unknown; clearKey?: unknown };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { baseUrl?: unknown; apiKey?: unknown; model?: unknown; clearKey?: unknown };
   if (typeof body.baseUrl === 'string') {
     const url = body.baseUrl.trim().replace(/\/+$/, '');
     if (url && !/^https?:\/\//i.test(url)) return fail('Base URL 需要以 http:// 或 https:// 开头', 400);

@@ -19,6 +19,7 @@ import { ensureStartingPoints, pointsCost, reservePoints } from '@/lib/points';
 import { CONTINUE_NUDGE, joinContinue } from '@/lib/continue';
 import { autoRoomSummarize, roomPromptMemory } from '@/lib/room-memory';
 import { characterNote, combinedNoteText } from '@/lib/memory';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +56,9 @@ async function handlePost(request: Request, context: Params) {
   const blocked18 = await roomNsfwBlock(user.id, room.characterIds);
   if (blocked18) return fail(blocked18, 403);
 
-  const body = (await request.json().catch(() => ({}))) as { text?: string; speakerId?: string; auto?: boolean; force?: boolean; mode?: string; messageId?: number };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { text?: string; speakerId?: string; auto?: boolean; force?: boolean; mode?: string; messageId?: number };
   const mode = body.mode === 'regenerate' || body.mode === 'continue' ? body.mode : null;
   const auto = body.auto === true || mode !== null;
   const text = mode ? '' : String(body.text ?? '').trim();

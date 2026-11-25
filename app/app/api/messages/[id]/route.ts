@@ -4,6 +4,7 @@ import { reasoningAt } from '@/lib/reasoning';
 import { setBookmark, snapshotChat } from '@/lib/memory';
 import { toMessageView } from '@/lib/chat-view';
 import { busyGuard } from '@/lib/gen-lock';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const message = getOwnedMessage(Number(id), user.id);
   if (!message) return fail('消息不存在', 404);
 
-  const body = (await request.json().catch(() => ({}))) as { content?: string; bookmark?: boolean; reasoning?: string | null };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { content?: string; bookmark?: boolean; reasoning?: string | null };
   // 书签不动楼层内容，生成中也允许；改正文 / 思考要等生成结束
   if (typeof body.bookmark !== 'boolean') {
     const busy = busyGuard(`chat:${message.chat_id}`);

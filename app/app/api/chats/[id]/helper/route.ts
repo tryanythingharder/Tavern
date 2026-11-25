@@ -4,6 +4,7 @@ import { loadExtras } from '@/lib/card-extras';
 import { helperScriptsFromRaw, runnableScripts } from '@/lib/helper-scripts';
 import { HELPER_SCOPES, readHelperVars, writeHelperVars, type HelperScope } from '@/lib/helper-vars';
 import { chatVariables } from '@/lib/mvu-server';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +54,9 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   const { id } = await context.params;
   const chat = getChat(Number(id), user.id);
   if (!chat) return Response.json({ message: '会话不存在' }, { status: 404 });
-  const body = (await request.json().catch(() => null)) as { scope?: string; scriptId?: string; data?: unknown } | null;
+  const parsedBody = await readJson(request, null);
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { scope?: string; scriptId?: string; data?: unknown } | null;
   const scope = body?.scope as HelperScope;
   if (!body || !HELPER_SCOPES.includes(scope) || !body.data || typeof body.data !== 'object' || Array.isArray(body.data)) {
     return Response.json({ message: '参数不对' }, { status: 400 });

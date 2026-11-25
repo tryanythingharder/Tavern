@@ -1,5 +1,6 @@
 import { fail, json, requireUser } from '@/lib/api';
 import { isValidSubscription, pushToUser, removeSubscription, saveSubscription, subscriptionCount, vapidKeys } from '@/lib/web-push';
+import { readJson } from '@/lib/body-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { subscription?: unknown; test?: boolean };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { subscription?: unknown; test?: boolean };
   if (body.test) {
     await pushToUser(user.id, { title: '推送已开启', body: '有新作品、点数到账或审核结果时，会在这里提醒你。', link: '/notifications', tag: 'test' });
     return json({ ok: true });
@@ -28,7 +31,9 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const user = await requireUser();
   if (!user) return fail('未登录', 401);
-  const body = (await request.json().catch(() => ({}))) as { endpoint?: string };
+  const parsedBody = await readJson(request, {});
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody as { endpoint?: string };
   if (body.endpoint) removeSubscription(user.id, String(body.endpoint));
   return json({ ok: true, devices: subscriptionCount(user.id) });
 }
