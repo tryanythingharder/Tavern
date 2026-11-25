@@ -1243,3 +1243,10 @@ html:not([data-scheme="dark"]) body[data-theme="nocturne"]:not(#noc) .noc-chat-c
 html:not([data-scheme="dark"]) body[data-theme="nocturne"]:not(#noc) :is(.noc-grain, .noc-chat-chrome .noc-grain) { opacity: .035; mix-blend-mode: multiply; }
 /* 强调色：白天用正色朱砂 */
 html:not([data-scheme="dark"]) body[data-theme="nocturne"]:not(#noc):not([data-u-accent]) { --noc-accent: #c9401f; --ca-accent: #c9401f; --pp-accent: #c9401f; --accent: #c9401f; --primary: #c9401f; --primary-hover: #a8331a; --cai-primary: #c9401f; --pp-focus: #c9401f; }
+
+/* E4：深色夜幕的主按钮白字压 #d9502c 只有 4.09；按钮底色在强调色基础上压暗 6%（≈#c94927，约 4.7）。
+   选择器带 data-scheme，深色插件不改写；悬停仍用原来更亮的色（瞬时反馈）；用户自选强调色时 dark.css 的 !important 规则接管 */
+html[data-scheme="dark"] body[data-theme="nocturne"]:not(#noc) :is(.p-btn--primary, .btn--primary, .btn-primary, .noc-btn--primary):not(:disabled):not(:hover),
+html[data-scheme="dark"] body[data-theme="nocturne"]:not(#noc)[data-page="character"] :is(#start-chat, .p-detail-sticky .p-btn--primary):not(:disabled):not(:hover) {
+  background-color: color-mix(in oklab, var(--noc-accent) 94%, #000); border-color: color-mix(in oklab, var(--noc-accent) 94%, #000);
+}

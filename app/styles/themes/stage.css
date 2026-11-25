@@ -7,8 +7,10 @@
 
 html body[data-theme="stage"]:not(.p-cinema) {
   --stg-bg: #f7f7f8; --stg-rail: #fbfbfb; --stg-card: #ffffff; --stg-sunken: #ebebec; --stg-hover: #f0f0f1;
-  --stg-ink: #1b1b1d; --stg-copy: #4a4a50; --stg-muted: #77777e; --stg-line: #e6e6e8; --stg-line-strong: #d5d5d9;
+  /* E4：灰字 #77777e → #6e6e75（#f7f7f8 上 4.15 → 4.73，白底 4.44 → 5.06）；强调色浅底上的强调字用略深一档的 --stg-accent-ink（4.17 → 4.68），跟随用户自选强调色 */
+  --stg-ink: #1b1b1d; --stg-copy: #4a4a50; --stg-muted: #6e6e75; --stg-line: #e6e6e8; --stg-line-strong: #d5d5d9;
   --stg-accent: #c9401f; --stg-accent-soft: #f9e8e4; --stg-player: #f5efe9;
+  --stg-accent-ink: color-mix(in oklab, var(--stg-accent) 95%, #000);
   --stg-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --stg-serif: "Noto Serif SC", "Songti SC", "STSong", serif;
   --stg-ital: "C059", Georgia, "DejaVu Serif", "Times New Roman", serif;
@@ -101,7 +103,7 @@ html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search {
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search .p-input { background: transparent; border: 0; box-shadow: none; font-size: 13px; padding-left: 40px; }
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search kbd { font: 11px var(--stg-sans); border-radius: 7px; background: var(--stg-sunken); color: var(--stg-copy); }
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar > .p-avatar {
-  width: 38px; height: 38px; border-radius: 50%; background: var(--stg-accent-soft); color: var(--stg-accent);
+  width: 38px; height: 38px; border-radius: 50%; background: var(--stg-accent-soft); color: var(--stg-accent-ink);
   font-weight: 700; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--stg-line);
 }
 html body[data-theme="stage"]:not(.p-cinema) .p-topbar :is(.p-topbar-icon, .p-points-trigger) { border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); }
@@ -135,7 +137,11 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="home"] .p-inner.stg-home
   max-width: 1480px; margin: 0 auto; padding: 20px 32px 0; overflow-x: clip;
 }
 html body[data-theme="stage"]:not(.p-cinema) .stg-home { position: relative; }
-html body[data-theme="stage"]:not(.p-cinema) .stg-home a { text-decoration: none; color: inherit; }
+/* 上传框说明小字：stage 浅色下 #6b6b73 压 #ebebec 只有 4.43（E4）→ 4.78 */
+html body[data-theme="stage"]:not(.p-cinema) .file-drop-text small { color: #66666d; }
+/* 按钮式链接（.stg-btn）自己定颜色，不再被这条 inherit 盖掉（E4：「开场」主按钮原来是墨字压红底 3.46，恢复设计里的白字 4.96） */
+html body[data-theme="stage"]:not(.p-cinema) .stg-home a:not(.stg-btn) { text-decoration: none; color: inherit; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-home a.stg-btn { text-decoration: none; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-rise { animation: stg-rise .9s var(--stg-spring) both; }
 @keyframes stg-rise { from { opacity: 0; transform: translateY(40px) scale(.97); } }
 
@@ -234,7 +240,7 @@ html body[data-theme="stage"]:not(.p-cinema) .stg-stats { padding: 22px 22px 18p
 html body[data-theme="stage"]:not(.p-cinema) .stg-lab { font-size: 12px; color: var(--stg-copy); letter-spacing: .12em; display: flex; justify-content: space-between; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-num { font-size: 64px; font-weight: 700; letter-spacing: -.07em; line-height: 1; margin-top: 14px; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-num small { font-size: 26px; letter-spacing: -.02em; margin-left: 4px; }
-html body[data-theme="stage"]:not(.p-cinema) .stg-delta { align-self: flex-start; margin-top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--stg-accent-soft); color: var(--stg-accent); font-size: 12px; font-weight: 700; }
+html body[data-theme="stage"]:not(.p-cinema) .stg-delta { align-self: flex-start; margin-top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--stg-accent-soft); color: var(--stg-accent-ink); font-size: 12px; font-weight: 700; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-bars { margin-top: auto; display: flex; align-items: flex-end; gap: 4px; height: 70px; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-bars i { flex: 1; border-radius: 3px; background: var(--stg-line-strong); transform-origin: bottom; animation: stg-grow .9s var(--stg-spring) both; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-bars i.is-hi { background: var(--stg-accent); }
@@ -301,9 +307,9 @@ html body[data-theme="stage"]:not(.p-cinema) .stg-st:hover { animation: stg-wobb
 }
 html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on { background: var(--stg-accent); color: #fff; border-color: var(--stg-accent); }
 html body[data-theme="stage"]:not(.p-cinema) .stg-st--dark { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); }
-html body[data-theme="stage"]:not(.p-cinema) .stg-st--soft { background: var(--stg-accent-soft); color: var(--stg-accent); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st--soft { background: var(--stg-accent-soft); color: var(--stg-accent-ink); border-color: var(--stg-accent-soft); }
 html body[data-theme="stage"]:not(.p-cinema) .stg-st small { font-weight: 400; color: var(--stg-copy); font-size: 12px; }
-html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on small { color: rgba(255, 255, 255, .75); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on small { color: #fff; } /* E4：.75 白在强调色上 3.42 → 纯白 4.96，靠字重区分层级 */
 html body[data-theme="stage"]:not(.p-cinema) .stg-hash { color: var(--stg-muted); font-weight: 400; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-st.is-on .stg-hash, html body[data-theme="stage"]:not(.p-cinema) .stg-st--dark .stg-hash { color: rgba(255, 255, 255, .55); }
 
@@ -541,7 +547,7 @@ html body[data-theme="stage"]:not(.p-cinema) .stg-mem { display: flex; flex-wrap
 html body[data-theme="stage"]:not(.p-cinema) .stg-mem span { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line-strong); font-size: 12px; color: var(--stg-copy); transform: rotate(var(--rot, 0deg)); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html body[data-theme="stage"]:not(.p-cinema) .stg-mem span:hover { animation: stg-wobble .6s var(--stg-spring); }
 html body[data-theme="stage"]:not(.p-cinema) .stg-mem span::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--stg-ink); }
-html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-new { background: var(--stg-accent-soft); border-color: var(--stg-accent-soft); color: var(--stg-accent); }
+html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-new { background: var(--stg-accent-soft); border-color: var(--stg-accent-soft); color: var(--stg-accent-ink); }
 html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-new::before { background: var(--stg-accent); }
 html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-more { background: var(--stg-ink); color: #fff; border-color: var(--stg-ink); }
 html body[data-theme="stage"]:not(.p-cinema) .stg-mem span.is-more::before { display: none; }
@@ -594,7 +600,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head :is(
   color: var(--stg-copy); font-size: 13px; font-weight: 400; box-shadow: none;
 }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-head :is(.btn, .p-btn):hover { color: var(--stg-ink); border-color: var(--stg-line-strong); }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-branch-note { margin: 4px auto 0; max-width: 720px; border-radius: 999px; background: var(--stg-accent-soft); color: var(--stg-accent); border: 0; padding: 8px 16px; font-size: 12px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-branch-note { margin: 4px auto 0; max-width: 720px; border-radius: 999px; background: var(--stg-accent-soft); color: var(--stg-accent-ink); border: 0; padding: 8px 16px; font-size: 12px; }
 
 html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-chat-scroll {
   flex: 1; min-height: 0; overflow-y: auto; padding: 0 0 220px; scrollbar-width: none; background: transparent;
@@ -918,7 +924,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-mi
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor :is(.btn, .p-btn) { min-height: 40px; height: 40px; padding: 0 16px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); font-size: 13px; font-weight: 700; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .p-notice-actions { display: contents; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .btn--ghost { background: transparent; border-color: transparent; color: var(--stg-muted); font-weight: 400; margin-left: auto; }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .btn[aria-pressed="true"] { background: var(--stg-accent-soft); color: var(--stg-accent); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-minor .btn[aria-pressed="true"] { background: var(--stg-accent-soft); color: var(--stg-accent-ink); border-color: var(--stg-accent-soft); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-cover {
   position: relative; border-radius: 24px; padding: 0; background: #fff; box-shadow: var(--stg-shadow-lg); overflow: hidden;
   transform: rotate(-3deg); transition: transform .6s var(--stg-spring), box-shadow .4s ease; isolation: isolate;
@@ -941,7 +947,7 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-by
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags { gap: 8px; padding-left: 3px; }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill { height: 30px; padding: 0 12px; border-radius: 999px; background: #fff; border: 1px solid var(--stg-line); color: var(--stg-ink); font-weight: 700; box-shadow: 0 0 0 3px #fff, 0 6px 14px -8px rgba(27, 27, 29, .45); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill:nth-child(odd) { transform: rotate(-2deg); }
-html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill:nth-child(even) { transform: rotate(2deg); background: var(--stg-accent-soft); color: var(--stg-accent); border-color: var(--stg-accent-soft); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-tags .p-pill:nth-child(even) { transform: rotate(2deg); background: var(--stg-accent-soft); color: var(--stg-accent-ink); border-color: var(--stg-accent-soft); }
 html body[data-theme="stage"]:not(.p-cinema)[data-page="character"] .p-detail-stats {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 20px 0 16px; padding: 14px 6px; border-radius: 22px; background: #fff; border: 1px solid rgba(27, 27, 29, .05); box-shadow: var(--stg-shadow);
 }

@@ -261,6 +261,11 @@ html body[data-theme="folio"] .fo-link {
 html body[data-theme="folio"] .fo-link:hover { background-size: 0 1px; background-position: right bottom; }
 
 html body[data-theme="folio"] .fo-cv-photo { grid-column: 5 / 10; position: relative; margin: 0; min-width: 0; }
+/* E4：设置目录里的英文小注 .pm-st（共享样式透明度 .62）在 folio 浅色底上只有 3.12，提到 .8（4.81） */
+html body[data-theme="folio"] .pm-st { opacity: .8; }
+/* 角标（页码、对话数）在链接外、叠在图上：包一层定位容器，角标不接收点击，点哪里都还是进角色页 */
+html body[data-theme="folio"] .fo-frame-wrap { position: relative; }
+html body[data-theme="folio"] .fo-frame-wrap > :is(.fo-folio, .fo-stamp) { pointer-events: none; }
 html body[data-theme="folio"] .fo-frame { position: relative; display: block; height: 640px; overflow: hidden; background: var(--fo-sunken); }
 html body[data-theme="folio"] .fo-frame img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; transform-origin: 50% 40%; }
 html body[data-theme="folio"] .fo-frame-initial { display: grid; place-items: center; height: 100%; background: var(--fo-ink); color: #fff; font-family: var(--fo-display); font-weight: 700; font-size: 220px; }
@@ -403,7 +408,7 @@ html body[data-theme="folio"] .fo-colophon b { display: block; margin-bottom: 4p
 html body[data-theme="folio"] .fo-rv { animation: fo-rise .9s var(--fo-ease) both; animation-delay: calc(var(--d, 0) * 1ms); }
 html body[data-theme="folio"] .fo-rule2 { animation: fo-grow-x 1.2s var(--fo-ease) both .1s; }
 html body[data-theme="folio"] :is(.fo-title, .fo-vname) span { animation: fo-ink 1s var(--fo-ease) both; animation-delay: calc(var(--d, 0) * 1ms); }
-html body[data-theme="folio"] .fo-frame { animation: fo-unveil 1.3s var(--fo-ease) both .25s; }
+html body[data-theme="folio"] .fo-frame-wrap { animation: fo-unveil 1.3s var(--fo-ease) both .25s; }
 html body[data-theme="folio"] .fo-frame img { animation: fo-settle 2.2s var(--fo-ease) both .25s; }
 html body[data-theme="folio"] .fo-js .fo-reveal { opacity: 0; transform: translateY(22px); transition: opacity .9s var(--fo-ease), transform .9s var(--fo-ease); transition-delay: calc(var(--d, 0) * 1ms); }
 html body[data-theme="folio"] .fo-js .fo-reveal.is-in { opacity: 1; transform: none; }

@@ -58,7 +58,7 @@ export function PointsChip({ initial, low = 200 }: { initial: number; low?: numb
   const label = (b: Burst) => (b.cost > 0 ? `−${fmt(b.cost)}` : '免费');
   return (
     <>
-      <Link ref={chipRef} href="/me/points" className={`pc-chip${isLow ? ' is-low' : ''}`} aria-label={`剩余点数 ${fmt(valueRef.current)}，点开查看明细`} title="剩余点数">
+      <Link ref={chipRef} href="/me/points" className={`pc-chip${isLow ? ' is-low' : ''}`} aria-label={`点 ${fmt(valueRef.current)} · 剩余点数，点开查看明细`} title="剩余点数">
         <span className="pc-coin" aria-hidden="true">点</span>
         <span className="pc-num" aria-hidden="true">{fmt(shown)}</span>
         <span className="pc-bursts" aria-hidden="true">
