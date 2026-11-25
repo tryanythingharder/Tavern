@@ -22,8 +22,15 @@ type Row = {
   status: string; created_at: number; nickname: string;
 };
 
+// 举报预览里的状态用中文（英文界面靠 en.json 里同名词条翻译），不直接输出库里的 published / active 原值
+export const CHARACTER_STATUS_LABEL: Record<string, string> = { pending: '待审核', published: '已公开', archived: '已下架', draft: '草稿', rejected: '未通过' };
+export const USER_STATUS_LABEL: Record<string, string> = { active: '正常', banned: '已封禁', deleted: '已注销' };
+export const statusLabel = (map: Record<string, string>, value: string) => map[value] ?? value;
+
 export type ReportTarget = {
   preview: string;
+  /** 被举报对象当前状态的中文标签（作品：待审核/已公开…；用户：正常/已封禁…），单独渲染以便英文界面翻译 */
+  statusLabel: string | null;
   detail: string;
   link: string | null;
   characterId: string | null;
@@ -38,12 +45,13 @@ export function getReportTarget(report: { targetType: string; targetId: string }
     const row = db.prepare('SELECT name, hook, status, owner_id FROM characters WHERE id = ?').get(id) as
       | { name: string; hook: string; status: string; owner_id: number | null }
       | undefined;
-    if (!row) return { preview: '角色已不存在', detail: '', link: null, characterId: null, userId: null, userName: null };
+    if (!row) return { preview: '角色已不存在', statusLabel: null, detail: '', link: null, characterId: null, userId: null, userName: null };
     const owner = row.owner_id
       ? db.prepare('SELECT nickname FROM users WHERE id = ?').get(row.owner_id) as { nickname: string } | undefined
       : undefined;
     return {
-      preview: `${row.name} · ${row.status} · ${row.hook.slice(0, 100)}`,
+      preview: `${row.name} · ${row.hook.slice(0, 100)}`,
+      statusLabel: statusLabel(CHARACTER_STATUS_LABEL, row.status),
       detail: row.hook,
       link: `/c/${id}`,
       characterId: id,
@@ -57,8 +65,9 @@ export function getReportTarget(report: { targetType: string; targetId: string }
             FROM messages m JOIN chats c ON c.id = m.chat_id LEFT JOIN characters ch ON ch.id = c.character_id
             WHERE m.id = ?
         `).get(id) as { content: string; role: string; chat_id: number; character_id: string; character_name: string | null } | undefined;
-    if (!row) return { preview: '消息已删除', detail: '', link: null, characterId: null, userId: null, userName: null };
+    if (!row) return { preview: '消息已删除', statusLabel: null, detail: '', link: null, characterId: null, userId: null, userName: null };
     return {
+      statusLabel: null,
       preview: `${row.role === 'user' ? '玩家' : row.character_name ?? '角色'}：${row.content.slice(0, 160)}`,
       detail: row.content,
       link: null,
@@ -72,8 +81,9 @@ export function getReportTarget(report: { targetType: string; targetId: string }
             SELECT cm.content, cm.character_id, ch.name AS character_name
             FROM comments cm LEFT JOIN characters ch ON ch.id = cm.character_id WHERE cm.id = ?
         `).get(id) as { content: string; character_id: string; character_name: string | null } | undefined;
-    if (!row) return { preview: '评论已删除', detail: '', link: null, characterId: null, userId: null, userName: null };
+    if (!row) return { preview: '评论已删除', statusLabel: null, detail: '', link: null, characterId: null, userId: null, userName: null };
     return {
+      statusLabel: null,
       preview: `评论 · ${row.character_name ?? '角色'}：${row.content.slice(0, 160)}`,
       detail: row.content,
       link: `/c/${row.character_id}`,
@@ -87,17 +97,18 @@ export function getReportTarget(report: { targetType: string; targetId: string }
     const row = Number.isInteger(numeric) && numeric > 0
       ? db.prepare('SELECT id, nickname, email, status FROM users WHERE id = ?').get(numeric) as { id: number; nickname: string; email: string; status: string } | undefined
       : db.prepare('SELECT id, nickname, email, status FROM users WHERE nickname = ? LIMIT 1').get(id) as { id: number; nickname: string; email: string; status: string } | undefined;
-    if (!row) return { preview: '用户已不存在', detail: '', link: null, characterId: null, userId: null, userName: null };
+    if (!row) return { preview: '用户已不存在', statusLabel: null, detail: '', link: null, characterId: null, userId: null, userName: null };
     return {
-      preview: `${row.nickname} · ${row.email} · ${row.status}`,
-      detail: `${row.nickname} · ${row.email} · ${row.status}`,
+      preview: `${row.nickname} · ${row.email}`,
+      statusLabel: statusLabel(USER_STATUS_LABEL, row.status),
+      detail: `${row.nickname} · ${row.email}`,
       link: `/admin/users/${row.id}`,
       characterId: null,
       userId: row.id,
       userName: row.nickname,
     };
   }
-  return { preview: '其他举报', detail: '', link: null, characterId: null, userId: null, userName: null };
+  return { preview: '其他举报', statusLabel: null, detail: '', link: null, characterId: null, userId: null, userName: null };
 }
 
 export function createReport(reporterId: number, targetType: string, targetId: string, reason: string, note: string): number {

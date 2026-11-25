@@ -19,6 +19,7 @@ type Report = {
   createdAt: number;
   target: {
     preview: string;
+    statusLabel: string | null;
     detail: string;
     link: string | null;
     characterId: string | null;
@@ -128,6 +129,7 @@ export function AdminReports({ reports, filtered = false }: { reports: Report[];
                 {report.note || '（没有补充说明）'}
               </div>
               <div className="p-room-last" style={{ whiteSpace: 'normal', color: 'var(--text)' }}>
+                {report.target.statusLabel && <span className="p-pill p-pill--sm p-pill--outline" style={{ marginRight: 6 }}>{report.target.statusLabel}</span>}
                 {report.target.preview || '（无法解析被举报内容）'}
               </div>
               {report.target.detail.length > 160 && (
