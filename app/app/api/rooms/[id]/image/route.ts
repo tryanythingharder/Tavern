@@ -8,6 +8,7 @@ import { characterReference, referenceLeadMany, roomImages, type CharacterRefere
 import { addRoomMessage, getRoom, getRoomMessage, listRoomMessages, setRoomMessageAttachment, textRoomMessages } from '@/lib/rooms';
 import { balance, grantPoints, reservePoints } from '@/lib/points';
 import { checkQuota } from '@/lib/usage';
+import { withAuthorizedLock } from '@/lib/gen-lock';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,20 @@ function fail(message: string, status: number) {
 // POST /api/rooms/[id]/image —— { mode, characterId?, hint?, prompt? } 群聊生图，作为「画给某位成员」的一条插图消息
 // 画谁：characterId（成员）；不传时 scene/last 取最近发言的角色。当前场景会把最近出场的（最多 3 位）成员一起画，各带自己的参考图。
 // 人物参考与单聊同一套（lib/image-ref.ts）：定妆照 → 封面 → 头像 → 内置立绘 → 本群聊里第一张给 TA 的立绘。
+// 和文字生成共用同一把房间锁（room:<id>）：文字生成中插图会 409，生图进行中发消息 / 重新生成 / 继续也会 409，
+// 避免插图插进正在落库的回复前后、楼层顺序和「最近发言者」错乱。先鉴权和归属检查再取锁（见 lib/gen-lock.ts）。
 export async function POST(request: Request, context: Params) {
+  return withAuthorizedLock(async () => {
+    const user = await getCurrentUser();
+    if (!user) return fail('未登录', 401);
+    if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
+    const room = getRoom(Number((await context.params).id), user.id);
+    if (!room) return fail('房间不存在', 404);
+    return `room:${room.id}`;
+  }, () => handleImage(request, context));
+}
+
+async function handleImage(request: Request, context: Params) {
   const user = await getCurrentUser();
   if (!user) return fail('未登录', 401);
   if (!canGenerate(user)) return fail('请先验证邮箱后再生成', 403);
