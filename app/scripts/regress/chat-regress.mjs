@@ -164,13 +164,13 @@ await step('中途中断：保留已生成部分并落库', async () => { const 
 await step('上游 500：报错且玩家消息保留', async () => { const s = await sse(`/api/chats/${chatId}/messages`, { text: 'FAIL500 请失败' }); const err = s.events.find((e) => e.type === 'error') || (s.status >= 400 ? { message: s.text } : null); assert(err, '没有 error 事件：' + JSON.stringify(s.events.slice(-2))); const ms = await messages(); assert(ms.some((m) => m.content.includes('FAIL500')), '玩家消息丢了'); });
 await step('改标题 / 删除分支会话', async () => { const p = await req(`/api/chats/${branchId}`, { method: 'PATCH', json: { title: '分支改名' } }); assert(p.ok, `patch ${p.status}`); const d = await req(`/api/chats/${branchId}`, { method: 'DELETE' }); assert(d.ok, `delete ${d.status}`); const g = await req(`/api/chats/${branchId}/messages`); assert(g.status === 404, `删后 ${g.status}`); });
 // 原始 HTTP 上传：declared 给定时发假的 Content-Length，否则分块传输；一直写到服务端回应或写满 maxBytes
-function rawUpload(path, { declared, maxBytes }) {
+function rawUpload(path, { declared, maxBytes, method = 'POST', type = 'multipart/form-data; boundary=x' }) {
   return new Promise((resolve) => {
     const u = new URL(BASE + path);
-    const headers = { cookie: cookieHeader(), 'content-type': 'multipart/form-data; boundary=x' };
+    const headers = { cookie: cookieHeader(), 'content-type': type };
     if (declared) headers['content-length'] = String(declared); else headers['transfer-encoding'] = 'chunked';
     const t0 = Date.now(); let sent = 0; let done = false;
-    const rq = http.request({ host: u.hostname, port: u.port, path: u.pathname, method: 'POST', headers }, (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => { done = true; resolve({ status: res.status ?? res.statusCode, sent, ms: Date.now() - t0, body: b.slice(0, 80) }); rq.destroy(); }); });
+    const rq = http.request({ host: u.hostname, port: u.port, path: u.pathname, method, headers }, (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => { done = true; resolve({ status: res.status ?? res.statusCode, sent, ms: Date.now() - t0, body: b.slice(0, 80) }); rq.destroy(); }); });
     rq.on('error', (e) => { if (!done) { done = true; resolve({ status: 'ERR ' + e.code, sent, ms: Date.now() - t0 }); } });
     const chunk = Buffer.alloc(1024 * 1024);
     (function pump() { while (!done && sent < maxBytes) { sent += chunk.length; if (!rq.write(chunk)) { rq.once('drain', pump); return; } } if (!done && !declared) rq.end(); })();
@@ -334,7 +334,7 @@ await step('导入#C6 20 万字角色名 → 400 指明字段；40 字名照常�
 await step('边界#C8 普通 JSON 接口：声明 200MB → 413（不读请求体）；分块 3MB → 413（默认 1MB）', async () => {
   const a = await rawUpload(`/api/chats/${chatId}/messages`, { declared: 200 * 1024 * 1024, maxBytes: 4 * 1024 * 1024 });
   assert(a.status === 413, `声明超限 ${JSON.stringify(a)}`);
-  const b = await rawUpload('/api/me/prefs', { maxBytes: 3 * 1024 * 1024 });
+  const b = await rawUpload('/api/me/prefs', { maxBytes: 3 * 1024 * 1024, method: 'PATCH', type: 'application/json' });
   assert(b.status === 413 && /1 MB/.test(b.body || ''), `分块超限 ${JSON.stringify(b)}`);
   const ok = await req('/api/me/prefs', { method: 'PATCH', json: { theme: 'dark' } });
   assert(ok.ok, `正常请求 ${ok.status}`);
