@@ -1020,6 +1020,14 @@ article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
 .channel-legacy-hint { margin: -4px 18px 12px; }
 .channel-legacy .admin-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; }
 
+/* 渠道表：地址可在任意处折行、「上次测试」备注限宽折行，1280 宽下整表不再横向溢出 */
+@media (min-width: 721px) {
+    .channel-table td:nth-child(2) { min-width: 120px; overflow-wrap: anywhere; }
+    .channel-table td:nth-child(3) { white-space: normal; min-width: 150px; }
+    .channel-table td:nth-child(3) > * { white-space: nowrap; }
+    .channel-table .channel-last-test { max-width: 240px; white-space: normal !important; overflow-wrap: anywhere; }
+}
+
 /* 渠道测试弹窗（components/admin-channel-test.tsx） */
 .ctest-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 6px; }
 .ctest-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; min-width: 0; }

@@ -377,7 +377,7 @@ export function AdminChannels({ initial, others, legacy }: { initial: ChannelVie
           </div>
         ) : (
           <div className="admin-table-wrap">
-            <table className="admin-table">
+            <table className="admin-table channel-table">
               <thead><tr><th>渠道</th><th>地址</th><th>模型</th><th>优先级</th><th>状态</th><th className="admin-col-actions">操作</th></tr></thead>
               <tbody>
                 {rows.map((channel) => {
