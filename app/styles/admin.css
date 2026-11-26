@@ -360,6 +360,7 @@
 }.p-anav {
     flex: 1;
     min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     margin: 0 -4px;
     padding: 0 4px;
@@ -683,7 +684,9 @@
 .p-anav-sub { position: relative; margin: 2px 0 8px; padding-left: 22px; }
 .p-anav-sub::before { content: ""; position: absolute; left: 21px; top: 4px; bottom: 4px; width: 1px; background: var(--border); }
 .p-anav-sub[hidden] { display: none; }
-.p-anav .p-anav-leaf { height: 36px; min-height: 36px; margin-left: 10px; padding: 0 12px; font-size: var(--f-sm); }
+/* 子菜单项：.p-nav-item 自带 width: 100%，再加 margin-left 会比侧栏宽 10px，侧栏底部出现横向滚动条；
+   这里改回 auto，让它在缩进后的剩余宽度里排，侧栏只纵向滚动 */
+.p-anav .p-anav-leaf { width: auto; height: 36px; min-height: 36px; margin-left: 10px; padding: 0 12px; font-size: var(--f-sm); }
 .p-anav .p-anav-solo { margin-top: 2px; }
 @media (prefers-reduced-motion: reduce) { .p-anav-chev { transition: none; } }
 
