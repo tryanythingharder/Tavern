@@ -121,34 +121,55 @@ function allModels(): ModelOption[] {
 }
 
 // 后台「测试」：直接打指定渠道，不走 failover，避免测到别的线路上。
-export async function testModelRoute(route: ModelRoute): Promise<{ text: string; ms: number }> {
+// 只发一次非流式请求，不经过 streamChat / 计费，不写点数账本。
+// 失败时抛 ModelTestError，带上游 HTTP 状态码（连不上 / 超时 / 取消时 status 为 0）。
+export class ModelTestError extends Error {
+  constructor(message: string, readonly status = 0, readonly ms = 0) {
+    super(message);
+    this.name = 'ModelTestError';
+  }
+}
+
+export const MODEL_TEST_PROMPT = '只回复两个字母：ok';
+
+export async function testModelRoute(
+  route: ModelRoute,
+  options: { prompt?: string; timeoutMs?: number; signal?: AbortSignal } = {},
+): Promise<{ text: string; ms: number }> {
   const started = Date.now();
-  const timeoutMs = Math.max(5000, Number(process.env.TAVERN_UPSTREAM_TIMEOUT_MS ?? 120_000));
+  const timeoutMs = options.timeoutMs ?? Math.max(5000, Number(process.env.TAVERN_UPSTREAM_TIMEOUT_MS ?? 120_000));
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const signal = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
+  const prompt = String(options.prompt ?? '').trim() || MODEL_TEST_PROMPT;
   let response: Response;
+  let text: string;
   try {
     response = await fetch(`${route.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${route.apiKey}` },
       body: JSON.stringify({
         model: route.model,
-        messages: [{ role: 'user', content: '只回复两个字母：ok' }],
+        messages: [{ role: 'user', content: prompt }],
         max_tokens: 16,
         temperature: 0.5,
         stream: false,
       }),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal,
     });
+    text = await response.text();
   } catch (error) {
-    throw new Error(`无法连接上游：${error instanceof Error ? error.message : String(error)}`);
+    const ms = Date.now() - started;
+    if (options.signal?.aborted) throw new ModelTestError('已取消', 0, ms);
+    if (timeout.aborted) throw new ModelTestError(`超时（${Math.round(timeoutMs / 1000)} 秒没有响应）`, 0, ms);
+    throw new ModelTestError(`无法连接上游：${error instanceof Error ? error.message : String(error)}`, 0, ms);
   }
-  const text = await response.text();
-  if (!response.ok) throw new Error(`上游返回 ${response.status}${text ? `：${text.slice(0, 160)}` : ''}`);
+  if (!response.ok) throw new ModelTestError(`上游返回 ${response.status}${text ? `：${text.slice(0, 160)}` : ''}`, response.status, Date.now() - started);
   try {
     const json = JSON.parse(text);
     const content = json?.choices?.[0]?.message?.content ?? json?.choices?.[0]?.text ?? '';
     return { text: String(content).trim().slice(0, 80), ms: Date.now() - started };
   } catch {
-    throw new Error('上游返回的不是 JSON');
+    throw new ModelTestError('上游返回的不是 JSON', response.status, Date.now() - started);
   }
 }
 

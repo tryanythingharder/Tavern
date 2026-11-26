@@ -695,7 +695,7 @@ body[data-page]:not(.p-cinema) .p-cover:not(.has-portrait):not(.p-create-avatar)
 @media (max-width: 720px) {
     .channel-section-head { flex-wrap: wrap; }
     .channel-section-head > div { flex: 1 1 100%; }
-    .channel-section-head > .p-btn { align-self: flex-start; }
+    .channel-section-head > .p-btn, .channel-section-head > .channel-head-actions { align-self: flex-start; }
 }
 
 /* =========================================================================
@@ -1010,3 +1010,33 @@ article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
 .plaza-tags-label { flex: 0 0 auto; color: var(--muted); font-size: 12px; margin-right: 2px; }
 .plaza-tags > .p-chip { height: 30px; min-height: 30px; padding: 0 10px; font-size: 13px; }
 .plaza-tags > .p-text-btn { flex: 0 0 auto; font-size: 12px; white-space: nowrap; }
+
+/* 后台表格「操作」列：列宽收到按钮本身，表头文字和第一个按钮左对齐（原来按钮靠右、表头靠左，中间空一块） */
+@media (min-width: 721px) {
+    .admin-table th.admin-col-actions, .admin-table td.admin-col-actions { width: 1%; white-space: nowrap; }
+    .admin-table td.admin-col-actions .admin-actions { justify-content: flex-start; }
+}
+.channel-section-head > .channel-head-actions { display: flex; flex: 0 0 auto; margin-left: auto; gap: 8px; align-items: center; }
+
+/* 渠道测试弹窗（components/admin-channel-test.tsx） */
+.ctest-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 6px; }
+.ctest-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; min-width: 0; }
+.ctest-check input { width: 15px; height: 15px; accent-color: var(--text); flex: 0 0 auto; }
+.ctest-list { max-height: min(46dvh, 420px); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: 12px; padding: 2px 12px; }
+.ctest-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.ctest-row:last-child { border-bottom: 0; }
+.ctest-name > span { min-width: 0; overflow-wrap: anywhere; }
+.ctest-name code { font-size: 12px; }
+.ctest-channel { margin-right: 6px; font-size: 12.5px; }
+.ctest-status { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12.5px; }
+.ctest-status.is-idle, .ctest-status.is-wait { color: var(--muted); }
+.ctest-status.is-run { flex-direction: row; align-items: center; gap: 6px; color: var(--text-2); }
+.ctest-status.is-ok { color: var(--ok, #2e7d43); }
+.ctest-status.is-fail { color: var(--danger); }
+.ctest-snippet { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctest-status.is-fail .ctest-snippet { color: var(--danger); opacity: .85; white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ctest-spin { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--text-2); border-radius: 50%; animation: ctest-spin .8s linear infinite; }
+@keyframes ctest-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ctest-spin { animation-duration: 2.4s; } }
+.ctest-summary { min-height: 20px; margin-top: 12px; font-size: 13px; color: var(--text-2); }
+@media (max-width: 560px) { .ctest-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }

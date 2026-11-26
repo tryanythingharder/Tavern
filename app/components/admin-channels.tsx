@@ -2,11 +2,12 @@
 
 import { LocalTime, formatTime } from '@/components/local-time';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { useNotice } from '@/components/admin-feedback';
 import { Select } from '@/components/ui-select';
 import { INSTRUCT_PRESETS, parseInstructJson } from '@/lib/instruct';
+import { ChannelTestModal, type ChannelTestRecord, type ChannelTestTarget } from '@/components/admin-channel-test';
 
 export type ChannelView = {
   id: number;
@@ -32,6 +33,7 @@ export type OtherGateway = {
   href: string;
   kind: 'image' | 'tts' | 'payment' | 'mail';
 };
+
 
 function relative(value: number | null): string {
   if (!value) return '还没测试';
@@ -244,7 +246,7 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
   const [editing, setEditing] = useState<ChannelView | 'new' | null>(null);
   const [deleting, setDeleting] = useState<ChannelView | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [results, setResults] = useState<Record<number, { ok: boolean; text: string; ms?: number }>>({});
+  const [testing, setTesting] = useState<ChannelTestTarget | null>(null);
   const setNotice = useNotice();
   const [error, setError] = useState('');
   const [otherTesting, setOtherTesting] = useState<string | null>(null);
@@ -259,21 +261,11 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
     setNotice('渠道已保存。文本生成会按优先级依次尝试启用的渠道。');
   };
 
-  const test = async (channel: ChannelView) => {
-    setBusyId(channel.id);
-    setError('');
-    try {
-      const result = await api<{ text: string; ms?: number }>(`/api/admin/channels/${channel.id}/test`, { method: 'POST', body: '{}' });
-      setResults((prev) => ({ ...prev, [channel.id]: { ok: true, text: result.text, ms: result.ms } }));
-      setRows((prev) => prev.map((row) => (row.id === channel.id ? { ...row, lastTestAt: Date.now(), lastTestOk: true, lastTestNote: `${result.text}${result.ms ? ` · ${result.ms}ms` : ''}` } : row)));
-    } catch (caught) {
-      const message = (caught as Error).message;
-      setResults((prev) => ({ ...prev, [channel.id]: { ok: false, text: message } }));
-      setRows((prev) => prev.map((row) => (row.id === channel.id ? { ...row, lastTestAt: Date.now(), lastTestOk: false, lastTestNote: message } : row)));
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const closeTest = useCallback(() => setTesting(null), []);
+  // 弹窗里每测完一个模型，就把服务端写下的「上次测试」同步到这一行
+  const recordTest = useCallback((channelId: number, record: ChannelTestRecord) => {
+    setRows((prev) => prev.map((row) => (row.id === channelId ? { ...row, lastTestAt: Date.now(), lastTestOk: record.ok, lastTestNote: record.note } : row)));
+  }, []);
 
   const toggle = async (channel: ChannelView) => {
     setBusyId(channel.id);
@@ -331,8 +323,12 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
             <h2 style={{ margin: 0 }}>文本渠道</h2>
             <p className="p-hint" style={{ margin: '4px 0 0' }}>按优先级从高到低依次尝试；全部失败才会报错。停用全部渠道即停止文本生成。</p>
           </div>
-          <button className="p-btn p-btn--sm p-btn--primary" type="button" onClick={() => setEditing('new')}>新建渠道</button>
+          <div className="channel-head-actions">
+            <button className="p-btn p-btn--sm" type="button" disabled={!rows.some((row) => row.defaultModel)} onClick={() => setTesting({ kind: 'all', channels: rows })}>批量测试</button>
+            <button className="p-btn p-btn--sm p-btn--primary" type="button" onClick={() => setEditing('new')}>新建渠道</button>
+          </div>
         </div>
+
 
         {rows.length === 0 ? (
           <div className="p-empty" style={{ margin: 16 }}>
@@ -343,10 +339,9 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
         ) : (
           <div className="admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th>渠道</th><th>地址</th><th>模型</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>渠道</th><th>地址</th><th>模型</th><th>优先级</th><th>状态</th><th className="admin-col-actions">操作</th></tr></thead>
               <tbody>
                 {rows.map((channel) => {
-                  const result = results[channel.id];
                   return (
                     <tr key={channel.id}>
                       <td data-label="渠道"><strong>{channel.name}</strong>{!channel.hasKey && <span className="p-pill p-pill--sm p-pill--warn" style={{ marginLeft: 6 }}>缺密钥</span>}</td>
@@ -354,9 +349,9 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
                       <td data-label="模型" className="small">
                         {channel.defaultModel || '—'}
                         <span style={{ display: 'block', color: 'var(--muted)' }}>{channel.models.length} 个可选</span>
-                        {(result || channel.lastTestNote) && (
-                          <span style={{ display: 'block', marginTop: 4, color: (result?.ok ?? channel.lastTestOk) ? 'var(--ok, #2e7d43)' : 'var(--danger)' }}>
-                            {result ? (result.ok ? `测试成功${result.ms ? `（${result.ms}ms）` : ''}：${result.text}` : result.text) : `${channel.lastTestOk ? '上次成功' : '上次失败'}：${channel.lastTestNote}`}
+                        {channel.lastTestNote && (
+                          <span className="channel-last-test" data-ok={channel.lastTestOk ? '1' : '0'} style={{ display: 'block', marginTop: 4, color: channel.lastTestOk ? 'var(--ok, #2e7d43)' : 'var(--danger)' }}>
+                            {`${channel.lastTestOk ? '上次成功' : '上次失败'}：${channel.lastTestNote}`}
                           </span>
                         )}
                       </td>
@@ -365,9 +360,9 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
                         <span className={`p-pill p-pill--sm ${channel.enabled ? 'p-pill--ok' : 'p-pill--outline'}`}>{channel.enabled ? '启用' : '停用'}</span>
                         <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>{channel.lastTestAt ? <LocalTime value={channel.lastTestAt} style="date" render={relative} /> : relative(null)}</span>
                       </td>
-                      <td data-label="操作">
+                      <td data-label="操作" className="admin-col-actions">
                         <div className="admin-actions">
-                          <button className="p-btn p-btn--sm" type="button" disabled={busyId === channel.id || !channel.defaultModel} onClick={() => void test(channel)}>{busyId === channel.id ? '处理中…' : '测试'}</button>
+                          <button className="p-btn p-btn--sm" type="button" disabled={busyId === channel.id || !channel.hasKey} onClick={() => setTesting({ kind: 'channel', channel })}>测试</button>
                           <button className="p-btn p-btn--sm" type="button" disabled={busyId === channel.id} onClick={() => setEditing(channel)}>编辑</button>
                           <button className="p-btn p-btn--sm" type="button" disabled={busyId === channel.id} onClick={() => void toggle(channel)}>{channel.enabled ? '停用' : '启用'}</button>
                           <button className="p-btn p-btn--sm p-btn--danger" type="button" disabled={busyId === channel.id} onClick={() => setDeleting(channel)}>删除</button>
@@ -392,7 +387,7 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>渠道</th><th>地址 / 提供方</th><th>模型 / 说明</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>渠道</th><th>地址 / 提供方</th><th>模型 / 说明</th><th>状态</th><th className="admin-col-actions">操作</th></tr></thead>
             <tbody>
               {others.map((gateway) => {
                 const result = otherResults[gateway.name];
@@ -405,7 +400,7 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
                       {result && <span style={{ display: 'block', marginTop: 4, color: result.ok ? 'var(--ok, #2e7d43)' : 'var(--danger)' }}>{result.ok ? `测试成功：${result.text}` : result.text}</span>}
                     </td>
                     <td data-label="状态"><span className={`p-pill p-pill--sm ${gateway.ok ? 'p-pill--ok' : 'p-pill--warn'}`}>{gateway.ok ? '已连接' : '未配置'}</span></td>
-                    <td data-label="操作">
+                    <td data-label="操作" className="admin-col-actions">
                       <div className="admin-actions">
                         <Link className="p-btn p-btn--sm" href={gateway.href}>配置</Link>
                         {gateway.kind !== 'payment' && gateway.kind !== 'mail' && (
@@ -422,6 +417,8 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
           </table>
         </div>
       </section>
+
+      {testing && <ChannelTestModal target={testing} onClose={closeTest} onRecord={recordTest} />}
 
       {editing && <ChannelForm editing={editing} onClose={() => setEditing(null)} onSaved={applySaved} />}
 
