@@ -43,7 +43,7 @@ export function DeckDraw({ cards, initial = 0 }: { cards: DeckCard[]; initial?: 
         <Link className="stg-dc stg-dc--top" href={`/c/${card.id}`} aria-label={`抽到：${card.name}，去看看`} tabIndex={phase === 'show' ? 0 : -1}>
           <div className="stg-dc-f" aria-hidden="true"><em>夜</em><small>YEHUA</small></div>
           <div className="stg-dc-b">
-            <StageArt character={card} />
+            <StageArt character={card} thumb />
             <span>{card.name}</span>
           </div>
         </Link>

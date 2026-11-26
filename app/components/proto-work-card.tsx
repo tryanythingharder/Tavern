@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '@/components/settings-ui';
-import { coverSrc } from '@/components/proto-cover';
+import { coverThumb } from '@/components/proto-cover';
 
 export type WorkCharacter = {
   id: string; name: string; author: string; initial: string; hue: number;
@@ -11,8 +11,9 @@ export type WorkCharacter = {
 };
 
 // 原型作品卡：p-card p-work
-export function ProtoWorkCard({ character }: { character: WorkCharacter }) {
-  const src = coverSrc(character);
+// 封面用缩略图；priority=首屏前几张，立即加载并提高优先级，其余懒加载
+export function ProtoWorkCard({ character, priority = false }: { character: WorkCharacter; priority?: boolean }) {
+  const src = coverThumb(character);
   const [favorite, setFavorite] = useState(false);
 
   const toggleFavorite = async () => {
@@ -35,7 +36,17 @@ export function ProtoWorkCard({ character }: { character: WorkCharacter }) {
           href={`/c/${character.id}`}
           aria-label={`查看${character.name}`}
         >
-          {src && <img src={src} alt="" loading="lazy" />}
+          {src && (
+            <img
+              src={src}
+              alt=""
+              width={480}
+              height={720}
+              loading={priority ? 'eager' : 'lazy'}
+              decoding="async"
+              {...(priority ? { fetchPriority: 'high' as const } : {})}
+            />
+          )}
         </Link>
         <button className="p-work-fav" type="button" aria-pressed={favorite} aria-label={favorite ? `取消收藏${character.name}` : `收藏${character.name}`} onClick={() => void toggleFavorite()}>
           <svg className="p-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.4S4 15.4 4 9.9A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8 2.6c0 5.5-8 10.5-8 10.5z" /></svg>

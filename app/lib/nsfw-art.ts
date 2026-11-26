@@ -14,6 +14,12 @@ export async function readPrivateArt(file: string): Promise<Buffer | null> {
   return fs.readFile(path.join(PRIVATE_ART_DIR, file)).catch(() => null);
 }
 
+/** 读内置卡缩略图 private/characters/t/<id>.webp（scripts/build-thumbs.mjs 生成，全年龄和 18+ 都在这里）；不存在返回 null */
+export async function readThumb(file: string): Promise<Buffer | null> {
+  if (!/^[a-z0-9-]+\.webp$/.test(file)) return null;
+  return fs.readFile(path.join(PRIVATE_ART_DIR, 't', file)).catch(() => null);
+}
+
 /**
  * 用户上传的 /media/<name> 属于哪张 18+ 卡（封面、头像、表情立绘）。
  * 不属于任何 18+ 卡返回 null；属于多张时只要有一张拦下就拦（交给调用方逐张判）。

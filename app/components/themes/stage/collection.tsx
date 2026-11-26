@@ -107,7 +107,7 @@ export function StageCollection({ cards, categories }: { cards: ShelfCard[]; cat
               <Tilt className="stg-cc-tilt">
                 <Link className="stg-cc-in" href={`/c/${card.id}`} aria-label={`${card.name}，${card.hook}`}>
                   <div className="stg-cc-ph">
-                    <StageArt character={card} />
+                    <StageArt character={card} thumb />
                     <div className="stg-cc-no">NO.{pad2(card.no)}<b>{card.category}</b></div>
                     <div className="stg-cc-cnt"><span aria-hidden="true">◔</span> {card.chats} 次开场</div>
                     {card.nsfw && <span className="stg-r18">18+</span>}

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import type { CharacterView } from '@/lib/characters';
 import type { HomeData } from '@/components/themes/types';
-import { coverUrl } from '@/components/themes/types';
+import { coverThumbUrl } from '@/components/themes/types';
 import { RpText } from '@/components/rp-text';
 import { StageArt } from '@/components/themes/stage/art';
 import { Tilt } from '@/components/themes/stage/tilt';
@@ -65,12 +65,12 @@ export function StageHome({ data }: { data: HomeData }) {
             <Tilt className="stg-portrait" strength={0.9}>
               {backCard && (
                 <div className="stg-pcard stg-pcard--back" aria-hidden="true">
-                  <div className="stg-pcard-img"><StageArt character={backCard} /></div>
+                  <div className="stg-pcard-img"><StageArt character={backCard} sizes="(max-width: 720px) 60vw, 340px" /></div>
                 </div>
               )}
               <Link className="stg-pcard stg-pcard--main" href={`/c/${featured.id}`} aria-label={`${featured.name} 的角色卡`}>
                 <div className="stg-pcard-img">
-                  <StageArt character={featured} position="40% 28%" />
+                  <StageArt character={featured} position="40% 28%" sizes="(max-width: 720px) 60vw, 340px" />
                   <span className="stg-glare" aria-hidden="true" />
                 </div>
                 <div className="stg-pcard-cap"><span>NO.{pad2(number(featured))} · {featured.category}</span><span className="stg-ital">by {featured.author}</span></div>
@@ -101,14 +101,14 @@ export function StageHome({ data }: { data: HomeData }) {
         <div className="stg-rcol">
           {script ? (
             <article className="stg-tile stg-script stg-rise" style={{ animationDelay: '.15s' }}>
-              <StageArt character={script} className="stg-script-bg" position="50% 22%" />
+              <StageArt character={script} className="stg-script-bg" position="50% 22%" sizes="(max-width: 720px) 94vw, 400px" />
               <div className="stg-script-top"><b><i />今日剧本 · DAY {dayOfYear}</b><span>23:59 换场</span></div>
               <div className="stg-glass">
                 <span className="stg-ital">Today&apos;s script</span>
                 <h3>{script.hook.split(/[，,。！？!?]/)[0]}</h3>
                 <p>{plain(script.greeting)}</p>
                 <div className="stg-cast">
-                  <StageArt character={script} position="50% 15%" />
+                  <StageArt character={script} position="50% 15%" thumb />
                   <i className="stg-me">你</i>
                   <span>{script.name} × 你</span>
                   <Link className="stg-go" href={`/c/${script.id}`}>入戏 <span aria-hidden="true">→</span></Link>
@@ -147,7 +147,7 @@ export function StageHome({ data }: { data: HomeData }) {
           <div className="stg-tickets">
             {data.chats.map((chat, i) => {
               const owner = all.find((c) => c.id === chat.characterId);
-              const src = coverUrl({ id: chat.characterId, coverImage: owner?.coverImage ?? null, ownerId: chat.characterOwner });
+              const src = coverThumbUrl({ id: chat.characterId, coverImage: owner?.coverImage ?? null, ownerId: chat.characterOwner });
               return (
                 <Link key={chat.id} className="stg-ticket stg-rise" href={`/chats/${chat.id}`} style={{ animationDelay: `${0.1 + i * 0.06}s`, ['--rot' as string]: i % 2 ? '.8deg' : '-.8deg' }}>
                   <span className="stg-ticket-ph">

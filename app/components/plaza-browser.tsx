@@ -1,7 +1,7 @@
 'use client';
 
 import { FileDrop } from '@/components/file-drop';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
@@ -11,6 +11,12 @@ import { Select } from '@/components/ui-select';
 import { ALL, CATEGORIES, HOT_TAG_COUNT, hasAllTags, hotTags, isCategory } from '@/lib/catalog';
 
 type Item = WorkCharacter & { tags: string[]; nsfw: boolean; createdAt: number };
+
+// 一批多少张：服务端先按 24 渲染；挂载后按网格实际列数凑成整行（5 列→25、6 列→24、7 列→28、2 列→24）
+const PAGE = 24;
+const batchFor = (cols: number) => Math.max(1, Math.ceil(PAGE / Math.max(1, cols))) * Math.max(1, cols);
+// 首屏前几张立即加载、提高优先级，其余懒加载
+const PRIORITY_COUNT = 4;
 
 function heat(value: string): number {
   const number = Number(String(value).replace(/[^\d.]/g, '')) || 0;
@@ -24,7 +30,10 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
   const [category, setCategory] = useState<string>(isCategory(initialCategory) ? initialCategory : ALL);
   const [tags, setTags] = useState<string[]>(initialTags);
   const [hideNsfw, setHideNsfw] = useState(initialHideNsfw);
-  const [visible, setVisible] = useState(6);
+  const [batch, setBatch] = useState(PAGE);
+  const [visible, setVisible] = useState(PAGE);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [blocked, setBlocked] = useState<string[]>(initialBlocked);
   const [ageOpen, setAgeOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -59,14 +68,14 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
     const suffix = params.toString();
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${suffix ? `?${suffix}` : ''}`);
   };
-  const pickCategory = (next: string) => { setCategory(next); setVisible(6); syncUrl(next, tags); };
+  const pickCategory = (next: string) => { setCategory(next); setVisible(batch); syncUrl(next, tags); };
   const toggleTag = (item: string) => {
     const next = tags.includes(item) ? tags.filter((value) => value !== item) : [...tags, item];
     setTags(next);
-    setVisible(6);
+    setVisible(batch);
     syncUrl(category, next);
   };
-  const clearFilters = () => { setQuery(''); setCategory(ALL); setTags([]); setVisible(6); syncUrl(ALL, []); };
+  const clearFilters = () => { setQuery(''); setCategory(ALL); setTags([]); setVisible(batch); syncUrl(ALL, []); };
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,6 +89,44 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
   }, [pool, query, category, tags, sort]);
 
   const shown = list.slice(0, visible);
+  const hasMore = visible < list.length;
+  const loadMore = useCallback(() => setVisible((value) => value + batch), [batch]);
+
+  // 按网格列数把一批凑成整行；窗口变宽变窄时跟着变，已显示的数量也补齐到整行
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+      const next = batchFor(cols);
+      setBatch(next);
+      setVisible((value) => Math.max(next, Math.ceil(value / cols) * cols));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
+
+  // 用户滚动过才自动加载，避免大屏一打开就连拉好几批。有的主题是内层容器滚动（不是 window），所以在捕获阶段听所有 scroll
+  const scrolledRef = useRef(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const mark = () => { if (!scrolledRef.current) { scrolledRef.current = true; setScrolled(true); } };
+    document.addEventListener('scroll', mark, { capture: true, passive: true });
+    return () => document.removeEventListener('scroll', mark, { capture: true });
+  }, []);
+
+  // 滚到底附近自动加载下一批；「加载更多」按钮保留（键盘/读屏/不支持 IntersectionObserver 时用）
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore || !scrolled || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) loadMore();
+    }, { rootMargin: '400px 0px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore, visible, scrolled]);
 
   const setNsfwPref = async (next: boolean) => {
     setHideNsfw(next);
@@ -167,7 +214,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
               value={query}
               placeholder="筛选广场中的角色、作者或剧情"
               aria-label="筛选广场角色"
-              onChange={(event) => { setQuery(event.target.value); setVisible(6); }}
+              onChange={(event) => { setQuery(event.target.value); setVisible(batch); }}
             />
           </label>
           <Select className="p-select" aria-label="排序方式" value={sort} onChange={(event) => setSort(event.target.value as 'hot' | 'new')}>
@@ -202,7 +249,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
             {tagChips.map((item) => (
               <button key={item} className="p-chip p-chip--sm" type="button" aria-pressed={tags.includes(item)} onClick={() => toggleTag(item)}>#{item}</button>
             ))}
-            {tags.length > 0 && <button className="p-text-btn" type="button" onClick={() => { setTags([]); setVisible(6); syncUrl(category, []); }}>清除标签</button>}
+            {tags.length > 0 && <button className="p-text-btn" type="button" onClick={() => { setTags([]); setVisible(batch); syncUrl(category, []); }}>清除标签</button>}
           </div>
         )}
         {query.trim() && (
@@ -212,9 +259,9 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
         )}
       </div>
 
-      <div className="p-work-grid">
-        {shown.map((character) => (
-          <ProtoWorkCard key={character.id} character={character} />
+      <div className="p-work-grid plaza-grid" ref={gridRef}>
+        {shown.map((character, index) => (
+          <ProtoWorkCard key={character.id} character={character} priority={index < PRIORITY_COUNT} />
         ))}
         {!list.length && (
           <div className="p-empty" style={{ gridColumn: '1/-1' }}>
@@ -225,9 +272,9 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
         )}
       </div>
 
-      <div className="p-loadmore">
-        <span>{list.length ? `已显示 ${Math.min(visible, list.length)} / ${list.length}` : '没有结果'}</span>
-        {visible < list.length && <button className="p-btn" type="button" onClick={() => setVisible((value) => value + 6)}>加载更多</button>}
+      <div className="p-loadmore" ref={sentinelRef}>
+        <span aria-live="polite">{list.length ? `已显示 ${Math.min(visible, list.length)} / ${list.length}` : '没有结果'}</span>
+        {hasMore && <button className="p-btn" type="button" onClick={loadMore}>加载更多</button>}
       </div>
 
       {ageOpen && (

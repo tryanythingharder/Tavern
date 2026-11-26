@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import type { CharacterView } from '@/lib/characters';
-import { coverUrl, type HomeData } from '@/components/themes/types';
+import { coverSrcSet, coverThumbUrl, coverUrl, type HomeData } from '@/components/themes/types';
 import { NocChapterRail, NocDeck, NocProgramme, NocTimecode } from '@/components/themes/nocturne/parts';
 import { actInfo, cnNumber, lastLine, pad2, plain } from '@/components/themes/nocturne/lib';
 
@@ -105,7 +105,8 @@ export function NocturneHome({ data }: { data: HomeData }) {
             cards={deck.map((character, index) => ({
               id: character.id,
               name: character.name,
-              cover: coverUrl(character),
+              cover: coverThumbUrl(character),
+              coverSet: coverSrcSet(character),
               initial: character.initial,
               hook: plain(character.hook),
               category: character.category,
@@ -136,7 +137,7 @@ export function NocturneHome({ data }: { data: HomeData }) {
           <div className="noc-reels">
             {resume.map((chat) => {
               const character = byId.get(chat.characterId);
-              const cover = coverUrl({ id: chat.characterId, coverImage: character?.coverImage, ownerId: chat.characterOwner });
+              const cover = coverThumbUrl({ id: chat.characterId, coverImage: character?.coverImage, ownerId: chat.characterOwner });
               const info = actInfo(chat.messageCount);
               return (
                 <Link className="noc-reel noc-reveal" href={`/chats/${chat.id}`} key={chat.id}>
@@ -195,7 +196,8 @@ function posterItem(character: CharacterView, index: number) {
     nsfw: character.nsfw,
     hook: plain(character.hook),
     greeting: clip(plain(character.greeting), 90),
-    cover: coverUrl(character),
+    cover: coverThumbUrl(character),
+    coverSet: coverSrcSet(character),
     initial: character.initial,
     no: index + 1,
   };

@@ -5,7 +5,7 @@ import { FileDrop } from '@/components/file-drop';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { coverSrc } from '@/components/proto-cover';
+import { coverThumb } from '@/components/proto-cover';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
 import { Select } from '@/components/ui-select';
 
@@ -244,12 +244,12 @@ export function ChatsBrowser({ chats, rooms, characters }: { chats: ChatItem[]; 
         ))}
 
         {matchedChats.map((chat) => {
-          const src = coverSrc({ id: chat.characterId, name: chat.name, initial: chat.initial, hue: chat.hue, ownerId: chat.ownerId, coverImage: chat.coverImage });
+          const src = coverThumb({ id: chat.characterId, name: chat.name, initial: chat.initial, hue: chat.hue, ownerId: chat.ownerId, coverImage: chat.coverImage });
           return (
             <div className="p-chat-row" key={chat.id}>
               <Link className="p-chat-open" href={`/chats/${chat.id}`}>
                 <div className={`p-cover p-row-cover${src ? ' has-portrait' : ''}`} style={{ ['--h' as string]: chat.hue }} data-initial={chat.initial} role="img" aria-label={`${chat.name}的立绘`}>
-                  {src && <img src={src} alt="" loading="lazy" />}
+                  {src && <img src={src} alt="" loading="lazy" decoding="async" />}
                 </div>
                 <div className="p-chat-row-main">
                   <div className="p-chat-row-title"><span className="p-chat-row-name">{chat.name}</span><span className="p-chat-row-session">{chat.title}</span></div>

@@ -56,6 +56,8 @@ type DeckCard = {
   id: string;
   name: string;
   cover: string | null;
+  /** 缩略图 + 原图 srcset（内置立绘才有），1x 屏取缩略图 */
+  coverSet?: string | null;
   initial: string;
   hook: string;
   category: string;
@@ -98,7 +100,7 @@ export function NocDeck({ cards }: { cards: DeckCard[] }) {
             const hidden = Math.abs(pos) > 2;
             const inner = (
               <>
-                {card.cover ? <img src={card.cover} alt="" draggable={false} loading="lazy" decoding="async" /> : <span className="noc-card-blank">{card.initial}</span>}
+                {card.cover ? <img src={card.cover} {...(card.coverSet ? { srcSet: card.coverSet, sizes: '(max-width: 720px) 66vw, 360px' } : {})} alt="" draggable={false} loading="lazy" decoding="async" /> : <span className="noc-card-blank">{card.initial}</span>}
                 <span className="noc-sheen" aria-hidden="true" />
                 <span className="noc-card-badge noc-latin">Feature {pad2(card.no)}</span>
                 <span className="noc-card-rating">{card.nsfw ? 'R18' : '全年龄'}</span>
@@ -149,6 +151,8 @@ type Poster = {
   hook: string;
   greeting: string;
   cover: string | null;
+  /** 缩略图 + 原图 srcset（内置立绘才有），1x 屏取缩略图 */
+  coverSet?: string | null;
   initial: string;
   no: number;
 };
@@ -178,7 +182,7 @@ export function NocProgramme({ categories, items }: { categories: string[]; item
           {shown.map((item) => (
             <Link key={item.id} className="noc-poster noc-reveal" href={`/c/${item.id}`} style={{ ['--d' as string]: (item.no - 1) % 3 } as CSSProperties}>
               <div className="noc-frame">
-                {item.cover ? <img src={item.cover} alt="" loading="lazy" /> : <span className="noc-poster-blank">{item.initial}</span>}
+                {item.cover ? <img src={item.cover} {...(item.coverSet ? { srcSet: item.coverSet, sizes: '(max-width: 720px) 46vw, 400px' } : {})} alt="" loading="lazy" decoding="async" /> : <span className="noc-poster-blank">{item.initial}</span>}
                 <span className="noc-no noc-latin">No. {pad2(item.no)}</span>
                 {item.nsfw && <span className="noc-r18">R18</span>}
                 <p className="noc-hook">{item.hook}</p>

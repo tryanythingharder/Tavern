@@ -1541,3 +1541,13 @@ html body[data-theme="folio"][data-page="chat"] .p-chat-meta { gap: 8px; align-i
   html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a:is(.is-active, [aria-current="true"], [aria-current="page"]) { box-shadow: inset 0 -2px 0 var(--fo-ink); }
   html body[data-theme="folio"]:not(#fo)[data-page="settings"] .p-settings .p-toc a .pm-st { display: none; }
 }
+
+/* 广场密度（plaza-perf）：卡片缩到 176px 起，每行 5–7 张；字号随卡宽收一档 */
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-work-grid.plaza-grid { gap: 36px 22px; }
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .plaza-grid .p-work-name { font-size: 21px; flex-wrap: wrap; overflow-wrap: anywhere; }
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .plaza-grid .p-work-desc { margin-top: 8px; font-size: 13px; line-height: 1.7; min-height: calc(2 * 1.7em); max-height: calc(2 * 1.7em); }
+html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .plaza-grid .p-work-meta { gap: 6px; }
+@media (max-width: 720px) {
+  html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .p-work-grid.plaza-grid { gap: 28px 14px; }
+  html body[data-theme="folio"]:not(#fo)[data-page="plaza"] .plaza-grid .p-work-name { font-size: 19px; }
+}

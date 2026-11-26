@@ -1250,3 +1250,16 @@ html[data-scheme="dark"] body[data-theme="nocturne"]:not(#noc) :is(.p-btn--prima
 html[data-scheme="dark"] body[data-theme="nocturne"]:not(#noc)[data-page="character"] :is(#start-chat, .p-detail-sticky .p-btn--primary):not(:disabled):not(:hover) {
   background-color: color-mix(in oklab, var(--noc-accent) 94%, #000); border-color: color-mix(in oklab, var(--noc-accent) 94%, #000);
 }
+
+/* 广场密度（plaza-perf）：海报缩到 176px 起，每行 5–7 张；片名字号随卡宽收一档，简介两行压在海报底部 */
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .p-work-grid.plaza-grid { gap: 18px 16px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-body { padding: 0 12px 12px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-name { font-size: 20px; letter-spacing: .08em; overflow-wrap: anywhere; white-space: normal; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-desc { margin: 6px 0 0; font-size: 12px; line-height: 1.7; max-height: calc(2 * 1.7em); }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-meta { margin-top: 8px; padding-top: 8px; }
+html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-media::before { top: 10px; left: 12px; font-size: 12px; }
+@media (max-width: 720px) {
+  html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .p-work-grid.plaza-grid { gap: 12px 10px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-name { font-size: 18px; }
+  html body[data-theme="nocturne"]:not(#noc)[data-page="plaza"] .plaza-grid > .p-work .p-work-desc { display: none; }
+}

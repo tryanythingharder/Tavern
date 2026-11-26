@@ -101,7 +101,7 @@ export function FolioIndex({
             <div key={item.id} className={`fo-jacket${current === item.id ? ' is-show' : ''}`}>
               <div className="fo-spine"><i>{pad(n)}</i><b>{item.name}</b><i>N°{Number(issueNo)}</i></div>
               <div className="fo-face">
-                {item.cover ? <img src={item.cover} alt="" loading="lazy" /> : <span className="fo-face-initial">{item.initial}</span>}
+                {item.cover ? <img src={item.cover} alt="" loading="lazy" decoding="async" /> : <span className="fo-face-initial">{item.initial}</span>}
                 <div className="fo-top"><span>No.{pad(n)}</span><span>{item.category}</span></div>
                 <div className="fo-cap">
                   {item.pace && <div className="fo-k">{item.pace}</div>}

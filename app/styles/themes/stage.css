@@ -1184,3 +1184,14 @@ html body[data-theme="stage"]:not(.p-cinema)[data-page="chat"] .p-msg-tools { ga
   html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-search { display: none; }
   html[data-lang="en"] body[data-theme="stage"]:not(.p-cinema) .p-topbar .p-topbar-search { display: grid; }
 }
+
+/* 广场密度（plaza-perf）：卡片缩到 176px 起，每行 5–7 张；字号随卡宽收一档，简介两行 */
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-work-grid.plaza-grid { gap: 30px 20px; padding: 14px 4px 36px; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .plaza-grid .p-work-body { padding: 12px 6px 0; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .plaza-grid .p-work-name { font-size: 22px; overflow-wrap: anywhere; white-space: normal; }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .plaza-grid .p-work-desc { margin-top: 6px; font-size: 12.5px; line-height: 1.75; max-height: calc(2 * 1.75em); }
+html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .plaza-grid .p-work-meta { margin-top: 10px; padding-top: 10px; }
+@media (max-width: 720px) {
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .p-work-grid.plaza-grid { gap: 18px 12px; padding: 12px 2px 32px; }
+  html body[data-theme="stage"]:not(.p-cinema)[data-page="plaza"] .plaza-grid .p-work-name { font-size: 20px; }
+}

@@ -1050,3 +1050,35 @@ article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
 @media (prefers-reduced-motion: reduce) { .ctest-spin { animation-duration: 2.4s; } }
 .ctest-summary { min-height: 20px; margin-top: 12px; font-size: 13px; color: var(--text-2); }
 @media (max-width: 560px) { .ctest-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+/* =========================================================================
+   广场：一屏多放卡（plaza-perf）
+   - 内容区放宽到 1440（其他列表页仍 1080）；卡片最小 176px → 1280 每行 5、1440 每行 6、1920 每行 7；手机 2 列
+   - 封面是缩略图（≤40KB），列数多了也不拖慢首屏
+   各主题的间距/字号在 themes/*.css 末尾「广场密度」段里再调
+   ========================================================================= */
+html body[data-page="plaza"]:not(.p-cinema) .p-page,
+html body[data-page="plaza"]:not(.p-cinema) .p-inner { --classic-max: 1440px; }
+/* 两侧留白与顶部公告条对齐（1280 宽时约 50px） */
+@media (min-width: 721px) {
+    html body[data-page="plaza"]:not(.p-cinema):not([data-page="chat"]) .p-inner { --page-pad: clamp(16px, 4vw, 50px); }
+}
+html body[data-page="plaza"] .p-work-grid.plaza-grid {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    gap: 28px 20px;
+}
+html body[data-page="plaza"] .plaza-grid .p-work-name { font-size: 16px; }
+html body[data-page="plaza"] .plaza-grid .p-work-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    /* 行高留足：有的中文字体字形高出行框，第三行首字的点会从两行下沿露出来 */
+    max-height: calc(2 * 1.75em);
+    line-height: 1.75;
+}
+html body[data-page="plaza"] .plaza-grid .p-work-meta { flex-wrap: wrap; gap: 4px 8px; }
+html body[data-page="plaza"] .plaza-grid .p-work-meta .p-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 720px) {
+    html body[data-page="plaza"] .p-work-grid.plaza-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 12px; }
+}

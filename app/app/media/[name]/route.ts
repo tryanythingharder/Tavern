@@ -4,6 +4,7 @@ import { mediaAlias } from '@/lib/media-webp';
 import { parseRange } from '@/lib/http-range';
 import { nsfwBlock } from '@/lib/age-gate';
 import { nsfwOwnersOfMedia } from '@/lib/nsfw-art';
+import { mediaThumb, wantsThumb } from '@/lib/media-thumb';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,9 @@ export async function GET(request: Request, context: Params) {
     if (await nsfwBlock(user?.id ?? null, owner)) return new Response('Forbidden', { status: 403, headers: { 'Cache-Control': 'private, no-store' } });
   }
   const privateFile = file.visibility === 'private' || nsfwOwners.length > 0;
+  // ?w=480：列表卡片用的缩略图（判定已在上面做完，缓存头与原图一致）
+  const thumb = wantsThumb(name, new URL(request.url).searchParams.get('w')) ? await mediaThumb(name, file.buffer) : null;
+  if (thumb) { file.buffer = thumb; file.extension = 'webp'; }
   const size = file.buffer.length;
   const headers: Record<string, string> = {
     'Content-Type': TYPES[file.extension] ?? 'application/octet-stream',

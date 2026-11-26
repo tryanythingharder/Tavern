@@ -135,6 +135,7 @@
 
 数据在 `app/data/plaza-seeds-r18.ts`（文件末尾合并进 `PLAZA_SEEDS`），每张 `nsfw: true`，只对通过平台分级（`lib/age-gate.ts`：全站开关、地区、登录、出生日期、年龄线、强验证地区）的用户出现；新账号默认隐藏 18+。
 立绘不放 `public/`，在 `app/private/characters/{id}.jpg`，由 `app/characters/[file]/route.ts` 按 `nsfwBlock` 判定后提供（地址仍是 `/characters/{id}.jpg`）。
+列表卡片用的缩略图（全部内置卡，含全年龄）统一在 `app/private/characters/t/{id}.webp`（`node scripts/build-thumbs.mjs` 生成，宽 ≤480、单张 ≤40KB），由 `app/characters/t/[file]/route.ts` 提供：全年龄卡回 public 长缓存，18+ 卡同样先过 `nsfwBlock`（游客 403）。新增或替换内置立绘后要重跑脚本并提交产物；替换已有立绘时把 `lib/cover-url.ts` 的 `THUMB_VERSION` 加一。
 
 全部来自 RisuRealm，许可取自每张卡页面数据中的 `license` 字段（爬取 2026-11-25；许可说明页 https://realm.risuai.net/help/license ）。每张卡都已**翻译改编**：译为中文并压缩改写简介、开场白和设定，删去原卡状态栏、图片标签、脚本与世界书；卡面不写露骨描写，统一加了「成年、自愿、说停就停」的边界说明；改动由本站负责，不代表原作者，改编不代表原作者认可。卡内 `creatorNotes` 与结构化 `source` 字段写明了作者、原卡地址、许可与链接。
 

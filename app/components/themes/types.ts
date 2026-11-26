@@ -1,3 +1,5 @@
+import { coverOriginalUrl, coverSrcSet, thumbOf } from '@/lib/cover-url';
+export { coverSrcSet };
 import type { CharacterView } from '@/lib/characters';
 
 // 首页三套主题共用的数据。page.tsx 负责查询，主题组件只负责呈现。
@@ -32,8 +34,12 @@ export type HomeData = {
   categories: string[];
 };
 
-/** 角色封面地址：上传封面 > 内置立绘 > 无 */
+/** 角色封面地址：上传封面 > 内置立绘 > 无（原图，头图等大幅用） */
 export function coverUrl(character: { id: string; coverImage?: string | null; ownerId: number | null }): string | null {
-  if (character.coverImage) return character.coverImage;
-  return character.ownerId === null ? `/characters/${character.id}.jpg` : null;
+  return coverOriginalUrl(character);
+}
+
+/** 缩略图（卡片、书签、海报列表等小图用） */
+export function coverThumbUrl(character: { id: string; coverImage?: string | null; ownerId: number | null }): string | null {
+  return thumbOf(coverOriginalUrl(character));
 }

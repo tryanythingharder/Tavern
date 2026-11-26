@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { CharacterView } from '@/lib/characters';
-import { coverUrl, type HomeData } from '@/components/themes/types';
+import { coverThumbUrl, coverUrl, type HomeData } from '@/components/themes/types';
 import { FolioIndex, type FolioIndexItem } from '@/components/themes/folio/index-list';
 import { FolioReveal } from '@/components/themes/folio/reveal';
 import { cnYear, excerpt, formatCount, latinName, pad, parseCount, plain, roman, season, seasonEn } from '@/components/themes/folio/lib';
@@ -43,7 +43,7 @@ export function FolioHome({ data }: { data: HomeData }) {
     chats: c.chats,
     nsfw: c.nsfw,
     pace: c.pace.split('·').slice(0, 2).join('·').trim(),
-    cover: coverUrl(c),
+    cover: coverThumbUrl(c),
     initial: c.initial,
   }));
   const counts = new Map<string, number>();
@@ -167,7 +167,7 @@ export function FolioHome({ data }: { data: HomeData }) {
           <div className="fo-shelf" data-count={shelf.length}>
             {shelf.map((chat, i) => {
               const character = byId.get(chat.characterId) as CharacterView | undefined;
-              const src = coverUrl({ id: chat.characterId, coverImage: character?.coverImage ?? null, ownerId: chat.characterOwner });
+              const src = coverThumbUrl({ id: chat.characterId, coverImage: character?.coverImage ?? null, ownerId: chat.characterOwner });
               const progress = Math.max(6, Math.min(100, Math.round((chat.messageCount / 40) * 100)));
               const chapter = Math.max(1, Math.ceil(chat.messageCount / 12));
               return (
