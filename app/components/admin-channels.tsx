@@ -34,6 +34,8 @@ export type OtherGateway = {
   kind: 'image' | 'tts' | 'payment' | 'mail';
 };
 
+// 旧版「单线路配置」（环境变量 TAVERN_MODEL_* / 旧后台设置）里完整的线路；active = 一条渠道都没有、正在用它
+export type LegacyRoutes = { routes: { baseUrl: string; model: string }[]; active: boolean };
 
 function relative(value: number | null): string {
   if (!value) return '还没测试';
@@ -241,12 +243,13 @@ function ChannelForm({
   );
 }
 
-export function AdminChannels({ initial, others }: { initial: ChannelView[]; others: OtherGateway[] }) {
+export function AdminChannels({ initial, others, legacy }: { initial: ChannelView[]; others: OtherGateway[]; legacy?: LegacyRoutes }) {
   const [rows, setRows] = useState(initial);
   const [editing, setEditing] = useState<ChannelView | 'new' | null>(null);
   const [deleting, setDeleting] = useState<ChannelView | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [testing, setTesting] = useState<ChannelTestTarget | null>(null);
+  const [migrating, setMigrating] = useState(false);
   const setNotice = useNotice();
   const [error, setError] = useState('');
   const [otherTesting, setOtherTesting] = useState<string | null>(null);
@@ -266,6 +269,29 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
   const recordTest = useCallback((channelId: number, record: ChannelTestRecord) => {
     setRows((prev) => prev.map((row) => (row.id === channelId ? { ...row, lastTestAt: Date.now(), lastTestOk: record.ok, lastTestNote: record.note } : row)));
   }, []);
+
+  // 旧版单线路配置 → 渠道：密钥由服务端从旧配置里取，旧配置保留不删
+  const migrateLegacy = async () => {
+    if (!legacy?.routes.length) return;
+    setMigrating(true);
+    setError('');
+    try {
+      const created: ChannelView[] = [];
+      for (const [index] of legacy.routes.entries()) {
+        const result = await api<{ channel: ChannelView }>('/api/admin/channels', {
+          method: 'POST',
+          body: JSON.stringify({ legacyRoute: index, name: index === 0 ? '主线路（由旧配置转入）' : `备用线路 ${index}（由旧配置转入）`, priority: -index, enabled: true }),
+        });
+        created.push(result.channel);
+      }
+      setRows((prev) => [...prev, ...created].sort((a, b) => b.priority - a.priority || a.id - b.id));
+      setNotice(`已把旧版单线路配置转成 ${created.length} 条渠道，文本生成改由渠道接管。`);
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setMigrating(false);
+    }
+  };
 
   const toggle = async (channel: ChannelView) => {
     setBusyId(channel.id);
@@ -328,9 +354,22 @@ export function AdminChannels({ initial, others }: { initial: ChannelView[]; oth
             <button className="p-btn p-btn--sm p-btn--primary" type="button" onClick={() => setEditing('new')}>新建渠道</button>
           </div>
         </div>
+        {legacy && legacy.routes.length > 0 && !legacy.active && rows.length > 0 && (
+          <p className="p-hint channel-legacy-hint">另有一套旧版「单线路配置」（环境变量 TAVERN_MODEL_* 或旧设置），只在一条渠道都没有时才会启用，现在不生效。</p>
+        )}
 
-
-        {rows.length === 0 ? (
+        {rows.length === 0 && legacy?.active ? (
+          <div className="p-notice channel-legacy" style={{ margin: 16 }}>
+            <div className="p-notice-main">
+              <div className="p-notice-title">现在用的是旧版「单线路配置」</div>
+              <code>{legacy.routes[0].model}</code> · {legacy.routes[0].baseUrl}{legacy.routes.length > 1 ? `，另有 ${legacy.routes.length - 1} 条备用线路` : ''}。它来自环境变量 TAVERN_MODEL_* 或旧版后台设置，只在一条渠道都没有时生效。转成渠道后就能在这里统一测试、排优先级、拉模型列表；旧配置保留不删，删掉全部渠道会自动回到它。
+            </div>
+            <div className="admin-actions">
+              <button className="p-btn p-btn--sm p-btn--primary" type="button" disabled={migrating} onClick={() => void migrateLegacy()}>{migrating ? '转换中…' : '转为渠道'}</button>
+              <button className="p-btn p-btn--sm" type="button" onClick={() => setEditing('new')}>新建渠道</button>
+            </div>
+          </div>
+        ) : rows.length === 0 ? (
           <div className="p-empty" style={{ margin: 16 }}>
             <div className="p-empty-title">还没有文本渠道</div>
             <p className="p-empty-text">新建一条渠道并获取模型；创建后文本生成只走启用的渠道。</p>

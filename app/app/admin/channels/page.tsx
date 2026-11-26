@@ -6,6 +6,7 @@ import { listChannels, publicChannel } from '@/lib/channels';
 import { imageConfig, ttsConfig } from '@/lib/media';
 import { getSetting } from '@/lib/settings';
 import { AdminChannels } from '@/components/admin-channels';
+import { legacyRoutes } from '@/lib/model';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,8 @@ export default async function AdminChannelsPage() {
   const image = imageConfig();
   const tts = ttsConfig();
   const initial = listChannels().map(publicChannel);
+  // 旧版「单线路配置」并进了本页：只给地址和模型，不给密钥
+  const legacy = { routes: legacyRoutes().map((route) => ({ baseUrl: route.baseUrl, model: route.model })), active: initial.length === 0 };
   const others = [
     { name: '生图', endpoint: hostOf(image.baseUrl), model: image.model, ok: Boolean(image.baseUrl && image.apiKey && image.model), href: '/admin/settings/image', kind: 'image' as const },
     { name: '语音（TTS）', endpoint: hostOf(tts.baseUrl), model: tts.model, ok: Boolean(tts.baseUrl && tts.apiKey && tts.model), href: '/admin/settings/tts', kind: 'tts' as const },
@@ -35,9 +38,9 @@ export default async function AdminChannelsPage() {
 
   return (
     <>
-      <AdminHeader href="/admin/channels" sub={<>文本渠道支持多条、按优先级 failover；模型从上游拉取，不用手填</>} />
+      <AdminHeader href="/admin/channels" sub={<>玩家对话用的文本模型从这里的渠道走：可建多条、按优先级 failover；模型从上游拉取，不用手填</>} />
       <div className="p-acontent">
-        <AdminChannels initial={initial} others={others} />
+        <AdminChannels initial={initial} others={others} legacy={legacy} />
       </div>
     </>
   );

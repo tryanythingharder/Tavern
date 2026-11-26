@@ -1017,6 +1017,8 @@ article.p-msg:not(.is-latest):not(.is-streaming):not(.is-tools-open) {
     .admin-table td.admin-col-actions .admin-actions { justify-content: flex-start; }
 }
 .channel-section-head > .channel-head-actions { display: flex; flex: 0 0 auto; margin-left: auto; gap: 8px; align-items: center; }
+.channel-legacy-hint { margin: -4px 18px 12px; }
+.channel-legacy .admin-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; }
 
 /* 渠道测试弹窗（components/admin-channel-test.tsx） */
 .ctest-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 6px; }

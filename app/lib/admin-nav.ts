@@ -30,7 +30,6 @@ export const ADMIN_GROUPS: AdminNavGroup[] = [
     items: [
       { href: '/admin/channels', label: '渠道', desc: '上游线路与优先级' },
       { href: '/admin/models', label: '模型广场', desc: '玩家可选的模型' },
-      { href: '/admin/model', label: '单线路配置', desc: '只用一条线路时的简易配置' },
     ],
   },
   {

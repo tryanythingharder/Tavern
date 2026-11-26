@@ -80,6 +80,13 @@ export function modelFallbacks(): ModelRoute[] {
   return routeList().fallbacks;
 }
 
+// 旧版「单线路 + 备用线路」配置（环境变量 TAVERN_MODEL_* 或旧后台设置 model.*）里完整可用的线路，主线路在前。
+// 只在一条渠道都没有时生效；渠道页据此提示并提供「转为渠道」。含密钥，只能在服务端用。
+export function legacyRoutes(): ModelRoute[] {
+  const { primary, fallbacks } = routeList();
+  return [primary, ...fallbacks].filter((route) => Boolean(route.baseUrl && route.apiKey && route.model));
+}
+
 export function modelConfigured(): boolean {
   return modelRoutes().length > 0;
 }
