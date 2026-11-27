@@ -19,6 +19,7 @@ import { listPersonas, listRegexRules, loadRoomConfig } from '@/lib/resources-db
 import { characterRegexRules } from '@/lib/card-extras';
 import { RoomChat } from '@/components/room-chat';
 import { AppearanceButton } from '@/components/appearance-drawer';
+import { builtinArtUrl } from '@/lib/cover-url';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '房间' });
@@ -37,7 +38,7 @@ export default async function RoomPage({ params, searchParams }: { params: Promi
   const members = room.characterIds
     .map((characterId) => getCharacterById(characterId))
     .filter((character): character is NonNullable<typeof character> => Boolean(character))
-    .map((character) => ({ id: character.id, name: character.name, initial: character.initial, hue: character.hue, avatar: character.avatar_image || character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null), muted: room.muted.includes(character.id) }));
+    .map((character) => ({ id: character.id, name: character.name, initial: character.initial, hue: character.hue, avatar: character.avatar_image || character.cover_image || (character.owner_id === null ? builtinArtUrl(character.id) : null), muted: room.muted.includes(character.id) }));
   // ST：群聊为空时插入各成员的开场白
   insertRoomGreetings(room);
   const messages = listRoomMessages(room.id);

@@ -11,7 +11,8 @@ import { readPrivateArt } from '@/lib/nsfw-art';
 export type CharacterReference = { buffer: Buffer; source: 'look' | 'cover' | 'avatar' | 'builtin' | 'chat' };
 
 async function loadUrl(url: string | null | undefined, requesterId: number): Promise<Buffer | null> {
-  const value = (url ?? '').trim();
+  // 内置原图地址带的版本参数（/characters/x.jpg?v=1）去掉再读文件
+  const value = (url ?? '').trim().replace(/^(\/characters\/[a-z0-9-]+\.jpg)\?v=[A-Za-z0-9]+$/, '$1');
   if (!value) return null;
   const media = value.match(/^\/media\/([a-zA-Z0-9-]+\.[a-z0-9]+)$/);
   if (media) return (await readMedia(media[1], requesterId).catch(() => null))?.buffer ?? null;
