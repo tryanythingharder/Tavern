@@ -1,0 +1,172 @@
+/* 广场页头收紧（plaza-head）
+ * 目标：1280×800 第一屏能完整看到第一排卡片。三套主题（folio / stage / nocturne）共用这一份，
+ * 排在主题样式之后（scripts/build-css.mjs 的 post 包），选择器带两个 :not(#id) 压过主题里带一个 id 的同名规则。
+ * - 标题行：标题、副标题（folio 还有篇目小字）合成一行，「导入 / 发布」按钮在同一行右侧
+ * - 筛选行照旧；分类 chips 单行横向滚动，放不下时两端渐隐（data-fade 由 plaza-browser 计算）
+ * - 热门标签默认一行，放不下时出现「更多标签」展开成多行
+ * 经典视图之外的 cinema 视图不动。
+ */
+
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 10px;
+  padding-top: 0;
+  padding-bottom: 8px;
+  min-height: 0;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title > div:first-child {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title h1 {
+  order: -1;
+  flex: none;
+  margin: 0;
+  font-size: 32px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title p {
+  margin: 0;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title > div:first-child::before {
+  white-space: nowrap;
+  font-size: 13px;
+  flex: none;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title h1::after {
+  font-size: 15px !important;
+  vertical-align: 4px;
+  margin-left: 10px;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-page-title-actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+/* 筛选区 */
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-filterbar {
+  margin-top: 0;
+  margin-bottom: 12px;
+  padding-top: 0;
+  gap: 0;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-categories {
+  margin-top: 8px;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-categories,
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags-list {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 24px;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar :is(.plaza-categories, .plaza-tags-list)::-webkit-scrollbar { display: none; }
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar :is(.plaza-categories, .plaza-tags-list) > * { flex: 0 0 auto; }
+
+/* 两端渐隐：放不下时提示还能滑动 */
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar [data-fade="end"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar [data-fade="start"] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 48px);
+  mask-image: linear-gradient(to right, transparent, #000 48px);
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar [data-fade="both"] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+}
+
+/* 热门标签：一行 + 「更多标签」 */
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 0;
+  overflow: visible;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags-list {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  gap: 6px;
+  align-items: center;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags[data-expanded] { align-items: flex-start; }
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags[data-expanded] .plaza-tags-list {
+  flex-wrap: wrap;
+  overflow: visible;
+  row-gap: 6px;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags[data-expanded] > :is(.plaza-tags-label, .p-text-btn) { line-height: 30px; }
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags > .p-text-btn {
+  flex: 0 0 auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags-list > .p-chip { height: 30px; min-height: 30px; padding: 0 10px; font-size: 13px; }
+
+html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-work-grid.plaza-grid { margin-top: 0; }
+
+/* —— 各主题微调 —— */
+/* folio：篇目小字排在标题右侧；两道细线保留，收窄上下留白 */
+html body[data-theme="folio"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner { padding-top: 14px; }
+html body[data-theme="folio"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-filterbar { padding-bottom: 8px; }
+html body[data-theme="folio"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-categories { padding-bottom: 2px; }
+html body[data-theme="folio"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags-list > .p-chip { height: 28px; min-height: 28px; }
+/* stage：chips 带阴影，滚动容器里留出上下余量免得阴影被裁 */
+html body[data-theme="stage"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner { padding-top: 16px; }
+html body[data-theme="stage"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-categories,
+html body[data-theme="stage"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags-list { padding: 4px 4px 6px; margin-top: 4px; }
+html body[data-theme="stage"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags { margin-top: 0; }
+html body[data-theme="stage"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-categories > .p-chip { height: 34px; min-height: 34px; }
+html body[data-theme="stage"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-work-grid.plaza-grid { padding-top: 6px; }
+/* nocturne：本来就比较紧，只把顶部留白和 chips 行的上下余量收一点 */
+html body[data-theme="nocturne"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner { padding-top: 14px; }
+html body[data-theme="nocturne"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-categories,
+html body[data-theme="nocturne"][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar .plaza-tags-list { padding-block: 3px; }
+
+/* 平板/手机：标题行只留标题 + 两个按钮（副标题与篇目小字隐藏），按钮收小一号；筛选与 chips 行照旧横滑 */
+@media (max-width: 760px) {
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title { gap: 10px; margin-bottom: 10px; padding-bottom: 8px; }
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title h1 { font-size: 26px !important; }
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title p,
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title > div:first-child::before,
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner > .p-page-title h1::after { display: none; }
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-page-title-actions > * {
+    flex: none;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-inner { padding-top: 12px; }
+  /* 搜索框占满一行：stage / nocturne 的手机网格只显式定义了两列，1 / -1 只跨到第二列，第三列（作品数）是隐式列 */
+  html body[data-theme][data-page="plaza"]:not(#ph):not(#ph-b):not(.p-cinema) .p-filterbar-main .p-search { max-width: none; width: auto; grid-column: 1 / 4; justify-self: stretch; }
+}
