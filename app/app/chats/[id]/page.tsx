@@ -29,6 +29,7 @@ import { PointsChip } from '@/components/points-chip';
 import { balance as pointsBalance } from '@/lib/points';
 import { chatFocusBootScript } from '@/lib/chat-focus';
 import { characterLoreEntries, loadExtras, parseCardLore } from '@/lib/card-extras';
+import { builtinArtUrl } from '@/lib/cover-url';
 
 export async function generateMetadata(): Promise<Metadata> {
   return trMeta({ title: '对话' });
@@ -68,7 +69,7 @@ export default async function ChatPage({ params, searchParams }: { params: Promi
   const theme = await getTheme();
   // 卡里带 HTML 美化（立绘、状态栏等）时，沉浸模式默认打开
   const richCard = loadExtras(character.id).flags?.html === true;
-  const cover = character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null);
+  const cover = character.cover_image || (character.owner_id === null ? builtinArtUrl(character.id) : null);
   const sprites = spriteMap(character.id, user.id, character.owner_id ?? null);
   const bg = resolveBackground('chat', chat.id, user.id);
   // 画面栏所有卡都有：没有封面时立绘格显示首字占位（可点开添加表情立绘），插图照常收进画廊

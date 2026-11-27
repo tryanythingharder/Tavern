@@ -4,6 +4,7 @@ import { canUseCharacter, listCharacters } from '@/lib/db';
 import { listRooms } from '@/lib/rooms';
 import { RoomsList } from '@/components/rooms-list';
 import { nsfwAccess } from '@/lib/age-gate';
+import { builtinArtUrl } from '@/lib/cover-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export default async function RoomsPage() {
     const authors = new Set(group.map((item) => item.author));
     return authors.size === group.length ? `@${character.author}` : `#${group.indexOf(character) + 1}`;
   };
-  const characters = usable.map((character) => ({ id: character.id, name: character.name, author: tagOf(character), initial: character.initial, hue: character.hue, avatar: character.avatar_image || character.cover_image || (character.owner_id === null ? `/characters/${character.id}.jpg` : null) }));
+  const characters = usable.map((character) => ({ id: character.id, name: character.name, author: tagOf(character), initial: character.initial, hue: character.hue, avatar: character.avatar_image || character.cover_image || (character.owner_id === null ? builtinArtUrl(character.id) : null) }));
 
   return (
     <div className="p-inner">

@@ -4648,5 +4648,6 @@
  "主线路（由旧配置转入）": "Primary route (from legacy config)",
  "备用线路 {0}（由旧配置转入）": "Fallback route {0} (from legacy config)",
  "，另有 {0} 条备用线路": ", plus {0} fallback routes",
- "。它来自环境变量 TAVERN_MODEL_* 或旧版后台设置，只在一条渠道都没有时生效。转成渠道后就能在这里统一测试、排优先级、拉模型列表；旧配置保留不删，删掉全部渠道会自动回到它。": ". It comes from the TAVERN_MODEL_* env vars or the old admin settings and only applies when there are no channels at all. Convert it to channels to test, prioritise and fetch models here; the legacy config is kept, and deleting every channel falls back to it automatically."
+ "。它来自环境变量 TAVERN_MODEL_* 或旧版后台设置，只在一条渠道都没有时生效。转成渠道后就能在这里统一测试、排优先级、拉模型列表；旧配置保留不删，删掉全部渠道会自动回到它。": ". It comes from the TAVERN_MODEL_* env vars or the old admin settings and only applies when there are no channels at all. Convert it to channels to test, prioritise and fetch models here; the legacy config is kept, and deleting every channel falls back to it automatically.",
+ "更多标签": "More tags"
 }

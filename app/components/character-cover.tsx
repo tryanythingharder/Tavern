@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { builtinArtUrl } from '@/lib/cover-url';
 
 // 角色封面：种子角色有立绘，用户自创角色没有图片，用首字色块兜底（避免 404 图片请求）
 export type CoverCharacter = { id: string; name: string; initial: string; hue: number; ownerId: number | null; coverImage?: string | null };
@@ -18,7 +19,7 @@ export function CharacterCover({
   fill?: boolean;
   style?: CSSProperties;
 }) {
-  const src = character.coverImage || (character.ownerId === null ? `/characters/${character.id}.jpg` : null);
+  const src = character.coverImage || (character.ownerId === null ? builtinArtUrl(character.id) : null);
   if (src) {
     return (
       <img

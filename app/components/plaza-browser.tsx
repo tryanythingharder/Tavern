@@ -1,7 +1,7 @@
 'use client';
 
 import { FileDrop } from '@/components/file-drop';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorLine, Modal, api } from '@/components/settings-ui';
@@ -23,6 +23,30 @@ function heat(value: string): number {
   return String(value).includes('万') ? number * 10000 : number;
 }
 
+// 单行横向滚动的 chips 行：内容放不下时给出两端渐隐（data-fade=start|end|both），并告诉调用方是否溢出
+function useScrollFade(ref: RefObject<HTMLDivElement | null>, paused = false) {
+  const [state, setState] = useState<{ fade?: 'start' | 'end' | 'both'; overflow: boolean }>({ overflow: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || paused) return;
+    const update = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      const overflow = max > 1;
+      const atStart = el.scrollLeft <= 1;
+      const atEnd = el.scrollLeft >= max - 1;
+      const fade = !overflow ? undefined : atStart ? 'end' : atEnd ? 'start' : 'both';
+      setState((prev) => (prev.fade === fade && prev.overflow === overflow ? prev : { fade, overflow }));
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(el);
+    for (const child of Array.from(el.children)) observer?.observe(child);
+    return () => { el.removeEventListener('scroll', update); observer?.disconnect(); };
+  });
+  return state;
+}
+
 export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfwState = 'allowed', minAge = 18, initialCategory, initialTags = [] }: { characters: Item[]; initialHideNsfw: boolean; initialBlocked: string[]; nsfwState?: NsfwStateName; minAge?: number; initialCategory?: string; initialTags?: string[] }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -40,6 +64,11 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
   const [busy, setBusy] = useState(false);
+  const catsRef = useRef<HTMLDivElement>(null);
+  const tagsRef = useRef<HTMLDivElement>(null);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const catsFade = useScrollFade(catsRef);
+  const tagsFade = useScrollFade(tagsRef, tagsOpen);
 
   // 当前可见（未被 18+ / 屏蔽作者过滤掉）的卡片：大类计数和热门标签都从这里统计
   const pool = useMemo(
@@ -229,7 +258,7 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
           )}
           <span className="p-filterbar-count">{list.length} 个作品</span>
         </div>
-        <div className="p-chips plaza-categories" role="group" aria-label="角色题材">
+        <div className="p-chips plaza-categories" role="group" aria-label="角色题材" ref={catsRef} data-fade={catsFade.fade}>
           {[ALL, ...CATEGORIES].map((item) => {
             const count = item === ALL ? pool.length : categoryCounts.get(item) ?? 0;
             return (
@@ -244,11 +273,19 @@ export function PlazaBrowser({ characters, initialHideNsfw, initialBlocked, nsfw
           )}
         </div>
         {tagChips.length > 0 && (
-          <div className="p-chips plaza-tags" role="group" aria-label="热门标签">
+          <div className="plaza-tags" data-expanded={tagsOpen ? 'true' : undefined}>
             <span className="plaza-tags-label">热门标签</span>
-            {tagChips.map((item) => (
-              <button key={item} className="p-chip p-chip--sm" type="button" aria-pressed={tags.includes(item)} onClick={() => toggleTag(item)}>#{item}</button>
-            ))}
+            {/* 默认收成一行（可横向滑动、Tab 聚焦时自动滚到可见）；放不下时出现「更多标签」展开成多行 */}
+            <div className="p-chips plaza-tags-list" id="plaza-tags-list" role="group" aria-label="热门标签" ref={tagsRef} data-fade={tagsOpen ? undefined : tagsFade.fade}>
+              {tagChips.map((item) => (
+                <button key={item} className="p-chip p-chip--sm" type="button" aria-pressed={tags.includes(item)} onClick={() => toggleTag(item)}>#{item}</button>
+              ))}
+            </div>
+            {(tagsFade.overflow || tagsOpen) && (
+              <button className="p-text-btn plaza-tags-more" type="button" aria-expanded={tagsOpen} aria-controls="plaza-tags-list" onClick={() => setTagsOpen((value) => !value)}>
+                {tagsOpen ? '收起' : '更多标签'}
+              </button>
+            )}
             {tags.length > 0 && <button className="p-text-btn" type="button" onClick={() => { setTags([]); setVisible(batch); syncUrl(category, []); }}>清除标签</button>}
           </div>
         )}

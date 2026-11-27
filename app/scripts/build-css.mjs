@@ -47,6 +47,7 @@ export const BUNDLES = {
     'styles/points-chip.css',
     'styles/sprites.css',
     'styles/models.css',
+    'styles/plaza-head.css',
     'styles/i18n-en.css',
   ],
 };
