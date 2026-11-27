@@ -27,7 +27,11 @@ function friendly(id: string): string {
 const MOBILE_QUERY = '(max-width: 720px)';
 const SEARCH_AT = 8;
 type Row = { id: string; label: string; full: string; note: string; tag: boolean; price: string; group: string };
-type Place = { mobile: boolean; style: CSSProperties; up: boolean };
+type Place = { mobile: boolean; style: CSSProperties; up: boolean; cover: boolean };
+// 桌面面板：最高 460；列表至少想留约 240；标题 + 搜索框 + 底部链接 + 内边距约 150
+const WANT_H = 460;
+const LIST_MIN = 240;
+const CHROME_H = 150;
 
 export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: number }) {
   const endpoint = roomId ? `/api/rooms/${roomId}/model` : `/api/chats/${chatId}/settings`;
@@ -96,7 +100,9 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
     if (focusTrigger) triggerRef.current?.focus();
   }, []);
 
-  // 位置：桌面贴着输入区上沿（不挡输入框）或按钮下沿，取空间大的一边；窄屏是底部弹层，避开软键盘
+  // 位置：桌面优先贴输入区上沿（不挡输入框）；那里放不下「列表约 240px + 头尾」时，
+  // 改为盖住输入区、底边贴按钮上沿（按钮仍可见）；再不行往下弹；都不够就以视口为界居中，高度取 min(460, 视口高 - 32)。
+  // 任何情况下面板都在视口内，搜索框与分组头留在面板里，只有列表内部滚动。窄屏是底部弹层，避开软键盘。
   const measure = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger) return;
@@ -106,23 +112,33 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
     if (window.matchMedia(MOBILE_QUERY).matches) {
       const visibleBottom = vv ? vv.offsetTop + vv.height : viewH;
       const visibleH = vv ? vv.height : viewH;
-      setPlace({ mobile: true, up: true, style: { bottom: Math.max(0, viewH - visibleBottom), maxHeight: Math.max(240, Math.min(visibleH - 24, Math.round(visibleH * 0.85))) } });
+      setPlace({ mobile: true, up: true, cover: false, style: { bottom: Math.max(0, viewH - visibleBottom), maxHeight: Math.max(0, Math.min(visibleH - 16, Math.max(240, Math.round(visibleH * 0.85)))) } });
       return;
     }
     const margin = 8;
+    const edge = 16; // 盖住输入区 / 居中时离视口边的距离
     const gap = 8;
     const t = trigger.getBoundingClientRect();
     const compose = trigger.closest('.p-chat-compose')?.getBoundingClientRect();
-    // 优先贴输入区上沿（不挡输入框）；窗口太矮、上沿之上放不下时退回贴按钮上沿
-    const upEdge = compose && compose.top < t.top && compose.top - gap - margin >= 280 ? compose.top : t.top;
-    const above = upEdge - gap - margin;
-    const below = viewH - t.bottom - gap - margin;
-    const want = 460;
-    const up = above >= Math.min(want, 320) || above >= below;
-    const maxHeight = Math.max(160, Math.min(want, up ? above : below));
     const width = Math.min(380, viewW - margin * 2);
     const left = Math.min(Math.max(margin, t.left), viewW - width - margin);
-    setPlace({ mobile: false, up, style: up ? { left, width, maxHeight, bottom: viewH - upEdge + gap } : { left, width, maxHeight, top: t.bottom + gap } });
+    // 想要的高度：列表至少约 240px，加上标题、搜索框、底部链接；视口实在太矮时以「视口高 - 32」为限
+    const need = Math.min(WANT_H, LIST_MIN + CHROME_H, viewH - edge * 2);
+    const aboveCompose = compose && compose.top < t.top ? compose.top - gap - margin : -1;
+    const aboveTrigger = t.top - gap - edge;
+    const below = viewH - t.bottom - gap - edge;
+    let next: Place;
+    if (aboveCompose >= need) {
+      next = { mobile: false, up: true, cover: false, style: { left, width, maxHeight: Math.min(WANT_H, aboveCompose), bottom: viewH - compose!.top + gap } };
+    } else if (aboveTrigger >= need) {
+      next = { mobile: false, up: true, cover: true, style: { left, width, maxHeight: Math.min(WANT_H, aboveTrigger), bottom: viewH - t.top + gap } };
+    } else if (below >= need) {
+      next = { mobile: false, up: false, cover: true, style: { left, width, maxHeight: Math.min(WANT_H, below), top: t.bottom + gap } };
+    } else {
+      const h = Math.max(0, Math.min(WANT_H, viewH - edge * 2));
+      next = { mobile: false, up: true, cover: true, style: { left, width, maxHeight: h, top: Math.max(edge, Math.round((viewH - h) / 2)) } };
+    }
+    setPlace(next);
   }, []);
 
   // 打开：量位置、高亮当前项、聚焦（桌面聚焦搜索框；窄屏聚焦列表，不主动弹软键盘）
@@ -275,7 +291,7 @@ export function ModelPicker({ chatId, roomId }: { chatId?: number; roomId?: numb
       {place.mobile ? <div className="mp-scrim" aria-hidden="true" onClick={() => close(true)} /> : null}
       <div
         ref={popRef}
-        className={`mp-pop mp-pop--model${place.mobile ? ' is-sheet' : place.up ? ' is-up' : ' is-down'}`}
+        className={`mp-pop mp-pop--model${place.mobile ? ' is-sheet' : place.up ? ' is-up' : ' is-down'}${place.cover ? ' is-cover' : ''}`}
         style={place.style}
         role="dialog"
         aria-modal={place.mobile ? true : undefined}
